@@ -5,15 +5,15 @@ import importlib
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
 import sys 
-# Add current path to sys.path for wsbmr
+# Add current path to sys.path for netsurf
 # Get path for parent of current file 
-wsbmr_dir = os.path.abspath(__file__)
-wsbmr_dir = os.path.dirname(os.path.dirname(wsbmr_dir))
-sys.path.append(wsbmr_dir)
-print(f'Adding {wsbmr_dir} to sys.path')
+netsurf_dir = os.path.abspath(__file__)
+netsurf_dir = os.path.dirname(os.path.dirname(netsurf_dir))
+sys.path.append(netsurf_dir)
+print(f'Adding {netsurf_dir} to sys.path')
 
 # Add fkeras and qkeras (expected to be ../)
-scripts_dir = os.path.dirname(os.path.dirname(wsbmr_dir))
+scripts_dir = os.path.dirname(os.path.dirname(netsurf_dir))
 # Check if fkeras exists as a submodule, and if it's valid. If not, check if we can import it directly from environment. 
 def check_module(module_name, dir):
     # Find __init__.py in fkeras
@@ -39,13 +39,13 @@ def check_module(module_name, dir):
             fkeras_path = None
             raise ImportError('[ERROR] - fkeras not found as submodule or in environment')
 
-check_module('fkeras', wsbmr_dir)
+check_module('fkeras', netsurf_dir)
 import fkeras 
-check_module('qkeras', wsbmr_dir)
+check_module('qkeras', netsurf_dir)
 import qkeras
-check_module('pergamos', wsbmr_dir)
+check_module('pergamos', netsurf_dir)
 import pergamos
-check_module('nodus', wsbmr_dir)
+check_module('nodus', netsurf_dir)
 import nodus
 
 
@@ -55,17 +55,17 @@ import tensorflow as tf
 # Logger 
 from nodus import __logger__ as logger
 
-# Import os to check if the env variable "WSBMR_VERBOSITY_LEVEL" is set, if not, set to 1
-if "WSBMR_VERBOSITY_LEVEL" not in os.environ:
-    os.environ["WSBMR_VERBOSITY_LEVEL"] = "0"
-WSBMR_VERBOSITY_LEVEL = int(os.environ["WSBMR_VERBOSITY_LEVEL"])
-_print_initialization_tasks = WSBMR_VERBOSITY_LEVEL > 0
+# Import os to check if the env variable "netsurf_VERBOSITY_LEVEL" is set, if not, set to 1
+if "netsurf_VERBOSITY_LEVEL" not in os.environ:
+    os.environ["netsurf_VERBOSITY_LEVEL"] = "0"
+netsurf_VERBOSITY_LEVEL = int(os.environ["netsurf_VERBOSITY_LEVEL"])
+_print_initialization_tasks = netsurf_VERBOSITY_LEVEL > 0
 
 # Get the directory where this file is 
 import os
 __dir__ = os.path.dirname(os.path.realpath(__file__))
 """ Print initialization message"""
-if _print_initialization_tasks: print(f"[LOG] - Initializing WSBMR from dir {__dir__}")
+if _print_initialization_tasks: print(f"[LOG] - Initializing netsurf from dir {__dir__}")
 
 """ Import config for easy access """
 from . import config
@@ -75,7 +75,7 @@ if _print_initialization_tasks: print(f"[LOG] - Importing submodule config")
 import nodus  # type: ignore
 # Create Nodus Session
 nodus_session = nodus.NodusSession()
-nodus_db = nodus_session.add_nodus_db("wsbmr_db", db_path = config.WSBMR_NODUS_DB_NAME)  # Add a default NodusDB instance
+nodus_db = nodus_session.add_nodus_db("netsurf_db", db_path = config.netsurf_NODUS_DB_NAME)  # Add a default NodusDB instance
 
 # Import utils first of all (so we can use log)
 if _print_initialization_tasks: print(f"[LOG] - Importing submodule utils")

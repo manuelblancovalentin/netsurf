@@ -2,8 +2,8 @@
 # Imports
 import argparse
 
-# wsbmr
-import wsbmr
+# netsurf
+import netsurf
 
 # numpy
 import numpy as np
@@ -13,7 +13,7 @@ def parse_arguments(*args, **kwargs):
 
     # Parse arguments 
     parser = argparse.ArgumentParser(description='Run an experiment')
-    parser.add_argument('-b', '--benchmark', type=str, required = False, help=f'Benchmark to run, available options: {", ".join(wsbmr.config.AVAILABLE_BENCHMARKS)}')
+    parser.add_argument('-b', '--benchmark', type=str, required = False, help=f'Benchmark to run, available options: {", ".join(netsurf.config.AVAILABLE_BENCHMARKS)}')
     # Methods is a list of methods to run
     parser.add_argument('--method', type=str, action='append', required = False, help='Methods to run')
     parser.add_argument('--method_suffix', type=str, action='append', required = False, help='Methods to run')
@@ -32,7 +32,7 @@ def parse_arguments(*args, **kwargs):
     parser.add_argument('--quantization', type=str, required=False, default="q<6,0,1>", help='Configuration of quantization in format q<m,n,s>: m=number of bits, n=integer bits, s=signed(1)/unsigned(0)')
     
     # Other params
-    parser.add_argument('--normalize', action='store_true', help='Normalize WSBMR parameters in ranking')
+    parser.add_argument('--normalize', action='store_true', help='Normalize netsurf parameters in ranking')
     parser.add_argument('--overwrite_ranking', action='store_true', help='Overwrite ranking file')
     parser.add_argument('--no-reload_ranking', action='store_true', help='Disable reloading ranking file')
     parser.add_argument('--prune', type=float, default = 0.0, help='Pruning rate (default 0.0)')
@@ -57,7 +57,7 @@ def parse_arguments(*args, **kwargs):
     benchmark = args.benchmark
     # Check if the benchmark is available
     if benchmark is not None:
-        assert benchmark in wsbmr.config.AVAILABLE_BENCHMARKS, f'Benchmark {benchmark} not available. Available options: {", ".join(wsbmr.config.AVAILABLE_BENCHMARKS)}'
+        assert benchmark in netsurf.config.AVAILABLE_BENCHMARKS, f'Benchmark {benchmark} not available. Available options: {", ".join(netsurf.config.AVAILABLE_BENCHMARKS)}'
 
     # Get the methods we need to run 
     methods = args.method
@@ -89,9 +89,9 @@ def parse_arguments(*args, **kwargs):
     benchmarks_dir = args.benchmarks_dir
 
     # If benchmarks dir is None, set the default
-    if benchmarks_dir is None: benchmarks_dir = wsbmr.config.DEFAULT_BENCHMARKS_DIR
+    if benchmarks_dir is None: benchmarks_dir = netsurf.config.DEFAULT_BENCHMARKS_DIR
     # If datasets dir is None, set the default
-    if datasets_dir is None: datasets_dir = wsbmr.config.DEFAULT_DATASETS_DIR
+    if datasets_dir is None: datasets_dir = netsurf.config.DEFAULT_DATASETS_DIR
 
     """ Flags """
     load_weights = not args.no_load_weights
@@ -105,24 +105,24 @@ def parse_arguments(*args, **kwargs):
     model_prefix = args.model_prefix
     reload_ranking = not args.no_reload_ranking
     # parse quantization 
-    quantization = wsbmr.QuantizationScheme(args.quantization)
+    quantization = netsurf.QuantizationScheme(args.quantization)
     
     # Rerun experiment flag 
     #rerun_experiment = overwrite_ranking or train_model
     
     # Experiment args
     num_reps = args.num_reps
-    if num_reps is None: num_reps = wsbmr.config.DEFAULT_NUM_REPS
+    if num_reps is None: num_reps = netsurf.config.DEFAULT_NUM_REPS
     if num_reps is not None:
         assert num_reps > 0, f'Number of repetitions should be greater than 0, but received {num_reps}'
 
     # TMr range
     protection_range = args.protection_range
     # check that protection_range is valid (0 <= tmr <= 1) and sorted
-    if protection_range is None: protection_range = wsbmr.config.DEFAULT_PROTECTION
+    if protection_range is None: protection_range = netsurf.config.DEFAULT_PROTECTION
     if protection_range is not None:
         if isinstance(protection_range, str):
-            if protection_range == 'all' or protection_range == 'default': protection_range = wsbmr.config.DEFAULT_PROTECTION
+            if protection_range == 'all' or protection_range == 'default': protection_range = netsurf.config.DEFAULT_PROTECTION
         if not isinstance(protection_range, list) and not isinstance(protection_range, tuple) and not isinstance(protection_range, np.ndarray):
             protection_range = [protection_range]
         protection_range = np.sort(protection_range)
@@ -131,10 +131,10 @@ def parse_arguments(*args, **kwargs):
     # BER range 
     ber_range = args.ber_range
     # check that ber_range is valid (0 <= ber <= 1) and sorted
-    if ber_range is None: ber_range = wsbmr.config.DEFAULT_BER
+    if ber_range is None: ber_range = netsurf.config.DEFAULT_BER
     if ber_range is not None:
         if isinstance(ber_range, str):
-            if ber_range == 'default': ber_range = wsbmr.config.DEFAULT_BER
+            if ber_range == 'default': ber_range = netsurf.config.DEFAULT_BER
         if not isinstance(ber_range, list) and not isinstance(ber_range, tuple) and not isinstance(ber_range, np.ndarray):
             ber_range = [ber_range]
         ber_range = np.sort(ber_range)

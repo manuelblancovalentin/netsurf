@@ -34,14 +34,14 @@ import seaborn as sns
 import seaborn as sns
 
 """ Custom utils """
-from wsbmr import utils
+from netsurf import utils
 
 import skimage.io as io
 from skimage.color import gray2rgb
 from skimage.transform import resize
 
-""" Import wsbmr """
-import wsbmr
+""" Import netsurf """
+import netsurf
 
 """ Import pergamos """
 import pergamos as pg
@@ -220,7 +220,7 @@ class Dataset:
                 normalizer = self.normalizer
 
         # Train normalizer
-        if verbose: wsbmr.utils.log._custom('DATA', f"Normalizing dataset (input) using quantizer range ({quantizer.min_value}, {quantizer.max_value})")
+        if verbose: netsurf.utils.log._custom('DATA', f"Normalizing dataset (input) using quantizer range ({quantizer.min_value}, {quantizer.max_value})")
         normalizer.train(dataset['train'][0])
 
         # Normalize the dataset
@@ -367,7 +367,7 @@ class Dataset:
         if axs is not None:
             # assert axs shape is the same as num_samples
             if len(axs) != num_samples:
-                wsbmr.utils.log._warn(f"Number of axes ({len(axs)}) is different from number of samples ({num_samples}). Creating new axes")
+                netsurf.utils.log._warn(f"Number of axes ({len(axs)}) is different from number of samples ({num_samples}). Creating new axes")
                 axs = None
 
         if axs is None:
@@ -394,7 +394,7 @@ class Dataset:
         
         # Check if exists 
         if os.path.isfile(filename) and not overwrite:
-            wsbmr.utils.log._custom('DATA', f'File {filename} already exists. Skipping')
+            netsurf.utils.log._custom('DATA', f'File {filename} already exists. Skipping')
             return
 
         # Get subsetdata 
@@ -419,7 +419,7 @@ class Dataset:
             plt.title(title)
         if filename is not None:
             fig.savefig(filename)
-            wsbmr.utils.log._custom('DATA', f'Saved classes distribution to {filename}')
+            netsurf.utils.log._custom('DATA', f'Saved classes distribution to {filename}')
 
             # Close 
             plt.close(fig)
@@ -446,12 +446,12 @@ class Dataset:
                 raise ValueError('Unknown dataset type')
             
             try:
-                wsbmr.utils.log._custom('DATA', f"Subset: {subset}")
-                wsbmr.utils.log._custom('DATA', f"\tData shape: {d.shape}")
-                wsbmr.utils.log._custom('DATA', f"\tData mean: {np.mean(d)}")
-                wsbmr.utils.log._custom('DATA', f"\tData std: {np.std(d)}")
-                wsbmr.utils.log._custom('DATA', f"\tData min: {np.min(d)}")
-                wsbmr.utils.log._custom('DATA', f"\tData max: {np.max(d)}")
+                netsurf.utils.log._custom('DATA', f"Subset: {subset}")
+                netsurf.utils.log._custom('DATA', f"\tData shape: {d.shape}")
+                netsurf.utils.log._custom('DATA', f"\tData mean: {np.mean(d)}")
+                netsurf.utils.log._custom('DATA', f"\tData std: {np.std(d)}")
+                netsurf.utils.log._custom('DATA', f"\tData min: {np.min(d)}")
+                netsurf.utils.log._custom('DATA', f"\tData max: {np.max(d)}")
             except:
                 print('')
                 print(f"[INFO] - Subset: {subset}")
@@ -481,7 +481,7 @@ class dummy(Dataset):
         # For reproducibility, we will store the data in a csv file and load it
         filepath = os.path.join(self.datasets_dir, 'dummy_data.npy')
         if os.path.isfile(filepath):
-            if verbose: wsbmr.utils.log._custom('DATA', f"Loading dataset from {filepath}")
+            if verbose: netsurf.utils.log._custom('DATA', f"Loading dataset from {filepath}")
             dataset = np.load(filepath, allow_pickle=True).item()
             return dataset
         else:
@@ -502,7 +502,7 @@ class dummy(Dataset):
             dataset = {'train': (XTrain, YTrain), 'validation': (XVal, YVal)}
 
             # Save to file
-            if verbose: wsbmr.utils.log._custom('DATA', f"Saving dataset to {filepath}")
+            if verbose: netsurf.utils.log._custom('DATA', f"Saving dataset to {filepath}")
             np.save(filepath, dataset)
        
         return dataset
@@ -516,7 +516,7 @@ class dummy(Dataset):
                 filename = filename.replace('.png', f'_{subset}.png')
 
         if os.path.isfile(filename) and not overwrite:
-            wsbmr.utils.log._custom('DATA', f'File {filename} already exists. Skipping')
+            netsurf.utils.log._custom('DATA', f'File {filename} already exists. Skipping')
             return
 
         X = self.dataset[subset][0]
@@ -536,7 +536,7 @@ class dummy(Dataset):
         
         if filename is not None:
             fig.savefig(filename)
-            wsbmr.utils.log._custom('DATA', f'Saved dataset sample to {filename}')
+            netsurf.utils.log._custom('DATA', f'Saved dataset sample to {filename}')
 
             # close fig
             plt.close(fig)
@@ -668,7 +668,7 @@ class SVHN(Dataset):
         input_shape = info.features['image'].shape
         n_classes = info.features['label'].num_classes
 
-        wsbmr.utils.log._custom('DATA', f'Training on {train_size} samples of input shape {input_shape}, belonging to {n_classes} classes')
+        netsurf.utils.log._custom('DATA', f'Training on {train_size} samples of input shape {input_shape}, belonging to {n_classes} classes')
 
         # Preprocess data
         batch_size = 1024
@@ -941,9 +941,9 @@ class ToyADMOS(Dataset):
             files = sorted(glob(training_list_path))
             train_ds = self.wav_to_numpy(files, **yaml_config)
             np.save(train_numpy_file, train_ds)
-            wsbmr.utils.log._custom('DATA', f"Saved train numpy wavs to {train_numpy_file}")
+            netsurf.utils.log._custom('DATA', f"Saved train numpy wavs to {train_numpy_file}")
         else:
-            wsbmr.utils.log._custom('DATA', f"Loading train numpy wavs from {train_numpy_file}")
+            netsurf.utils.log._custom('DATA', f"Loading train numpy wavs from {train_numpy_file}")
             train_ds = np.load(train_numpy_file)
 
         test_numpy_file = os.path.join(datasets_dir, "ToyADMOS", "test", "test_ds.npy")
@@ -952,9 +952,9 @@ class ToyADMOS(Dataset):
             files = sorted(glob(val_list_path))
             val_ds = self.wav_to_numpy(files, **yaml_config)
             np.save(test_numpy_file, val_ds)
-            wsbmr.utils.log._custom('DATA', f"Saved test numpy wavs to {test_numpy_file}")
+            netsurf.utils.log._custom('DATA', f"Saved test numpy wavs to {test_numpy_file}")
         else:
-            wsbmr.utils.log._custom('DATA', f"Loading test numpy wavs from {test_numpy_file}")
+            netsurf.utils.log._custom('DATA', f"Loading test numpy wavs from {test_numpy_file}")
             val_ds = np.load(test_numpy_file)
 
 
@@ -1024,10 +1024,10 @@ class COCO(Dataset):
         if( debugCats ):
             cats = coco.loadCats(coco.getCatIds())
             nms=[cat['name'] for cat in cats]
-            wsbmr.utils.log._custom('DATA', 'COCO categories: \n{}\n'.format(' '.join(nms)))
+            netsurf.utils.log._custom('DATA', 'COCO categories: \n{}\n'.format(' '.join(nms)))
 
             nms = set([cat['supercategory'] for cat in cats])
-            wsbmr.utils.log._custom('DATA', 'COCO supercategories: \n{}'.format(' '.join(nms)))
+            netsurf.utils.log._custom('DATA', 'COCO supercategories: \n{}'.format(' '.join(nms)))
 
         # Get all images containing given categories
         catIds = coco.getCatIds(catNms=wakeword)
@@ -1238,7 +1238,7 @@ class UCI_HAR(Dataset):
         dats = ()
         for measure in ['total_acc', 'body_acc', 'body_gyro']:
             for axis in ['_x', '_y', '_z']:
-                wsbmr.utils.log._custom('DATA', 'Loading ' + measure + axis + '_train.txt')
+                netsurf.utils.log._custom('DATA', 'Loading ' + measure + axis + '_train.txt')
                 dats += (np.loadtxt(os.path.join(train_dir, 'Inertial Signals', measure + axis + '_train.txt')).astype('float16'),)
 
         XTrain = np.stack(dats, axis=2)
@@ -1252,7 +1252,7 @@ class UCI_HAR(Dataset):
         dats = ()
         for measure in ['total_acc', 'body_acc', 'body_gyro']:
             for axis in ['_x', '_y', '_z']:
-                wsbmr.utils.log._custom('DATA', 'Loading', measure + axis + '_test.txt')
+                netsurf.utils.log._custom('DATA', 'Loading', measure + axis + '_test.txt')
                 dats += (np.loadtxt(os.path.join(test_dir, 'Inertial Signals', measure + axis + '_test.txt')).astype('float16'),)
 
         XTest = np.stack(dats, axis=2)
@@ -1261,8 +1261,8 @@ class UCI_HAR(Dataset):
         YTest = keras.utils.to_categorical(y_test_raw-1)
 
         if verbose:
-            wsbmr.utils.log._custom('DATA', f"UCI HAR Training set {XTrain.shape}, {YTrain.shape}")
-            wsbmr.utils.log._custom('DATA', f"UCI HAR Test set {XTest.shape}, {YTest.shape}")
+            netsurf.utils.log._custom('DATA', f"UCI HAR Training set {XTrain.shape}, {YTrain.shape}")
+            netsurf.utils.log._custom('DATA', f"UCI HAR Test set {XTest.shape}, {YTest.shape}")
 
         # Store the dataset and statistics
         self.dataset = {'train': (XTrain, YTrain), 'validation': (XTest, YTest)}
@@ -1491,7 +1491,7 @@ class HGCal(Dataset):
         # Set flags
         self.extra_args = extra_args
 
-        self.params = wsbmr.dnn.econ.EconParams()
+        self.params = netsurf.dnn.econ.EconParams()
         
         # Build data
         dataset = self.build_dataset(**kwargs)
@@ -1742,7 +1742,7 @@ class HGCal(Dataset):
 
         # Check if exists 
         if os.path.isfile(filename) and not overwrite:
-            wsbmr.utils.log._custom('DATA', f'File {filename} already exists. Skipping')
+            netsurf.utils.log._custom('DATA', f'File {filename} already exists. Skipping')
             return
 
         fig, ax = plt.subplots(nrows = 1, ncols = 1, figsize=(6,4))
@@ -1769,7 +1769,7 @@ class HGCal(Dataset):
 
         if filename is not None:
             fig.savefig(filename)
-            wsbmr.utils.log._custom('DATA', f'Saved dataset sample to {filename}')
+            netsurf.utils.log._custom('DATA', f'Saved dataset sample to {filename}')
 
             # close fig
             plt.close(fig)
@@ -1851,7 +1851,7 @@ class SmartPixel(Dataset):
                 filename = filename.replace('.png', f'{title}_{subset}.png')
 
         if os.path.isfile(filename) and not overwrite:
-            wsbmr.utils.log._custom('DATA', f'File {filename} already exists. Skipping')
+            netsurf.utils.log._custom('DATA', f'File {filename} already exists. Skipping')
             return
         
         Z = self.dataset[subset]
@@ -1869,7 +1869,7 @@ class SmartPixel(Dataset):
         
         if filename is not None:
             plot.savefig(filename)
-            wsbmr.utils.log._custom('DATA', f'Saved dataset sample to {filename}')
+            netsurf.utils.log._custom('DATA', f'Saved dataset sample to {filename}')
 
             # Now close 
             plt.close(plot.fig)

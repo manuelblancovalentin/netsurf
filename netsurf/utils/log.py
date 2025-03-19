@@ -9,8 +9,8 @@ from colorama import init as colorama_init
 from colorama import Fore
 from colorama import Style
 
-""" Import wsbmr """
-import wsbmr
+""" Import netsurf """
+import netsurf
 
 # Init colorama
 colorama_init()
@@ -52,19 +52,19 @@ def _custom(level, msg, **kwargs):
 # Here, if we detect that nodus was imported, we will add the nodus logger to the log functions
 try:
     def _log(msg, **kwargs):
-        wsbmr.logger.custom('WSBMR', msg, **kwargs)
+        netsurf.logger.custom('netsurf', msg, **kwargs)
     def _info(msg, **kwargs):
-        wsbmr.logger.info(msg, **kwargs)
+        netsurf.logger.info(msg, **kwargs)
     def _error(msg, **kwargs):
-        wsbmr.logger.error(msg, **kwargs)
+        netsurf.logger.error(msg, **kwargs)
     def _warn(msg, **kwargs):
-        wsbmr.logger.warn(msg, **kwargs)
+        netsurf.logger.warn(msg, **kwargs)
     def _ok(msg, **kwargs):
-        wsbmr.logger.ok(msg, **kwargs)
+        netsurf.logger.ok(msg, **kwargs)
     def _nope(msg, **kwargs):
-        wsbmr.logger.nope(msg, **kwargs)
+        netsurf.logger.nope(msg, **kwargs)
     def _custom(level, msg, **kwargs):
-        wsbmr.logger.custom(level, msg, **kwargs)
+        netsurf.logger.custom(level, msg, **kwargs)
 except ImportError:
     _error('Nodus not found. Logging functions will be used instead of nodus logger.')
 
@@ -85,10 +85,10 @@ def recursive_dict_printer(d, tab = 0):
 
 
 def open_session_log():
-    # Get log from wsbmr nodus 
+    # Get log from netsurf nodus 
     try:
-        filename = wsbmr.nodus.__nodus_log_file__
+        filename = netsurf.nodus.__nodus_log_file__
         if os.path.exists(filename):
-            wsbmr.utils.open_file_with_default_viewer(filename)
+            netsurf.utils.open_file_with_default_viewer(filename)
     except:
         _error('Failed to open log file')

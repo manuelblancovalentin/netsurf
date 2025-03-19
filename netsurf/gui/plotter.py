@@ -4,8 +4,8 @@ import numpy as np
 """ Pandas """
 import pandas as pd
 
-""" Wsbmr """
-import wsbmr
+""" netsurf """
+import netsurf
 
 """ Matplotlib """
 import matplotlib.pyplot as plt
@@ -106,7 +106,7 @@ def plot_boxplot(subplotters,
     # If ax is none, create a new figure
     if ax is None or standalone:
         fig, ax = plt.subplots(figsize = (7, 10))
-        wsbmr.utils.mark_figure_as_deletable(fig)
+        netsurf.utils.mark_figure_as_deletable(fig)
     else:
         fig = ax.figure
     
@@ -396,7 +396,7 @@ def plot_barplot(subplotters,
     # If ax is none, create a new figure
     if ax is None or standalone:
         fig, ax = plt.subplots()
-        wsbmr.utils.mark_figure_as_deletable(fig)
+        netsurf.utils.mark_figure_as_deletable(fig)
     else:
         fig = ax.figure
     
@@ -652,7 +652,7 @@ def plot_vus_vs_pruning(subplotters,
             # Get unique colors for the metric
             nvals = len(plotter.curves[hue].unique())
             # repeat colors, cause we will wrap around
-            cmap = wsbmr.config.DEFAULT_COLOR_CYCLE
+            cmap = netsurf.config.DEFAULT_COLOR_CYCLE
             colors = cmap * (nvals // len(cmap) + 1)
             # Get unique colors
             colors = colors[:nvals]
@@ -673,7 +673,7 @@ def plot_vus_vs_pruning(subplotters,
     # If ax is none, create a new figure
     if ax is None or standalone:
         fig, ax = plt.subplots()
-        wsbmr.utils.mark_figure_as_deletable(fig)
+        netsurf.utils.mark_figure_as_deletable(fig)
     
     # Group by method 
     g = df.groupby('method', sort = False)
@@ -787,7 +787,7 @@ class ExperimentsPlotter:
             # Get unique colors for the metric
             nvals = len(self.curves[hue].unique())
             # repeat colors, cause we will wrap around
-            cmap = wsbmr.config.DEFAULT_COLOR_CYCLE
+            cmap = netsurf.config.DEFAULT_COLOR_CYCLE
             colors = cmap * (nvals // len(cmap) + 1)
             # Get unique colors
             colors = colors[:nvals]
@@ -811,7 +811,7 @@ class ExperimentsPlotter:
         # If ax is none, create a new figure
         if ax is None or standalone:
             fig, ax = plt.subplots()
-            wsbmr.utils.mark_figure_as_deletable(fig)
+            netsurf.utils.mark_figure_as_deletable(fig)
     
         # Store the lines for the legend so we can link them to Qt widgets to turn them on and off
         lines = {}
@@ -939,7 +939,7 @@ class ExperimentsPlotter:
             ax = fig.add_subplot(111, projection = '3d')
     
         # Mark figure as deletable 
-        wsbmr.utils.mark_figure_as_deletable(fig)
+        netsurf.utils.mark_figure_as_deletable(fig)
 
         # Store the lines for the legend so we can link them to Qt widgets to turn them on and off
         lines = {}

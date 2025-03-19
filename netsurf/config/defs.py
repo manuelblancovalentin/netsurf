@@ -199,19 +199,19 @@ def _get_gui_defaults(system):
 DEFAULT_MAIN_WINDOW_HEIGHT, DEFAULT_MAIN_WINDOW_WIDTH, \
     DEFAULT_TEXTEDIT_HEIGHT, DEFAULT_BUCKET_PANEL_HEIGHT = _get_gui_defaults(current_system)
 
-# Check if ~/.wsbmr/config exists 
+# Check if ~/.netsurf/config exists 
 
-_wsbmr_config_file = os.path.expanduser('~/.wsbmr/config')
-if os.path.exists(_wsbmr_config_file):
+_netsurf_config_file = os.path.expanduser('~/.netsurf/config')
+if os.path.exists(_netsurf_config_file):
     # Read yaml
-    with open(_wsbmr_config_file, 'r') as f:
+    with open(_netsurf_config_file, 'r') as f:
         _config = yaml.safe_load(f)
         if 'benchmarks_dir' in _config.keys():
             DEFAULT_BENCHMARKS_DIR = _config['benchmarks_dir']
         if 'datasets_dir' in _config.keys():
             DEFAULT_DATASETS_DIR = _config['datasets_dir']
     
-    print(f"Found config file: {_wsbmr_config_file}")
+    print(f"Found config file: {_netsurf_config_file}")
 else:
 
     # Default directory values
@@ -219,19 +219,19 @@ else:
         DEFAULT_BENCHMARKS_DIR = "/asic/projects/NU/WSBMR/manuelbv/workspace/benchmarks"
         DEFAULT_DATASETS_DIR = "/asic/projects/NU/WSBMR/manuelbv/workspace/datasets"
     elif current_system == 'macOS':
-        DEFAULT_BENCHMARKS_DIR = '/Users/mbvalentin/scripts/wsbmr/benchmarks'
-        DEFAULT_DATASETS_DIR = '/Users/mbvalentin/scripts/wsbmr/datasets'
+        DEFAULT_BENCHMARKS_DIR = '/Users/mbvalentin/scripts/netsurf/benchmarks'
+        DEFAULT_DATASETS_DIR = '/Users/mbvalentin/scripts/netsurf/datasets'
     else:
         DEFAULT_BENCHMARKS_DIR = None
         DEFAULT_DATASETS_DIR = None
     
     # Create the file and write the default values
     if DEFAULT_BENCHMARKS_DIR is not None and DEFAULT_DATASETS_DIR is not None:
-        if not os.path.exists(os.path.expanduser('~/.wsbmr')):
-            os.makedirs(os.path.expanduser('~/.wsbmr'), exist_ok=True)
-        with open(_wsbmr_config_file, 'w') as f:
+        if not os.path.exists(os.path.expanduser('~/.netsurf')):
+            os.makedirs(os.path.expanduser('~/.netsurf'), exist_ok=True)
+        with open(_netsurf_config_file, 'w') as f:
             yaml.dump({'benchmarks_dir': DEFAULT_BENCHMARKS_DIR, 'datasets_dir': DEFAULT_DATASETS_DIR}, f)
-        print(f"Created config file: {_wsbmr_config_file}")
+        print(f"Created config file: {_netsurf_config_file}")
         
 # Def constraints and padding for widgets 
 # Left, Top, Right, Bottom
@@ -241,12 +241,12 @@ DEFAULT_WIDGET_PADDINGS = (0, 2, 0, 2)
 ########################################################################################
 # NODUS DB / JOBS DEFINITONS
 ########################################################################################
-WSBMR_NODUS_DB_NAME = "wsbmr_db"
+NETSURF_NODUS_DB_NAME = "netsurf_db"
 
 def _get_db_defaults(system):
     if system == 'macOS' or system == 'Linux':
-        return os.path.join(os.path.expanduser('~/.nodus'), WSBMR_NODUS_DB_NAME)
+        return os.path.join(os.path.expanduser('~/.nodus'), NETSURF_NODUS_DB_NAME)
     elif system == 'Windows':
-        return os.path.join(os.path.expanduser('~/.nodus'), WSBMR_NODUS_DB_NAME)
+        return os.path.join(os.path.expanduser('~/.nodus'), NETSURF_NODUS_DB_NAME)
 
-WSBMR_NODUS_DB_PATH = _get_db_defaults(current_system)
+NETSURF_NODUS_DB_PATH = _get_db_defaults(current_system)

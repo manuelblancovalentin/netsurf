@@ -32,8 +32,8 @@ import matplotlib.pyplot as plt
 from tensorflow import keras 
 import tensorflow as tf
 
-""" Custom WSBMR utils """
-import wsbmr
+""" Custom netsurf utils """
+import netsurf
 from . import injection
 from . import ranking
 
@@ -530,12 +530,12 @@ class Experiment:
     
     # save to file 
     def save(self, overwrite = False):
-        filepath = os.path.join(self.path, f'{self.name}.wsbmr.exp')
+        filepath = os.path.join(self.path, f'{self.name}.netsurf.exp')
         if os.path.isfile(filepath) and not overwrite:
-            wsbmr.utils.log._warn(f'Experiment file {filepath} already exists. Skipping. If you want to overwrite, set overwrite = True')
+            netsurf.utils.log._warn(f'Experiment file {filepath} already exists. Skipping. If you want to overwrite, set overwrite = True')
             return
-        msg = wsbmr.utils.save_object(self, filepath, meta_attributes = {'class': 'wsbmr.Experiment', 'hash': self._config_hash.encode()})
-        wsbmr.utils.log._custom('EXP',msg)
+        msg = netsurf.utils.save_object(self, filepath, meta_attributes = {'class': 'netsurf.Experiment', 'hash': self._config_hash.encode()})
+        netsurf.utils.log._custom('EXP',msg)
 
 
     def _create_alias(self):
@@ -567,7 +567,7 @@ class Experiment:
                  ranking_method = ranking_method)
         c = {**c, **config}
 
-        config_hash = wsbmr.utils.generate_config_hash(c)
+        config_hash = netsurf.utils.generate_config_hash(c)
         return config_hash
 
 
@@ -575,9 +575,9 @@ class Experiment:
         """ . """
         # Get all directories in parent_dir
         dirs = []
-        if wsbmr.utils.is_valid_directory(parent_dir):
+        if netsurf.utils.is_valid_directory(parent_dir):
             if name is None:
-                dirs = [d for d in os.listdir(parent_dir) if wsbmr.utils.is_valid_directory(os.path.join(parent_dir, d))]
+                dirs = [d for d in os.listdir(parent_dir) if netsurf.utils.is_valid_directory(os.path.join(parent_dir, d))]
             else:
                 dirs = [name]
 
@@ -601,7 +601,7 @@ class Experiment:
                     assert exp_name == d
                     exp_path = os.path.join(parent_dir, d)
                     # Log 
-                    wsbmr.utils.log._info(f'Found existing experiment directory with same configuration hash {h} @ {exp_path}')
+                    netsurf.utils.log._info(f'Found existing experiment directory with same configuration hash {h} @ {exp_path}')
                     return exp_name, exp_path
             else:
                 match = re.match(r'config(\d+)', d)
@@ -612,7 +612,7 @@ class Experiment:
         exp_name = f'config{next_exp_index}'
         exp_path = os.path.join(parent_dir, exp_name)
         # Log 
-        wsbmr.utils.log._info(f'Creating new experiment directory with hash {config_hash} @ {exp_path}')
+        netsurf.utils.log._info(f'Creating new experiment directory with hash {config_hash} @ {exp_path}')
 
         # Create the directory
         os.makedirs(exp_path, exist_ok = True)
@@ -627,10 +627,10 @@ class Experiment:
                     'config': {}}
 
         # metadata filepath 
-        metadata_filepath = os.path.join(parent_dir, '.metadata.wsbmr')
+        metadata_filepath = os.path.join(parent_dir, '.metadata.netsurf')
         if not os.path.isfile(metadata_filepath):
             # Save metadata
-            wsbmr.utils.log._info(f'Saving method metadata to file {metadata_filepath}')
+            netsurf.utils.log._info(f'Saving method metadata to file {metadata_filepath}')
             with open(metadata_filepath, 'w') as f:
                 json.dump(metadata, f, indent=2)
         
@@ -643,10 +643,10 @@ class Experiment:
                         'config': config}
 
         # metadata filepath
-        metadata_exp_filepath = os.path.join(exp_path, '.metadata.wsbmr')
+        metadata_exp_filepath = os.path.join(exp_path, '.metadata.netsurf')
         if not os.path.isfile(metadata_exp_filepath):
             # Save metadata
-            wsbmr.utils.log._info(f'Saving experiment metadata to file {metadata_exp_filepath}')
+            netsurf.utils.log._info(f'Saving experiment metadata to file {metadata_exp_filepath}')
             with open(metadata_exp_filepath, 'w') as f:
                 json.dump(metadata_exp, f, indent=2)
 
@@ -672,51 +672,51 @@ class Experiment:
         
         # Check if results exist 
         results_file = os.path.join(exp_path, 'results.csv')
-        if wsbmr.utils.path_exists(results_file):
+        if netsurf.utils.path_exists(results_file):
             results = pd.read_csv(results_file)
             # Convert to Result object
             results = ResultSpace(loss_name, metric_names, self.protection_range, self.ber_range, self.num_reps, total_num_params, data=results, columns=columns)
             # Log 
-            wsbmr.utils.log._info(f'Loaded results from {results_file}')
+            netsurf.utils.log._info(f'Loaded results from {results_file}')
         else:
             # Create empty results
             results = ResultSpace(loss_name, metric_names, self.protection_range, self.ber_range, self.num_reps, total_num_params, data = None, columns=columns)
             # Log 
-            wsbmr.utils.log._info(f'No results found for experiment {exp_name}')
+            netsurf.utils.log._info(f'No results found for experiment {exp_name}')
 
         # Check if ranking exists
         ranking_file = os.path.join(exp_path, 'ranking.csv')
-        if wsbmr.utils.path_exists(ranking_file) and reload_ranking:
+        if netsurf.utils.path_exists(ranking_file) and reload_ranking:
             ranking = pd.read_csv(ranking_file)
             # Log 
-            wsbmr.utils.log._info(f'Loaded ranking from {ranking_file}')
+            netsurf.utils.log._info(f'Loaded ranking from {ranking_file}')
             self.reloaded = True
         else:
             # Create empty ranking
             ranking = None
             self.reloaded = False
             # Log 
-            wsbmr.utils.log._info(f'No ranking found for experiment {exp_name}')
+            netsurf.utils.log._info(f'No ranking found for experiment {exp_name}')
 
         # Save config (if it doesn't exist)
         config_file = os.path.join(exp_path, 'config.json')
-        if not wsbmr.utils.path_exists(config_file):
+        if not netsurf.utils.path_exists(config_file):
             with open(config_file, 'w') as f:
                 json.dump(self.config, f)
             # Log
-            wsbmr.utils.log._info(f'Saved configuration to {config_file}')
+            netsurf.utils.log._info(f'Saved configuration to {config_file}')
 
         # Global metrics (pick)
         metrics_file = os.path.join(exp_path, 'metrics.json')
-        if wsbmr.utils.path_exists(metrics_file):
+        if netsurf.utils.path_exists(metrics_file):
             with open(metrics_file, 'r') as f:
                 metrics = json.load(f)
             # Log 
-            wsbmr.utils.log._info(f'Loaded metrics from {metrics_file}')
+            netsurf.utils.log._info(f'Loaded metrics from {metrics_file}')
         else:
             metrics = {}
             # Log 
-            wsbmr.utils.log._info(f'No metrics found for experiment {exp_name}')
+            netsurf.utils.log._info(f'No metrics found for experiment {exp_name}')
         return results, ranking, metrics
 
     """ RANK """
@@ -727,7 +727,7 @@ class Experiment:
         if self.ranking is None:
             # Rank weights and get table back
             # Keep track of how long it takes for this ranker to rank the weights
-            if verbose: wsbmr.utils.log._info(f'Ranking weights with method {self.ranking_method}... ', end = '')
+            if verbose: netsurf.utils.log._info(f'Ranking weights with method {self.ranking_method}... ', end = '')
             result = self.ranker.rank(model, *args, out_dir = self.path, **kws)
 
             # Check if rank returned two or one values
@@ -758,9 +758,9 @@ class Experiment:
             else:
                 filepath = os.path.join(self.path, self.ranking_filename_format)
         if os.path.exists(filepath) and not overwrite:
-            wsbmr.utils.log._error(f'File {filepath} already exists. Use overwrite = True to overwrite')
+            netsurf.utils.log._error(f'File {filepath} already exists. Use overwrite = True to overwrite')
             return
-        wsbmr.utils.log._info(f'Saving ranking to {filepath}')
+        netsurf.utils.log._info(f'Saving ranking to {filepath}')
         ranking.to_csv(filepath, index = False)
 
     """ Run experiment"""
@@ -815,11 +815,11 @@ class Experiment:
         # If we have no combinations left, we can return the results
         if len(combs) == 0:
             # Log 
-            wsbmr.utils.log._info('Experiment is finished. Nothing else to run.')
+            netsurf.utils.log._info('Experiment is finished. Nothing else to run.')
             return results
 
         # Log
-        wsbmr.utils.log._info(f'Experiment {self.name} started. Coverage: {100*coverage:3.1f}%')
+        netsurf.utils.log._info(f'Experiment {self.name} started. Coverage: {100*coverage:3.1f}%')
 
         # Get data 
         dataset = benchmark.dataset.dataset['train']
@@ -827,14 +827,14 @@ class Experiment:
         # Apply pre-processing to data, if needed 
         if hasattr(benchmark.model, 'preprocess_input'):
             s0 = time.time()
-            wsbmr.utils.log._info(f'Preprocessing input data...', end = '')
+            netsurf.utils.log._info(f'Preprocessing input data...', end = '')
             dset = benchmark.model.preprocess_input(dataset[0])
             dataset = (dset, dataset[1])
             print(f'done in {time.time() - s0:.2f} seconds')
 
         if hasattr(benchmark.model, 'preprocess_output'):
             s0 = time.time()
-            wsbmr.utils.log._info(f'Preprocessing output data...', end = '')
+            netsurf.utils.log._info(f'Preprocessing output data...', end = '')
             dset = benchmark.model.preprocess_output(dataset[1])
             dataset = (dataset[0], dset)
             print(f'done in {time.time() - s0:.2f} seconds')
@@ -913,7 +913,7 @@ class Experiment:
         # Open file to printout the table to a txt file. If the file already exists, make sure to get the next 
         # available name (appending .0, .1, etc.)
         table_printout_filename = os.path.join(self.path, 'injection_progress.txt')
-        table_printout_filename = wsbmr.utils.io.get_latest_suffix(table_printout_filename, glob(table_printout_filename+'*'), 
+        table_printout_filename = netsurf.utils.io.get_latest_suffix(table_printout_filename, glob(table_printout_filename+'*'), 
                                          next = True, divider = '_', 
                                          return_index = False, 
                                          verbose = True, 
@@ -963,8 +963,8 @@ class Experiment:
         attack_container = injector.build_injection_models(combs, self.num_reps, verbose = False)
         
         if verbose:
-            wsbmr.utils.log._info(f'Injector created in {build_time_start - injector_time_start:.2f} seconds')
-            wsbmr.utils.log._info(f'Injector models built in {time.time() - build_time_start:.2f} seconds')
+            netsurf.utils.log._info(f'Injector created in {build_time_start - injector_time_start:.2f} seconds')
+            netsurf.utils.log._info(f'Injector models built in {time.time() - build_time_start:.2f} seconds')
 
         # Hold a second before printing the table (for some reason it's printing the table before the 
         # log above)
@@ -1029,16 +1029,16 @@ class Experiment:
                     # Calculate elapsed time and ETA
                     s0 = time.time()
                     elapsed_time = s0 - start_time
-                    elapsed_time_hhmmss = wsbmr.utils.seconds_to_hms(elapsed_time)
+                    elapsed_time_hhmmss = netsurf.utils.seconds_to_hms(elapsed_time)
                     rep_elapsed_time = s0 - rep_start_time
 
                     # Calculate ETA
                     eta = elapsed_time * total_num_reps/(icase+1) 
-                    eta_hhmmss = wsbmr.utils.seconds_to_hms(eta)
+                    eta_hhmmss = netsurf.utils.seconds_to_hms(eta)
 
                     # remaining time
                     remain_time = eta - elapsed_time
-                    remain_time_hhmmss = wsbmr.utils.seconds_to_hms(remain_time)
+                    remain_time_hhmmss = netsurf.utils.seconds_to_hms(remain_time)
 
                     loss = metrics_vals.pop('loss')
 
@@ -1214,7 +1214,7 @@ class Experiment:
         fig3d, axs3d = plt.subplots(n_axs, 1, figsize = (10, 6*n_axs), subplot_kw = {'projection': '3d'})
 
         # Plot loss
-        self.plotter = wsbmr.gui.plotter.ExperimentsPlotter(self.results, metric = loss_name)
+        self.plotter = netsurf.gui.plotter.ExperimentsPlotter(self.results, metric = loss_name)
         self.plotter.plot_2D_curves(x = 'ber', y = 'mean', hue = 'protection', style = 'protection', ax = axs[0], 
                                     standalone = False, xlabel = 'Bit Error Rate (%)', ylabel = f'Loss ({loss_name})')
         self.plotter.plot_3D_volumes(x = 'ber', y = 'mean', z = 'mean', ax = axs3d[0], 
@@ -1222,7 +1222,7 @@ class Experiment:
         # Loop thru metrics 
         for i, metric_name in enumerate(metric_names):
             # Get plotter 
-            plotter = wsbmr.gui.plotter.ExperimentsPlotter(self.results, metric = metric_name)
+            plotter = netsurf.gui.plotter.ExperimentsPlotter(self.results, metric = metric_name)
             # Plot 
             plotter.plot_2D_curves(x = 'ber', y = 'mean', hue = 'protection', style = 'protection', ax = axs[i+1],
                                     standalone = False, xlabel = 'Bit Error Rate (%)', ylabel = f'{metric_name}')

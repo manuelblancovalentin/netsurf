@@ -246,7 +246,7 @@ def generate_config_hash(config):
     return hashlib.md5(config_string.encode()).hexdigest()
 
 
-def get_metadata(path, filename = '.metadata.wsbmr'):
+def get_metadata(path, filename = '.metadata.netsurf'):
     if not os.path.exists(path):
         return None 
     
@@ -266,7 +266,7 @@ def get_metadata(path, filename = '.metadata.wsbmr'):
     if not isinstance(metadata, dict):
         return None
 
-    if 'wsbmr' in filename:
+    if 'netsurf' in filename:
         if 'level' not in metadata or 'name' not in metadata or 'config' not in metadata:
             return None
     elif 'nodus' in filename:

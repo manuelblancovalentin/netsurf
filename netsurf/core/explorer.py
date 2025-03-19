@@ -25,7 +25,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 # Custom imports
-import wsbmr
+import netsurf
 
 ####################################################################################################
 # UTILITIES USED BY BUCKETS 
@@ -41,7 +41,7 @@ class HyperspaceConfig:
         # Set the rest of the parameters
         self._keys = self.init_hyperspace_config(**kwargs)
 
-        if verbose: wsbmr.utils.log._log(f"Initializing hyperspace global config with the following parameters: {self}")
+        if verbose: netsurf.utils.log._log(f"Initializing hyperspace global config with the following parameters: {self}")
     
     """ Property to get elements """
     def __getitem__(self, key):
@@ -64,17 +64,17 @@ class HyperspaceConfig:
 
     """ Init hyperspace config """
     def init_hyperspace_config(self, 
-                               benchmarks_dir = wsbmr.config.DEFAULT_BENCHMARKS_DIR,
-                               datasets_dir = wsbmr.config.DEFAULT_DATASETS_DIR,
-                                map_level = wsbmr.config.DEFAULT_LEVEL_MAP,
-                                children_prop = wsbmr.config.DEFAULT_CHILDREN_PROP, 
-                                benchmarks = wsbmr.config.DEFAULT_BENCHMARKS, 
-                                quantizations = wsbmr.config.DEFAULT_QUANTIZATIONS, 
-                                pruning = wsbmr.config.DEFAULT_PRUNINGS, 
-                                methods = wsbmr.config.DEFAULT_METHODS, 
-                                protection = wsbmr.config.DEFAULT_PROTECTION, 
-                                ber = wsbmr.config.DEFAULT_BER, 
-                                num_reps = wsbmr.config.DEFAULT_NUM_REPS, 
+                               benchmarks_dir = netsurf.config.DEFAULT_BENCHMARKS_DIR,
+                               datasets_dir = netsurf.config.DEFAULT_DATASETS_DIR,
+                                map_level = netsurf.config.DEFAULT_LEVEL_MAP,
+                                children_prop = netsurf.config.DEFAULT_CHILDREN_PROP, 
+                                benchmarks = netsurf.config.DEFAULT_BENCHMARKS, 
+                                quantizations = netsurf.config.DEFAULT_QUANTIZATIONS, 
+                                pruning = netsurf.config.DEFAULT_PRUNINGS, 
+                                methods = netsurf.config.DEFAULT_METHODS, 
+                                protection = netsurf.config.DEFAULT_PROTECTION, 
+                                ber = netsurf.config.DEFAULT_BER, 
+                                num_reps = netsurf.config.DEFAULT_NUM_REPS, 
                                 **kwargs):
 
         """ Initialize hyperspace global config """
@@ -91,17 +91,17 @@ class HyperspaceConfig:
                                     'benchmarks_dir': benchmarks_dir,
                                     'datasets_dir': datasets_dir}
         
-        _def_hyperspace_global_config = {'benchmark': wsbmr.config.DEFAULT_BENCHMARKS,
-                                        'quantization': wsbmr.config.DEFAULT_QUANTIZATIONS,
-                                        'pruning': wsbmr.config.DEFAULT_PRUNINGS,
-                                        'method': wsbmr.config.DEFAULT_METHODS,
-                                        'protection': wsbmr.config.DEFAULT_PROTECTION,
-                                        'ber': wsbmr.config.DEFAULT_BER,
-                                        'num_reps': wsbmr.config.DEFAULT_NUM_REPS,
-                                        'map_level': wsbmr.config.DEFAULT_LEVEL_MAP,
-                                        'children_prop': wsbmr.config.DEFAULT_CHILDREN_PROP,
-                                        'benchmarks_dir': wsbmr.config.DEFAULT_BENCHMARKS_DIR,
-                                        'datasets_dir': wsbmr.config.DEFAULT_DATASETS_DIR}
+        _def_hyperspace_global_config = {'benchmark': netsurf.config.DEFAULT_BENCHMARKS,
+                                        'quantization': netsurf.config.DEFAULT_QUANTIZATIONS,
+                                        'pruning': netsurf.config.DEFAULT_PRUNINGS,
+                                        'method': netsurf.config.DEFAULT_METHODS,
+                                        'protection': netsurf.config.DEFAULT_PROTECTION,
+                                        'ber': netsurf.config.DEFAULT_BER,
+                                        'num_reps': netsurf.config.DEFAULT_NUM_REPS,
+                                        'map_level': netsurf.config.DEFAULT_LEVEL_MAP,
+                                        'children_prop': netsurf.config.DEFAULT_CHILDREN_PROP,
+                                        'benchmarks_dir': netsurf.config.DEFAULT_BENCHMARKS_DIR,
+                                        'datasets_dir': netsurf.config.DEFAULT_DATASETS_DIR}
 
         # Check if we have a map_level
         _keys = []
@@ -164,10 +164,10 @@ class Metadata:
                 'creation_user': self.creation_user, 'creation_host': self.creation_host, 'config': self.config}
     # Save to file 
     def save(self, path):
-        metadata_filepath = os.path.join(path, '.metadata.wsbmr')
+        metadata_filepath = os.path.join(path, '.metadata.netsurf')
         if not os.path.isfile(metadata_filepath):
             # Save metadata
-            wsbmr.utils.log._info(f'Saving experiment metadata to file {metadata_filepath}')
+            netsurf.utils.log._info(f'Saving experiment metadata to file {metadata_filepath}')
             with open(metadata_filepath, 'w') as f:
                 json.dump(self._to_dict(), f, indent=2)
     
@@ -179,7 +179,7 @@ class Metadata:
         s += f'\tConfig: '
         if len(self.config) > 0:
             s += '{\n'
-            s += wsbmr.utils.recursive_dict_printer(self.config, tab = 2)
+            s += netsurf.utils.recursive_dict_printer(self.config, tab = 2)
             s += '\t}'
         else:
             s += '{}'
@@ -188,7 +188,7 @@ class Metadata:
 # Basic get metadata method (initializes a metadata object )
 def get_metadata(path):
     # First off, check if metadata exists by calling the utility 
-    metadata = wsbmr.utils.get_metadata(path)
+    metadata = netsurf.utils.get_metadata(path)
     if metadata is None:
         return None
     return Metadata(**metadata)
@@ -240,7 +240,7 @@ class HierarchicalContainer:
 #   (4)         - training session (e.g. training_session.20241215_010614)
 #   (5)           - config_training_session.*.json (config file with the training session parameters)
 #   (5)           - training_session.*.log (log file with the training summary)
-#   (5)           - training_session.*.pkl (binary file with the progress of the training session (can be loaded into wsbmr))
+#   (5)           - training_session.*.pkl (binary file with the progress of the training session (can be loaded into netsurf))
 
 """ Bucket container class (Recursive) 
         a Bucket is a container that will hold either other buckets or runs (at the last level)
@@ -315,7 +315,7 @@ class Bucket(HierarchicalContainer):
     #         results.append(r)
 
     #     # Create coveragepie
-    #     wsbmr.utils.plot.CoveragePie(b, verbose = False)
+    #     netsurf.utils.plot.CoveragePie(b, verbose = False)
 
 
     #     # Concatenate
@@ -334,9 +334,9 @@ class Bucket(HierarchicalContainer):
     #             num_reps = self.hyperspace_global_config['num_reps']
 
     #             # Init empty dataframe 
-    #             cov = pd.DataFrame(columns=wsbmr.core.experiments.Result.COLUMNS)
+    #             cov = pd.DataFrame(columns=netsurf.core.experiments.Result.COLUMNS)
     #             # Create empty result
-    #             r = wsbmr.core.experiments.Result(cov, protection_range = protection_range, 
+    #             r = netsurf.core.experiments.Result(cov, protection_range = protection_range, 
     #                                                 ber_range = ber_range,
     #                                                 num_reps = num_reps)
     #             # Call get_coverage (which will compute all combinations for us)
@@ -392,7 +392,7 @@ class Bucket(HierarchicalContainer):
     #             results = cov[cols]
 
     #         elif attr_name == 'results':
-    #             results = pd.DataFrame(columns=wsbmr.core.experiments.Result.COLUMNS)
+    #             results = pd.DataFrame(columns=netsurf.core.experiments.Result.COLUMNS)
 
     #             # Add type/name to results
     #             results[self.type] = self.name
@@ -541,7 +541,7 @@ class Bucket(HierarchicalContainer):
             results.append(rr)
         # Concatenate
         data = None
-        cols = deepcopy(wsbmr.core.experiments.ResultSpace.COLUMNS)
+        cols = deepcopy(netsurf.core.experiments.ResultSpace.COLUMNS)
         # Make sure we have all extra columns tht we need for this level 
         extra_cols = ['root','benchmark','quantization','model','model_name','pruning','method']
         extra_cols = extra_cols[extra_cols.index(self.type)+1:]
@@ -556,7 +556,7 @@ class Bucket(HierarchicalContainer):
         loss_name = self.structure_config.get('loss', 'categorical_crossentropy')
         metrics_names = self.structure_config.get('metrics', ['categorical_accuracy'])
         total_num_params = self.structure_config.get('total_num_params', 0)
-        self.results = wsbmr.core.experiments.ResultSpace(loss_name, metrics_names,
+        self.results = netsurf.core.experiments.ResultSpace(loss_name, metrics_names,
                                                           protection=self.hyperspace_global_config['protection'], 
                                                         ber=self.hyperspace_global_config['ber'], 
                                                         num_reps=-1,#num_reps=self.hyperspace_global_config['num_reps'],
@@ -593,7 +593,7 @@ class Bucket(HierarchicalContainer):
     def get_children(self, verbose = True, pbar = RecursiveProgressTracker(None), **kwargs):
         # Print if verbose
         tabs = '  ' * (self.level)
-        if verbose and self.level == 0: wsbmr.utils.log._info(f"{tabs} [{self.hyperspace_global_config['map_level'][self.level]}Container]: {self.name} @ {self.dir}", tab = 0)
+        if verbose and self.level == 0: netsurf.utils.log._info(f"{tabs} [{self.hyperspace_global_config['map_level'][self.level]}Container]: {self.name} @ {self.dir}", tab = 0)
         
         """ The children of this bucket are NOT only the directories in dir directory, 
             but also the EXPECTED children. That info is in the hyperspace_global_config 
@@ -645,16 +645,16 @@ class Bucket(HierarchicalContainer):
             tabs = '  ' * (self.level + 1)
             p = f"{'…/'*(self.level+1)}{os.path.basename(full_path)}"
             msg = f"{tabs}({ichild+1}/{num_children}) - [{children_type.capitalize()}Container]: {children_name} @ {p}"
-            if verbose: wsbmr.utils.log._info(msg, tab = 0)
+            if verbose: netsurf.utils.log._info(msg, tab = 0)
 
             """
                 IMPORTANT: At this point we have two possibilities:
-                    (1) If the directory exists AND it has a .metadata.wsbmr file inside,
+                    (1) If the directory exists AND it has a .metadata.netsurf file inside,
                         we have to follow whatever that metadata has inside. 
                         This is weird, but it allows us to have model buckets within other 
                         model buckets, etc. But if it is what the user wanted, then we need
                         to follow this. 
-                    (2) If the directory doesn't exist OR if it exists but the .metadata.wsbmr
+                    (2) If the directory doesn't exist OR if it exists but the .metadata.netsurf
                         doesn't, we have to proceed as usual, inferring the children type that
                         would be expected at this level and creating a placeholder for it.
             """
@@ -664,7 +664,7 @@ class Bucket(HierarchicalContainer):
 
             if children_metadata is not None:
                 # Log
-                wsbmr.utils.log._info(f"{tabs}Found metadata file for {children_name} @ {full_path} Following metadata.", tab = self.level + 1)
+                netsurf.utils.log._info(f"{tabs}Found metadata file for {children_name} @ {full_path} Following metadata.", tab = self.level + 1)
                 # Get the children type from the metadata
                 children_type = children_metadata.level
                 # Assert the name is the same we were expecting (should be)
@@ -716,7 +716,7 @@ class Bucket(HierarchicalContainer):
         self.get_coverage()
 
         # Coverage pies 
-        this_pie = wsbmr.utils.plot.CoveragePie(self, verbose = False)
+        this_pie = netsurf.utils.plot.CoveragePie(self, verbose = False)
         self.coverage_pie = this_pie
 
         # Now propagate the coverage pies down
@@ -738,19 +738,19 @@ class Bucket(HierarchicalContainer):
         
         # Assert type in ['2d','3d']
         if type not in ['2d','3d','barplot','boxplot']:
-            wsbmr.utils.log._error(f'Invalid type {type} for plot_curves. Must be one of ["2d","3d","barplot","boxplot"]', tab = self.level)
+            netsurf.utils.log._error(f'Invalid type {type} for plot_curves. Must be one of ["2d","3d","barplot","boxplot"]', tab = self.level)
             return [], [], 0, [], [], []
 
         # If this is just a placeholder (with empty data), skip
         if len(self.coverage) == 0:
-            wsbmr.utils.log._warn(f'Empty run placeholder. Skipping plot_curves.', tab = self.level)
+            netsurf.utils.log._warn(f'Empty run placeholder. Skipping plot_curves.', tab = self.level)
             return [], [], 0, [], [], []
 
-        if is_entry_point: wsbmr.utils.log._info(f'Entry point detected.')
+        if is_entry_point: netsurf.utils.log._info(f'Entry point detected.')
 
         # if ax is None, create a new figure with as many axes as there are runs 
         num_descendants = self.descendants
-        wsbmr.utils.log._log(f'Plotting {num_descendants} descendants for object {self.name} of type {self.type}', tab = self.level)
+        netsurf.utils.log._log(f'Plotting {num_descendants} descendants for object {self.name} of type {self.type}', tab = self.level)
 
          # If num_children is 0, just skip this 
         if num_descendants == 0:
@@ -761,7 +761,7 @@ class Bucket(HierarchicalContainer):
             if not isinstance(axs, list) and not isinstance(axs, np.ndarray):
                 axs = [axs]
             if len(axs) < num_descendants:
-                wsbmr.utils.log._error(f'Number of axes ({len(axs)}) does not match number of descendants ({num_descendants})', tab = self.level)
+                netsurf.utils.log._error(f'Number of axes ({len(axs)}) does not match number of descendants ({num_descendants})', tab = self.level)
                 axs = None
         
         
@@ -776,7 +776,7 @@ class Bucket(HierarchicalContainer):
             if num_descendants > 1:
                 num_rows = int(np.ceil(np.sqrt(num_descendants)))
                 num_cols = int(np.ceil(num_descendants / num_rows))
-                wsbmr.utils.log._log(f'Creating {num_rows}x{num_cols} grid for {num_descendants} descendants', tab = self.level)
+                netsurf.utils.log._log(f'Creating {num_rows}x{num_cols} grid for {num_descendants} descendants', tab = self.level)
 
             # Init figure
             fig, axs = plt.subplots(num_rows, num_cols, figsize = (7 * num_cols, 7 * num_rows), sharey = True, sharex = True, **fcn_kwargs)
@@ -835,7 +835,7 @@ class Bucket(HierarchicalContainer):
                     yl = ylabel
                     xl = 'Bit-Error Rate (BER)'
                 
-                wsbmr.utils.log._info(f'Plotting {k}[j](axs[{i}:]) for {self.name} of type {self.type}', tab = self.level + 1)
+                netsurf.utils.log._info(f'Plotting {k}[j](axs[{i}:]) for {self.name} of type {self.type}', tab = self.level + 1)
 
                 # Returns:
                 # _f: figure
@@ -860,7 +860,7 @@ class Bucket(HierarchicalContainer):
             else:
                 # If we didn't plot anything, increment i
                 num_left -= 1
-                wsbmr.utils.log._log(f'Skipping plot for j-th [{j}](axs[{i}:]), children of {self.name} because it is empty', tab = self.level + 1)
+                netsurf.utils.log._log(f'Skipping plot for j-th [{j}](axs[{i}:]), children of {self.name} because it is empty', tab = self.level + 1)
             j += 1
         
         # Delete empty axes (from i to num_rows * num_cols)
@@ -950,7 +950,7 @@ class Bucket(HierarchicalContainer):
 
             # Show total elapsed time in format days hh:mm:ss
             if 'runtime' in self.structural_local_metrics:
-                ss += f'\t\t<li><b>Total Runtime:</b> {wsbmr.utils.get_elapsed_time(self.structural_local_metrics["runtime"])}</li>\n'
+                ss += f'\t\t<li><b>Total Runtime:</b> {netsurf.utils.get_elapsed_time(self.structural_local_metrics["runtime"])}</li>\n'
             
             if 'loss' in self.structural_local_metrics:
                 loss = self.structural_local_metrics['loss']
@@ -1110,7 +1110,7 @@ class QuantizationContainer(Bucket):
         # If not, then we need to figure it out. 
         """ Test 1: Get the model name from some directory """
         # Get valid directories in dir 
-        if wsbmr.utils.is_valid_directory(dir):
+        if netsurf.utils.is_valid_directory(dir):
             valid_dirs = [d for d in os.listdir(dir) if os.path.isdir(os.path.join(dir, d))]
             for name in valid_dirs:
                 # Do we have metadata for this directory that matches the expected child?
@@ -1168,33 +1168,33 @@ class QuantizationContainer(Bucket):
                             
                 # Check if name starts with pruned_
                 elif name.startswith('pruned_'):
-                    pruning_factor, model_name = wsbmr.utils.get_pruning_factor(name)
+                    pruning_factor, model_name = netsurf.utils.get_pruning_factor(name)
                     # if the results make sense, great
                     if isinstance(pruning_factor, float) and isinstance(model_name, str):
                         # Great, set the model name in the structure config and return 
                         self.structure_config['model_name'] = model_name
                         # Inform the user 
                         tabs = '  ' * (self.level + 1)
-                        wsbmr.utils.log._info(f"{tabs}(?/?) Able to deduce the model name for this particular structure: {model_name} @ {dir}", prefix = f'', tab = 0)
+                        netsurf.utils.log._info(f"{tabs}(?/?) Able to deduce the model name for this particular structure: {model_name} @ {dir}", prefix = f'', tab = 0)
                         return f'pruned_{x}_{model_name}', {'pruning': x}, metadata
 
         """ Test 2: Get the model name from a benchmark object initialized with this config """
         benchmark = self.structure_config['benchmark']
         quantization = self.structure_config['quantization']
         datasets_dir = None
-        workdir = "/tmp/wsbmr"
+        workdir = "/tmp/netsurf"
         model_prefix = ""
 
         try:
             # Convert quantization to object
-            Q = wsbmr.QuantizationScheme(quantization)
+            Q = netsurf.QuantizationScheme(quantization)
             
             # Create benchmark object
-            bmk = wsbmr.get_benchmark(benchmark, Q, 
+            bmk = netsurf.get_benchmark(benchmark, Q, 
                                       datasets_dir = datasets_dir, 
                                       benchmarks_dir = workdir, 
                                     load_weights = False, model_prefix = model_prefix, 
-                                    **wsbmr.config.BENCHMARKS_CONFIG[benchmark], 
+                                    **netsurf.config.BENCHMARKS_CONFIG[benchmark], 
                                     verbose = False)
                 
 
@@ -1205,7 +1205,7 @@ class QuantizationContainer(Bucket):
         
         except Exception as e:
             # If we cannot, then we will consider this a failure and return the quantization name
-            wsbmr.utils.log._warn(f"Could not deduce the model name for this particular structure @ {dir}\nBenchmark objected created failed with code {e}\nCreating a placeholder for this structure.")
+            netsurf.utils.log._warn(f"Could not deduce the model name for this particular structure @ {dir}\nBenchmark objected created failed with code {e}\nCreating a placeholder for this structure.")
             return f'pruned_{x}', {'pruning': x}, metadata
     
     
@@ -1236,7 +1236,7 @@ class QuantizationContainer(Bucket):
 
         # If this is just a placeholder (with empty data), skip
         if len(self.coverage) == 0:
-            wsbmr.utils.log._warn(f'Empty run placeholder. Skipping plot_curves.', tab = self.level)
+            netsurf.utils.log._warn(f'Empty run placeholder. Skipping plot_curves.', tab = self.level)
             return [], [], 0, [], [], []
 
         # Pass the global metrics
@@ -1281,7 +1281,7 @@ class QuantizationContainer(Bucket):
                 subplotters[(pf, pmn, cn)] = child.plotter
         
         # Call the plotter
-        _fig, _ax, _t, _lines = wsbmr.gui.plotter.plot_vus_vs_pruning(subplotters,
+        _fig, _ax, _t, _lines = netsurf.gui.plotter.plot_vus_vs_pruning(subplotters,
             ax = axs[0], y = y, metric = metric, 
             colors = colors,
             xrange = xrange, yrange = yrange,
@@ -1332,32 +1332,32 @@ class ModelContainer(Bucket):
     """ Find benchmark object """
     def find_benchmark_object(self, dir, name):
         # Try to find a ".bmk" file in this dir
-        # List all .wsbmr.bmk files in this directory
-        if not wsbmr.utils.is_valid_directory(dir):
-            wsbmr.utils.log._warn(f'Invalid directory {dir} for model {name}. Skipping.')
+        # List all .netsurf.bmk files in this directory
+        if not netsurf.utils.is_valid_directory(dir):
+            netsurf.utils.log._warn(f'Invalid directory {dir} for model {name}. Skipping.')
             return None, None
-        bmk_files = [f for f in os.listdir(dir) if f.endswith('.wsbmr.bmk')]
+        bmk_files = [f for f in os.listdir(dir) if f.endswith('.netsurf.bmk')]
         if len(bmk_files) == 0:
-            wsbmr.utils.log._warn(f'No benchmark object found in {dir} with extension .wsbmr.bmk')
+            netsurf.utils.log._warn(f'No benchmark object found in {dir} with extension .netsurf.bmk')
             return None, None
         # If we have more than one, loop thru them and look at the extra attributes with xattr
         if 'benchmark' not in self.structure_config:
-            wsbmr.utils.log._warn(f'Benchmark is not defined for this model {name} so we cannot find the equivalent benchmark object at this directory.')
+            netsurf.utils.log._warn(f'Benchmark is not defined for this model {name} so we cannot find the equivalent benchmark object at this directory.')
             return None, None
         benchmark = self.structure_config['benchmark']
         for f in bmk_files:
             # Get the full path
             full_path = os.path.join(dir, f)
             # Get the attributes
-            attrs = wsbmr.utils.get_xattrs(full_path)
+            attrs = netsurf.utils.get_xattrs(full_path)
             # If the name is the same, return this object
             if 'name' in attrs and 'class' in attrs:
-                if attrs['class'] == 'wsbmr.Benchmark':
+                if attrs['class'] == 'netsurf.Benchmark':
                     if attrs['benchmark'].lower() == benchmark.lower():
-                        wsbmr.utils.log._info(f'Loading benchmark object {name} @ {full_path}')
-                        return wsbmr.utils.load_object(full_path), full_path
+                        netsurf.utils.log._info(f'Loading benchmark object {name} @ {full_path}')
+                        return netsurf.utils.load_object(full_path), full_path
         # Log 
-        wsbmr.utils.log._warn(f'No benchmark object found in {dir} with extra attributes (xattr) of type benchmark, matching the name {name}')
+        netsurf.utils.log._warn(f'No benchmark object found in {dir} with extra attributes (xattr) of type benchmark, matching the name {name}')
         return None, None
             
     # Get children is a bit different cause at this level we have 3 folders: experiments, models, sessions
@@ -1412,16 +1412,16 @@ class ModelContainer(Bucket):
             tabs = '  ' * (self.level + 1)
             p = f"{'…/'*(self.level+1)}{os.path.basename(full_path)}"
             msg = f"{tabs}({ichild+1}/{num_children}) - {children_type} {children_name} @ {p}"
-            if verbose: wsbmr.utils.log._info(msg, prefix = f'', tab = 0)
+            if verbose: netsurf.utils.log._info(msg, prefix = f'', tab = 0)
 
             """
                 IMPORTANT: At this point we have two possibilities:
-                    (1) If the directory exists AND it has a .metadata.wsbmr file inside,
+                    (1) If the directory exists AND it has a .metadata.netsurf file inside,
                         we have to follow whatever that metadata has inside. 
                         This is weird, but it allows us to have model buckets within other 
                         model buckets, etc. But if it is what the user wanted, then we need
                         to follow this. 
-                    (2) If the directory doesn't exist OR if it exists but the .metadata.wsbmr
+                    (2) If the directory doesn't exist OR if it exists but the .metadata.netsurf
                         doesn't, we have to proceed as usual, inferring the children type that
                         would be expected at this level and creating a placeholder for it.
             """
@@ -1431,7 +1431,7 @@ class ModelContainer(Bucket):
 
             if children_metadata is not None:
                 # Log
-                wsbmr.utils.log._info(f"{tabs}Found metadata file for {children_name} @ {full_path} Following metadata.", tab = self.level + 1)
+                netsurf.utils.log._info(f"{tabs}Found metadata file for {children_name} @ {full_path} Following metadata.", tab = self.level + 1)
                 # Get the children type from the metadata
                 children_type = children_metadata.level
                 # Assert the name is the same we were expecting (should be)
@@ -1516,7 +1516,7 @@ class ModelContainer(Bucket):
 
         # If this is just a placeholder (with empty data), skip
         if len(self.coverage) == 0:
-            wsbmr.utils.log._warn(f'Empty run placeholder. Skipping plot_curves.', tab = self.level)
+            netsurf.utils.log._warn(f'Empty run placeholder. Skipping plot_curves.', tab = self.level)
             return [], [], 0, [], [], []
 
         # Pass the global metrics
@@ -1557,11 +1557,11 @@ class ModelContainer(Bucket):
             subplotters[cn] = child.plotter
         
         # Make sure we have the attribute 
-        if not hasattr(wsbmr.gui.plotter, f'plot_{type}'):
-            wsbmr.utils.log._warn(f'Plotter plot_{type} not found in wsbmr.gui.plotter. Skipping plot_curves.', tab = self.level)
+        if not hasattr(netsurf.gui.plotter, f'plot_{type}'):
+            netsurf.utils.log._warn(f'Plotter plot_{type} not found in netsurf.gui.plotter. Skipping plot_curves.', tab = self.level)
             return [fig], [axs[0]], 0, [], [], []
 
-        _fig, _ax, _t, _lines = getattr(wsbmr.gui.plotter,f'plot_{type}')(subplotters,
+        _fig, _ax, _t, _lines = getattr(netsurf.gui.plotter,f'plot_{type}')(subplotters,
             ax = axs[0], y = y, metric = metric, 
             colors = colors,
             xrange = xrange, yrange = yrange,
@@ -1611,7 +1611,7 @@ class MethodContainer(Bucket):
     def get_children(self, verbose=True, pbar=RecursiveProgressTracker(None), **kwargs):
         # Print if verbose
         tabs = '  ' * (self.level)
-        if verbose and self.level == 0: wsbmr.utils.log._info(f"{tabs} [{self.hyperspace_global_config['map_level'][self.level]}Container]: {self.name} @ {self.dir}", tab = 0)
+        if verbose and self.level == 0: netsurf.utils.log._info(f"{tabs} [{self.hyperspace_global_config['map_level'][self.level]}Container]: {self.name} @ {self.dir}", tab = 0)
         
         """ The children of this bucket are NOT only the directories in dir directory, 
             but also the EXPECTED children. That info is in the hyperspace_global_config 
@@ -1625,7 +1625,7 @@ class MethodContainer(Bucket):
         children_type = self.structure_config['children_type']
         # Expected children here are anything that's a directory that follows the pattern "config(\d+)"
         expected_children = []
-        if wsbmr.utils.is_valid_directory(self.dir):
+        if netsurf.utils.is_valid_directory(self.dir):
             expected_children = [d for d in os.listdir(self.dir) if os.path.isdir(os.path.join(self.dir, d)) and re.match(r'config\d+', d)]
         # Update structure 
         self.structure_config['expected_children'] = expected_children
@@ -1668,16 +1668,16 @@ class MethodContainer(Bucket):
             tabs = '  ' * (self.level + 1)
             p = f"{'…/'*(self.level+1)}{os.path.basename(full_path)}"
             msg = f"{tabs}({ichild+1}/{num_children}) - [{children_type.capitalize()}Container]: {children_name} @ {p}"
-            if verbose: wsbmr.utils.log._info(msg, tab = 0)
+            if verbose: netsurf.utils.log._info(msg, tab = 0)
 
             """
                 IMPORTANT: At this point we have two possibilities:
-                    (1) If the directory exists AND it has a .metadata.wsbmr file inside,
+                    (1) If the directory exists AND it has a .metadata.netsurf file inside,
                         we have to follow whatever that metadata has inside. 
                         This is weird, but it allows us to have model buckets within other 
                         model buckets, etc. But if it is what the user wanted, then we need
                         to follow this. 
-                    (2) If the directory doesn't exist OR if it exists but the .metadata.wsbmr
+                    (2) If the directory doesn't exist OR if it exists but the .metadata.netsurf
                         doesn't, we have to proceed as usual, inferring the children type that
                         would be expected at this level and creating a placeholder for it.
             """
@@ -1687,7 +1687,7 @@ class MethodContainer(Bucket):
 
             if children_metadata is not None:
                 # Log
-                wsbmr.utils.log._info(f"{tabs}Found metadata file for {children_name} @ {full_path} Following metadata.", tab = self.level + 1)
+                netsurf.utils.log._info(f"{tabs}Found metadata file for {children_name} @ {full_path} Following metadata.", tab = self.level + 1)
                 # Get the children type from the metadata
                 children_type = children_metadata.level
                 # Assert the name is the same we were expecting (should be)
@@ -1839,7 +1839,7 @@ class ExperimentWrapper(HierarchicalContainer):
         # First of all, let's try to see if there's a nodus metadata object here,
         # which will point us to the right db entry. This entry will have almost all
         # the info we need to initialize the experiment object.
-        nodus_metadata = wsbmr.utils.get_metadata(dir, filename = '.metadata.nodus')
+        nodus_metadata = netsurf.utils.get_metadata(dir, filename = '.metadata.nodus')
         # If nodus metadata is None, well, things we a bit complicated. 
         # Then, we need to try to initialize the experiment object from scratch.
         if nodus_metadata is not None:
@@ -1850,29 +1850,29 @@ class ExperimentWrapper(HierarchicalContainer):
             if 'reload_ranking' in self.structure_config:
                 c['reload_ranking'] = self.structure_config['reload_ranking']
         
-        if not wsbmr.utils.is_valid_directory(dir):
-            wsbmr.utils.log._warn(f'Invalid directory {dir} for experiment {name}. Skipping.')
+        if not netsurf.utils.is_valid_directory(dir):
+            netsurf.utils.log._warn(f'Invalid directory {dir} for experiment {name}. Skipping.')
             return None, None
 
         # Try to find a ".exp" file in this dir
-        # List all .wsbmr.exp files in this directory
-        exp_files = [f for f in os.listdir(dir) if f.endswith('.wsbmr.exp')]
+        # List all .netsurf.exp files in this directory
+        exp_files = [f for f in os.listdir(dir) if f.endswith('.netsurf.exp')]
         if len(exp_files) == 0:
-            wsbmr.utils.log._warn(f'No experiment object found in {dir} with extension .wsbmr.exp')
+            netsurf.utils.log._warn(f'No experiment object found in {dir} with extension .netsurf.exp')
             return None, None
         # If we have more than one, loop thru them and look at the extra attributes with xattr
         for f in exp_files:
             # Get the full path
             full_path = os.path.join(dir, f)
             # Get the attributes
-            attrs = wsbmr.utils.get_xattrs(full_path)
+            attrs = netsurf.utils.get_xattrs(full_path)
             # If the name is the same, return this object
             if 'name' in attrs and 'type' in attrs:
                 if attrs['name'] == name and attrs['type'] == 'experiment':
-                    wsbmr.utils.log._info(f'Loading experiment object {name} @ {full_path}')
-                    return wsbmr.utils.load_object(full_path), full_path
+                    netsurf.utils.log._info(f'Loading experiment object {name} @ {full_path}')
+                    return netsurf.utils.load_object(full_path), full_path
         # Log 
-        wsbmr.utils.log._warn(f'No experiment object found in {dir} with extra attributes (xattr) of type experiment, matching the name {name}')
+        netsurf.utils.log._warn(f'No experiment object found in {dir} with extra attributes (xattr) of type experiment, matching the name {name}')
         return None, None
     
     """ Get results """
@@ -1882,7 +1882,7 @@ class ExperimentWrapper(HierarchicalContainer):
         loss_name = self.structure_config.get('loss', 'categorical_crossentropy')
         metrics_names = self.structure_config.get('metrics', ['categorical_accuracy'])
         total_num_params = self.structure_config.get('total_num_params', 0)
-        # self.results = wsbmr.core.experiments.ResultSpace(loss_name, metrics_names,
+        # self.results = netsurf.core.experiments.ResultSpace(loss_name, metrics_names,
         #                                                   protection=self.hyperspace_global_config['protection'], 
         #                                                 ber=self.hyperspace_global_config['ber'], 
         #                                                 num_reps=-1,#num_reps=self.hyperspace_global_config['num_reps'],
@@ -1901,17 +1901,17 @@ class ExperimentWrapper(HierarchicalContainer):
             data = self.experiment_obj.results
             extra_args = {'columns': data.columns}
 
-        elif wsbmr.utils.path_exists(results_file):
+        elif netsurf.utils.path_exists(results_file):
             # Read it 
             data = pd.read_csv(results_file)
             # Get the data
             extra_args['columns'] = data.columns
-            wsbmr.log(f'Updating results from {results_file}...')
+            netsurf.log(f'Updating results from {results_file}...')
         else:
-            wsbmr.log(f'Initializing empty placeholder results object for {self.name}...')
+            netsurf.log(f'Initializing empty placeholder results object for {self.name}...')
 
 
-        results = wsbmr.core.experiments.ResultSpace(loss_name, metrics_names,
+        results = netsurf.core.experiments.ResultSpace(loss_name, metrics_names,
                                                         protection = self.hyperspace_global_config['protection'],
                                                     ber = self.hyperspace_global_config['ber'],
                                                     num_reps = -1, #self.hyperspace_global_config['num_reps'],
@@ -1927,14 +1927,14 @@ class ExperimentWrapper(HierarchicalContainer):
         if False:
             # Update the results object
             start_time = time()
-            wsbmr.log(f'Updating results from {results_file}...')
+            netsurf.log(f'Updating results from {results_file}...')
             results.update(df)
             end_time = time()
-            wsbmr.log(f'Updated results from {results_file} in {end_time - start_time:.2f} seconds.')
+            netsurf.log(f'Updated results from {results_file} in {end_time - start_time:.2f} seconds.')
             return results
 
         # If we're here, then we couldn't find the results.csv file
-        wsbmr.utils.log._warn(f'No results.csv file found in {self.dir}')
+        netsurf.utils.log._warn(f'No results.csv file found in {self.dir}')
         return results
 
     def update_experiment_status(self):
@@ -2000,8 +2000,8 @@ class ExperimentWrapper(HierarchicalContainer):
     def load_config(self):
         # Check if the config file exists
         config_file = os.path.join(self.dir, 'config.json')
-        if not wsbmr.utils.path_exists(config_file):
-            wsbmr.utils.log._warn(f'No config.json file found in {self.dir}')
+        if not netsurf.utils.path_exists(config_file):
+            netsurf.utils.log._warn(f'No config.json file found in {self.dir}')
             return None
         
         # Read json
@@ -2011,7 +2011,7 @@ class ExperimentWrapper(HierarchicalContainer):
 
     """ Build plotter for results """
     def build_plotter(self, **kwargs):
-        # Get the metric from wsbmr.config for this benchmark
+        # Get the metric from netsurf.config for this benchmark
         metric = 'accuracy'
         if 'loss' in self.results:
             if len(self.results['loss']) > 0:
@@ -2024,10 +2024,10 @@ class ExperimentWrapper(HierarchicalContainer):
 
         elif 'benchmark' in self.structure_config:
             b = self.structure_config['benchmark']
-            if b in wsbmr.config.BENCHMARKS_CONFIG:
-                metric = wsbmr.config.BENCHMARKS_CONFIG[b].get('loss', 'accuracy')
+            if b in netsurf.config.BENCHMARKS_CONFIG:
+                metric = netsurf.config.BENCHMARKS_CONFIG[b].get('loss', 'accuracy')
         # Build plotter
-        plotter = wsbmr.gui.plotter.ExperimentsPlotter(self.results, metric = metric, structure_config = self.structure_config, **kwargs)
+        plotter = netsurf.gui.plotter.ExperimentsPlotter(self.results, metric = metric, structure_config = self.structure_config, **kwargs)
         return plotter
 
     """ Plotting functions (will delegate this to the plotter, but we need this access thru here) """
@@ -2038,12 +2038,12 @@ class ExperimentWrapper(HierarchicalContainer):
         
         # Assert type in ['2d','3d']
         if type not in ['2d','3d']:
-            wsbmr.utils.log._error(f'Invalid type {type} for plot_curves. Must be one of ["2d","3d"]', tab = self.level)
+            netsurf.utils.log._error(f'Invalid type {type} for plot_curves. Must be one of ["2d","3d"]', tab = self.level)
             return [], [], 0, [], [], []
 
         # If this is just a placeholder (with empty data), skip
         if len(self.coverage) == 0:
-            wsbmr.utils.log._warn(f'Empty run placeholder. Skipping plot_curves.', tab = self.level)
+            netsurf.utils.log._warn(f'Empty run placeholder. Skipping plot_curves.', tab = self.level)
             return [], [], 0, [], [], []
 
         # Pass the global metrics
@@ -2091,10 +2091,10 @@ class ExperimentWrapper(HierarchicalContainer):
                                                         standalone = standalone,
                                                         **kwargs)
             else:
-                wsbmr.utils.log._warn(f'Empty run placeholder. Skipping plot_curves.', tab = self.level)
+                netsurf.utils.log._warn(f'Empty run placeholder. Skipping plot_curves.', tab = self.level)
                 return [fig], [axs[0]], 0, [], [], []
         else:
-            wsbmr.utils.log._warn(f'Empty run placeholder. Skipping plot_curves.', tab = self.level)
+            netsurf.utils.log._warn(f'Empty run placeholder. Skipping plot_curves.', tab = self.level)
             return [fig], [axs[0]], 0, [], [], []
         
         if not isinstance(_ax, list) and not isinstance(_ax, np.ndarray):
@@ -2154,7 +2154,7 @@ class ExperimentWrapper(HierarchicalContainer):
             ss += f'\t\t<li><b>Directory:</b> <a href="file:/{self.dir}">{self.dir}</a></li>\n'
             
             # Show total elapsed time in format days hh:mm:ss
-            #ss += f'\t\t<li><b>Total Runtime:</b> {wsbmr.utils.get_elapsed_time(self.structural_local_metrics["runtime"])}</li>\n'
+            #ss += f'\t\t<li><b>Total Runtime:</b> {netsurf.utils.get_elapsed_time(self.structural_local_metrics["runtime"])}</li>\n'
             ss += f'\t\t<li><b>Accuracy range:</b> [{self.structure_config["accuracy"][1]*100:3.2f}%, {self.structure_config["accuracy"][0]*100:3.2f}%]</li>\n'
             
             # Show coverage statistics
@@ -2222,9 +2222,9 @@ def create_bucket(dir, name, level = 0, verbose = True, pbar = (lambda val, text
                                           **kwargs)
 
     # Now that we have all the global metrics, we can use them to color the plots, etc.
-    protection_colors = wsbmr.utils.plot.get_unique_colors(b.hyperspace_global_config['protection'])
-    ber_colors = wsbmr.utils.plot.get_unique_colors(b.hyperspace_global_config['ber'])
-    method_colors = wsbmr.utils.plot.get_unique_colors(b.hyperspace_global_config['method'])
+    protection_colors = netsurf.utils.plot.get_unique_colors(b.hyperspace_global_config['protection'])
+    ber_colors = netsurf.utils.plot.get_unique_colors(b.hyperspace_global_config['ber'])
+    method_colors = netsurf.utils.plot.get_unique_colors(b.hyperspace_global_config['method'])
 
     # Add this to the global metrics
     b.hyperspace_global_config['protection_colors'] = protection_colors
@@ -2245,7 +2245,7 @@ def create_bucket(dir, name, level = 0, verbose = True, pbar = (lambda val, text
     c = b.get_coverage()
 
     # Create the coverage pies 
-    root_pie = wsbmr.utils.plot.CoveragePie(b, verbose = False)
+    root_pie = netsurf.utils.plot.CoveragePie(b, verbose = False)
     # Set this pie 
     b.coverage_pie = root_pie
     # Now propagate the coverage pies down

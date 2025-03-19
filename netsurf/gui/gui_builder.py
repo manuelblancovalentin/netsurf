@@ -9,16 +9,16 @@ from PyQt5.QtWidgets import QLabel, QSplitter
 from PyQt5.QtCore import Qt
 
 """ Import gui """
-import wsbmr
-from wsbmr import gui
+import netsurf
+from netsurf import gui
 
 """ Main window class """
 class MainWindow(QMainWindow):
     _last_progress = 0.0
     def __init__(self, **kwargs):
         super().__init__()
-        self.setWindowTitle("WSBMR GUI")
-        self.setGeometry(100, 100, wsbmr.config.DEFAULT_MAIN_WINDOW_WIDTH, wsbmr.config.DEFAULT_MAIN_WINDOW_HEIGHT)
+        self.setWindowTitle("Netsurf GUI")
+        self.setGeometry(100, 100, netsurf.config.DEFAULT_MAIN_WINDOW_WIDTH, netsurf.config.DEFAULT_MAIN_WINDOW_HEIGHT)
 
         # Init config dict to empty
         self.config = {'texp': None, 'coverage': None}
@@ -59,7 +59,7 @@ class MainWindow(QMainWindow):
         # Connect load and save buttons
         ip.load_bucket_button.clicked.connect(self.load_bucket)
         # Connect open session log button
-        ip.open_session_log_button.clicked.connect(wsbmr.utils.open_session_log)
+        ip.open_session_log_button.clicked.connect(netsurf.utils.open_session_log)
         # connect "open nodus terminal" button
         ip.open_nodus_terminal_button.clicked.connect(self.open_nodus_terminal)
         
@@ -144,7 +144,7 @@ class MainWindow(QMainWindow):
             
     # Display the config
     def print_config(self):
-        wsbmr.utils.log._log(f"Current config: ")
+        netsurf.utils.log._log(f"Current config: ")
         for key, value in self.config.items():
             print(f"\t{key}: {value}")
     
@@ -193,7 +193,7 @@ class MainWindow(QMainWindow):
         old_name = root_bucket.name
         if root_bucket.name in self.buckets:
             # Find next suffix
-            new_names = wsbmr.utils.get_latest_suffix(old_name, self.buckets, next = True, divider = '_', return_index = False, next_if_empty = True)
+            new_names = netsurf.utils.get_latest_suffix(old_name, self.buckets, next = True, divider = '_', return_index = False, next_if_empty = True)
             new_name = new_names[0]
 
             # Make sure new_name is not None
@@ -213,7 +213,7 @@ class MainWindow(QMainWindow):
             root_bucket.name = str(new_name)
                 
             # Log info
-            wsbmr.utils.log._log(f"Bucket with name {old_name} already exists. Renaming to {new_name}")
+            netsurf.utils.log._log(f"Bucket with name {old_name} already exists. Renaming to {new_name}")
         
         self.buckets[root_bucket.name] = root_bucket
 
@@ -224,13 +224,13 @@ class MainWindow(QMainWindow):
         # Try to get initial dir from benchmarks dir from ipanel
         initial_dir = self.children[0].config.get('benchmarks_dir', os.getcwd())
         # Load a bucket from file
-        filename, bkt = wsbmr.utils.show_load_bucket_dialog(self, initial_dir)
+        filename, bkt = netsurf.utils.show_load_bucket_dialog(self, initial_dir)
         if filename:
             # We need to make sure that this bucket's name is not already in the list, 
             # if it is, we need to rename it
             if bkt.name in self.buckets:
                 # Find next suffix
-                new_name = wsbmr.utils.get_latest_suffix(bkt.name, self.buckets, next = True, divider = '_', return_index = False, next_if_empty = True)
+                new_name = netsurf.utils.get_latest_suffix(bkt.name, self.buckets, next = True, divider = '_', return_index = False, next_if_empty = True)
                 if isinstance(new_name, list) or isinstance(new_name, tuple):
                     new_name = new_name[0]
                 # Make sure new_name is not None
@@ -248,24 +248,24 @@ class MainWindow(QMainWindow):
                 # Update name in bucket now 
                 bkt.name = str(new_name)
                 # Log info
-                wsbmr.utils.log._log(f"Bucket with name {bkt.name} already exists. Renaming to {new_name}")
+                netsurf.utils.log._log(f"Bucket with name {bkt.name} already exists. Renaming to {new_name}")
 
             # Add to buckets
             self.buckets[bkt.name] = bkt
             # Update tree panel
             self.buckets_panel.update_buckets(self.buckets)
             # Log info
-            wsbmr.utils.log._log(f"Bucket loaded from file {filename}")
+            netsurf.utils.log._log(f"Bucket loaded from file {filename}")
             #self.set_value('bucket_name', filename, verbose = False)
     
     def open_nodus_terminal(self):
-        # Run command line "python -m nodus --db wsbmr_db" in a new terminal window
-        db_path = wsbmr.config.WSBMR_NODUS_DB_NAME
-        wsbmr.utils.open_terminal_with_command(f"python -m nodus --db {db_path}", generic = True)
+        # Run command line "python -m nodus --db netsurf_db" in a new terminal window
+        db_path = netsurf.config.NETSURF_NODUS_DB_NAME
+        netsurf.utils.open_terminal_with_command(f"python -m nodus --db {db_path}", generic = True)
 
     # def close(self):
     #     # Make sure to close nodus session before exiting 
-    #     wsbmr.exit()
+    #     netsurf.exit()
     #     return super().close()
 
 """ Build GUI """

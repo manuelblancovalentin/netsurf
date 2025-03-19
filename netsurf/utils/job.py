@@ -10,8 +10,8 @@ from . import log
 # Pandas 
 import pandas as pd
 
-# Import wsbmr
-import wsbmr
+# Import netsurf
+import netsurf
 
 """ Check if a given pid is running """
 def is_pid_running(pid):
@@ -95,8 +95,8 @@ def get_process_from_job(job_progress_file, job_pid_file, verbose = True):
 
 # Get nodus jobs 
 def get_nodus_jobs_for_config(config = {}):
-    # Get the wsbmr nodus db connector 
-    nodus_db = wsbmr.nodus_db
+    # Get the netsurf nodus db connector 
+    nodus_db = netsurf.nodus_db
     # Job manager obj
     job_manager = nodus_db.job_manager
 
@@ -127,8 +127,8 @@ def get_nodus_jobs_for_config(config = {}):
     return jobs_df
 
 def run_jobs_with_nodus(commands):
-    # Get the wsbmr nodus db connector 
-    nodus_db = wsbmr.nodus_db
+    # Get the netsurf nodus db connector 
+    nodus_db = netsurf.nodus_db
     # Job manager obj
     jm = nodus_db.job_manager
 
@@ -143,7 +143,7 @@ def run_jobs_with_nodus(commands):
         # Create job for parent
         job_id_parent, job_parent = jm.create_job(
             name=f"model_training_{hash}",
-            parent_caller="wsbmr",
+            parent_caller="netsurf",
             job_type="command",
             command = parent
         )
@@ -155,7 +155,7 @@ def run_jobs_with_nodus(commands):
             # Create job
             job_id, job = jm.create_job(
                 name=f"model_training_{hash}",
-                parent_caller="wsbmr",
+                parent_caller="netsurf",
                 job_type="command",
                 command = cmd,
                 dependencies = [job_id_parent]

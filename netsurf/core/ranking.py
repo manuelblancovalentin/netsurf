@@ -15,8 +15,8 @@ import tensorflow as tf
 #from tqdm.notebook import tqdm
 from tqdm import tqdm
 
-""" WSBMR modules """
-import wsbmr
+""" netsurf modules """
+import netsurf
 
 # Fkeras for Hessian ranking and all the dependencies
 import fkeras
@@ -145,11 +145,11 @@ class WeightRanker:
 
         # Plot bit number first 
         w = 300
-        wsbmr.utils.plot.plot_avg_and_std(self.df['bit'], w, axs[0], shadecolor='green', ylabel='Bit number')
-        wsbmr.utils.plot.plot_avg_and_std(self.df['susceptibility'], w, axs[1], shadecolor='purple', ylabel='Abs (Impact P)')
-        wsbmr.utils.plot.plot_avg_and_std(np.abs(self.df['susceptibility']), w, axs[2], shadecolor='purple', ylabel='Absolute |Impact P|')
-        wsbmr.utils.plot.plot_avg_and_std(self.df['value'], w, axs[3], shadecolor='orange', ylabel='Param Value')
-        wsbmr.utils.plot.plot_avg_and_std(self.df['variable_index'], w, axs[4], shadecolor='black', ylabel='Variable Index (~Layer)')
+        netsurf.utils.plot.plot_avg_and_std(self.df['bit'], w, axs[0], shadecolor='green', ylabel='Bit number')
+        netsurf.utils.plot.plot_avg_and_std(self.df['susceptibility'], w, axs[1], shadecolor='purple', ylabel='Abs (Impact P)')
+        netsurf.utils.plot.plot_avg_and_std(np.abs(self.df['susceptibility']), w, axs[2], shadecolor='purple', ylabel='Absolute |Impact P|')
+        netsurf.utils.plot.plot_avg_and_std(self.df['value'], w, axs[3], shadecolor='orange', ylabel='Param Value')
+        netsurf.utils.plot.plot_avg_and_std(self.df['variable_index'], w, axs[4], shadecolor='black', ylabel='Variable Index (~Layer)')
 
         plt.show()
     
@@ -359,7 +359,7 @@ class DiffBitsPerWeightRanker(WeightRanker):
     def rank(self, model, *args, exclude_zero = True, **kwargs):
         # Call super method to obtain DF 
         def process_value(value):
-            b = wsbmr.utils.float_to_binary(value,self.quantization.m)
+            b = netsurf.utils.float_to_binary(value,self.quantization.m)
             diff_sum = self.calculate_bit_differences(b)
             return diff_sum
 
@@ -638,7 +638,7 @@ class GradRanker(WeightRanker):
         # print(f'[INFO] - {"U" if use_delta_as_weight else "NOT u"}sing delta as weights.')
 
         # # Get supported weights and pruned masks 
-        # results = wsbmr.models.get_supported_weights(model.model, numpy = False, pruned = True, verbose = False)
+        # results = netsurf.models.get_supported_weights(model.model, numpy = False, pruned = True, verbose = False)
         # supported_weights, supported_pruned_masks, supported_layers, weights_param_num = results
         
         # if verbose:
@@ -648,7 +648,7 @@ class GradRanker(WeightRanker):
         # supported_layers_idxs = {lname: model.model.layers.index(supported_layers[lname]) for lname in supported_layers}
 
         # # Get deltas per weight
-        # deltas = {kw: wsbmr.models.get_deltas(kv, num_bits = num_bits) for kw, kv in supported_weights.items()}
+        # deltas = {kw: netsurf.models.get_deltas(kv, num_bits = num_bits) for kw, kv in supported_weights.items()}
         # is_bit_one = {kw: deltas[kw][1] for kw in supported_weights}
         # deltas = {kw: deltas[kw][0] for kw in supported_weights}
 
@@ -787,7 +787,7 @@ class GradRanker(WeightRanker):
         #         layer_name = ly.name
 
         #         # Get coords 
-        #         str_coords, coords = wsbmr.models.get_weight_coordinates(w.numpy())
+        #         str_coords, coords = netsurf.models.get_weight_coordinates(w.numpy())
 
         #         # build weight name (with coords)
         #         str_weight_name = np.array([f"{layer_name}[" + "][".join(item) + "]" for item in coords.astype(str)])
@@ -1410,7 +1410,7 @@ class HessianRanker(WeightRanker):
         print(f'[INFO] - {"U" if use_delta_as_weight else "NOT u"}sing delta as weights.')
 
         # Get supported weights and pruned masks 
-        results = wsbmr.models.get_supported_weights(model.model, numpy = False, pruned = True, verbose = False)
+        results = netsurf.models.get_supported_weights(model.model, numpy = False, pruned = True, verbose = False)
         supported_weights, supported_pruned_masks, supported_layers, weights_param_num = results
         
         if verbose:
@@ -1420,7 +1420,7 @@ class HessianRanker(WeightRanker):
         supported_layers_idxs = {lname: model.model.layers.index(supported_layers[lname]) for lname in supported_layers}
 
         # Get deltas per weight
-        deltas = {kw: wsbmr.models.get_deltas(kv, num_bits = num_bits) for kw, kv in supported_weights.items()}
+        deltas = {kw: netsurf.models.get_deltas(kv, num_bits = num_bits) for kw, kv in supported_weights.items()}
         is_bit_one = {kw: deltas[kw][1] for kw in supported_weights}
         deltas = {kw: deltas[kw][0] for kw in supported_weights}
 
@@ -1775,7 +1775,7 @@ class AIBerWeightRanker(WeightRanker):
                     4) Repeat until all bits are frozen OR until there's no improvement in the loss.
         """
         # 1) Clone the model using the Wrapper
-        wrapper = wsbmr.dnn.aiber.ModelWrapper(model, quantization)
+        wrapper = netsurf.dnn.aiber.ModelWrapper(model, quantization)
 
         w_model = wrapper.wrapped_model
         
@@ -1849,10 +1849,10 @@ class QPolarWeightRanker(WeightRanker):
         delta_loss = loss_corrupted - loss_uncorrupted
 
         # Print some metrics 
-        wsbmr.info(f'Stats for maximum attack (N=1) for QModel for input data X ({X.shape}):')
-        wsbmr.info(f'Loss (corrupted): {loss_corrupted}')
-        wsbmr.info(f'Loss (uncorrupted): {loss_uncorrupted}')
-        wsbmr.info(f'Delta loss: {delta_loss}')
+        netsurf.info(f'Stats for maximum attack (N=1) for QModel for input data X ({X.shape}):')
+        netsurf.info(f'Loss (corrupted): {loss_corrupted}')
+        netsurf.info(f'Loss (uncorrupted): {loss_uncorrupted}')
+        netsurf.info(f'Delta loss: {delta_loss}')
 
         # Get unique indexes for model.metrics_names
         unique_idxs = np.unique([model.metrics_names.index(mname) for mname in model.metrics_names if mname != 'loss'])
@@ -1867,11 +1867,11 @@ class QPolarWeightRanker(WeightRanker):
             # Reset
             met.reset_states()
             _met = met(Y, corrupted_output).numpy()*1.0
-            wsbmr.info(f'{mname} (corrupted): {_met}')
+            netsurf.info(f'{mname} (corrupted): {_met}')
             # Reset
             met.reset_states()
             _met = met(Y, uncorrupted_output).numpy()*1.0
-            wsbmr.info(f'{mname} (uncorrupted): {_met}')
+            netsurf.info(f'{mname} (uncorrupted): {_met}')
             # Reset
             met.reset_states()
         
@@ -2005,7 +2005,7 @@ class QPolarWeightRanker(WeightRanker):
         df = df.sort_values(by=['susceptibility','bit'], ascending = [False, True])
 
         """ Initialize ModelVulnerability for this model """
-        # model_vul = wsbmr.dnn.qpolar.ModelVulnerability(model)
+        # model_vul = netsurf.dnn.qpolar.ModelVulnerability(model)
 
         # """ Now compute the vulnerability to X (optional, pass Y)"""
         # vulner_to_X = model_vul.to(X, Y = Y)
@@ -2020,7 +2020,7 @@ class QPolarWeightRanker(WeightRanker):
         #         Because we need the activations, we also need to get the activation at each layer (right before every param, basically)
         # """
         # # 1) Build the activation model to get the inner activations (X)
-        # activation_model = wsbmr.QModel(quantization, model.in_shape, model.out_shape, 
+        # activation_model = netsurf.QModel(quantization, model.in_shape, model.out_shape, 
         #                                 ip = model.input, out = model._activations)
         
         # # Get the activations
@@ -2194,12 +2194,12 @@ class QPolarWeightRanker(WeightRanker):
 
         # Plot bit number first 
         w = 300
-        wsbmr.utils.plot.plot_avg_and_std(self.df['bit'], w, axs[0], shadecolor='green', ylabel='Bit number')
-        wsbmr.utils.plot.plot_avg_and_std(self.df['impact'], w, axs[1], shadecolor='red', ylabel='Impact P')
-        wsbmr.utils.plot.plot_avg_and_std(self.df['susceptibility'], w, axs[2], shadecolor='purple', ylabel='Abs (Impact P)')
-        wsbmr.utils.plot.plot_avg_and_std(np.abs(self.df['susceptibility']), w, axs[3], shadecolor='purple', ylabel='Absolute |Impact P|')
-        wsbmr.utils.plot.plot_avg_and_std(self.df['value'], w, axs[4], shadecolor='orange', ylabel='Param Value')
-        wsbmr.utils.plot.plot_avg_and_std(self.df['variable_index'], w, axs[5], shadecolor='black', ylabel='Variable Index (~Layer)')
+        netsurf.utils.plot.plot_avg_and_std(self.df['bit'], w, axs[0], shadecolor='green', ylabel='Bit number')
+        netsurf.utils.plot.plot_avg_and_std(self.df['impact'], w, axs[1], shadecolor='red', ylabel='Impact P')
+        netsurf.utils.plot.plot_avg_and_std(self.df['susceptibility'], w, axs[2], shadecolor='purple', ylabel='Abs (Impact P)')
+        netsurf.utils.plot.plot_avg_and_std(np.abs(self.df['susceptibility']), w, axs[3], shadecolor='purple', ylabel='Absolute |Impact P|')
+        netsurf.utils.plot.plot_avg_and_std(self.df['value'], w, axs[4], shadecolor='orange', ylabel='Param Value')
+        netsurf.utils.plot.plot_avg_and_std(self.df['variable_index'], w, axs[5], shadecolor='black', ylabel='Variable Index (~Layer)')
 
         plt.show()
 
@@ -2603,7 +2603,7 @@ class OracleWeightRanker(WeightRanker):
         df = df.sort_values(by = 'rank')
 
         # [@manuelbv]: add binary repr, which might be handy later
-        df['binary'] = df['value'].apply(lambda x: wsbmr.utils.float_to_binary(x, num_bits))
+        df['binary'] = df['value'].apply(lambda x: netsurf.utils.float_to_binary(x, num_bits))
 
         self.df = df
 

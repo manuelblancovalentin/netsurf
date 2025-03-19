@@ -8,14 +8,14 @@ from PyQt5.QtWidgets import QListWidget, QSplitter, QMessageBox, QStyle, QMenu, 
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
-# wsbmr imports
-import wsbmr
+# netsurf imports
+import netsurf
 
 # Custom imports
 from . import widgets
 
 """ Generic panel class """
-class WSBMRPanel(QGroupBox):
+class netsurfPanel(QGroupBox):
     def __init__(self, title):
         super().__init__(title)
         self.config = {}
@@ -24,11 +24,11 @@ class WSBMRPanel(QGroupBox):
     def set_value(self, key, value, verbose = True):
         self.config[key] = value
         if verbose:
-            wsbmr.utils.log._log(f"Setting {key} to {value}")
+            netsurf.utils.log._log(f"Setting {key} to {value}")
 
 
 """ Define inputs panel """
-class InputsPanel(WSBMRPanel):
+class InputsPanel(netsurfPanel):
     def __init__(self, **kwargs):
         super().__init__("Inputs")
         
@@ -41,7 +41,7 @@ class InputsPanel(WSBMRPanel):
         self.init_ui(**kwargs)
 
     """ Initialize UI """
-    def init_ui(self, benchmarks_dir = wsbmr.config.DEFAULT_BENCHMARKS_DIR, datasets_dir = wsbmr.config.DEFAULT_DATASETS_DIR, **kwargs):
+    def init_ui(self, benchmarks_dir = netsurf.config.DEFAULT_BENCHMARKS_DIR, datasets_dir = netsurf.config.DEFAULT_DATASETS_DIR, **kwargs):
         self.setStyleSheet("QGroupBox { border: 1px solid gray; margin-top: 10px; }")
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 
@@ -79,7 +79,7 @@ class InputsPanel(WSBMRPanel):
         # Open nodus session terminal
         self.open_nodus_terminal_button = QPushButton("Open nodus terminal", self)
         self.open_nodus_terminal_button.setIcon(self.style().standardIcon(QStyle.SP_CommandLink))
-        self.open_nodus_terminal_button.setIcon(QIcon(os.path.join(wsbmr.__dir__,"res/terminal-icon.png")))
+        self.open_nodus_terminal_button.setIcon(QIcon(os.path.join(netsurf.__dir__,"res/terminal-icon.png")))
         self.open_nodus_terminal_button.setToolTip("Open nodus terminal")
 
         # Add button to layout
@@ -103,8 +103,8 @@ class InputsPanel(WSBMRPanel):
 
     """ Set directory if valid """
     def set_dir(self, key, value, verbose = True):
-        if wsbmr.utils.is_valid_directory(value):
-            wsbmr.utils.log._log(f"Setting valid directory {value} for {key}")
+        if netsurf.utils.is_valid_directory(value):
+            netsurf.utils.log._log(f"Setting valid directory {value} for {key}")
             self.set_value(key, value, verbose = False)
         else:
             # If the directory is invalid, ask the user with a popup if they want to create it 
@@ -112,16 +112,16 @@ class InputsPanel(WSBMRPanel):
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
             if reply == QMessageBox.Yes:
-                wsbmr.utils.log._log(f"Creating directory {value} for {key}")
+                netsurf.utils.log._log(f"Creating directory {value} for {key}")
                 os.makedirs(value, exist_ok = True)
                 self.set_value(key, value, verbose = False)
             else:
-                wsbmr.utils.log._log(f"Invalid directory {value} for {key}")
+                netsurf.utils.log._log(f"Invalid directory {value} for {key}")
 
     
     
 """ Define simulation config panel """
-class SimulationConfigPanel(WSBMRPanel):
+class SimulationConfigPanel(netsurfPanel):
     def __init__(self):
         super().__init__("Simulation Config")
         self.config = {'num_reps': -1, 'benchmarks': [], 'methods': [], 'quantizations': [], 'protections': [], 'pruning': []}
@@ -135,21 +135,21 @@ class SimulationConfigPanel(WSBMRPanel):
         layout = QVBoxLayout()
 
         # Create widgets
-        num_reps_spinner = widgets.IntegerSpinnerWidget("Num reps:", lambda x: self.set_value("num_reps", x), default_value = wsbmr.config.DEFAULT_NUM_REPS)
+        num_reps_spinner = widgets.IntegerSpinnerWidget("Num reps:", lambda x: self.set_value("num_reps", x), default_value = netsurf.config.DEFAULT_NUM_REPS)
 
         # Create tab widget for different configs
         tab_widget = QTabWidget()
-        tab_benchmarks = widgets.CustomListWidgetTab(wsbmr.config.AVAILABLE_BENCHMARKS, wsbmr.config.DEFAULT_BENCHMARKS, 
+        tab_benchmarks = widgets.CustomListWidgetTab(netsurf.config.AVAILABLE_BENCHMARKS, netsurf.config.DEFAULT_BENCHMARKS, 
                                 lambda x: self.set_selection('benchmarks', x))
-        tab_methods = widgets.CustomListWidgetTab(wsbmr.config.AVAILABLE_METHODS, wsbmr.config.DEFAULT_METHODS, 
+        tab_methods = widgets.CustomListWidgetTab(netsurf.config.AVAILABLE_METHODS, netsurf.config.DEFAULT_METHODS, 
                                 lambda x: self.set_selection('methods',x))
-        tab_quantizations = widgets.CustomQuantizationListWidgetTab(wsbmr.config.DEFAULT_QUANTIZATIONS, 
+        tab_quantizations = widgets.CustomQuantizationListWidgetTab(netsurf.config.DEFAULT_QUANTIZATIONS, 
                                 lambda x: self.set_selection('quantizations', x))
-        tab_protections = widgets.CustomFloatListWidgetTab([str(t) for t in wsbmr.config.DEFAULT_PROTECTION], [str(t) for t in wsbmr.config.DEFAULT_PROTECTION], 
+        tab_protections = widgets.CustomFloatListWidgetTab([str(t) for t in netsurf.config.DEFAULT_PROTECTION], [str(t) for t in netsurf.config.DEFAULT_PROTECTION], 
                                 lambda x: self.set_selection('protections', x), min = 0.0, max = 1.0, step = 0.2) 
-        tab_pruning = widgets.CustomFloatListWidgetTab([str(t) for t in wsbmr.config.DEFAULT_PRUNINGS], [str(t) for t in wsbmr.config.DEFAULT_PRUNINGS],
+        tab_pruning = widgets.CustomFloatListWidgetTab([str(t) for t in netsurf.config.DEFAULT_PRUNINGS], [str(t) for t in netsurf.config.DEFAULT_PRUNINGS],
                                 lambda x: self.set_selection('pruning', x), min = 0.0, max = 1.0, step = 0.125)
-        tab_bers = widgets.CustomFloatListWidgetTab([str(t) for t in wsbmr.config.DEFAULT_BER], [str(t) for t in wsbmr.config.DEFAULT_BER],
+        tab_bers = widgets.CustomFloatListWidgetTab([str(t) for t in netsurf.config.DEFAULT_BER], [str(t) for t in netsurf.config.DEFAULT_BER],
                                 lambda x: self.set_selection('bers', x), min = 1e-3, max = 1e-1, step = 10**(2/9), log = True)
         # Add the custom tab widgets to the QTabWidget
         tab_widget.addTab(tab_benchmarks, "Benchmarks")
@@ -160,13 +160,13 @@ class SimulationConfigPanel(WSBMRPanel):
         tab_widget.addTab(tab_bers, "BER - Error Rate Injection")
 
         # Update config with default values
-        self.set_value('num_reps', wsbmr.config.DEFAULT_NUM_REPS)
-        self.set_selection('benchmarks', wsbmr.config.DEFAULT_BENCHMARKS)
-        self.set_selection('methods', wsbmr.config.DEFAULT_METHODS)
-        self.set_selection('quantizations', wsbmr.config.DEFAULT_QUANTIZATIONS)
-        self.set_selection('protections', wsbmr.config.DEFAULT_PROTECTION)
-        self.set_selection('pruning', wsbmr.config.DEFAULT_PRUNINGS)
-        self.set_selection('bers', wsbmr.config.DEFAULT_BER)
+        self.set_value('num_reps', netsurf.config.DEFAULT_NUM_REPS)
+        self.set_selection('benchmarks', netsurf.config.DEFAULT_BENCHMARKS)
+        self.set_selection('methods', netsurf.config.DEFAULT_METHODS)
+        self.set_selection('quantizations', netsurf.config.DEFAULT_QUANTIZATIONS)
+        self.set_selection('protections', netsurf.config.DEFAULT_PROTECTION)
+        self.set_selection('pruning', netsurf.config.DEFAULT_PRUNINGS)
+        self.set_selection('bers', netsurf.config.DEFAULT_BER)
 
         # Add to layout
         layout.addWidget(num_reps_spinner)
@@ -187,11 +187,11 @@ class SimulationConfigPanel(WSBMRPanel):
     # Set selection of values 
     def set_selection(self, key, value):
         self.config[key] = value
-        wsbmr.utils.log._log(f"Setting {key} to {value}")
+        netsurf.utils.log._log(f"Setting {key} to {value}")
 
 
 """ Buckets panel """
-class BucketsPanel(WSBMRPanel):
+class BucketsPanel(netsurfPanel):
     def __init__(self, title, buckets):
         super().__init__(title)
         self.buckets = buckets
@@ -257,7 +257,7 @@ class BucketsPanel(WSBMRPanel):
     def update_table_on_tree_item_selection(self, item):
         # See which item is selected in the tree widget
         if hasattr(item, 'bucket'):
-            wsbmr.utils.log._log(f"Selected item/bucket is: {item.bucket}")
+            netsurf.utils.log._log(f"Selected item/bucket is: {item.bucket}")
             # The selected item from the tree item is "item"
             selected_bucket = item.bucket
             # get html
@@ -361,7 +361,7 @@ class LogPanel(QWidget):
 
         # Initialize the log file 
         if log_file is None:
-            log_file = wsbmr.nodus.__nodus_log_file__
+            log_file = netsurf.nodus.__nodus_log_file__
             if not os.path.exists(log_file):
                 log_file = None
         self.log_file = log_file

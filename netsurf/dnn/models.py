@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 import tensorplot as tp
 
 """ Custom utils """
-import wsbmr
+import netsurf
 
 """ Utils """
 from ..utils import io
@@ -41,9 +41,6 @@ from .layers import _QQLayer, QQDense, QQConv1D, QQConv2D, QQDepthwiseConv2D, QQ
                     QQFlatten, QQDropout, QQReshape, \
                     QQLSTM, QQApplyAlpha
 
-""" Attack """
-from .qpolar import Attack
-
 
 """ Basic neural network """
 class QModel(tf.keras.Model):
@@ -61,7 +58,7 @@ class QModel(tf.keras.Model):
         else:
             self._built = False
 
-        # internal config (for wsbmr)
+        # internal config (for netsurf)
         self._config = {'quantization_scheme': quantizer.get_config() if hasattr(quantizer, 'get_config') else quantizer,
                 'quantizer': quantizer,
                 'in_shape': in_shape, 
@@ -140,7 +137,7 @@ class QModel(tf.keras.Model):
         # Pop quantizer config and create a quantizer 
         quantizer_config = custom_config.pop('quantizer') if 'quantizer' in custom_config else None
         # Reconstruct the quantizer using a helper function.
-        quantizer = wsbmr.QuantizationScheme.from_config(quantizer_config) if quantizer_config is not None else None
+        quantizer = netsurf.QuantizationScheme.from_config(quantizer_config) if quantizer_config is not None else None
         # Now, pass the remaining config parameters to the constructor.
         return cls(quantizer, **custom_config, base_config = config)
 
@@ -242,7 +239,7 @@ class QModel(tf.keras.Model):
                              display = False,
                              **kwargs)
         if isinstance(fileout, str):
-            wsbmr.utils.log._custom('MDL', f'Saving model plot @ {fileout}')
+            netsurf.utils.log._custom('MDL', f'Saving model plot @ {fileout}')
         return fileout
     
     # Create model name based on architecture 
@@ -319,13 +316,13 @@ class QModel(tf.keras.Model):
         # Parse loss 
         loss = self._config['loss'] if loss is None else loss
         if isinstance(loss, str):
-            loss = wsbmr.dnn.losses.parse_loss(loss)
+            loss = netsurf.dnn.losses.parse_loss(loss)
         
         # Metrics 
         metrics = self._config['metrics'] if metrics is None else metrics
         if metrics:
             if isinstance(metrics[0], str):
-                metrics = wsbmr.dnn.metrics.parse_metrics(metrics)
+                metrics = netsurf.dnn.metrics.parse_metrics(metrics)
 
         super().compile(loss = loss, optimizer = optimizer, metrics = metrics)
 
@@ -417,9 +414,9 @@ class QModel(tf.keras.Model):
     def evaluate_classification(self, x, y, **kwargs):
         # Plot ROC 
         yhat = self.predict(x, verbose = False)
-        wsbmr.utils.plot.plot_ROC(y, yhat, **kwargs)
+        netsurf.utils.plot.plot_ROC(y, yhat, **kwargs)
         # And get confusion matrix 
-        wsbmr.utils.plot.plot_confusion_matrix(y, yhat, **kwargs)
+        netsurf.utils.plot.plot_confusion_matrix(y, yhat, **kwargs)
 
     def evaluate_regression(self, x, y, **kwargs):
         # Get predictions
@@ -434,7 +431,7 @@ class QModel(tf.keras.Model):
             labels = None
         
         # Call scatter plotter
-        wsbmr.utils.plot.plot_scatter(y, test_predictions, 
+        netsurf.utils.plot.plot_scatter(y, test_predictions, 
                                       title = 'Predictions', 
                                       xlabel = 'True', 
                                       ylabel = 'Predicted', 
@@ -453,7 +450,7 @@ class QModel(tf.keras.Model):
         if axs is not None:
             if len(axs) != num_samples:
                 # Warn the user and chang
-                wsbmr.utils.log._warn(f'Number of samples ({num_samples}) does not match number of axes ({len(axs)}). Restarting axs.')
+                netsurf.utils.log._warn(f'Number of samples ({num_samples}) does not match number of axes ({len(axs)}). Restarting axs.')
                 axs = None
 
         # Plot pairs of images (true vs predicted)
@@ -591,7 +588,7 @@ class QModel(tf.keras.Model):
         # Add losses 
         if self.loss:
             if not hasattr(self.loss, '__call__'):
-                loss = wsbmr.dnn.losses.parse_loss(self.loss)
+                loss = netsurf.dnn.losses.parse_loss(self.loss)
             else:
                 loss = self.loss
             if loss:
@@ -623,7 +620,7 @@ class QModel(tf.keras.Model):
         # Now metrics 
         if self.metrics:
             _mets = []
-            for im, m in enumerate(wsbmr.dnn.metrics.parse_metrics(self.metrics)):
+            for im, m in enumerate(netsurf.dnn.metrics.parse_metrics(self.metrics)):
                 # Get the actual definition (code) of "model.loss"
                 m_source, line_number = inspect.getsourcelines(m.__class__)  # ✅ Get source lines & starting line
                 m_source = ''.join(m_source)  # Convert list of lines into a string
@@ -798,7 +795,7 @@ class FNN(QModel):
         custom_config = config.pop('custom_config')
         # Pop quantizer config and create a quantizer 
         quantizer_config = custom_config.pop('quantizer') if 'quantizer' in custom_config else None
-        quantizer = wsbmr.QuantizationScheme.from_config(quantizer_config) if quantizer_config is not None else None
+        quantizer = netsurf.QuantizationScheme.from_config(quantizer_config) if quantizer_config is not None else None
         return cls(quantizer, **custom_config, base_config = config)
 
     """ Evaluation model """
@@ -1194,7 +1191,7 @@ class hls4mlCNN(QModel):
 
         # Invoke ROC
         num_bits = self.quantizer.m
-        wsbmr.utils.plots.plot_ROC(y, predict_baseline, num_bits = num_bits, filepath = filepath, show = show)
+        netsurf.utils.plots.plot_ROC(y, predict_baseline, num_bits = num_bits, filepath = filepath, show = show)
     
     # Create model name based on architecture 
     def create_model_name_by_architecture(self):
@@ -1452,11 +1449,11 @@ from .econ import *
 from .smart_pixel import *
 
 # Register all models
-wsbmr.MODELS.update(BASIC_MODELS)
-wsbmr.MODELS.update(SMARTPIXMODELS)
-wsbmr.MODELS.update(RESNETMODELS)
-wsbmr.MODELS.update(ECONMODELS)
-wsbmr.MODELS.update(LEGACYMODELS)
+netsurf.MODELS.update(BASIC_MODELS)
+netsurf.MODELS.update(SMARTPIXMODELS)
+netsurf.MODELS.update(RESNETMODELS)
+netsurf.MODELS.update(ECONMODELS)
+netsurf.MODELS.update(LEGACYMODELS)
 
 
 """ TFLite model """
@@ -1467,7 +1464,7 @@ wsbmr.MODELS.update(LEGACYMODELS)
 """ Main get model function """
 def get_model(quantization, model, *args, **kwargs):
     # Get models registered 
-    models_map = wsbmr.MODELS
+    models_map = netsurf.MODELS
 
     assert model.lower() in list([m.lower() for m in models_map]), f'Model {model} not found in registered models. Available models are: {models_map.keys()}'
     if 'verbose' in kwargs:
@@ -1497,7 +1494,7 @@ def get_custom_objects(quantization_scheme, wrap = None):
     custom_objects['QModel'] = QModel
 
     # Now register all custom models 
-    for name, model_cls in wsbmr.MODELS.items():
+    for name, model_cls in netsurf.MODELS.items():
         custom_objects[name] = model_cls
         
     # Register the base QQLayer.
@@ -1505,21 +1502,21 @@ def get_custom_objects(quantization_scheme, wrap = None):
     custom_objects['_QQLayer'] = _QQLayer
 
     # All the rest 
-    for name, layer_cls in wsbmr.QQLAYERS.items():
+    for name, layer_cls in netsurf.QQLAYERS.items():
         custom_objects[name] = layer_cls
         if name != layer_cls.__class__.__name__:
             custom_objects[layer_cls.__class__.__name__] = layer_cls
 
     # Register custom metrics and losses if needed.
     # Uncomment and modify the following lines if required:
-    for name, metric_cls in wsbmr.METRICS.items():
+    for name, metric_cls in netsurf.METRICS.items():
         custom_objects[name] = metric_cls
         # Also add with the lowercase name
         if name != metric_cls.__class__.__name__:
             custom_objects[metric_cls.__class__.__name__] = metric_cls
 
     # Same for losses 
-    for name, loss_cls in wsbmr.LOSSES.items():
+    for name, loss_cls in netsurf.LOSSES.items():
         custom_objects[name] = loss_cls
         if name != loss_cls.__class__.__name__:
             custom_objects[loss_cls.__class__.__name__] = loss_cls

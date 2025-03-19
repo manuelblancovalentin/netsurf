@@ -7,8 +7,8 @@ from PyQt5.QtWidgets import QMenu, QAction, QMessageBox
 """ Matplotlib """
 import matplotlib.pyplot as plt
 
-""" wsbmr """
-import wsbmr
+""" netsurf """
+import netsurf
 
 """ Define some custom context menus """
 class GenericContextMenu(QMenu):
@@ -43,7 +43,7 @@ class OpenRowContextMenu(GenericContextMenu):
     def open_item(self, item):
         if item:
             # Map visual row to actual model row
-            wsbmr.utils.open_directory(self.bucket.dir)
+            netsurf.utils.open_directory(self.bucket.dir)
 
 """ reload bucket """
 class ReloadBucketContextMenu(GenericContextMenu):
@@ -65,13 +65,13 @@ class ReloadBucketContextMenu(GenericContextMenu):
                 reply = QMessageBox.question(self, 'Reload bucket', f"Are you sure you want to reload the bucket {item.bucket.name}?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
                 if reply == QMessageBox.Yes:
                     # Get main window
-                    wd = wsbmr.utils.get_main_window_parent(self)
+                    wd = netsurf.utils.get_main_window_parent(self)
                     
                     # Update the progress bar fcn
                     pbar = lambda value, text: wd.update_progressbar(value, text)
                     
                     # Create a progress tracker that allows us to keep track of the progress and update the progress bar in the GUI
-                    custom_pbar = wsbmr.core.explorer.RecursiveProgressTracker(pbar, offset = 0.0, factor = 100)
+                    custom_pbar = netsurf.core.explorer.RecursiveProgressTracker(pbar, offset = 0.0, factor = 100)
     
                     # Reload the bucket
                     item.bucket.reload(pbar = custom_pbar)
@@ -95,7 +95,7 @@ class SaveBucketContextMenu(GenericContextMenu):
             initial_path = None
             if item.bucket is not None:
                 initial_path = item.bucket.dir
-                wsbmr.utils.show_save_bucket_dialog(self, initial_path, item.bucket)
+                netsurf.utils.show_save_bucket_dialog(self, initial_path, item.bucket)
 
 
 """ Delete row """
@@ -121,7 +121,7 @@ class DeletableRowContextMenu(GenericContextMenu):
             reply = QMessageBox.question(self, 'Delete directory', f"Are you sure you want to delete the directory {run_dir}?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 # Delete the directory
-                wsbmr.utils.delete_directory(run_dir)
+                netsurf.utils.delete_directory(run_dir)
                 # Update the DataFrame
                 # First find the row in the DataFrame by checking the id column
                 df_row = self._parent.df[self._parent.df['run_dir'] == run_dir].index
@@ -186,18 +186,18 @@ class PlotCoverageRowContextMenu(GenericContextMenu):
                 fig, ax = plt.subplots(figsize = figsize)
 
                 # Mark figure as deleatable
-                wsbmr.utils.mark_figure_as_deletable(fig)
+                netsurf.utils.mark_figure_as_deletable(fig)
 
                 item.bucket.coverage_pie.plot_coverage(ax = ax, title = '')
 
                 # Add plotwindow
-                pw = wsbmr.gui.widgets.PlotWindow('coverage', title = "", figure = fig, ax = ax, bucket = item.bucket)
+                pw = netsurf.gui.widgets.PlotWindow('coverage', title = "", figure = fig, ax = ax, bucket = item.bucket)
 
                 # Add reference so pyqt5 doesn't delete it...
                 self._parent.plot_windows.append(pw)
 
                 # Print number of active windows 
-                wsbmr.utils.log._log(f"Number of active plot windows: {len(self._parent.plot_windows)}")
+                netsurf.utils.log._log(f"Number of active plot windows: {len(self._parent.plot_windows)}")
 
                 # Show the plot window
                 self._parent.plot_windows[-1].show()
@@ -224,8 +224,8 @@ class PlotResultsRowContextMenu(GenericContextMenu):
         plot_2d_line_action.triggered.connect(lambda: self.plot_results(item, '2d'))
         plot_3d_volume_action.triggered.connect(lambda: self.plot_results(item, '3d'))
 
-        is_at_least_model_level = item.bucket <= wsbmr.explorer.ModelContainer
-        is_at_least_quant_level = item.bucket <= wsbmr.explorer.QuantizationContainer
+        is_at_least_model_level = item.bucket <= netsurf.explorer.ModelContainer
+        is_at_least_quant_level = item.bucket <= netsurf.explorer.QuantizationContainer
 
         if is_at_least_model_level: 
             plot_results_submenu.addAction(plot_barplot_action)
@@ -298,7 +298,7 @@ class PlotResultsRowContextMenu(GenericContextMenu):
                 metric = item.bucket.hyperspace_global_config['metric']
 
             # Create a multi plot window 
-            plot_window = wsbmr.gui.widgets.MultiPlotWindow(title = "Results Viewer")
+            plot_window = netsurf.gui.widgets.MultiPlotWindow(title = "Results Viewer")
             
             # Extract max y value (auc) from lines names
             ymax, ymin = None, None
@@ -313,7 +313,7 @@ class PlotResultsRowContextMenu(GenericContextMenu):
                 ymin = np.min([axx.get_ylim()[0] for axx in axs])
 
             for fig, ax, t, l, info in zip(figs, axs, texts, lines, infos):
-                plot_window.add_plot_window(wsbmr.gui.widgets.PlotWindow(plot_type, title = title, 
+                plot_window.add_plot_window(netsurf.gui.widgets.PlotWindow(plot_type, title = title, 
                                                         figure = fig, ax = ax, 
                                                         info_tag = t if plot_type not in ['barplot', 'boxplot','vus_vs_pruning'] else None, 
                                                         legend_lines = l,
@@ -326,12 +326,12 @@ class PlotResultsRowContextMenu(GenericContextMenu):
             self._parent.plot_windows.append(plot_window)
 
             # Print number of active windows 
-            wsbmr.utils.log._log(f"Number of active plot windows: {len(self._parent.plot_windows)}")
+            netsurf.utils.log._log(f"Number of active plot windows: {len(self._parent.plot_windows)}")
 
             # Show the plot window
             self._parent.plot_windows[-1].show()
 
             # Now try to delete all deletable figures
-            wsbmr.utils.close_deletable_figures()
+            netsurf.utils.close_deletable_figures()
 
                 

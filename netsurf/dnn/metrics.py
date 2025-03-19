@@ -7,8 +7,8 @@ from scipy import stats
 """ Numpy """
 import numpy as np
 
-""" Import wsbmr """
-import wsbmr
+""" Import netsurf """
+import netsurf
 
 # Litte snippet to parse metrics 
 def parse_metrics(metrics):
@@ -18,13 +18,13 @@ def parse_metrics(metrics):
         if isinstance(m, str):
             if m.lower() in METRICS:
                 mets.append(METRICS[m.lower()])
-                wsbmr.utils.log._custom('BMK',f'Adding custom metric {m} with definition {METRICS[m.lower()]}.')
+                netsurf.utils.log._custom('BMK',f'Adding custom metric {m} with definition {METRICS[m.lower()]}.')
             else:
                 if hasattr(tf.keras.metrics, m):
                     mets.append(getattr(tf.keras.metrics, m)())
-                    wsbmr.utils.log._custom('BMK',f'Adding standard keras metric {m} with definition {getattr(tf.keras.metrics,m)}.')
+                    netsurf.utils.log._custom('BMK',f'Adding standard keras metric {m} with definition {getattr(tf.keras.metrics,m)}.')
                 else:
-                    wsbmr.utils.log._warn(f'Metric {m} not found. Keeping as string.')
+                    netsurf.utils.log._warn(f'Metric {m} not found. Keeping as string.')
                     mets.append(m)
         elif isinstance(m, tf.keras.metrics.Metric):
             mets.append(m)

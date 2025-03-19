@@ -24,11 +24,11 @@ import pandas as pd
 """ Matplotlib """
 import matplotlib.pyplot as plt
 
-""" wsbmr """
+""" netsurf """
 from . import datasets
 
 """ Custom utils """
-import wsbmr
+import netsurf
 
 """ Tensorflow (for pruning) """
 import tensorflow as  tf 
@@ -41,16 +41,16 @@ from qkeras.autoqkeras.utils import print_qmodel_summary
 """ Load latest session method """
 def load_session(session_dir, quantizer = None, session_file = None, latest = True):
     if latest and session_file is None:
-        latest_pkl = wsbmr.utils.find_latest_file(os.path.join(session_dir, 'training_session'), '*/training_session.*.pkl')
+        latest_pkl = netsurf.utils.find_latest_file(os.path.join(session_dir, 'training_session'), '*/training_session.*.pkl')
         if latest_pkl == '' or latest_pkl is None:
-            wsbmr.utils.log._warn(f'No session files found at {session_dir}')
+            netsurf.utils.log._warn(f'No session files found at {session_dir}')
             return None
-        wsbmr.utils.log._custom('BMK',f'Loading session from file {latest_pkl}')
+        netsurf.utils.log._custom('BMK',f'Loading session from file {latest_pkl}')
         session_file = latest_pkl
     
     # Custom objects 
-    custom_objects = wsbmr.dnn.models.get_custom_objects(quantizer, wrap = False) if quantizer is not None else {}
-    sess = wsbmr.utils.load_object(session_file, custom_objects = custom_objects)
+    custom_objects = netsurf.dnn.models.get_custom_objects(quantizer, wrap = False) if quantizer is not None else {}
+    sess = netsurf.utils.load_object(session_file, custom_objects = custom_objects)
     return sess
 
 
@@ -76,7 +76,7 @@ class Session:
         if to_file and filename is None:
             os.makedirs(self.path, exist_ok = True)
             filename = os.path.join(self.path, f'{self.name}_training_history.png')
-        return wsbmr.utils.plot.plot_training_history(logs, ylog = ylog, filename = filename, show = show)
+        return netsurf.utils.plot.plot_training_history(logs, ylog = ylog, filename = filename, show = show)
 
     """ Save config and object to file """
     def save(self, filepath = None):
@@ -87,10 +87,10 @@ class Session:
         # Make sure directory exists 
         os.makedirs(filepath, exist_ok = True)
         try:
-            wsbmr.utils.save_object(self, filename)
-            wsbmr.utils.log._custom('BMK',f'Session saved to file {filename}')
+            netsurf.utils.save_object(self, filename)
+            netsurf.utils.log._custom('BMK',f'Session saved to file {filename}')
         except Exception as e:
-            wsbmr.utils.log._error(f'Error saving session to file {filename}. Exception: {e}')
+            netsurf.utils.log._error(f'Error saving session to file {filename}. Exception: {e}')
             pass
 
         """ Save the config to json file """
@@ -101,7 +101,7 @@ class Session:
         try:
             with open(config_filename, 'w') as fp:
                 json.dump(d, fp, indent=2)
-            wsbmr.utils.log._custom('BMK',f'Config saved to file {config_filename}')
+            netsurf.utils.log._custom('BMK',f'Config saved to file {config_filename}')
         except:
             pass
     
@@ -176,7 +176,7 @@ class Benchmark:
 
         # At this point we don't really need the dataset, so let's just use the DATASETS_CONFIG to get the 
         # in/out shapes 
-        dset_config = wsbmr.config.DATASETS_CONFIG[dataset] if dataset in wsbmr.config.DATASETS_CONFIG else None
+        dset_config = netsurf.config.DATASETS_CONFIG[dataset] if dataset in netsurf.config.DATASETS_CONFIG else None
         in_shape = dset_config['in_shape'][1:] if dset_config is not None else None
         out_shape = dset_config['out_shape'][1:] if dset_config is not None else None
         self.in_shape = in_shape
@@ -184,7 +184,7 @@ class Benchmark:
 
         # mets = []
         # if 'ECON' not in name:
-        #     mets += [wsbmr.metrics.EMDMetric(), wsbmr.metrics.WDMetric(), wsbmr.metrics.KLDivergenceMetric()]
+        #     mets += [netsurf.metrics.EMDMetric(), netsurf.metrics.WDMetric(), netsurf.metrics.KLDivergenceMetric()]
 
 
         # Keep original loss and metric names for later serialization (into pkl)
@@ -195,9 +195,9 @@ class Benchmark:
 
         # Parse loss 
         self.loss_name = loss
-        self.loss = wsbmr.losses.parse_loss(loss)
+        self.loss = netsurf.losses.parse_loss(loss)
         self.metric_names = metrics
-        self.metrics = wsbmr.dnn.metrics.parse_metrics(metrics)
+        self.metrics = netsurf.dnn.metrics.parse_metrics(metrics)
         self.optimizer = optimizer
 
         # Parse the problem type (classification/rgression/unsupervised) if None
@@ -229,14 +229,14 @@ class Benchmark:
         #self.compile()
     
     def __repr__(self):
-        return f'📦 {self.name} <wsbmr.{self.__class__.__name__}> @ ({hex(id(self))})\n   - Model: {self.model_name}\n   - Dataset: {self.dataset_name}'
+        return f'📦 {self.name} <netsurf.{self.__class__.__name__}> @ ({hex(id(self))})\n   - Model: {self.model_name}\n   - Dataset: {self.dataset_name}'
 
 
     """ Html element for pergamos """
     def html(self):
 
         # Create collapsible container for this benchmark
-        bmk_ct = pg.CollapsibleContainer(f"📦 {self.name} (wsbmr.{self.__class__.__name__})", layout='vertical')
+        bmk_ct = pg.CollapsibleContainer(f"📦 {self.name} (netsurf.{self.__class__.__name__})", layout='vertical')
 
         # Get model html
         model_ct = self.model.html()
@@ -252,8 +252,8 @@ class Benchmark:
             model_ct[0].append(ct)
 
         # Plot sparsity
-        filename = wsbmr.utils.io.create_temporary_file(prefix='wsbmr_sparsity', ext = '.png')
-        wsbmr.utils.plot.plot_sparsity(self.model, filepath = filename, show = False, separated = False, verbose = False)
+        filename = netsurf.utils.io.create_temporary_file(prefix='netsurf_sparsity', ext = '.png')
+        netsurf.utils.plot.plot_sparsity(self.model, filepath = filename, show = False, separated = False, verbose = False)
         if os.path.exists(filename):
             ct = pg.CollapsibleContainer('🎨 Sparsity', layout='vertical')
             ct.append(pg.Image(filename, embed = True))
@@ -262,8 +262,8 @@ class Benchmark:
         os.remove(filename)
         
         # Now separated
-        filename = wsbmr.utils.io.create_temporary_file(prefix='wsbmr_sparsity_separated', ext = '.png')
-        wsbmr.utils.plot.plot_sparsity(self.model, filepath = filename, show = False, separated = True, verbose = False)
+        filename = netsurf.utils.io.create_temporary_file(prefix='netsurf_sparsity_separated', ext = '.png')
+        netsurf.utils.plot.plot_sparsity(self.model, filepath = filename, show = False, separated = True, verbose = False)
         if os.path.exists(filename):
             ct = pg.CollapsibleContainer('🎨 Sparsity (separated)', layout='vertical')
             ct.append(pg.Image(filename, embed = True))
@@ -277,14 +277,14 @@ class Benchmark:
         """ Add model container to doc report """
 
         # Build activation model to get the output at each single layer 
-        activation_model = wsbmr.QModel(self.quantization, self.model.in_shape, self.model.out_shape, 
+        activation_model = netsurf.QModel(self.quantization, self.model.in_shape, self.model.out_shape, 
                                         ip = self.model.input, out = self.model._activations)
 
         # Get xdata 
         xsample, ysample = self.get_dataset_sample(subset = 'validation', nsamples = -1)
 
         # Plot the histogram of the activations at the output of each one of the layers
-        fig, axs = wsbmr.utils.plot.plot_histogram_activations(activation_model, X = xsample, 
+        fig, axs = netsurf.utils.plot.plot_histogram_activations(activation_model, X = xsample, 
                                                                show = False, sharex = False)
 
         # Create an image for the plot
@@ -320,7 +320,7 @@ class Benchmark:
         self.model_name = self.model.create_model_name_by_architecture()
         self.model_full_name = self.model_prefix + self.model_name
         # Extract pruning factor from model name 
-        self.pruning_factor, _ =  wsbmr.utils.get_pruning_factor(self.model_full_name)
+        self.pruning_factor, _ =  netsurf.utils.get_pruning_factor(self.model_full_name)
         self.total_num_params = self.model.count_trainable_parameters() - self.model.count_pruned_parameters()
 
         # Let's set the model path 
@@ -334,7 +334,7 @@ class Benchmark:
         # Save keras model to file 
         model_path = os.path.join(models_dir, f'{self.model_full_name}.keras')
         #self.model.save(model_path)
-        #wsbmr.utils.log._custom('BMK',f'Model structure saved to file {model_path}')
+        #netsurf.utils.log._custom('BMK',f'Model structure saved to file {model_path}')
         
         # Now set paths in structure 
         self.benchmark_dir = benchmark_dir
@@ -374,12 +374,12 @@ class Benchmark:
                         'creation_date': datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
                         'creation_user': os.getlogin(),
                         'creation_host': os.uname().nodename,
-                        'config': wsbmr.config.BENCHMARKS_CONFIG[self.name]}
+                        'config': netsurf.config.BENCHMARKS_CONFIG[self.name]}
         # metadata filepath 
-        metadata0_filepath = os.path.join(bdir, '.metadata.wsbmr')
+        metadata0_filepath = os.path.join(bdir, '.metadata.netsurf')
         # Save metadata
         if not os.path.isfile(metadata0_filepath):
-            wsbmr.utils.log._custom('BMK',f'Saving benchmark metadata to file {metadata0_filepath}')
+            netsurf.utils.log._custom('BMK',f'Saving benchmark metadata to file {metadata0_filepath}')
             with open(metadata0_filepath, 'w') as f:
                 json.dump(metadata0, f, indent=2)
 
@@ -394,10 +394,10 @@ class Benchmark:
                     'creation_host': os.uname().nodename,
                     'config': {'quantization': self.quantization._scheme_str}}
         # metadata filepath 
-        metadata1_filepath = os.path.join(qdir, '.metadata.wsbmr')
+        metadata1_filepath = os.path.join(qdir, '.metadata.netsurf')
         if not os.path.isfile(metadata1_filepath):
             # Save metadata
-            wsbmr.utils.log._custom('BMK',f'Saving quantization metadata to file {metadata1_filepath}')
+            netsurf.utils.log._custom('BMK',f'Saving quantization metadata to file {metadata1_filepath}')
             with open(metadata1_filepath, 'w') as f:
                 json.dump(metadata1, f, indent=2)
         
@@ -422,10 +422,10 @@ class Benchmark:
                 if 'optimizer_params' in self.kwargs['sessions'][0]:
                     metadata2['config']['optimizer_params'] = self.kwargs['sessions'][0]['optimizer_params']
         # metadata filepath 
-        metadata2_filepath = os.path.join(mdir, '.metadata.wsbmr')
+        metadata2_filepath = os.path.join(mdir, '.metadata.netsurf')
         if not os.path.isfile(metadata2_filepath):
             # Save metadata
-            wsbmr.utils.log._custom('BMK',f'Saving model metadata to file {metadata2_filepath}')
+            netsurf.utils.log._custom('BMK',f'Saving model metadata to file {metadata2_filepath}')
             with open(metadata2_filepath, 'w') as f:
                 json.dump(metadata2, f, indent=2)
 
@@ -437,14 +437,14 @@ class Benchmark:
 
     # save to file 
     def save(self, overwrite = False):
-        filepath = os.path.join(self.model_dir, f'{self.name}.wsbmr.bmk')
+        filepath = os.path.join(self.model_dir, f'{self.name}.netsurf.bmk')
         if os.path.isfile(filepath) and not overwrite:
-            wsbmr.utils.log._warn(f'Benchmark file {filepath} already exists. Skipping. If you want to overwrite, set overwrite = True')
+            netsurf.utils.log._warn(f'Benchmark file {filepath} already exists. Skipping. If you want to overwrite, set overwrite = True')
             return
-        msg = wsbmr.utils.save_object(self, filepath, meta_attributes = {'class': 'wsbmr.Benchmark', 'benchmark': self.name, 
+        msg = netsurf.utils.save_object(self, filepath, meta_attributes = {'class': 'netsurf.Benchmark', 'benchmark': self.name, 
                                                                          'model': self.model_name, 'pruning': self.pruning_factor, 
                                                                          'model_full_name': self.model_full_name})
-        wsbmr.utils.log._custom('BMK',msg)
+        netsurf.utils.log._custom('BMK',msg)
 
     def assert_dirs_built(self):
         if not self._dirs_built:
@@ -496,7 +496,7 @@ class Benchmark:
                     self._build_dirs = self.kwargs.pop('build_dirs')
 
                 # Add a pretty big warning here!
-                wsbmr.utils.log._warn(f'Input/output shapes have changed. Rebuilding model with new shapes {in_shape} -> {out_shape}, note that this will override the weights!')
+                netsurf.utils.log._warn(f'Input/output shapes have changed. Rebuilding model with new shapes {in_shape} -> {out_shape}, note that this will override the weights!')
                 self.init_tasks(self.quantization, build_dirs = self._build_dirs, load_weights = self._load_weights, verbose = self.verbose, **self.kwargs)
 
     """ Simple method to load weights """
@@ -505,15 +505,15 @@ class Benchmark:
         # If path is None, find latest weights 
         if path is None:
             path = self.models_dir
-            if verbose: wsbmr.utils.log._custom('BMK',f'No path provided, looking for latest h5 file at default model path: {path}')
+            if verbose: netsurf.utils.log._custom('BMK',f'No path provided, looking for latest h5 file at default model path: {path}')
             if False:
-                last_file = wsbmr.utils.find_latest_file(path + '/' + self.model_full_name, '.weights.h5')
+                last_file = netsurf.utils.find_latest_file(path + '/' + self.model_full_name, '.weights.h5')
             else:
                 #last_file = os.path.join(path,self.model_name + '.keras')
                 last_file = os.path.join(path,self.model_full_name + '.keras.latest')
-                if verbose: wsbmr.utils.log._custom('BMK',f'Looking for file {last_file}')
+                if verbose: netsurf.utils.log._custom('BMK',f'Looking for file {last_file}')
             if last_file == '' or last_file is None:
-                if verbose: wsbmr.utils.log._warn(f'No weights files found at {path}. Skipping.')
+                if verbose: netsurf.utils.log._warn(f'No weights files found at {path}. Skipping.')
                 return
             # We found the file, let's try to load it
             path = last_file
@@ -521,19 +521,19 @@ class Benchmark:
             try:
                 self.model.load_weights(path)
                 if verbose:
-                    wsbmr.utils.log._custom('BMK',f'Weights successfully loaded from file {path}')
+                    netsurf.utils.log._custom('BMK',f'Weights successfully loaded from file {path}')
             except Exception as e:
                 if verbose: print(e)
-                if verbose: wsbmr.utils.log._error(f'Error loading weights from file {path}')
+                if verbose: netsurf.utils.log._error(f'Error loading weights from file {path}')
         else:
-            if verbose: wsbmr.utils.log._warn(f'Weights file {path} not found')
+            if verbose: netsurf.utils.log._warn(f'Weights file {path} not found')
         
         # Now, if by any chance we have a model that has a "norm" property, this means that
         # we have to normalize the data. Thus, it means we have to make sure that the dataset 
         # is loaded.
         if hasattr(self.model, 'normalize'):
             self.assert_dataset_is_loaded()
-            if verbose: wsbmr.utils.log._custom('BMK',f'Applying norm.adapt to training data...')
+            if verbose: netsurf.utils.log._custom('BMK',f'Applying norm.adapt to training data...')
             self.model.normalize(np.array(self.dataset.dataset['train'][0]))
 
 
@@ -547,17 +547,17 @@ class Benchmark:
             prefix = self.model_full_name
         
         # Generate filename for output file 
-        filename = wsbmr.utils.generate_filename(prefix, 'weights.h5')
-        model_name = wsbmr.utils.generate_filename(prefix, 'keras')
+        filename = netsurf.utils.generate_filename(prefix, 'weights.h5')
+        model_name = netsurf.utils.generate_filename(prefix, 'keras')
         filepath = os.path.join(path, filename)
         model_path = os.path.join(path, model_name)
         try:
             self.model.save(filepath, save_format = 'h5')
-            if verbose: wsbmr.utils.log._custom('BMK',f'Weights saved to h5 file {filepath}')
+            if verbose: netsurf.utils.log._custom('BMK',f'Weights saved to h5 file {filepath}')
             self.model.save(model_path, save_format = 'tf')
-            if verbose: wsbmr.utils.log._custom('BMK',f'Model saved to keras file {model_path}')
+            if verbose: netsurf.utils.log._custom('BMK',f'Model saved to keras file {model_path}')
         except:
-            if verbose: wsbmr.utils.log._error(f'Error saving weights to file {path}')
+            if verbose: netsurf.utils.log._error(f'Error saving weights to file {path}')
             return
         
         # Create a link to the latest weights
@@ -571,7 +571,7 @@ class Benchmark:
         if os.path.exists(latest_model):
             os.remove(latest_model)
         os.symlink(model_path, latest_model)
-        if verbose: wsbmr.utils.log._custom('BMK',f'Created a symlink to {latest_weights}')
+        if verbose: netsurf.utils.log._custom('BMK',f'Created a symlink to {latest_weights}')
 
     # Get dataset function
     def get_dataset(self, dataset, quantizer, *args, **kwargs):
@@ -579,7 +579,7 @@ class Benchmark:
     
     # Get model function
     def get_model(self, quantization, model, *args, **kwargs):
-        return wsbmr.dnn.models.get_model(quantization, model, *args, **kwargs)
+        return netsurf.dnn.models.get_model(quantization, model, *args, **kwargs)
     
     def model_summary(self, to_file = False, quantized = False):
         self.assert_dirs_built()
@@ -641,7 +641,7 @@ class Benchmark:
         if to_file:
             filename = os.path.join(self.models_dir, 'weights_pie.png')
         
-        wsbmr.utils.plot.plot_model_weights_pie(self.model, filepath = filename, **kwargs)
+        netsurf.utils.plot.plot_model_weights_pie(self.model, filepath = filename, **kwargs)
 
     """ Perform prunning """
     def prune_model(self, batch_size = 32, final_sparsity = 0.5, step = 2, end_epoch = 10):
@@ -691,7 +691,7 @@ class Benchmark:
             # Prune the model
             self.prune_model(batch_size = batch_size, **pruning_params)
 
-        wsbmr.utils.log._custom('MDL',f'Compiling model with parameters {", ".join([f"{k}={v}" for k, v in opt_params.items()])}')
+        netsurf.utils.log._custom('MDL',f'Compiling model with parameters {", ".join([f"{k}={v}" for k, v in opt_params.items()])}')
         # Get optimizer first dynamically
         #opt = keras.optimizers.get(self.optimizer, **opt_params)
         # [@manuelbv]: NOTE: ORIGINALLY, I USED keras.optimizers.get BUT THE THING IS THAT 
@@ -716,9 +716,9 @@ class Benchmark:
             if isinstance(v, str):
                 try:
                     opt_params[k] = eval(v)
-                    wsbmr.utils.log._custom('MDL',f'Parameter {k} parsed as number with value {opt_params[k]}')
+                    netsurf.utils.log._custom('MDL',f'Parameter {k} parsed as number with value {opt_params[k]}')
                 except:
-                    wsbmr.utils.log._warn(f'Parameter {k} COULD NOT BE parsed as number. Original value: {v}')
+                    netsurf.utils.log._warn(f'Parameter {k} COULD NOT BE parsed as number. Original value: {v}')
                     pass
 
         opt = opt_options[self.optimizer.lower()](**opt_params)
@@ -729,7 +729,7 @@ class Benchmark:
     def fit(self, epochs, batch_size, *args, callbacks = [], prune = False, save_weights_checkpoint = True, 
             verbose = False, **kwargs):
         self.assert_dataset_is_loaded()
-        wsbmr.utils.log._custom('MDL',f'Fitting model with {epochs} epochs and batch_size {batch_size}')
+        netsurf.utils.log._custom('MDL',f'Fitting model with {epochs} epochs and batch_size {batch_size}')
 
         # Get fit session timestamp 
         current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -742,20 +742,20 @@ class Benchmark:
 
         """ Create custom callback to print on every epoch using our own printer"""
         # Add custom printer callback
-        callbacks += [wsbmr.dnn.callbacks.CustomPrinter()]
+        callbacks += [netsurf.dnn.callbacks.CustomPrinter()]
 
         # If activated, save the model every epoch
         if False:
 
             # Generate filename for output file 
-            filename = wsbmr.utils.generate_filename(self.model_full_name, 'epoch_{epoch}.weights.h5')
+            filename = netsurf.utils.generate_filename(self.model_full_name, 'epoch_{epoch}.weights.h5')
             filepath = os.path.join(self.models_dir, filename)
 
             """ Create a custom callback to save weights every epoch,
                 the only reason it has to be custom is because we want a
                 different printer function
             """
-            checkpoint_callback = wsbmr.dnn.callbacks.CustomModelCheckpoint(
+            checkpoint_callback = netsurf.dnn.callbacks.CustomModelCheckpoint(
                 filepath=filepath,  # Filepath pattern with epoch number
                 save_weights_only=True,  # Save only weights, not the whole model
                 verbose=1  # Print a message when saving weights
@@ -765,7 +765,7 @@ class Benchmark:
             callbacks += [checkpoint_callback]
 
         # Add AlphaBetaTracker callback
-        alpha_tracker = wsbmr.dnn.callbacks.AlphaBetaTracker()
+        alpha_tracker = netsurf.dnn.callbacks.AlphaBetaTracker()
         callbacks += [alpha_tracker]
 
         """ Fit the model """
@@ -787,14 +787,14 @@ class Benchmark:
             # If the model has a preprocess method, call it now 
             if hasattr(self.model, 'preprocess_input'):
                 s0 = time()
-                wsbmr.utils.log._custom('BMK',f'Preprocessing input data...', end = '')
+                netsurf.utils.log._custom('BMK',f'Preprocessing input data...', end = '')
                 XTrain = self.model.preprocess_input(XTrain)
                 XTest = self.model.preprocess_input(XTest)
                 print(f'done in {time() - s0:.2f} seconds')
             # Same for output 
             if hasattr(self.model, 'preprocess_output'):
                 s0 = time()
-                wsbmr.utils.log._custom('BMK',f'Preprocessing output data...', end = '')
+                netsurf.utils.log._custom('BMK',f'Preprocessing output data...', end = '')
                 YTrain = self.model.preprocess_output(YTrain)
                 YTest = self.model.preprocess_output(YTest)
                 print(f'done in {time() - s0:.2f} seconds')
@@ -802,7 +802,7 @@ class Benchmark:
             # Make sure if we have a normalizing layer, apply norm here now
             if hasattr(self.model, 'normalize'):
                 s0 = time()
-                wsbmr.utils.log._custom('BMK',f'Applying norm.adapt to training data...', end = '')
+                netsurf.utils.log._custom('BMK',f'Applying norm.adapt to training data...', end = '')
                 self.model.normalize(np.array(XTrain))
                 print(f'done in {time() - s0:.2f} seconds')
             
@@ -811,7 +811,7 @@ class Benchmark:
                 self.model.fit(XTrain[:batch_size], YTrain[:batch_size], verbose = 0, batch_size = batch_size)
             except Exception as e:
                 # Recompile
-                wsbmr.utils.log._error(f'Model looks uncompiled. Recompiling now...')
+                netsurf.utils.log._error(f'Model looks uncompiled. Recompiling now...')
                 self.model.compile(self.optimizer, loss = self.loss, metrics = self.metrics)
 
             logs = self.model.fit(np.array(XTrain), np.array(YTrain),
@@ -840,11 +840,11 @@ class Benchmark:
         # Make sure to update the epochs value because we might have stopped earlier if we used early stopping
         epochs = logs.params['epochs']
 
-        wsbmr.utils.log._custom('MDL',f'Model fitted in {elapsed_time:.2f} seconds after {epochs} epochs')
+        netsurf.utils.log._custom('MDL',f'Model fitted in {elapsed_time:.2f} seconds after {epochs} epochs')
         
         if prune:
             # Get the supported weights pruned masks
-            results = wsbmr.dnn.models.get_supported_weights(self.model, verbose = False)
+            results = netsurf.dnn.models.get_supported_weights(self.model, verbose = False)
             pruned_masks, supported_weights, supported_layers, params_num = results
             
             # Set in place
@@ -852,7 +852,7 @@ class Benchmark:
 
         # Divide the elapsed_time by the epochs (this is not accurate but it's a good approximation just for now)
         stamps = np.linspace(0, elapsed_time, epochs)
-        stamps_hms = [wsbmr.utils.seconds_to_hms(s) for s in stamps]
+        stamps_hms = [netsurf.utils.seconds_to_hms(s) for s in stamps]
         
         # Add to logs
         logs.history['time'] = stamps_hms
@@ -881,19 +881,19 @@ class Benchmark:
         # If the model has a preprocess method, call it now 
         if hasattr(self.model, 'preprocess_input'):
             s0 = time()
-            wsbmr.utils.log._custom('MDL',f'Preprocessing input data...', end = '')
+            netsurf.utils.log._custom('MDL',f'Preprocessing input data...', end = '')
             xsample = self.model.preprocess_input(xsample)
             print(f'done in {time() - s0:.2f} seconds')
         # Same for output 
         if hasattr(self.model, 'preprocess_output'):
             s0 = time()
-            wsbmr.utils.log._custom('MDL',f'Preprocessing output data...', end = '')
+            netsurf.utils.log._custom('MDL',f'Preprocessing output data...', end = '')
             ysample = self.model.preprocess_output(ysample)
             print(f'done in {time() - s0:.2f} seconds')
 
         if hasattr(self.model, 'normalize'):
             s0 = time()
-            wsbmr.utils.log._custom('BMK',f'Applying norm.adapt to training data...', end = '')
+            netsurf.utils.log._custom('BMK',f'Applying norm.adapt to training data...', end = '')
             self.model.normalize(np.array(xsample))
             print(f'done in {time() - s0:.2f} seconds')
         
@@ -926,14 +926,14 @@ class Benchmark:
                 session_dir = sess.path
                 filepath = os.path.join(session_dir, 'sparsity.png' if not separated else 'sparsity_separated.png')
         
-        wsbmr.utils.plot.plot_sparsity(self.model, filepath = filepath, show = show, separated = separated)
+        netsurf.utils.plot.plot_sparsity(self.model, filepath = filepath, show = show, separated = separated)
 
 
 """ Assertions """
 def assert_benchmark(benchmark):
     if benchmark is not None:
-        if benchmark not in wsbmr.config.AVAILABLE_BENCHMARKS:
-            wsbmr.utils.log._error(f'Benchmark {benchmark} not available. Available options: {", ".join(wsbmr.config.AVAILABLE_BENCHMARKS)}. Returning now.')
+        if benchmark not in netsurf.config.AVAILABLE_BENCHMARKS:
+            netsurf.utils.log._error(f'Benchmark {benchmark} not available. Available options: {", ".join(netsurf.config.AVAILABLE_BENCHMARKS)}. Returning now.')
             benchmark = None
     return benchmark
 
@@ -945,7 +945,7 @@ def get_benchmark(benchmark: str, quantization: 'QuantizationScheme', *args, **k
     if benchmark is None: return None   
 
     # Get benchmark config
-    benchmarks_config = wsbmr.config.BENCHMARKS_CONFIG
+    benchmarks_config = netsurf.config.BENCHMARKS_CONFIG
 
     # Copy config (so we don't modify the original)
     benchmarks_config_copy = copy.deepcopy(benchmarks_config)
@@ -968,13 +968,13 @@ def get_benchmark(benchmark: str, quantization: 'QuantizationScheme', *args, **k
     model_name = mixed_kwargs.pop('model')
     
     # Print benchmark 
-    wsbmr.utils.log._custom('BMK', f'Initializing benchmark object {benchmark}')
+    netsurf.utils.log._custom('BMK', f'Initializing benchmark object {benchmark}')
 
     """ Build benchmark object """
     bmk = Benchmark(benchmark, dataset_name, model_name, quantization,
                               *args, **mixed_kwargs)
     
-    wsbmr.utils.log._custom('BMK', f'Benchmark object {benchmark} initialized')
+    netsurf.utils.log._custom('BMK', f'Benchmark object {benchmark} initialized')
     return bmk
 
 
@@ -985,13 +985,13 @@ def get_training_session(bmk, train_model = False, prune = 0.0, show_plots = Fal
     bmk.assert_dataset_is_loaded()
 
     # Get benchmark config
-    benchmarks_config = wsbmr.config.BENCHMARKS_CONFIG
+    benchmarks_config = netsurf.config.BENCHMARKS_CONFIG
 
     # Parse config
-    session_params = wsbmr.utils.parse_config(benchmarks_config[bmk.name])
+    session_params = netsurf.utils.parse_config(benchmarks_config[bmk.name])
 
     # Try to find the latest session and load 
-    sess = wsbmr.load_session(bmk.sessions_dir, quantizer = bmk.quantization, latest = True)
+    sess = netsurf.load_session(bmk.sessions_dir, quantizer = bmk.quantization, latest = True)
 
     """ Fit params """
     if train_model or sess is None:
@@ -1010,10 +1010,10 @@ def get_training_session(bmk, train_model = False, prune = 0.0, show_plots = Fal
 
             
             # Print info 
-            wsbmr.utils.log._custom('MDL', f'Running session with batch_size = {batch_size}, epochs = {epochs}, opt_params = {opt_params}, pruning_params = {pruning_params}')
+            netsurf.utils.log._custom('MDL', f'Running session with batch_size = {batch_size}, epochs = {epochs}, opt_params = {opt_params}, pruning_params = {pruning_params}')
 
             # Parse callbacks 
-            callbacks = wsbmr.dnn.callbacks.parse_callbacks(sp['callbacks'], prune = prune)
+            callbacks = netsurf.dnn.callbacks.parse_callbacks(sp['callbacks'], prune = prune)
 
             # Compile model 
             bmk.compile(opt_params = opt_params, pruning_params = pruning_params, batch_size = batch_size)
@@ -1044,10 +1044,10 @@ def get_training_session(bmk, train_model = False, prune = 0.0, show_plots = Fal
             pruning_params = sp['pruning_params'] if prune else {}
             
             # Print info 
-            wsbmr.utils.log._custom('MDL', f'Loading session with batch_size = {batch_size}, epochs = {epochs}, opt_params = {opt_params}, pruning_params = {pruning_params}')
+            netsurf.utils.log._custom('MDL', f'Loading session with batch_size = {batch_size}, epochs = {epochs}, opt_params = {opt_params}, pruning_params = {pruning_params}')
 
             # Parse callbacks 
-            callbacks = wsbmr.dnn.callbacks.parse_callbacks(sp['callbacks'], prune = prune)
+            callbacks = netsurf.dnn.callbacks.parse_callbacks(sp['callbacks'], prune = prune)
             
         # Compile model 
         bmk.compile(opt_params = opt_params, pruning_params = pruning_params, batch_size = batch_size)

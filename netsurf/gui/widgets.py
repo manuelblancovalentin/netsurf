@@ -36,8 +36,8 @@ from PIL.ImageQt import ImageQt
 import pandas as pd 
 
 # Custom imports
-import wsbmr
-from wsbmr import gui
+import netsurf
+from netsurf import gui
 
 """ Custom widgets """
 class TextEditWidget(QWidget):
@@ -49,11 +49,11 @@ class TextEditWidget(QWidget):
         layout = QHBoxLayout()
 
         # Left, top, right, bottom
-        layout.setContentsMargins(*wsbmr.config.DEFAULT_WIDGET_PADDINGS)
+        layout.setContentsMargins(*netsurf.config.DEFAULT_WIDGET_PADDINGS)
 
         self.label = QLabel(label_text)
         self.text_edit = QLineEdit()
-        self.text_edit.setFixedHeight(wsbmr.config.DEFAULT_TEXTEDIT_HEIGHT)
+        self.text_edit.setFixedHeight(netsurf.config.DEFAULT_TEXTEDIT_HEIGHT)
 
         # Set the default value if it is not None
         if default:
@@ -79,28 +79,28 @@ class DirectorySelectorWidget(QWidget):
         self.callback = callback
 
         # Set this widget to have a fixed height of TEXTEDIT + 10
-        #self.setFixedHeight(wsbmr.config.DEFAULT_TEXTEDIT_HEIGHT)
+        #self.setFixedHeight(netsurf.config.DEFAULT_TEXTEDIT_HEIGHT)
 
         """ Create layout """
         layout = QHBoxLayout()
 
         # Left, top, right, bottom
-        layout.setContentsMargins(*wsbmr.config.DEFAULT_WIDGET_PADDINGS)
+        layout.setContentsMargins(*netsurf.config.DEFAULT_WIDGET_PADDINGS)
 
         self.label = QLabel(label_text)
         self.text_edit = QLineEdit()
-        self.text_edit.setFixedHeight(wsbmr.config.DEFAULT_TEXTEDIT_HEIGHT)
+        self.text_edit.setFixedHeight(netsurf.config.DEFAULT_TEXTEDIT_HEIGHT)
         self.button = QPushButton("Select")
-        self.button.setFixedHeight(wsbmr.config.DEFAULT_TEXTEDIT_HEIGHT)
+        self.button.setFixedHeight(netsurf.config.DEFAULT_TEXTEDIT_HEIGHT)
 
         # Set dir hint according to default value
-        if wsbmr.utils.is_valid_directory(default):
-            wsbmr.utils.log._log(f"Default directory for {label_text} is valid: {default}")
+        if netsurf.utils.is_valid_directory(default):
+            netsurf.utils.log._log(f"Default directory for {label_text} is valid: {default}")
             self.text_edit.setText(default)
             # Also call the callback
             self.callback(default)
         else:
-            wsbmr.utils.log._log(f"Default directory for {label_text} is invalid: {default}")
+            netsurf.utils.log._log(f"Default directory for {label_text} is invalid: {default}")
             self.text_edit.setPlaceholderText("Select a directory")
 
         """ Add widgets to layout """
@@ -136,7 +136,7 @@ class IntegerSpinnerWidget(QWidget):
         """ Create layout """
         layout = QHBoxLayout()
         # Left, top, right, bottom
-        layout.setContentsMargins(*wsbmr.config.DEFAULT_WIDGET_PADDINGS)
+        layout.setContentsMargins(*netsurf.config.DEFAULT_WIDGET_PADDINGS)
 
         # Create a label
         self.label = QLabel(label_text)
@@ -298,7 +298,7 @@ class CustomQuantizationListWidgetTab(QWidget):
         super().__init__()
         self.callback = callback
         # Init config 
-        self.config = wsbmr.config.DEFAULT_QUANTIZATIONS
+        self.config = netsurf.config.DEFAULT_QUANTIZATIONS
         
         # Create layout for the tab
         layout = QVBoxLayout()
@@ -648,7 +648,7 @@ class CustomLegend(QWidget):
         fig, ax = plt.subplots(figsize=(3,3))
 
         # Mark figure as deletable
-        wsbmr.utils.mark_figure_as_deletable(fig)
+        netsurf.utils.mark_figure_as_deletable(fig)
 
         # Loop thru lines and add a bar for each
         xt = []
@@ -734,7 +734,7 @@ class PlotWindow(QWidget):
         info_fig, info_ax = plt.subplots() 
         
         # Mark info_fig as deletable figure 
-        wsbmr.utils.mark_figure_as_deletable(info_fig)
+        netsurf.utils.mark_figure_as_deletable(info_fig)
 
         self.info_label = FigureCanvas(info_fig)
         self.plot_and_info_layout.addWidget(self.info_label)
@@ -867,7 +867,7 @@ class PlotWindow(QWidget):
                 fill = elements['fill']
                 fill.set_visible(state)
                 fill.set_linestyle('-' if state else 'None')
-                wsbmr.utils._info(f"Setting visibility of {line_name} to {state}")
+                netsurf.utils._info(f"Setting visibility of {line_name} to {state}")
 
         self.canvas.draw()  # Redraw the canvas to reflect the changes
 
@@ -891,7 +891,7 @@ class PlotWindow(QWidget):
             initial_dir = self.bucket.dir
         initial_name = self.type.lower() + '.png'
         # save 
-        wsbmr.utils.show_save_image_dialog(self, initial_dir, initial_name=initial_name)
+        netsurf.utils.show_save_image_dialog(self, initial_dir, initial_name=initial_name)
         
 """ This is a Window that can hold multiple PlotWindow instances, and switch between them """
 class MultiPlotWindow(QWidget):
@@ -1104,17 +1104,17 @@ class BucketTreeWidget(QTreeWidget):
         item = self.itemAt(position)
         if item:
             # Create the context menu
-            context_menu = wsbmr.gui.menu.OpenRowContextMenu(self, item)
-            context_menu += wsbmr.gui.menu.SaveBucketContextMenu(self, item)
-            context_menu += wsbmr.gui.menu.ReloadBucketContextMenu(self, item)
-            context_menu += wsbmr.gui.menu.PlotCoverageRowContextMenu(self, item)
-            context_menu += wsbmr.gui.menu.PlotResultsRowContextMenu(self, item)
+            context_menu = netsurf.gui.menu.OpenRowContextMenu(self, item)
+            context_menu += netsurf.gui.menu.SaveBucketContextMenu(self, item)
+            context_menu += netsurf.gui.menu.ReloadBucketContextMenu(self, item)
+            context_menu += netsurf.gui.menu.PlotCoverageRowContextMenu(self, item)
+            context_menu += netsurf.gui.menu.PlotResultsRowContextMenu(self, item)
             
             # check type of row to add the proper context menu 
             print(f"Item type: {item.bucket.type}")
             if item.bucket.type == 'experiment':
                 #context_menu += PlotCoverageRowContextMenu(self, item)
-                context_menu += wsbmr.gui.menu.RunJobRowContextMenu(self, item) 
+                context_menu += netsurf.gui.menu.RunJobRowContextMenu(self, item) 
 
             #context_menu = OpenRowContextMenu(self,item) + DeletableRowContextMenu(self, item) + PlotCoverageRowContextMenu(self, item) + RunJobRowContextMenu(self, item) + PlotResultsRowContextMenu(self, item)
 
@@ -1206,7 +1206,7 @@ class ToolBarWidget(QWidget):
     def on_action(self, action, *args, **kwargs):
         if self.parent:
             if hasattr(self.parent, action):
-                wsbmr.utils.log._log(f"Calling action {action} with args {args} and kwargs {kwargs}")
+                netsurf.utils.log._log(f"Calling action {action} with args {args} and kwargs {kwargs}")
                 getattr(self.parent, action)(*args, **kwargs)
 
 """ This is so we can make the results/coverage rows change bg color based on 
@@ -1249,17 +1249,17 @@ class RowColorDelegate(QStyledItemDelegate):
                         status = float(status)
                     option.backgroundBrush = QColor(self.color_fcn(status))
                 except Exception as e:
-                    wsbmr.utils.log._log(f"Error: {e}")
+                    netsurf.utils.log._log(f"Error: {e}")
                     option.backgroundBrush = QColor("#ffffff")
 
                 # if status in self.color_dict:
                 #     option.backgroundBrush = self.color_dict[status]
                 # else:
                 #     option.backgroundBrush = QColor("#ffffff")
-                #     wsbmr.utils.log._log(f"Status {status} not found in color_dict. Setting to white.")
+                #     netsurf.utils.log._log(f"Status {status} not found in color_dict. Setting to white.")
         else:
             option.backgroundBrush = QColor("#ffffff")
-            wsbmr.utils.log._log(f"Column {self.column_name} not found in table columns. Setting to white.")
+            netsurf.utils.log._log(f"Column {self.column_name} not found in table columns. Setting to white.")
 
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
@@ -1423,19 +1423,19 @@ class PandasDataFrameGroupWidget(QGroupBox):
         color_column = None
         if self.title == 'Coverage':
             # Red, yellow, green (pastel)
-            color_interpolator = wsbmr.utils.ColorInterpolator(colors = ['#ffcccc', '#ffffcc', '#ccffcc'], values = [0, 0.5, 1])
+            color_interpolator = netsurf.utils.ColorInterpolator(colors = ['#ffcccc', '#ffffcc', '#ccffcc'], values = [0, 0.5, 1])
             color_column = 'coverage'
             #self.row_color_delegate = RowColorDelegate(self.table, column_name = 'coverage', color_fcn = color_interpolator)
             #self.table.setItemDelegate(self.row_color_delegate)
         elif self.title == 'Results':
             # Orange to Blue (pastel)
-            color_interpolator = wsbmr.utils.ColorInterpolator(colors = ['#ffddcc', '#ffffff', '#ccccff'], values = [0, 0.5, 1])
+            color_interpolator = netsurf.utils.ColorInterpolator(colors = ['#ffddcc', '#ffffff', '#ccccff'], values = [0, 0.5, 1])
             color_column = 'accuracy'
             #self.row_color_delegate = RowColorDelegate(self.table, column_name = 'accuracy', color_fcn = color_interpolator)
             #self.table.setItemDelegate(self.row_color_delegate)
         elif self.title == "Stats":
             # Green to Red (pastel)
-            color_interpolator = wsbmr.utils.ColorInterpolator(colors = ['#ccffcc', '#ffffff', '#ffcccc'], values = [0, 0.5, 1])
+            color_interpolator = netsurf.utils.ColorInterpolator(colors = ['#ccffcc', '#ffffff', '#ffcccc'], values = [0, 0.5, 1])
             color_column = 'mean'
             #self.row_color_delegate = RowColorDelegate(self.table, column_name = 'protection', color_fcn = color_interpolator)
             #self.table.setItemDelegate(self.row_color_delegate)
@@ -1496,7 +1496,7 @@ class PandasDataFrameGroupWidget(QGroupBox):
 
         # Get the filepath 
         initial_name = f"{self.title.lower()}.csv"
-        path = wsbmr.utils.show_save_file_dialog(self, initial_path, initial_name)
+        path = netsurf.utils.show_save_file_dialog(self, initial_path, initial_name)
     
     def on_reset(self, *args, **kwargs):
         # Reset the table columns and unhide all of them 
@@ -1511,7 +1511,7 @@ class PandasDataFrameGroupWidget(QGroupBox):
     def on_action(self, action, *args, **kwargs):
         if self.parent:
             if hasattr(self.parent, action):
-                wsbmr.utils.log._log(f"Calling action {action} with args {args} and kwargs {kwargs}")
+                netsurf.utils.log._log(f"Calling action {action} with args {args} and kwargs {kwargs}")
                 getattr(self.parent, action)(*args, **kwargs)
 
 
@@ -1576,7 +1576,7 @@ class PandasDataFrameGroupWidget(QGroupBox):
         # Get the column values
         values = self.df[column_name]
         
-        wsbmr.utils.log._log(f"Plotting distribution of column {column_name}")
+        netsurf.utils.log._log(f"Plotting distribution of column {column_name}")
         # Clean up previous closed windows 
         self.cleanup_closed_windows()
 
@@ -1595,7 +1595,7 @@ class PandasDataFrameGroupWidget(QGroupBox):
         self.plot_windows.append(plot_window)
 
         # Print number of active windows 
-        wsbmr.utils.log._log(f"Number of active plot windows: {len(self.plot_windows)}")
+        netsurf.utils.log._log(f"Number of active plot windows: {len(self.plot_windows)}")
 
         # Show the plot window
         self.plot_windows[-1].show()
@@ -1728,7 +1728,7 @@ class JobsGroupWidget(QGroupBox):
                 config = self.bucket.structure_config
         
         # Get jobs 
-        jobs_df = wsbmr.utils.get_nodus_jobs_for_config(config)
+        jobs_df = netsurf.utils.get_nodus_jobs_for_config(config)
         
         # Initialize the ranges for the jobs
         if self.bucket is None:
@@ -1748,7 +1748,7 @@ class JobsGroupWidget(QGroupBox):
                 missing_jobs['pruning'] = self.bucket.structure_config['pruning_factor']
 
         # Init job_string pattern, which will be the same for all jobs (like benchmarks_dir, etc)
-        job_str_0 = f'python wsbmr --benchmarks_dir \"{self.bucket.hyperspace_global_config["benchmarks_dir"]}\"'
+        job_str_0 = f'python netsurf --benchmarks_dir \"{self.bucket.hyperspace_global_config["benchmarks_dir"]}\"'
         job_str_0 += f' --datasets_dir \"{self.bucket.hyperspace_global_config["datasets_dir"]}\"'
 
         # Everytime that we have a new model (combo of benchmark, quantization & pruning),
@@ -1787,8 +1787,8 @@ class JobsGroupWidget(QGroupBox):
                 # Init job string 
                 subjob = f'{job_str}'
                 # Add config per method 
-                if row['method'] in wsbmr.config.config_per_method:
-                    for key, value in wsbmr.config.config_per_method[row['method']].items():
+                if row['method'] in netsurf.config.config_per_method:
+                    for key, value in netsurf.config.config_per_method[row['method']].items():
                         subjob += f' --{key} {value}'
 
                 # Add default args 
@@ -1897,7 +1897,7 @@ class JobsGroupWidget(QGroupBox):
         commands = pd.DataFrame(commands)
 
         # Let's create the jobs using nodus job manager
-        r = wsbmr.utils.run_jobs_with_nodus(commands)
+        r = netsurf.utils.run_jobs_with_nodus(commands)
 
 
 """ Data Panel with two tabs, one for the results and another for the coverage """
@@ -1954,7 +1954,7 @@ class PandasDataFrameWidget(QTabWidget):
     
     def open_folder_html(self, url: QUrl):
         folder_path = url.toLocalFile()
-        wsbmr.utils.open_directory(folder_path)
+        netsurf.utils.open_directory(folder_path)
         # Prevent the QTextBrowser from navigating away
         self.info_tab.setSource(QUrl())  # Clear navigation
     
@@ -1978,7 +1978,7 @@ class LogViewer(QWidget):
         self.file_position = 0
         
         # # Create and start the LogReaderThread
-        # self.log_reader_thread = wsbmr.gui.asynchronous.LogReaderThread(self.log_file)
+        # self.log_reader_thread = netsurf.gui.asynchronous.LogReaderThread(self.log_file)
         # self.log_reader_thread.new_log_data.connect(self.append_log_data)
         # self.log_reader_thread.start()
 
@@ -2085,4 +2085,4 @@ class LogViewer(QWidget):
 
 #     def start_process(self):
 #         """Start the interactive process when the button is clicked."""
-#         self.process.start("python", ["-m", "nodus", "--db", "/Users/mbvalentin/scripts/wsbmr/dev/wsbmr_db"])
+#         self.process.start("python", ["-m", "nodus", "--db", "/Users/mbvalentin/scripts/netsurf/dev/netsurf_db"])

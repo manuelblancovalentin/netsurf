@@ -18,7 +18,7 @@ from tensorflow_model_optimization.python.core.sparsity.keras import pruning_wra
 import pandas as pd
 
 """ Custom modules """
-import wsbmr
+import netsurf
 
 class Attack:
     def __init__(self, N, variables):
@@ -287,7 +287,7 @@ class ErrorInjector:
         if verbose: 
             err = "\n".join(list(map(lambda x: "\t\t" + f"{x[0]}: {x[1]}", errors.items())))
             err = '\n\t' + " Quantization errors are:\n" + err
-            wsbmr.utils.log._info(f'[INFO] - Computed deltas for {len(deltas)} variables.{err}')     
+            netsurf.utils.log._info(f'[INFO] - Computed deltas for {len(deltas)} variables.{err}')     
 
         return deltas, susceptibility, errors, w_idx_mapper
         
@@ -337,7 +337,7 @@ class ErrorInjector:
             # Now compute how many reps we need to fill all the space
             subnum_reps = (num_reps - already_run_reps) if num_reps != -1 else -1
             if num_reps == -1:
-                subnum_reps, num_flips_per_attack = wsbmr.core.experiments.get_num_reps_crossvalidation(len(non_pruned), ber, protection, factor = 1)
+                subnum_reps, num_flips_per_attack = netsurf.core.experiments.get_num_reps_crossvalidation(len(non_pruned), ber, protection, factor = 1)
                 subnum_reps -= already_run_reps
                 subnum_reps = np.maximum(subnum_reps, 0)
 
@@ -532,7 +532,7 @@ class ErrorInjector:
     #     """
 
     #     # Get supported weights and pruned masks 
-    #     results = wsbmr.models.get_supported_weights(self.model.model, numpy = False, pruned = True, verbose = False)
+    #     results = netsurf.models.get_supported_weights(self.model.model, numpy = False, pruned = True, verbose = False)
     #     supported_weights, supported_pruned_masks, supported_layers, weights_param_num = results
         
     #     if verbose:
@@ -542,7 +542,7 @@ class ErrorInjector:
     #     supported_layers_idxs = {lname: self.model.model.layers.index(supported_layers[lname]) for lname in supported_layers}
 
     #     # Get deltas per weight
-    #     deltas = {kw: wsbmr.models.get_deltas(kv, num_bits = num_bits) for kw, kv in supported_weights.items()}
+    #     deltas = {kw: netsurf.models.get_deltas(kv, num_bits = num_bits) for kw, kv in supported_weights.items()}
     #     is_bit_one = {kw: deltas[kw][1] for kw in supported_weights}
     #     deltas = {kw: deltas[kw][0] for kw in supported_weights}
 

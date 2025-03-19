@@ -1,14 +1,14 @@
 # Basic modules 
 import sys, os
-# Add current path to sys.path for wsbmr
+# Add current path to sys.path for netsurf
 # Get path for parent of current file 
-wsbmr_dir = os.path.abspath(__file__)
-wsbmr_dir = os.path.dirname(os.path.dirname(wsbmr_dir))
-sys.path.append(wsbmr_dir)
-print(f'Adding {wsbmr_dir} to sys.path')
+netsurf_dir = os.path.abspath(__file__)
+netsurf_dir = os.path.dirname(os.path.dirname(netsurf_dir))
+sys.path.append(netsurf_dir)
+print(f'Adding {netsurf_dir} to sys.path')
 
 # Add fkeras and qkeras (expected to be ../)
-scripts_dir = os.path.dirname(os.path.dirname(wsbmr_dir))
+scripts_dir = os.path.dirname(os.path.dirname(netsurf_dir))
 sys.path.append(os.path.join(scripts_dir, "fkeras"))
 sys.path.append(os.path.join(scripts_dir, "qkeras"))
 sys.path.append(os.path.join(scripts_dir, "nodus"))
@@ -16,8 +16,8 @@ sys.path.append(os.path.join(scripts_dir, "nodus"))
 """ Numpy """
 import numpy as np
 
-# Import wsbmr
-import wsbmr
+# Import netsurf
+import netsurf
 
 
 
@@ -26,13 +26,13 @@ import wsbmr
 def get_training_session(bmk, train_model = False, prune = 0.0, show_plots = False):
 
     # Get benchmark config
-    benchmarks_config = wsbmr.config.BENCHMARKS_CONFIG
+    benchmarks_config = netsurf.config.BENCHMARKS_CONFIG
 
     # Parse config
-    session_params = wsbmr.utils.parse_config(benchmarks_config[bmk.name])
+    session_params = netsurf.utils.parse_config(benchmarks_config[bmk.name])
 
     # Try to find the latest session and load 
-    sess = wsbmr.load_session(bmk.sessions_dir, latest = True)
+    sess = netsurf.load_session(bmk.sessions_dir, latest = True)
 
     """ Fit params """
     if train_model or sess is None:
@@ -51,10 +51,10 @@ def get_training_session(bmk, train_model = False, prune = 0.0, show_plots = Fal
 
             
             # Print info 
-            wsbmr.utils.log._custom('MDL', f'Running session with batch_size = {batch_size}, epochs = {epochs}, opt_params = {opt_params}, pruning_params = {pruning_params}')
+            netsurf.utils.log._custom('MDL', f'Running session with batch_size = {batch_size}, epochs = {epochs}, opt_params = {opt_params}, pruning_params = {pruning_params}')
 
             # Parse callbacks 
-            callbacks = wsbmr.dnn.callbacks.parse_callbacks(sp['callbacks'], prune = prune)
+            callbacks = netsurf.dnn.callbacks.parse_callbacks(sp['callbacks'], prune = prune)
 
             # Compile model 
             bmk.compile(opt_params = opt_params, pruning_params = pruning_params, batch_size = batch_size)
@@ -85,10 +85,10 @@ def get_training_session(bmk, train_model = False, prune = 0.0, show_plots = Fal
             pruning_params = sp['pruning_params'] if prune else {}
             
             # Print info 
-            wsbmr.utils.log._custom('MDL', f'Loading session with batch_size = {batch_size}, epochs = {epochs}, opt_params = {opt_params}, pruning_params = {pruning_params}')
+            netsurf.utils.log._custom('MDL', f'Loading session with batch_size = {batch_size}, epochs = {epochs}, opt_params = {opt_params}, pruning_params = {pruning_params}')
 
             # Parse callbacks 
-            callbacks = wsbmr.dnn.callbacks.parse_callbacks(sp['callbacks'], prune = prune)
+            callbacks = netsurf.dnn.callbacks.parse_callbacks(sp['callbacks'], prune = prune)
             
         # Compile model 
         bmk.compile(opt_params = opt_params, pruning_params = pruning_params, batch_size = batch_size)
@@ -128,7 +128,7 @@ def run_injection_experiment(bmk: 'Benchmark', quantization: 'QuantizationScheme
 
     # if no config per methods, no experiment. Return
     if len(config_per_methods) == 0:
-        wsbmr.utils.log._warn('No config per methods specified. No experiment. Returning now.')
+        netsurf.utils.log._warn('No config per methods specified. No experiment. Returning now.')
         return None
 
     """ Get the data """   
@@ -138,7 +138,7 @@ def run_injection_experiment(bmk: 'Benchmark', quantization: 'QuantizationScheme
     nsample_mod = 48 if 'ECON' in bmk.name else -1
 
     # Now let's prepare the data
-    XYTrain = wsbmr.utils.prepare_data(bmk, subset = 'train', nsample_mod = nsample_mod)
+    XYTrain = netsurf.utils.prepare_data(bmk, subset = 'train', nsample_mod = nsample_mod)
 
     # Loop thru methods
     exps = {}
@@ -156,7 +156,7 @@ def run_injection_experiment(bmk: 'Benchmark', quantization: 'QuantizationScheme
         #################################################################
         # 1. Create experiment object
         #################################################################
-        exp = wsbmr.Experiment(method, bmk, quantization, c_ext, reload_ranking = reload_ranking, verbose = True, 
+        exp = netsurf.Experiment(method, bmk, quantization, c_ext, reload_ranking = reload_ranking, verbose = True, 
                                ber_range = ber_range, protection_range = protection_range, **kws)
     
         # Print experiment info 
@@ -192,7 +192,7 @@ def run_injection_experiment(bmk: 'Benchmark', quantization: 'QuantizationScheme
 
 # Define run experiment 
 def run_experiment(benchmark: str, 
-                   quantization: wsbmr.QuantizationScheme, 
+                   quantization: netsurf.QuantizationScheme, 
                    benchmarks_dir = None, 
                    datasets_dir = None,  
                    load_weights = True, model_prefix = "",
@@ -211,13 +211,13 @@ def run_experiment(benchmark: str,
     """
     # Add model_prefix to prune
     model_prefix = model_prefix + f"_pruned_{prune}_" if model_prefix != "" else f"pruned_{prune}_"
-    bmk = wsbmr.get_benchmark(benchmark, quantization, 
+    bmk = netsurf.get_benchmark(benchmark, quantization, 
                                 benchmarks_dir = benchmarks_dir, 
                                 datasets_dir = datasets_dir, 
                                 load_weights = load_weights, 
                                 model_prefix = model_prefix)
     if bmk is None: 
-        wsbmr.utils.log._error('Benchmark object is None. Returning now.')
+        netsurf.utils.log._error('Benchmark object is None. Returning now.')
         return None
 
     # At this point we might want to plot the benchmark
@@ -240,7 +240,7 @@ def run_experiment(benchmark: str,
 
     # if sess is None, return 
     if sess is None: 
-        wsbmr.utils.log._error('Session object is None. Returning now.')
+        netsurf.utils.log._error('Session object is None. Returning now.')
         return None
 
     """
@@ -263,14 +263,14 @@ def run_experiment(benchmark: str,
 if __name__ == "__main__":
 
     # Parse args
-    args = wsbmr.args.parse_arguments()
+    args = netsurf.args.parse_arguments()
     gui = args.pop('gui', False)
     benchmark = args.pop('benchmark')
     quantization = args.pop('quantization')
 
     # If args.gui, build GUI
     if gui:
-        wsbmr.gui.build_gui(**args)
+        netsurf.gui.build_gui(**args)
     else:
         # Run experiment
         run_experiment(benchmark, quantization, **args)
