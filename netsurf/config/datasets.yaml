@@ -1,0 +1,47 @@
+MNIST:
+  in_shape: !!python/tuple [-1,28,28,1]
+  out_shape: !!python/tuple [-1,10]
+
+HGCal:
+  in_shape: !!python/tuple [-1,8,8,1]
+  out_shape: !!python/tuple [-1,8,8,1]
+
+autompg:
+  in_shape: !!python/tuple [-1,9]
+  out_shape: !!python/tuple [-1,1]
+
+CIFAR10:
+  in_shape: !!python/tuple [-1,32,32,3]
+  out_shape: !!python/tuple [-1,10]
+
+keyword_spotting:
+  in_shape: !!python/tuple [-1,49,10,1]
+  out_shape: !!python/tuple [-1,49]
+
+ToyADMOS:
+  in_shape: !!python/tuple [-1,320]
+  out_shape: !!python/tuple [-1,320]
+
+PDCOCO:
+  in_shape: !!python/tuple [-1,96,96,3]
+  out_shape: !!python/tuple [-1,2]
+
+SVHN:
+  in_shape: !!python/tuple [-1,32,32,3]
+  out_shape: !!python/tuple [-1,10]
+
+UCI_HAR:
+  in_shape: !!python/tuple [-1,-1,-1,-1]
+  out_shape: !!python/tuple [-1,-1]
+
+GTSDB:
+  in_shape: !!python/tuple [-1,-1,-1,-1]
+  out_shape: !!python/tuple [-1,-1]
+
+dummy:
+  in_shape: !!python/tuple [-1,1]
+  out_shape: !!python/tuple [-1,1]
+
+SmartPixel:
+  in_shape: !!python/tuple [-1,13]
+  out_shape: !!python/tuple [-1,3]

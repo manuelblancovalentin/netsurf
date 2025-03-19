@@ -1,0 +1,412 @@
+mnist_hls4ml:
+  dataset: MNIST
+  model: hls4mlCNN
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: adam
+  metrics:
+    - categorical_accuracy
+    # - emd
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 40
+      epochs: 10
+      optimizer_params:
+        learning_rate: 0.001
+      pruning_params:
+        final_sparsity: 0.5
+        step: 2
+        end_epoch: 10
+      callbacks:
+        early_stopping:
+          patience: 10 
+          verbose: 1
+        reduce_lr:
+          monitor: val_loss
+          factor: 0.1
+          patience: 10
+          mode: auto
+
+mnist_fnn:
+  dataset: MNIST
+  model: FNN
+  model_params:
+    units: [64]
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: adam
+  metrics:
+    - categorical_accuracy
+    # - emd
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 64
+      epochs: 40
+      optimizer_params:
+        learning_rate: 0.001
+
+
+mnist_lenet5:
+  dataset: MNIST
+  model: LeNet5
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: sgd
+  metrics:
+    - categorical_accuracy
+    # - emd
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 128
+      epochs: 15
+      optimizer_params:
+        learning_rate: 0.001
+
+ECONT_AE:
+  dataset: HGCal
+  model: econtae
+  loss: telescopeMSE2
+  type: unsupervised
+  optimizer: adam
+  model_params:
+    alpha_reg_loss : 2.0
+  metrics:
+    - mse
+    - R2Score
+    - PearsonCorrelation
+  sessions:
+    - batch_size: 480
+      epochs: 200
+
+autompg:
+  dataset: autompg
+  model: FNN
+  loss: mean_absolute_error
+  type: regression
+  optimizer: adam
+  model_params:
+    alpha_reg_loss : 2.0
+  metrics:
+    - mean_absolute_error
+    - R2Score
+    - PearsonCorrelation
+  sessions:
+    - batch_size: 32
+      epochs: 300
+      optimizer_params:
+        learning_rate: 0.001
+      callbacks:
+        print: 
+
+smartpixel_small:
+  dataset: SmartPixel
+  model: smartpixeldense
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: adam
+  model_params:
+    alpha_reg_loss : 5.0
+  metrics:
+    - categorical_accuracy
+    # - emd
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 1024
+      epochs: 150
+      pruning_params:
+        final_sparsity: 0.5
+        step: 2
+        end_epoch: 10
+      callbacks:
+        early_stopping:
+          patience: 10 
+          verbose: 1
+        reduce_lr:
+          monitor: val_loss
+          factor: 0.1
+          patience: 10
+          mode: auto
+        print:
+
+smartpixel_large:
+  dataset: SmartPixel
+  model: smartpixeldenselarge
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: adam
+  metrics:
+    - categorical_accuracy
+    # - emd
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 1024
+      epochs: 150
+      pruning_params:
+        final_sparsity: 0.5
+        step: 2
+        end_epoch: 10
+      callbacks:
+        early_stopping:
+          patience: 10 
+          verbose: 1
+        reduce_lr:
+          monitor: val_loss
+          factor: 0.1
+          patience: 10
+          mode: auto
+        print:
+        checkpoint:
+          filepath: 'checkpoints/weights.{epoch:02d}-{val_loss:.2f}.hdf5'
+          verbose: 1
+
+keyword_spotting:
+  dataset: keyword_spotting
+  model: DSConv
+  loss: sparse_categorical_crossentropy
+  type: classification
+  optimizer: adam
+  metrics:
+    - sparse_categorical_accuracy
+  sessions:
+    - batch_size: 100
+      epochs: 36
+      optimizer_params:
+        learning_rate: 0.001
+
+
+cifar10_hls4ml:
+  dataset: CIFAR10
+  model: hls4mlCNN
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: adam
+  metrics:
+    - categorical_accuracy
+    # - emd
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 1024
+      epochs: 30
+      optimizer_params:
+        learning_rate: 3e-3
+        beta_1: 0.9 
+        beta_2: 0.999 
+        epsilon: 1e-07
+        amsgrad: True
+
+svhn_hls4ml:
+  dataset: SVHN
+  model: hls4mlCNN
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: adam
+  metrics:
+    - categorical_accuracy
+    # - emd
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 4096
+      epochs: 30
+      optimizer_params:
+        learning_rate: 3e-3
+        beta_1: 0.9
+        beta_2: 0.999
+        epsilon: 1e-07
+        amsgrad: True
+      pruning_params:
+        final_sparsity: 0.5
+        step: 2
+        end_epoch: 10
+
+cifar10_resnet18:
+  dataset: CIFAR10
+  model: resnet18
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: sgd
+  metrics:
+    - categorical_accuracy
+    # - emd
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 128
+      epochs: 100
+      optimizer_params:
+        learning_rate: 0.1
+        momentum: 0.9
+
+
+tinyml_anomaly_detection:
+  dataset: ToyADMOS
+  model: ae
+  loss: mse
+  type: unsupervised
+  optimizer: adam
+  metrics:
+    - mse
+    - R2Score
+    - PearsonCorrelation
+  sessions:
+    - batch_size: 40
+      epochs: 6
+      
+tinyml_person_detection:
+  dataset: PDCOCO
+  model: mobilenetv1
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: adam
+  metrics: 
+    - categorical_accuracy
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 200
+      epochs: 20
+      optimizer_params:
+        learning_rate: 0.001
+    - batch_size: 200
+      epochs: 10
+      optimizer_params:
+        learning_rate: 0.0005
+    - batch_size: 200
+      epochs: 20
+      optimizer_params:
+        learning_rate: 0.00025
+
+tinyml_cifar10_resnetv1:
+  dataset: CIFAR10
+  model: resnetv1
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: adam
+  metrics:
+    - categorical_accuracy
+    # - emd
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 40
+      epochs: 100
+      optimizer_params:
+        learning_rate: 0.001
+
+custom_svhn_cnn:
+  dataset: SVHN
+  model: CNN
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: adam
+  metrics:
+    - categorical_accuracy
+    # - emd
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 40
+      epochs: 100
+      optimizer_params:
+        learning_rate: 0.001
+  
+
+
+tinyml_human_activity_recognition:
+  dataset: UCI_HAR
+  model: lstm
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: adam
+  metrics:
+    - categorical_accuracy
+    # - emd
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 32
+      epochs: 100
+      optimizer_params:
+        learning_rate: 0.001
+      callbacks:
+        early_stopper:
+          monitor: val_loss
+          patience: 10
+          mode: min
+
+
+gtsdb_squeezenet:
+  dataset: GTSDB
+  model: squeezenet11
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: adam
+  metrics:
+    - categorical_accuracy
+    # - emd
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 4
+      epochs: 100
+      optimizer_params:
+        learning_rate: 0.001
+
+mnist_squeezenet:
+  dataset: MNIST
+  model: squeezenet
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: adam
+  metrics:
+    - categorical_accuracy
+    # - emd
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 64
+      epochs: 10
+      optimizer_params:
+        learning_rate: 0.001
+
+cifar10_squeezenet:
+  dataset: CIFAR10
+  model: squeezenet
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: adam
+  metrics:
+    - categorical_accuracy
+    # - emd
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 128
+      epochs: 200
+      optimizer_params:
+        learning_rate: 0.001
+
+dummy:
+  dataset: dummy
+  model: FNN
+  loss: mse
+  type: regression
+  optimizer: adam
+  metrics:
+    - mse
+    - R2Score
+    - PearsonCorrelation
+  sessions:
+    - batch_size: 32
+      epochs: 100
+      optimizer_params:
+        learning_rate: 0.001
+      callbacks:
+        print:
+
