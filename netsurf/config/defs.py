@@ -216,8 +216,8 @@ else:
 
     # Default directory values
     if current_system == 'Linux':
-        DEFAULT_BENCHMARKS_DIR = "/asic/projects/NU/WSBMR/manuelbv/workspace/benchmarks"
-        DEFAULT_DATASETS_DIR = "/asic/projects/NU/WSBMR/manuelbv/workspace/datasets"
+        DEFAULT_BENCHMARKS_DIR = "/asic/projects/NU/netsurf/manuelbv/benchmarks"
+        DEFAULT_DATASETS_DIR = "/asic/projects/NU/netsurf/manuelbv/datasets"
     elif current_system == 'macOS':
         DEFAULT_BENCHMARKS_DIR = '/Users/mbvalentin/scripts/netsurf/benchmarks'
         DEFAULT_DATASETS_DIR = '/Users/mbvalentin/scripts/netsurf/datasets'
