@@ -131,7 +131,7 @@ class Session:
         if os.path.isfile(filename):
             # Create collapsible container for the training history
             training_ct = pg.CollapsibleContainer("Training history", layout='vertical')
-            training_ct.append(pg.Image(filename, embed=False))
+            training_ct.append(pg.Image(filename, embed=True))
             # Add to session container
             session_ct.append(training_ct)
 
@@ -141,7 +141,7 @@ class Session:
             fpath = os.path.join(self.path, f'{t}.png')
             if os.path.isfile(fpath):
                 eval_ct = pg.CollapsibleContainer(t.capitalize(), layout='vertical')
-                eval_ct.append(pg.Image(fpath, embed=False))
+                eval_ct.append(pg.Image(fpath, embed=True))
                 session_ct.append(eval_ct)
                 
 
@@ -644,52 +644,52 @@ class Benchmark:
         netsurf.utils.plot.plot_model_weights_pie(self.model, filepath = filename, **kwargs)
 
     """ Perform prunning """
-    def prune_model(self, batch_size = 32, final_sparsity = 0.5, step = 2, end_epoch = 10):
-        self.assert_dataset_is_loaded()
-        # Get train size from dataset 
-        if isinstance(self.dataset.dataset['train'], tuple):
-            train_size = self.dataset.dataset['train'][0].shape[0]
-        elif isinstance(self.dataset.dataset['train'], keras.preprocessing.image.DirectoryIterator):
-            train_size = self.dataset.dataset['train'].n
-        elif isinstance(self.dataset.dataset['train'], tf.data.Dataset):
-            train_size = self.dataset.dataset['train'].reduce(0, lambda x, _: x + 1).numpy()
+    # def prune_model(self, batch_size = 32, final_sparsity = 0.5, step = 2, end_epoch = 10):
+    #     self.assert_dataset_is_loaded()
+    #     # Get train size from dataset 
+    #     if isinstance(self.dataset.dataset['train'], tuple):
+    #         train_size = self.dataset.dataset['train'][0].shape[0]
+    #     elif isinstance(self.dataset.dataset['train'], keras.preprocessing.image.DirectoryIterator):
+    #         train_size = self.dataset.dataset['train'].n
+    #     elif isinstance(self.dataset.dataset['train'], tf.data.Dataset):
+    #         train_size = self.dataset.dataset['train'].reduce(0, lambda x, _: x + 1).numpy()
 
-        NSTEPS = int(train_size) // batch_size  # 90% train, 10% validation in 10-fold cross validation
+    #     NSTEPS = int(train_size) // batch_size  # 90% train, 10% validation in 10-fold cross validation
         
-        msg = f'[INFO] - Pruning conv/dense layers gradually, from 0% to {100*final_sparsity:3.2f}% every {step} epochs, ' + \
-                f'ending by epoch number {end_epoch}; with batch_size {batch_size}, for a total of {NSTEPS} steps per epoch'
-        print(msg)
+    #     msg = f'[INFO] - Pruning conv/dense layers gradually, from 0% to {100*final_sparsity:3.2f}% every {step} epochs, ' + \
+    #             f'ending by epoch number {end_epoch}; with batch_size {batch_size}, for a total of {NSTEPS} steps per epoch'
+    #     print(msg)
 
-        # Prune all convolutional and dense layers gradually from 0 to 50% sparsity every 2 epochs,
-        # ending by the 10th epoch
-        def pruneFunction(layer):
-            pruning_params = {
-                'pruning_schedule': sparsity.PolynomialDecay(
-                    initial_sparsity=0.0, final_sparsity=final_sparsity, begin_step=NSTEPS * step, end_step=NSTEPS * end_epoch, 
-                    frequency=NSTEPS
-                )
-            }
-            if isinstance(layer, tf.keras.layers.Conv2D):
-                return tfmot.sparsity.keras.prune_low_magnitude(layer, **pruning_params)
-            if isinstance(layer, tf.keras.layers.Dense) and layer.name != 'output_dense':
-                return tfmot.sparsity.keras.prune_low_magnitude(layer, **pruning_params)
-            return layer
+    #     # Prune all convolutional and dense layers gradually from 0 to 50% sparsity every 2 epochs,
+    #     # ending by the 10th epoch
+    #     def pruneFunction(layer):
+    #         pruning_params = {
+    #             'pruning_schedule': sparsity.PolynomialDecay(
+    #                 initial_sparsity=0.0, final_sparsity=final_sparsity, begin_step=NSTEPS * step, end_step=NSTEPS * end_epoch, 
+    #                 frequency=NSTEPS
+    #             )
+    #         }
+    #         if isinstance(layer, tf.keras.layers.Conv2D):
+    #             return tfmot.sparsity.keras.prune_low_magnitude(layer, **pruning_params)
+    #         if isinstance(layer, tf.keras.layers.Dense) and layer.name != 'output_dense':
+    #             return tfmot.sparsity.keras.prune_low_magnitude(layer, **pruning_params)
+    #         return layer
 
-        # Perform actual cloning of the model for the pruning
-        qmodel_pruned = tf.keras.models.clone_model(self.model, clone_function=pruneFunction)
+    #     # Perform actual cloning of the model for the pruning
+    #     qmodel_pruned = tf.keras.models.clone_model(self.model, clone_function=pruneFunction)
 
-        # Set the model back into place 
-        raise ValueError('Not working yet')
-        self.model.model = qmodel_pruned
+    #     # Set the model back into place 
+    #     raise ValueError('Not working yet')
+    #     self.model.model = qmodel_pruned
 
     """ Function to compile model """
-    def compile(self, *args, batch_size = 32, opt_params = {}, pruning_params = {'final_sparsity': 0.5, 'step': 2, 'end_epoch': 10}, **kwargs):
+    def compile(self, *args, batch_size = 32, opt_params = {}, **kwargs):
         
         # If pruning_sparsity is not 0.0, then we prune the model
-        pruning_sparsity = pruning_params['final_sparsity'] if 'final_sparsity' in pruning_params else 0.0
-        if pruning_sparsity > 0.0:
-            # Prune the model
-            self.prune_model(batch_size = batch_size, **pruning_params)
+        # pruning_sparsity = pruning_params['final_sparsity'] if 'final_sparsity' in pruning_params else 0.0
+        # if pruning_sparsity > 0.0:
+        #     # Prune the model
+        #     self.prune_model(batch_size = batch_size, **pruning_params)
 
         netsurf.utils.log._custom('MDL',f'Compiling model with parameters {", ".join([f"{k}={v}" for k, v in opt_params.items()])}')
         # Get optimizer first dynamically
@@ -726,7 +726,7 @@ class Benchmark:
         return self.model.compile(*args, optimizer = opt, loss = self.loss, metrics = self.metrics)
 
     """ Function to train the model """
-    def fit(self, epochs, batch_size, *args, callbacks = [], prune = False, save_weights_checkpoint = True, 
+    def fit(self, epochs, batch_size, *args, callbacks = [], prune = False, pruning_params = {'final_sparsity': 0.5, 'step': 2, 'end_epoch': 10}, save_weights_checkpoint = True, 
             verbose = False, **kwargs):
         self.assert_dataset_is_loaded()
         netsurf.utils.log._custom('MDL',f'Fitting model with {epochs} epochs and batch_size {batch_size}')
@@ -767,6 +767,15 @@ class Benchmark:
         # Add AlphaBetaTracker callback
         alpha_tracker = netsurf.dnn.callbacks.AlphaBetaTracker()
         callbacks += [alpha_tracker]
+
+        # Add pruning callback
+        if prune:
+            # If pruning_sparsity is not 0.0, then we prune the model
+            pruning_sparsity = pruning_params['final_sparsity'] if 'final_sparsity' in pruning_params else 0.0
+            if pruning_sparsity > 0.0:
+                pruning_callback = netsurf.dnn.callbacks.PruningScheduler(model = self.model, **pruning_params, verbose = verbose)
+                # Append to callbacks list
+                callbacks += [pruning_callback]
 
         """ Fit the model """
         start = time()

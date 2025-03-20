@@ -81,6 +81,7 @@ class _QQLayer:
         self.range = self.max_value - self.min_value
         self.use_constraint = use_constraint
         self.has_delta = False
+        self.prune = False
 
         # Get maps
         quantizer_map = get_quantizers(quantizer)
@@ -102,6 +103,10 @@ class _QQLayer:
 
         # Set in the object as kwargs
         self._qkwargs = kws
+
+    def call(self, inputs, training = False):
+        if self.prune: self.apply_pruning() # Apply pruning masks before computation
+        return super().call(inputs, training = training)
 
     def attack(self, X, **kwargs):
         return self(X)
@@ -244,6 +249,95 @@ class _QQLayer:
     def html(self, include_emojis: bool = True, **kwargs):
         return self.serialize(include_emojis=True, **kwargs)
     
+
+
+class PrunableLayer:
+    """
+    A mixin class that provides pruning functionality for layers with trainable parameters.
+
+    This class should be inherited by layers that contain weights (e.g., Dense, Conv2D)
+    and require structured or unstructured pruning during training. It introduces a 
+    pruning mask for each prunable weight and provides methods to apply and update 
+    pruning dynamically.
+
+    Attributes:
+        prune_masks (dict): A dictionary mapping prunable weight names to their respective
+            pruning masks. These masks determine which weights are set to zero.
+
+    Methods:
+        build(input_shape):
+            Initializes the pruning masks for each prunable weight in the layer.
+        
+        apply_pruning():
+            Applies the pruning masks to the corresponding weights, effectively zeroing
+            out pruned connections during training and inference.
+        
+        update_pruning_mask(sparsity: float):
+            Updates the pruning masks dynamically by setting the lowest `sparsity` fraction
+            of weights to zero, based on their magnitude.
+
+        prune_summary():
+            Logs the sparsity level of each pruned weight tensor for debugging and monitoring.
+
+    Usage:
+        - Inherit this class alongside `_QQLayer` for prunable layers.
+        - Call `apply_pruning()` inside the `call()` method to enforce pruning.
+        - Use `update_pruning_mask(sparsity)` within a callback to schedule pruning
+          over time.
+
+    Example:
+        >>> class QQDense(qkeras.QDense, _QQLayer, PrunableLayer):
+        >>>     _QPROPS = ['kernel', 'bias']
+        >>>     def __init__(self, quantizer, *args, **kwargs):
+        >>>         _QQLayer.__init__(self, quantizer, **kwargs)
+        >>>         PrunableLayer.__init__(self)
+        >>>         qkeras.QDense.__init__(self, *args, **kwargs)
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.prune_masks = {}  # Dictionary to store pruning masks
+        # Override _QQLayer "prune" attribute to enable pruning
+        self.prune = True
+
+    def build(self, input_shape):
+        """Initialize pruning masks only for trainable properties in `_QPROPS`."""
+        for prop in self._QPROPS:
+            if hasattr(self, prop):
+                param = getattr(self, prop)
+                self.prune_masks[prop] = self.add_weight(
+                    name=f"{prop}_prune_mask",
+                    shape=param.shape,
+                    initializer=tf.keras.initializers.Ones(),
+                    trainable=False
+                )
+        super().build(input_shape)
+
+    def apply_pruning(self):
+        """Applies pruning masks to weights."""
+        for prop in self._QPROPS:
+            if prop in self.prune_masks and hasattr(self, prop):
+                setattr(self, prop, getattr(self, prop) * self.prune_masks[prop])
+
+    def update_pruning_mask(self, sparsity: float):
+        """Dynamically updates pruning masks based on sparsity."""
+        for prop in self._QPROPS:
+            if prop in self.prune_masks and hasattr(self, prop):
+                weights = getattr(self, prop)
+                if weights is not None:
+                    threshold = np.percentile(np.abs(weights.numpy()), sparsity * 100)
+                    mask = np.where(np.abs(weights.numpy()) > threshold, 1, 0)
+                    self.prune_masks[prop].assign(mask)
+
+    def prune_summary(self):
+        """Print pruning stats for debugging."""
+        for prop in self._QPROPS:
+            if prop in self.prune_masks:
+                mask = self.prune_masks[prop].numpy()
+                sparsity = 1.0 - np.mean(mask)
+                print(f"[INFO] - {self.name}.{prop} sparsity: {sparsity:.2%}")
+
+
+
 """ This layer learns separate alpha/beta parameters for each channel (or dimension), which
     will be used later to ensure that activations stay within quantization range.
     The output of this layer is:
@@ -489,7 +583,7 @@ class QQApplyAlpha(tf.keras.layers.Layer):
         return self.serialize(include_emojis=True, **kwargs)
 
 
-class QQDense(qkeras.QDense, _QQLayer):
+class QQDense(qkeras.QDense, _QQLayer, PrunableLayer):
     _QPROPS = ['kernel', 'bias']
     _ICON = "📕"
     def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
@@ -501,7 +595,10 @@ class QQDense(qkeras.QDense, _QQLayer):
                           kernel_quantizer = kernel_quantizer, bias_quantizer = bias_quantizer, 
                           kernel_initializer = kernel_initializer, bias_initializer = bias_initializer,
                           use_constraint = use_constraint)
-
+        
+        # Initialize pruning logic
+        PrunableLayer.__init__(self)  
+        
         # Finally just call the parent class
         qkeras.QDense.__init__(self, *args, **self._qkwargs, **kwargs)
         # Set self.has_delta = True
@@ -721,7 +818,7 @@ class QQBatchNormalization(qkeras.QBatchNormalization, _QQLayer):
 
 
 
-class QQConv1D(qkeras.QConv1D, _QQLayer):
+class QQConv1D(qkeras.QConv1D, _QQLayer, PrunableLayer):
     _QPROPS = ['kernel', 'bias']
     _ICON = "📕"
     def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
@@ -734,11 +831,14 @@ class QQConv1D(qkeras.QConv1D, _QQLayer):
                           kernel_initializer = kernel_initializer, 
                           bias_initializer = bias_initializer,
                           use_constraint = use_constraint)
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
+
         # Finally just call the parent class
         qkeras.QConv1D.__init__(self, *args, **self._qkwargs, **kwargs)
 
 
-class QQConv2D(qkeras.QConv2D, _QQLayer):
+class QQConv2D(qkeras.QConv2D, _QQLayer, PrunableLayer):
     _QPROPS = ['kernel', 'bias']
     _ICON = "📕"
     def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
@@ -751,12 +851,15 @@ class QQConv2D(qkeras.QConv2D, _QQLayer):
                           kernel_initializer = kernel_initializer, 
                           bias_initializer = bias_initializer,
                           use_constraint = use_constraint)
+        
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
 
         # Finally just call the parent class
         qkeras.QConv2D.__init__(self, *args, **self._qkwargs, **kwargs)
         
 
-class QQConv3D(tf.keras.layers.Conv3D, _QQLayer):
+class QQConv3D(tf.keras.layers.Conv3D, _QQLayer, PrunableLayer):
     _QPROPS = ['kernel', 'bias']
     _ICON = "📕"
     def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
@@ -770,12 +873,15 @@ class QQConv3D(tf.keras.layers.Conv3D, _QQLayer):
                         bias_initializer = bias_initializer,
                         use_constraint = use_constraint)
 
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
+
         # Not implemented in qkeras yet
         tf.keras.layers.Conv3D.__init__(self, *args, **kwargs)
 
 
 
-class QQConv1DTranspose(tf.keras.layers.Conv1DTranspose, _QQLayer):
+class QQConv1DTranspose(tf.keras.layers.Conv1DTranspose, _QQLayer, PrunableLayer):
     _QPROPS = ['kernel', 'bias']
     _ICON = "📕"
     def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
@@ -788,10 +894,13 @@ class QQConv1DTranspose(tf.keras.layers.Conv1DTranspose, _QQLayer):
                           bias_initializer = bias_initializer,
                           use_constraint = use_constraint)
         
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
+
         # Not implemnted in qkeras yet
         tf.keras.layers.Conv1DTranspose.__init__(self, *args, **kwargs)
 
-class QQConv2DTranspose(qkeras.QConv2DTranspose, _QQLayer):
+class QQConv2DTranspose(qkeras.QConv2DTranspose, _QQLayer, PrunableLayer):
     _QPROPS = ['kernel', 'bias']
     _ICON = "📕"
     def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
@@ -804,11 +913,15 @@ class QQConv2DTranspose(qkeras.QConv2DTranspose, _QQLayer):
                           kernel_initializer = kernel_initializer, 
                           bias_initializer = bias_initializer,
                           use_constraint = use_constraint)
+        
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
+
         # Finally just call the parent class
         qkeras.QConv2DTranspose.__init__(self, *args, **self._qkwargs, **kwargs)
 
 
-class QQConv3DTranspose(tf.keras.layers.Conv3DTranspose, _QQLayer):
+class QQConv3DTranspose(tf.keras.layers.Conv3DTranspose, _QQLayer, PrunableLayer):
     _QPROPS = ['kernel', 'bias']
     _ICON = "📕"
     def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
@@ -821,12 +934,15 @@ class QQConv3DTranspose(tf.keras.layers.Conv3DTranspose, _QQLayer):
                           kernel_initializer = kernel_initializer, 
                           bias_initializer = bias_initializer,
                           use_constraint = use_constraint)
+
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
 
         # Not implemnted in qkeras yet
         tf.keras.layers.Conv3DTranspose.__init__(self, *args, **kwargs)
 
 
-class QQDepthwiseConv2D(qkeras.QDepthwiseConv2D, _QQLayer):
+class QQDepthwiseConv2D(qkeras.QDepthwiseConv2D, _QQLayer, PrunableLayer):
     _QPROPS = ['depthwise', 'bias']
     _ICON = "📕"
     def __init__(self, quantizer, *args, 
@@ -842,11 +958,14 @@ class QQDepthwiseConv2D(qkeras.QDepthwiseConv2D, _QQLayer):
                           bias_initializer = bias_initializer,
                           use_constraint = use_constraint, **kwargs)
         
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
+        
         # Finally just call the parent class
         qkeras.QDepthwiseConv2D.__init__(self, *args, **self._qkwargs, **kwargs)
         
 
-class QQSeparableConv2D(qkeras.QSeparableConv2D, _QQLayer):
+class QQSeparableConv2D(qkeras.QSeparableConv2D, _QQLayer, PrunableLayer):
     _QPROPS = ['depthwise', 'pointwise','bias']
     _ICON = "📕"
     def __init__(self, quantizer, *args, depthwise_quantizer: str = 'logit', pointwise_quantizer: str = 'logit', 
@@ -861,6 +980,9 @@ class QQSeparableConv2D(qkeras.QSeparableConv2D, _QQLayer):
                           pointwise_initializer = pointwise_initializer,
                             bias_quantizer = bias_quantizer, bias_initializer = bias_initializer,
                           use_constraint = use_constraint, **kwargs)
+        
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
         
         # Finally just call the parent class
         qkeras.QSeparableConv2D.__init__(self, *args, **self._qkwargs, **kwargs)
@@ -957,7 +1079,7 @@ class QQSigmoid(tf.keras.layers.Activation, _QQLayer):
 
 
 
-class QQLSTM(qkeras.QLSTM, _QQLayer):
+class QQLSTM(qkeras.QLSTM, _QQLayer, PrunableLayer):
     _QPROPS = ['kernel', 'recurrent', 'bias', 'state']
     _ICON = "🔮"
     def __init__(self, quantizer, *args, 
@@ -992,6 +1114,9 @@ class QQLSTM(qkeras.QLSTM, _QQLayer):
         if 'state_constraint' in self._qkwargs:
             # Pop
             self.state_constraint = self._qkwargs.pop('state_constraint')
+        
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
         
         qkeras.QLSTM.__init__(self, *args, **self._qkwargs, **kwargs)
 

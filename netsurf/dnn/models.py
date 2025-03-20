@@ -5,9 +5,9 @@ import os
 # Tensorflow and keras
 import tensorflow as tf
 from tensorflow import keras  
-from tensorflow_model_optimization.python.core.sparsity.keras import pruning_wrapper
+#from tensorflow_model_optimization.python.core.sparsity.keras import pruning_wrapper
 from qkeras.utils import _add_supported_quantized_objects
-from tensorflow_model_optimization.sparsity.keras import strip_pruning
+#from tensorflow_model_optimization.sparsity.keras import strip_pruning
 
 """ Numpy """
 import numpy as np

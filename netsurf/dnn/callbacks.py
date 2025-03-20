@@ -10,12 +10,9 @@ import numpy as np
 
 from keras import backend
 
-from tensorflow_model_optimization.python.core.sparsity.keras import prune, pruning_callbacks, pruning_schedule
-from tensorflow_model_optimization.sparsity.keras import strip_pruning
-
+# netsurf
 import netsurf
-
-from .layers import QQApplyAlpha
+from .layers import QQApplyAlpha, PrunableLayer
 
 
 class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
@@ -215,6 +212,26 @@ class AlphaBetaTracker(tf.keras.callbacks.Callback):
                 logs['avg_beta'] = avg_beta
                 logs['loss_alpha_reg'] = np.mean(total_reg_loss)
             
+
+""" Scheduler for pruning """
+class PruningScheduler(tf.keras.callbacks.Callback):
+    def __init__(self, model, final_sparsity=0.5, begin_epoch=2, end_epoch=10):
+        super().__init__()
+        self.model = model
+        self.final_sparsity = final_sparsity
+        self.begin_epoch = begin_epoch
+        self.end_epoch = end_epoch
+
+    def on_epoch_begin(self, epoch, logs=None):
+        if self.begin_epoch <= epoch <= self.end_epoch:
+            progress = (epoch - self.begin_epoch) / (self.end_epoch - self.begin_epoch)
+            current_sparsity = progress * self.final_sparsity
+            print(f"[INFO] - Applying pruning at {current_sparsity:.2%} sparsity")
+            
+            # Apply pruning only to PrunableLayer subclasses
+            for layer in self.model.layers:
+                if isinstance(layer, PrunableLayer):
+                    layer.update_pruning_mask(current_sparsity)
 
 
 
