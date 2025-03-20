@@ -131,7 +131,7 @@ class Session:
         if os.path.isfile(filename):
             # Create collapsible container for the training history
             training_ct = pg.CollapsibleContainer("Training history", layout='vertical')
-            training_ct.append(pg.Image(filename, embed=False))
+            training_ct.append(pg.Image(filename, embed=True))
             # Add to session container
             session_ct.append(training_ct)
 
@@ -141,7 +141,7 @@ class Session:
             fpath = os.path.join(self.path, f'{t}.png')
             if os.path.isfile(fpath):
                 eval_ct = pg.CollapsibleContainer(t.capitalize(), layout='vertical')
-                eval_ct.append(pg.Image(fpath, embed=False))
+                eval_ct.append(pg.Image(fpath, embed=True))
                 session_ct.append(eval_ct)
                 
 
