@@ -7,8 +7,8 @@ import numpy as np
 """ keras backend """
 from tensorflow.keras import backend as K
 
-""" Import wsbmr """
-import wsbmr
+""" Import netsurf """
+import netsurf
 
 # Snippet to parse loss 
 def parse_loss(loss):
@@ -16,13 +16,13 @@ def parse_loss(loss):
     if loss is not None:
         if hasattr(tf.keras.losses, loss):
             l = getattr(tf.keras.losses, loss)
-            wsbmr.utils.log._custom('BMK',f'Loss {loss} found in tf.keras.losses with definition {l}.')
+            netsurf.utils.log._custom('BMK',f'Loss {loss} found in tf.keras.losses with definition {l}.')
         else:
             if loss.lower() in LOSSES:
                 l = LOSSES[loss.lower()]
-                wsbmr.utils.log._custom('BMK',f'Loss {loss} found in custom_losses with definition {l}.')
+                netsurf.utils.log._custom('BMK',f'Loss {loss} found in custom_losses with definition {l}.')
             else:
-                wsbmr.utils.log._warn(f'Loss {loss} not found. Keeping as string.')
+                netsurf.utils.log._warn(f'Loss {loss} not found. Keeping as string.')
                 l = loss
     return l
 

@@ -75,7 +75,7 @@ if _print_initialization_tasks: print(f"[LOG] - Importing submodule config")
 import nodus  # type: ignore
 # Create Nodus Session
 nodus_session = nodus.NodusSession()
-nodus_db = nodus_session.add_nodus_db("netsurf_db", db_path = config.netsurf_NODUS_DB_NAME)  # Add a default NodusDB instance
+nodus_db = nodus_session.add_nodus_db("netsurf_db", db_path = config.NETSURF_NODUS_DB_NAME)  # Add a default NodusDB instance
 
 # Import utils first of all (so we can use log)
 if _print_initialization_tasks: print(f"[LOG] - Importing submodule utils")

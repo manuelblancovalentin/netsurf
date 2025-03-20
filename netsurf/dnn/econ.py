@@ -9,7 +9,7 @@ from keras import backend as K # To get intermediate activations between layers
 from . import losses
 from .models import QModel
 
-import wsbmr
+import netsurf
 
 """ Custom layer implementations s"""
 from .layers import QQDense, QQConv1D, QQConv2D, QQDepthwiseConv2D, QQSeparableConv2D, QQConv2DTranspose, \
@@ -232,7 +232,7 @@ class ECONTAE(QModel):
         nsamples = (x.shape[0]//3)*3
         x = x[:nsamples]
         y = y[:nsamples]
-        wsbmr.utils.log._info(f'Restricting samples to {nsamples} for evaluation, so we have a multiple of 48 when reshaping to 8x8. Using batch size of {batch_size}.')
+        netsurf.utils.log._info(f'Restricting samples to {nsamples} for evaluation, so we have a multiple of 48 when reshaping to 8x8. Using batch size of {batch_size}.')
         return super().evaluate(x, y, batch_size = batch_size, **kwargs)
 
     """ Build model method """    

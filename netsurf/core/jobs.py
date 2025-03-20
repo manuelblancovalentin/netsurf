@@ -4,7 +4,7 @@
 import os 
 
 # Import utils
-from wsbmr import utils
+from netsurf import utils
 
 """ Class to define a JOB that will be run (or that has been run) """
 class RunJob:

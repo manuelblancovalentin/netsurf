@@ -12,7 +12,7 @@ import yaml
 import numpy as np
 
 """ Let's add our custom wsbmr code """
-import wsbmr
+import netsurf
 
 """ Custom fkeras for hessian ranker """
 import fkeras
@@ -27,8 +27,8 @@ from tqdm import tqdm
 import tensorflow as tf
 
 # Available benchmarks are entries in config
-AVAILABLE_BENCHMARKS = wsbmr.AVAILABLE_BENCHMARKS
-BENCHMARKS_CONFIG = wsbmr.BENCHMARKS_CONFIG
+AVAILABLE_BENCHMARKS = netsurf.AVAILABLE_BENCHMARKS
+BENCHMARKS_CONFIG = netsurf.BENCHMARKS_CONFIG
 
 
 """ Run experiment function """
@@ -37,7 +37,7 @@ def run_experiment(workdir, datasets_dir, benchmark, config_per_methods, load_we
                     prune, model_prefix, num_reps, rerun_experiment, save_weights_checkpoint, tmr_range, ber_range, run_name):
 
     """ Build benchmark object """
-    bmk = wsbmr.get_benchmark(benchmark, bits_config = bits_config, datasets_dir = datasets_dir, workdir = workdir, 
+    bmk = netsurf.get_benchmark(benchmark, bits_config = bits_config, datasets_dir = datasets_dir, workdir = workdir, 
                                 load_weights = load_weights, model_prefix = model_prefix, **BENCHMARKS_CONFIG[benchmark])
 
     # Print dataset and model summary
@@ -51,10 +51,10 @@ def run_experiment(workdir, datasets_dir, benchmark, config_per_methods, load_we
 
 
     # Parse config
-    session_params = wsbmr.utils.parse_config(BENCHMARKS_CONFIG[benchmark])
+    session_params = netsurf.utils.parse_config(BENCHMARKS_CONFIG[benchmark])
 
     # Try to find the latest session and load 
-    sess = wsbmr.load_session(bmk.sessions_dir, latest = True)
+    sess = netsurf.load_session(bmk.sessions_dir, latest = True)
 
     """ Fit params """
     if train_model or sess is None:
@@ -79,7 +79,7 @@ def run_experiment(workdir, datasets_dir, benchmark, config_per_methods, load_we
             ]
 
             if prune > 0.0:
-                callbacks.append(wsbmr.pruning_callbacks.UpdatePruningStep())
+                callbacks.append(netsurf.pruning_callbacks.UpdatePruningStep())
 
             # Compile model 
             bmk.compile(opt_params = opt_params, pruning_params = pruning_params, batch_size = batch_size)
@@ -136,7 +136,7 @@ def run_experiment(workdir, datasets_dir, benchmark, config_per_methods, load_we
     """ Get the data """
     # prepare data 
     nsample_mod = 48 if 'ECON' in benchmark else -1
-    XYTrain = wsbmr.utils.prepare_data(bmk, subset = 'train', nsample_mod = nsample_mod)
+    XYTrain = netsurf.utils.prepare_data(bmk, subset = 'train', nsample_mod = nsample_mod)
 
     # Loop thru methods
     for method, c in config_per_methods:
@@ -153,7 +153,7 @@ def run_experiment(workdir, datasets_dir, benchmark, config_per_methods, load_we
         #################################################################
         # 1. Create experiment object
         #################################################################
-        exp = wsbmr.Experiment(method, c_ext, bmk, reload_ranking = reload_ranking, name = run_name, verbose = True, **kws)
+        exp = netsurf.Experiment(method, c_ext, bmk, reload_ranking = reload_ranking, name = run_name, verbose = True, **kws)
     
         # Print experiment info 
         exp.print_info()
@@ -178,7 +178,7 @@ def run_experiment(workdir, datasets_dir, benchmark, config_per_methods, load_we
 if __name__ == '__main__':
 
     # Parse arguments 
-    args = wsbmr.parse_arguments(*sys.argv[1:])
+    args = netsurf.parse_arguments(*sys.argv[1:])
 
     # Print configuration
     #print(f'Running benchmark {benchmark} with method {method} and config {subconfig}')

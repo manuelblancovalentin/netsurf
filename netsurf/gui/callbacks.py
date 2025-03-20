@@ -1,10 +1,10 @@
 # Custom imports
-import wsbmr
+import netsurf
 
 """ Callback for processing all the experiments given a set of configs """
 def process_experiments(config, pbar = lambda x: None):
     # Let's print the config 
-    wsbmr.utils.log._log("Processing experiments with the following config:")
+    netsurf.utils.log._log("Processing experiments with the following config:")
     
     # Print config
     for i, (key, value) in enumerate(config.items()):
@@ -44,9 +44,9 @@ def process_experiments(config, pbar = lambda x: None):
     #   (4)         - training session (e.g. training_session.20241215_010614)
     #   (5)           - config_training_session.*.json (config file with the training session parameters)
     #   (5)           - training_session.*.log (log file with the training summary)
-    #   (5)           - training_session.*.pkl (binary file with the progress of the training session (can be loaded into wsbmr))
+    #   (5)           - training_session.*.pkl (binary file with the progress of the training session (can be loaded into netsurf))
     # So let's start with the first level (0) and go from there.
-    root_bucket = wsbmr.explorer.create_bucket(benchmarks_dir, 'root', verbose = True, level = 0, 
+    root_bucket = netsurf.explorer.create_bucket(benchmarks_dir, 'root', verbose = True, level = 0, 
                                                benchmarks = benchmarks_selected,
                                                 protection = protection_values, ber = ber_values, num_reps = reps, 
                                                 pruning = pruning_values, methods = methods_selected,

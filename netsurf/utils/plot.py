@@ -25,7 +25,7 @@ import sklearn
 import tensorflow as tf
 
 """ Custom modules """
-import wsbmr
+import netsurf
 
 ####################################################################################################
 # EXPLORER FUNCTIONS / PLOTTERS
@@ -47,7 +47,7 @@ def plot_coverage_barplot(cv, protection_values, ber_values, ax = None, dir_path
     if init_figure: 
         fig, ax = plt.subplots(figsize = (10, 7))
         # Mark figure as deletable
-        wsbmr.utils.plot.mark_figure_as_deletable(fig)
+        netsurf.utils.plot.mark_figure_as_deletable(fig)
 
     # Global vertical bar for protection completion
     patch = mpl.patches.Rectangle((-bar_w, -0.5), bar_w, len(protection), color = 'gray', alpha = 0.6)
@@ -257,7 +257,7 @@ def plot_coverage_pie(p, explode = {}, ax = None, title = None):
         # Add progress
         theta_s = (theta0 + theta1) / 2 - delta_theta * pp/2
         theta_e = theta_s + delta_theta * pp
-        color = wsbmr.config.DEFAULT_COLOR_CYCLE[ipp % len(wsbmr.config.DEFAULT_COLOR_CYCLE)]
+        color = netsurf.config.DEFAULT_COLOR_CYCLE[ipp % len(netsurf.config.DEFAULT_COLOR_CYCLE)]
         # Fill
         arc = arc_patch(theta_s, theta_e, ax=ax, fill=True, facecolor=color, explode = _xp, hatch = '////', label = f'{pname}\n{pp*100:.0f}%')
         # Outline
@@ -402,12 +402,12 @@ class CoveragePie:
 
         # If this is a run, plot bar of protection/ber coverage 
         if self.type == 'method':
-            return wsbmr.utils.plot.plot_coverage_barplot(cv, protection_values, ber_values, ax = ax, dir_path = None, title = title)
+            return netsurf.utils.plot.plot_coverage_barplot(cv, protection_values, ber_values, ax = ax, dir_path = None, title = title)
         else:
             # If this is not a run, plot pie of progress
             p = {key: self.subpies[key].local_progress for key in self.subpies}
             explode = {kw: 0.1 if p[kw] < 10 and p[kw] > 0.0 else 0.0 for kw in p}
-            return wsbmr.utils.plot.plot_coverage_pie(p, explode = explode, ax = ax, title = title)
+            return netsurf.utils.plot.plot_coverage_pie(p, explode = explode, ax = ax, title = title)
 
     def get_children_type(self):
         return self.structure_config['children_type'], self.structure_config['children_property']
@@ -423,7 +423,7 @@ class CoveragePie:
 """ Unique colors given structural global metrics """
 def get_unique_colors(values, cmap = None):
     if cmap is None:
-        cmap = wsbmr.config.DEFAULT_COLOR_CYCLE
+        cmap = netsurf.config.DEFAULT_COLOR_CYCLE
     # Get unique colors for the metric
     nvals = len(values)
     # repeat colors, cause we will wrap around
@@ -613,7 +613,7 @@ def plot_model_weights_pie(model, filepath = None, show = True, verbose = True):
     if filepath is not None:
         fig.savefig(filepath, bbox_inches='tight')
         if verbose:
-            wsbmr.utils.log._custom('PLOT', f'Saved figure to {filepath}')
+            netsurf.utils.log._custom('PLOT', f'Saved figure to {filepath}')
 
     if show:
         plt.show()
@@ -628,7 +628,7 @@ def plot_confusion_matrix(y, yhat, labels = None, filepath = None, show = True, 
     if not isinstance(labels, list):
         labels = ['%i' % nr for nr in range(0, n_classes)]  # If you want to look at all the labels
     # labels = ['0','1','9'] # Look at only a few labels, here for digits 0, 1 and 9
-    wsbmr.utils.log._custom('PLOT',f'Plotting confusion matrix for labels {labels}')
+    netsurf.utils.log._custom('PLOT',f'Plotting confusion matrix for labels {labels}')
 
     # Get confusion matrix
     cm = sklearn.metrics.confusion_matrix(y.argmax(axis=1), yhat.argmax(axis=1))
@@ -695,7 +695,7 @@ def plot_confusion_matrix(y, yhat, labels = None, filepath = None, show = True, 
         fp = filepath.format('confusion_matrix')
         fig.savefig(fp)
         if verbose:
-            wsbmr.utils.log._custom('PLOT', f'Saved confusion matrix to {fp}')
+            netsurf.utils.log._custom('PLOT', f'Saved confusion matrix to {fp}')
 
     if show:
         plt.show()
@@ -715,7 +715,7 @@ def plot_ROC(y, yhat, labels = None, filepath = None, show = True,
     #print('Plotting ROC for labels {}'.format(labels))
 
     test_score = (yhat.argmax(axis = 1) == y.argmax(axis=1)).mean()
-    wsbmr.utils.log._custom('PLOT', f'QKeras accuracy = {test_score:3.2%}')
+    netsurf.utils.log._custom('PLOT', f'QKeras accuracy = {test_score:3.2%}')
 
     df = pd.DataFrame()
     fpr = {}
@@ -793,7 +793,7 @@ def plot_ROC(y, yhat, labels = None, filepath = None, show = True,
     if filepath is not None:
         fp = filepath.format('ROC')
         plt.savefig(fp)
-        if verbose: wsbmr.utils.log._custom('PLOT', f"Saved ROC plot to {fp}")
+        if verbose: netsurf.utils.log._custom('PLOT', f"Saved ROC plot to {fp}")
     if show:
         plt.show()
     else:
@@ -839,12 +839,12 @@ def plot_scatter(y, yhat, title = 'Predictions', xlabel = 'True', ylabel = 'Pred
 
         mae = np.mean(np.abs(subyhat-suby))
         mse = np.sqrt(np.mean((subyhat-suby)**2))
-        wsbmr.utils.log._custom('PLOT', f'QKeras mae  = {mae} | mse = {mse}')
+        netsurf.utils.log._custom('PLOT', f'QKeras mae  = {mae} | mse = {mse}')
 
         # Compute the r2 score and correlation 
         r2 = sklearn.metrics.r2_score(suby, subyhat)
         corr = np.corrcoef(suby, subyhat.flatten())[0,1]
-        wsbmr.utils.log._custom('PLOT', f'QKeras r2 score = {r2} | corr = {corr}')
+        netsurf.utils.log._custom('PLOT', f'QKeras r2 score = {r2} | corr = {corr}')
 
         # Plot scatter
         ax.scatter(suby, subyhat, color = col, alpha = 0.5, label = lbl)
@@ -873,7 +873,7 @@ def plot_scatter(y, yhat, title = 'Predictions', xlabel = 'True', ylabel = 'Pred
 
     if filepath is not None:
         plt.savefig(filepath)
-        if verbose: wsbmr.utils.log._custom('PLOT', f"Saved Regression plot to {filepath}")
+        if verbose: netsurf.utils.log._custom('PLOT', f"Saved Regression plot to {filepath}")
     if show:
         plt.show()
     else:
@@ -945,7 +945,7 @@ def plot_sparsity(model, filepath = None, show = True, separated = False, verbos
         # Compute the sparsity
         sparsity = zeros/tf.size(v)
         # Print the sparsity
-        if verbose: wsbmr.utils.log._custom('PLOT', f"Variable {v.name} has sparsity {sparsity:3.2%}")
+        if verbose: netsurf.utils.log._custom('PLOT', f"Variable {v.name} has sparsity {sparsity:3.2%}")
 
         # Get the axs where we should plot this 
         if separated:
@@ -991,8 +991,8 @@ def plot_sparsity(model, filepath = None, show = True, separated = False, verbos
     if filepath is not None:
         plt.savefig(filepath)
         if verbose: 
-            wsbmr.utils.log._custom('PLOT', f"Saved sparsity plot to {filepath}")
-            wsbmr.utils.log._custom('PLOT', f'Plot range is {min_range} to {max_range}')
+            netsurf.utils.log._custom('PLOT', f"Saved sparsity plot to {filepath}")
+            netsurf.utils.log._custom('PLOT', f'Plot range is {min_range} to {max_range}')
 
     if show:
         plt.show()
@@ -1079,7 +1079,7 @@ def plot_training_history(logs, ylog = False, filename = None, show = True, retu
 
     if filename is not None:
         fig.savefig(filename)
-        if verbose: wsbmr.utils.log._custom('PLOT', f"Saved training history plot to {filename}")
+        if verbose: netsurf.utils.log._custom('PLOT', f"Saved training history plot to {filename}")
     
     if show:
         plt.show()
@@ -1212,7 +1212,7 @@ def plot_quantized_histogram(data: np.ndarray, quantizer: 'QuantizationScheme',
 
     if filename:
         fig.savefig(filename)
-        wsbmr.utils.log._custom('PLOT', f"Saved histogram plot to {filename}")
+        netsurf.utils.log._custom('PLOT', f"Saved histogram plot to {filename}")
 
     if show_me:
         plt.show()
@@ -1310,7 +1310,7 @@ def display_data_img(X, title = None, show = True, filename = None, axs = None,
 
     if filename is not None:
         plt.savefig(filename)
-        wsbmr.utils.log._custom('DATA', f'Saved dataset sample to {filename}')
+        netsurf.utils.log._custom('DATA', f'Saved dataset sample to {filename}')
 
     if show:
         plt.show()

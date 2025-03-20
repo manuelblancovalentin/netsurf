@@ -7,8 +7,8 @@ import pandas as pd
 """ pyqt5 """
 from PyQt5.QtWidgets import QFileDialog, QWidget, QMainWindow
 
-""" wsbmr """
-import wsbmr
+""" netsurf """
+import netsurf
 
 """ Check coverage """
 def check_coverage(df, num_reps = 10, protection = [0.0], ber = [0.001]):
@@ -143,7 +143,7 @@ def show_save_file_dialog(parent, initial_path, initial_name = "output.csv"):
     file_path = show_save_dialog(parent, "Save File As", initial_path, "CSV Files (*.csv);;All Files (*)")
 
     if file_path:
-        wsbmr.utils.save_table_to_csv(parent.df, file_path)
+        netsurf.utils.save_table_to_csv(parent.df, file_path)
         return file_path
     return None
 
@@ -163,21 +163,21 @@ def show_save_image_dialog(parent, initial_path, initial_name = "output.png"):
 
 def show_load_bucket_dialog(parent, initial_path):
     # Open the Load File dialog
-    file_path = show_load_dialog(parent, "Load Bucket", initial_path, "Bucket files (*.wsbmr.bkt);;All Files (*)")
+    file_path = show_load_dialog(parent, "Load Bucket", initial_path, "Bucket files (*.netsurf.bkt);;All Files (*)")
 
     if file_path:
         # Load object from file using pkl
-        bkt = wsbmr.utils.load_object(file_path)
+        bkt = netsurf.utils.load_object(file_path)
         return file_path, bkt
     return None, None
 
 def show_save_bucket_dialog(parent, initial_path, bucket):
     # Open the Save File dialog
-    file_path = show_save_dialog(parent, "Save Bucket As", initial_path, "Bucket files (*.wsbmr.bkt);;All Files (*)")
+    file_path = show_save_dialog(parent, "Save Bucket As", initial_path, "Bucket files (*.netsurf.bkt);;All Files (*)")
 
     if file_path:
         # Save object to file using pkl
-        wsbmr.utils.save_object(bucket, file_path)
+        netsurf.utils.save_object(bucket, file_path)
         return file_path
     return None
 

@@ -13,7 +13,7 @@ from keras import backend
 from tensorflow_model_optimization.python.core.sparsity.keras import prune, pruning_callbacks, pruning_schedule
 from tensorflow_model_optimization.sparsity.keras import strip_pruning
 
-import wsbmr
+import netsurf
 
 from .layers import QQApplyAlpha
 
@@ -23,7 +23,7 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
         super().on_epoch_end(epoch, logs)
     
     def print_msg(self, msg):
-        wsbmr.utils.log._custom('MDL',msg)
+        netsurf.utils.log._custom('MDL',msg)
 
     def _save_model(self, epoch, batch, logs):
         """Saves the model.
@@ -133,7 +133,7 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
 
 class CustomPrinter(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
-        wsbmr.utils.log._custom('MDL',f'Epoch {epoch} - {logs}')
+        netsurf.utils.log._custom('MDL',f'Epoch {epoch} - {logs}')
 
 
 def parse_callbacks(cbacks: dict, prune: Union[float] = 0.0):
@@ -145,9 +145,9 @@ def parse_callbacks(cbacks: dict, prune: Union[float] = 0.0):
         if cbacks[cback] is not None:
             kws = cbacks[cback]
         if cback.lower() == 'early_stopping' or cback.lower() == 'early_stopper':
-            callbacks.append(wsbmr.tf.keras.callbacks.EarlyStopping(**kws))
+            callbacks.append(netsurf.tf.keras.callbacks.EarlyStopping(**kws))
         elif cback.lower() == 'reduce_lr' or cback.lower() == 'reduce_learning_rate' or cback.lower() == 'reduce_learning_rate_on_plateau' or cback.lower() == 'reducelronplateau':
-            callbacks.append(wsbmr.tf.keras.callbacks.ReduceLROnPlateau(**kws))
+            callbacks.append(netsurf.tf.keras.callbacks.ReduceLROnPlateau(**kws))
         elif cback.lower() == 'print':
             callbacks.append(CustomPrinter())
         elif cback.lower() == 'checkpoint':
@@ -156,7 +156,7 @@ def parse_callbacks(cbacks: dict, prune: Union[float] = 0.0):
             raise ValueError(f'Callback {cback} not recognized.')
         
     if prune > 0.0:
-        callbacks.append(wsbmr.dnn.callbacks.pruning_callbacks.UpdatePruningStep())
+        callbacks.append(netsurf.dnn.callbacks.pruning_callbacks.UpdatePruningStep())
     
     return callbacks
 
