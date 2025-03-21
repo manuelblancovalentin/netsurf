@@ -3,11 +3,14 @@
 """ Modules """
 import os
 import copy
-from glob import glob
+import time
 
 """ Numpy and pandas """
 import numpy as np
 import pandas as pd
+
+""" Matplotlib """
+import matplotlib.pyplot as plt 
 
 """ Tensorflow """
 import tensorflow as tf
@@ -20,7 +23,6 @@ import netsurf
 
 # Fkeras for Hessian ranking and all the dependencies
 import fkeras
-import time
 
 ####################################################################################################################
 #
@@ -49,6 +51,7 @@ class WeightRanker:
     def extract_weight_table(self, model, quantization, verbose = False, **kwargs):
         # Get all variables for this model 
         variables = model.trainable_variables
+        vnames = [v.name for v in model.variables]
 
         # This is what the table should look like:
         # | param name | index (in trainable_variables) | coord (inside variable) | value | rank | susceptibility | bit |
@@ -94,12 +97,17 @@ class WeightRanker:
             # Repeat global_param_num
             global_param_num = np.tile(global_param_num, quantization.m)
 
-            
             # Also, keep track of parameters that have been pruned
-            pruned = (values == 0)  
+            # get the pruned mask 
+            pruned_mask_vname = v.name.replace(':','_prune_mask:')
+            if pruned_mask_vname in vnames:
+                pruned = model.variables[vnames.index(pruned_mask_vname)].numpy().flatten() == 0
+                # tile
+                pruned = np.tile(pruned, quantization.m)
+            else:
+                pruned = (values == 0)  
 
             # Now, extend the dictionary with the new values
-
             df['param'].extend(list(names))
             df['global_param_num'].extend(list(global_param_num))
             df['variable_index'].extend(list(variable_index))
@@ -138,20 +146,45 @@ class WeightRanker:
         
         print(f'Rank dataframe written to file {filepath}')
     
-    def plot_ranking(self):
-        import matplotlib.pyplot as plt 
+    def plot_ranking(self, axs = None, w = 300, show = True):
+        
+        # Fields and titles
+        items = [('bit','Bit number', lambda x: x, 'green'), 
+                  ('susceptibility', 'Raw susceptibility', lambda x: x, 'purple'),
+                  ('susceptibility', 'Absolute |Susceptibility|', lambda x: np.abs(x), 'purple'),
+                    ('value', 'Param Value', lambda x: x, 'orange'),
+                    ('variable_index', 'Variable Index (~Layer)', lambda x: x, 'black'),
+                    ('pruned', 'Pruned', lambda x: 1.0*x, 'red'),
+                    ('binary', 'Num Ones (bin)', lambda x: np.sum([int(i) for i in x]) ), 'blue']
+
+        # available fields are
+        # df = {'param': [], 'global_param_num': [], 'variable_index': [], 'internal_param_num': [],
+        #       'coord': [], 'bit': [], 'value': [], 'rank': [], 'susceptibility': [], 
+        #     'binary': [], 'pruned': []}
+        
+        num_axs = len(items)
+        if axs is not None:
+            # Make sure it's the right length
+            if len(axs) != num_axs:
+                netsurf.error(f'Expected {num_axs} axes, got {len(axs)}. Falling back to default.')
+                axs = None
+
         # Plot indexes in ranking
-        fig, axs = plt.subplots(5, 1, figsize=(13, 13))
+        show_me = axs is None & show
+        if axs is None:
+            fig, axs = plt.subplots(num_axs, 1, figsize=(13, 13))
+        else:
+            fig = axs[0].figure
 
         # Plot bit number first 
-        w = 300
-        netsurf.utils.plot.plot_avg_and_std(self.df['bit'], w, axs[0], shadecolor='green', ylabel='Bit number')
-        netsurf.utils.plot.plot_avg_and_std(self.df['susceptibility'], w, axs[1], shadecolor='purple', ylabel='Abs (Impact P)')
-        netsurf.utils.plot.plot_avg_and_std(np.abs(self.df['susceptibility']), w, axs[2], shadecolor='purple', ylabel='Absolute |Impact P|')
-        netsurf.utils.plot.plot_avg_and_std(self.df['value'], w, axs[3], shadecolor='orange', ylabel='Param Value')
-        netsurf.utils.plot.plot_avg_and_std(self.df['variable_index'], w, axs[4], shadecolor='black', ylabel='Variable Index (~Layer)')
+        for i, (field, title, transform) in enumerate(items):
+            netsurf.utils.plot.plot_avg_and_std(transform(self.df[field]), w, axs[i], shadecolor='green', ylabel=title)
 
-        plt.show()
+        if show_me:
+            plt.tight_layout()
+            plt.show()
+        else:
+            return fig, axs
     
     @property
     def alias(self):
@@ -225,7 +258,7 @@ class AbsoluteValueWeightRanker(WeightRanker):
         # Susceptibility here is considered uniform (hence the randomness assigning TMR)
         #df = df.sort_values(by='value', key=abs, ascending=ascending)
         df['susceptibility'] = np.abs(df['value'].values)
-        df = df.sort_values(by=['bit','susceptibility'], ascending = [False, ascending])
+        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, ascending])
         
         df['rank'] = np.arange(len(df))
         
@@ -268,7 +301,7 @@ class BitwiseWeightRanker(WeightRanker):
         df = self.extract_weight_table(model, self.quantization)
 
         # Susceptibility here is considered uniform (hence the randomness assigning TMR)
-        df = df.sort_values(by=['bit'], ascending = ascending)
+        df = df.sort_values(by=['pruned','bit'], ascending = [True, ascending])
         df['rank'] = np.arange(len(df))
         df['susceptibility'] = 2.0**df['bit']
         
@@ -309,7 +342,7 @@ class LayerWeightRanker(WeightRanker):
         # If required, we could actually enforce layer index computation by grouping variables by their name 
         # (removing the "/..." part of the name) and then sorting by the order of appearance in the model, 
         # but I don't really think this is required right now. 
-        df = df.sort_values(by=['variable_index','bit'], ascending = [ascending, False])
+        df = df.sort_values(by=['pruned', 'bit', 'variable_index'], ascending = [True, False, ascending])
         df['rank'] = np.arange(len(df))
         df['susceptibility'] = 2.0**df['bit'] * (self.quantization.m - df['variable_index'] + 1)
         
@@ -367,7 +400,7 @@ class DiffBitsPerWeightRanker(WeightRanker):
 
         differences = np.vectorize(process_value)(df['value'].values)
         df['susceptibility'] = differences
-        df = df.sort_values(by='susceptibility', ascending=False)
+        df = df.sort_values(by=['pruned','bit'], ascending = [True, False])
         df['rank'] = np.arange(len(df))
 
         # assign to self 
@@ -516,7 +549,7 @@ class GradRanker(WeightRanker):
         df = self.extract_weight_table(model, X, Y, self.quantization, ascending = ascending, **kwargs)
 
         # Finally, sort by susceptibility 
-        df = df.sort_values(by=['bit','susceptibility'], ascending = [False, ascending])
+        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, ascending])
 
         # assign to self 
         self.df = df
@@ -617,305 +650,6 @@ class GradRanker(WeightRanker):
         self.df = df
 
         return df
-
-
-
-
-
-
-
-
-
-
-
-
-        
-
-        # # Initialize dataframe table with all properties for all layers 
-        # df = []
-        # num_bits = quantization.m
-        # use_delta_as_weight = self.use_delta_as_weight
-        # print(f'[INFO] - {"U" if use_delta_as_weight else "NOT u"}sing delta as weights.')
-
-        # # Get supported weights and pruned masks 
-        # results = netsurf.models.get_supported_weights(model.model, numpy = False, pruned = True, verbose = False)
-        # supported_weights, supported_pruned_masks, supported_layers, weights_param_num = results
-        
-        # if verbose:
-        #     print(f'[INFO] - Found a total of {len(supported_weights)} supported weights: {", ".join(list(supported_weights.keys()))}')
-
-        # # Get layer index per layer in supported_layers
-        # supported_layers_idxs = {lname: model.model.layers.index(supported_layers[lname]) for lname in supported_layers}
-
-        # # Get deltas per weight
-        # deltas = {kw: netsurf.models.get_deltas(kv, num_bits = num_bits) for kw, kv in supported_weights.items()}
-        # is_bit_one = {kw: deltas[kw][1] for kw in supported_weights}
-        # deltas = {kw: deltas[kw][0] for kw in supported_weights}
-
-        # # Store the old weights 
-        # old_weights = copy.deepcopy(supported_weights)
-
-        # # if bit value is a number, but it's outside of the range [0, num_bits-1], or if it's not an integer, just make it None
-        # if bit_value is not None:
-        #     if not isinstance(bit_value, int):
-        #         bit_value = None
-        #         if verbose:
-        #             print(f'[WARN] - Bit value is not an integer. Setting to None.')
-        #     else:
-        #         if bit_value < 0 or bit_value >= num_bits:
-        #             bit_value = None
-        #             if verbose:
-        #                 print(f'[WARN] - Bit value outside of range [0, {num_bits-1}]. Setting to None.')
-
-        # # if bit value is none, just range over all bits
-        # if bit_value is None:
-        #     bit_range = np.arange(num_bits)
-        #     try_to_load_previous_bits = False
-        # else:
-        #     bit_range = [bit_value]
-        #     try_to_load_previous_bits = True
-
-        # # Loop thru bits and place the deltas 
-        # for i in bit_range:
-            
-        #     # # Now build the grad model
-        #     # grad_model = tf.keras.models.Model([model.model.layers[1].input],model_layer_outputs)
-        #     # Use activation model as grad model
-        #     grad_model = model.activation_model
-
-        #     # Replace the weights with the deltas (if use_delta_as_weight)
-        #     if use_delta_as_weight:
-        #         for w in grad_model.weights:
-        #             kw = w.name
-        #             if kw in deltas:
-        #                 w.assign(deltas[kw][...,i])
-            
-        #     # Create a model that outputs the desired layer's output and the model's output
-        #     model_layer_outputs = []
-        #     w_layers = []
-        #     for ly in grad_model.layers:
-        #         for w in ly.weights:
-        #             if np.any([w.name in kw for kw in deltas]):
-        #                 model_layer_outputs.append(ly.output)
-        #                 w_layers.append(ly)
-            
-        #     # Iterate over the dataset to get the gradients
-        #     batch_size = np.minimum(batch_size, len(X))
-        #     niters = np.maximum(np.floor(len(X)//batch_size).astype(int), 1)
-        #     nb_classes = model.model.output.shape[1]
-        #     grads = {}
-        #     Xiter = iter(X)
-
-        #     for Bi, B in tqdm(enumerate(range(niters)), total = niters, desc = f'Extracting gradients (per batch) - bit {i}'):
-
-        #         target_classes = []
-
-        #         # Compute the gradients w.r.t. the weights of each layer 
-        #         with tf.GradientTape(persistent=True) as tape:
-
-        #             # Get trainable weights from within tape
-        #             w_trainable_vars = [ly.trainable_weights for ly in w_layers]
-
-        #             # Watch the weights of the target layer
-        #             tape.watch(w_trainable_vars)
-
-        #             # Get the layer output and predictions
-        #             if isinstance(X, tf.data.Dataset) or isinstance(X, tf.keras.preprocessing.image.DirectoryIterator):
-        #                 Xnext, Ynext = next(Xiter)
-        #             else:
-        #                 Xnext = X[B*batch_size:(B+1)*batch_size]
-        #             layer_outputs = grad_model(Xnext)
-
-        #             # Get prediction, popping the last one of tmp_outputs
-        #             predictions = layer_outputs.pop(-1)
-
-        #             # Compute the gradient of the target class prediction with respect to the weights
-        #             for n in range(nb_classes):
-        #                 # Get the target class prediction
-        #                 target_classes.append(predictions[:, n])
-
-        #         # Reorganize grads and average per classes 
-        #         for n in range(nb_classes):
-        #             tmplist = tape.gradient(target_classes[n], w_trainable_vars)
-        #             # Convert to dictionary 
-        #             for iw, w in enumerate(w_trainable_vars):
-        #                 for iww, ww in enumerate(w):
-        #                     # grads times weights 
-        #                     if times_weights:
-        #                         gtw = tf.math.abs(tmplist[iw][iww]*ww)
-        #                     else:
-        #                         gtw = tf.math.abs(tmplist[iw][iww])
-        #                     if ww.name not in grads:
-        #                         grads[ww.name] = gtw
-        #                     else:
-        #                         if np.all(gtw != grads[ww.name]):
-        #                             grads[ww.name] += gtw
-        #                         else:
-        #                             continue
-        #                     # if verbose:
-        #                     #     print(f'Adding {ww.name} to grads {n} {iw} {iww} -> {np.shape(ww)} {np.shape(tmplist[iw][iww])}')
-
-
-        #     # TODO: What if we normalize it by layer instead of globally?
-        #     # TODO: What if we take the ABS value instead of just the value itself? A big negative grad is better than zero!!!
-        #     gmax = -np.inf
-        #     gmin = np.inf
-        #     for kw, kv in grads.items():
-        #         gmax = np.maximum(gmax, tf.math.reduce_max(kv))
-        #         gmin = np.minimum(gmin, tf.math.reduce_min(kv))
-            
-        #     # normalize
-        #     for kw, kv in grads.items():
-        #         grads[kw] = (kv-gmin)/(gmax-gmin)            
-
-        #     # Now build the table for pandas 
-        #     for ikw, kw in enumerate(supported_weights):
-        #         if '/bias:' in kw:
-        #             continue
-        #         # Get vals
-        #         w = old_weights[kw]
-        #         msk = supported_pruned_masks[kw]
-        #         ly = supported_layers[kw]
-        #         # So it's saying "prune_low_..." is not in grads, thus kw has the prune_low whatever
-        #         w_name = kw.replace('prune_low_magnitude_', '') 
-
-        #         g = grads[w_name]
-        #         ily = supported_layers_idxs[kw]
-        #         param_num = weights_param_num[kw]
-
-        #         # Layer name 
-        #         layer_name = ly.name
-
-        #         # Get coords 
-        #         str_coords, coords = netsurf.models.get_weight_coordinates(w.numpy())
-
-        #         # build weight name (with coords)
-        #         str_weight_name = np.array([f"{layer_name}[" + "][".join(item) + "]" for item in coords.astype(str)])
-
-        #         # Build pruned value 
-        #         if msk is not None:
-        #             try:
-        #                 str_mask = np.array([msk[tuple(c)] for c in coords]).flatten()
-        #             except:
-        #                 print(f'Error at {kw} {np.shape(msk)} {np.shape(coords)}')
-        #         else:
-        #             str_mask = np.zeros(len(coords))
-                
-        #         bits = np.array([i]*len(coords)).flatten()
-        #         suscept_factor = 2.0**(-i)
-
-        #         # Get kernel gradient 
-        #         suscept = g.numpy().flatten()
-        #         if normalize_score:
-        #             suscept *= suscept_factor
-
-        #         # Build all params before setting table 
-        #         str_ily = [ily]*len(coords)
-        #         str_value = w.numpy().flatten()
-        #         str_param_num = param_num.numpy().flatten()
-                
-        #         if not use_delta_as_weight:
-        #             # We need to repeat everything num_bits times cause this is the last iteration (We'll break the loop after this)
-        #             str_weight_name = np.tile(str_weight_name, num_bits)
-        #             str_ily = np.tile(str_ily, num_bits)
-        #             str_coords = np.tile(str_coords, num_bits)
-        #             str_value = np.tile(str_value, num_bits)
-        #             str_param_num = np.tile(str_param_num, num_bits)
-        #             str_mask = np.tile(str_mask, num_bits)
-
-        #             # Redefine bits
-        #             bits = np.repeat(np.arange(num_bits), len(coords))
-
-        #             # Redefine susceptibility
-        #             suscept_factor = 2.0**(-bits)
-        #             suscept = np.tile(g.numpy().flatten(), num_bits)
-        #             if normalize_score:
-        #                 suscept *= suscept_factor
-
-
-        #         # Now let's build the table we want for all weights. This table should contain the following information:
-        #         #
-        #         #  | weight               | layer | coord        | value | rank | susceptibility | bit |
-        #         #  +----------------------+-------+--------------+-------+------+----------------+-----+
-        #         #  | conv2d_1[0][0][0][0] | 0     | [0][0][0][0] | 0.45  | ?    | ?              |  0  |
-        #         #
-        #         # We'll add the rank and susceptibility later
-        #         subT = {'weight': str_weight_name, #
-        #                 'layer': str_ily, #
-        #                 'coord': str_coords, #
-        #                 'value': str_value, #
-        #                 'bit': bits, #
-        #                 'param_num': str_param_num, #
-        #                 'pruned': str_mask,
-        #                 'rank' : [0]*len(str_mask), #
-        #                 'susceptibility': suscept}
-        #         subT = pd.DataFrame(subT)
-
-        #         # Append to df
-        #         df.append(subT)
-
-        #     # break if we are using deltas as weights
-        #     if not use_delta_as_weight:
-        #         break
-
-        # # concat all dfs 
-        # df = pd.concat(df, axis = 0).reset_index()
-
-        # # Rank by susceptibility
-        # if not normalize_score:
-        #     df = df.sort_values(by=['bit','susceptibility'], ascending = [True, ascending])
-        #     df['rank'] = np.arange(len(df))
-        # else:
-        #     df = df.sort_values(by='susceptibility', ascending = ascending)
-        # df['rank'] = np.arange(len(df))
-
-        # # Finally, restore the weights of the model
-        # if use_delta_as_weight:
-        #     for w in model.model.weights:
-        #         kw = w.name
-        #         if kw in deltas:
-        #             w.assign(old_weights[kw])
-            
-        # self.df = df
-
-        # # Now, if let's see if we can load the previous bits
-        # any_bit_missing = False
-        # if try_to_load_previous_bits:
-        #     for i in range(num_bits):
-        #         if i != bit_value:
-        #             # Get parent path from out_dir
-        #             parent_dir = os.path.dirname(out_dir)
-        #             # Find other possible rankings in other folders at this level
-        #             fs = glob(os.path.join(parent_dir, '*', f'ranking_bit_{i}.csv'))
-
-        #             # If there are files, pick the latest one
-        #             if len(fs) > 0:
-        #                 fs = sorted(fs, key = lambda x: os.path.getmtime(x), reverse = True)
-        #                 fs = fs[0]
-        #                 if os.path.isfile(fs):
-        #                     try:
-        #                         df_bit = pd.read_csv(fs)
-        #                         df = pd.concat([df, df_bit], axis = 0)
-        #                         print(f'[INFO] - Loaded previous bit {i} from file {fs}')
-        #                     except Exception as e:
-        #                         print(f'[ERR] - Could not load previous bit {i} from file {fs}: {e}')
-        #                         any_bit_missing = True
-        #                 else:
-        #                     print(f'[WARN] - Could not find file {fs} to load bit {i}')
-        #                     any_bit_missing = True
-        #             else:
-        #                 print(f'[WARN] - Could not find any ranking file for bit {i} on directory {parent_dir}')
-        #                 any_bit_missing = True
-
-        # # completeness of this ranking only if no bits are missing
-        # self.complete_ranking = not any_bit_missing
-
-        # # Filename (this is only relevant for delta methods, cause we want to parallelize it)
-        # filename = 'ranking.csv'
-        # if bit_value is not None:
-        #     filename = f'ranking_bit_{bit_value}.csv'
-
-        # return df, filename
 
     # save to csv
     def save_to_csv(self, *args, **kwargs):
@@ -1637,69 +1371,13 @@ class HessianRanker(WeightRanker):
         df = self.extract_weight_table(model, X, Y, self.quantization, ascending = ascending, **kwargs)
 
         # Finally, sort by susceptibility 
-        df = df.sort_values(by=['bit','susceptibility'], ascending = [False, ascending])
+        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, ascending])
 
         # assign to self 
         self.df = df
 
         return df
 
-
-
-
-
-
-        # max_samples = 1000
-        # # Get X and Y
-        # if isinstance(XY, tf.data.Dataset) or isinstance(XY, tf.keras.preprocessing.image.DirectoryIterator):
-        #     # Convert to numpy
-        #     X, Y = None, None
-        #     exp_batch_size = len(next(iter(XY))[0])
-        #     exp_num_iters = int(np.ceil(max_samples/exp_batch_size))
-        #     exp_samples = 0
-        #     for x, y in tqdm(XY, total = np.minimum(exp_num_iters,len(XY)), desc = 'Converting tf.data.Dataset to numpy'):
-        #         # get exp batch size
-        #         exp_samples += len(x)
-        #         # Concatenate 
-        #         if X is None or y is None:
-        #             X = x
-        #             Y = y
-        #         else:
-        #             X = np.concatenate((X, x), axis = 0)
-        #             Y = np.concatenate((Y, y), axis = 0)
-                
-        #         if exp_samples >= max_samples:
-        #             break
-            
-        #     # Get only a part 
-        #     X = X[:max_samples]
-        #     Y = Y[:max_samples]
-        # elif isinstance(XY, tuple):
-        #     X, Y = XY
-        # elif isinstance(XY, np.ndarray):
-        #     X = XY
-        #     if len(args) > 0:
-        #         Y = args[0]
-        # else:
-        #     raise ValueError(f'XY must be either a tuple (X,Y) or a tf.data.Dataset, but got {type(XY)}')     
-        
-        # # Call super method to obtain DF 
-        # df = self.extract_weight_table(model, X, Y, self.quantization, inner_ranking_method = inner_ranking_method, **kwargs)
-
-        # # Sort by susceptibility now (only changes stuff if inner_ranking_method is hierarchical)
-        # if inner_ranking_method == 'msb':
-        #     df = df.sort_values(by=['bit','susceptibility'], ascending = [True, ascending])
-        # else:
-        #     df = df.sort_values(by='susceptibility', ascending = ascending)
-
-        # # Re rank (if inner_ranking_method == same this does nothing)
-        # df['rank'] = np.arange(len(df))
-        
-        # # assign to self 
-        # self.df = df
-
-        # return df
-    
     # save to csv
     def save_to_csv(self, *args, **kwargs):
         self._save_to_csv(self.df, *args, **kwargs)
@@ -1793,7 +1471,7 @@ class AIBerWeightRanker(WeightRanker):
         df = self.extract_weight_table(model, X, Y, self.quantization, ascending = ascending, **kwargs)
 
         # Finally, sort by susceptibility 
-        df = df.sort_values(by=['susceptibility','bit'], ascending = [ascending,False])
+        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, ascending])
 
         # assign to self 
         self.df = df
@@ -2002,169 +1680,7 @@ class QPolarWeightRanker(WeightRanker):
 
         """ For now, just sort by abs value """
         df['susceptibility'] = np.abs(df['impact'])
-        df = df.sort_values(by=['susceptibility','bit'], ascending = [False, True])
-
-        """ Initialize ModelVulnerability for this model """
-        # model_vul = netsurf.dnn.qpolar.ModelVulnerability(model)
-
-        # """ Now compute the vulnerability to X (optional, pass Y)"""
-        # vulner_to_X = model_vul.to(X, Y = Y)
-
-
-        # """ First, we need to compute the impact of each parameter. 
-        #         This impact (P) is defined as:
-        #             P(w) = delta * X
-        #             P(b) = delta
-        #         We will compute these impacts per output.
-
-        #         Because we need the activations, we also need to get the activation at each layer (right before every param, basically)
-        # """
-        # # 1) Build the activation model to get the inner activations (X)
-        # activation_model = netsurf.QModel(quantization, model.in_shape, model.out_shape, 
-        #                                 ip = model.input, out = model._activations)
-        
-        # # Get the activations
-        # act_values = activation_model(X, training = True)
-        # # Make sure that we assign the right name to each activation (the name of the output layer)
-        # # Remember that if we say "activation at fc0/kernel:0" we actually mean the activation right before the kernel of fc0
-        # # So we need to get the name of the output layer for each activation
-        
-        # inputs = {}
-        # outputs = {}
-        # # Loop thru layers
-        # for i, ly in enumerate(model.layers):
-        #     # Get the name of this layer
-        #     lname = ly.name
-            
-        #     # If this is the input layer (i==0) then simply add X to the activations
-        #     if i == 0 and 'input' in lname and ly.input.name == ly.name:
-        #             # always assign this to outputs
-        #         outputs[lname] = X
-        #         continue
-
-        #     # Get the equivalent output at activation_model for this lname
-        #     if lname in activation_model.output_names:
-        #         # Get the index of this layer in the activation model
-        #         j = activation_model.output_names.index(lname)
-                
-        #         # assign the output always
-        #         outputs[lname] = act_values[j]
-
-        #     # On the other hand, let's see if we can find the input of this layer
-
-        #     # If not, then let's see what the input of this layer is 
-        #     # Get the input tensor
-        #     input_tensor = ly.input.name
-
-        #     # Check if this tensor is in activations
-        #     if input_tensor in outputs:
-        #         # Store
-        #         inputs[lname] = outputs[input_tensor]
-            
-        # for i, a in enumerate(act_values):
-        #     # Get 
-        #     activations[activation_model.output_names[i]] = a
-        
-        # # 2) Get the deltas for the parameters of our model 
-        # _deltas = model.deltas
-        # # Convert the deltas to a dict with the name of the variable they are representing
-        # deltas = {}
-        # for i, v in enumerate(model.trainable_variables):
-        #     deltas[v.name] = _deltas[i]
-
-        # # 3) Now that we have these inputs and the deltas, we can compute the impact for each param.
-        # impacts = {}
-        # for vname, delta in deltas.items():
-        #     # Get the variable
-        #     v = model.get_variable(vname)
-
-        #     # Get the layer name
-        #     lname = vname.split('/')[0]
-        #     tname = vname.split('/')[1].split(':')[0]
-
-        #     # Get the activation for this layer
-        #     act = activations[lname]
-
-        #     # Parse the type of this variable
-        #     if 'bias' in tname:
-        #         # Compute impact
-        #         impact = delta
-        #     elif 'kernel' in tname:
-        #         # Impact
-        #         impact = np.concatenate([np.array((act[...,None] * delta[:,j]))[:,None,...] for j in range(self.output_dim)], axis = 1)
-
-        #     # Compute impact
-        #     if len(v.shape) == 1:
-        #         impact = delta
-        #     else:
-        #         impact = delta*act
-
-        #     # Store the impact
-        #     impacts[vname] = impact
-
-
-
-        
-        # # Clone our model so we don't mess with the original one
-        # delta_model = model.clone()
-
-        # # Make sure we compile
-        # delta_model.compile(loss = delta_model.loss, optimizer = delta_model.optimizer, metrics = delta_model.metrics)
-
-        # # If use_delta_as_weight, then replace the weights with the deltas for the current bit
-        # if use_delta_as_weight:    
-        #     deltas = delta_model.deltas
-
-        #     # Replace 
-        #     for iv, v in enumerate(delta_model.trainable_variables):
-        #         vname = v.name
-        #         assert deltas[iv].shape[:-1] == v.shape, f'Error at {iv} {vname} {deltas[iv].shape[:-1]} != {v.shape}'
-
-        #         # Replace the weights with the deltas (if use_delta_as_weight)
-        #         v.assign(deltas[iv][...,ibit])
-
-        # # Now let's get the gradients for all trainable variables
-        # # We will use the activation model to get the output for every layer 
-        # with tf.GradientTape(persistent = True) as tape:
-        #     # Forward pass
-        #     predictions = delta_model(X, training=True)
-            
-        #     # Calculate loss
-        #     loss = delta_model.loss(Y, predictions)
-            
-        #     # Add regularization losses if any
-        #     if delta_model.losses:
-        #         loss += tf.math.add_n(delta_model.losses)
-
-        # # Get gradients
-        # gradients = tape.gradient(loss, delta_model.trainable_variables)
-
-        # # Apply transformations required
-        # if times_weights:
-        #     # Multiply gradients times variables 
-        #     gradients = [g*v for g,v in zip(gradients, delta_model.trainable_variables)]
-
-        # if absolute_value:
-        #     gradients = [tf.math.abs(g) for g in gradients]
-
-        # if normalize_score:
-        #     # Normalize by range per variable (max-min) minus min
-        #     gradients = [(g-tf.math.reduce_min(g))/(tf.math.reduce_max(g)-tf.math.reduce_min(g)) for g in gradients]
-
-        # # Now build the table for pandas
-        # for iv, g in enumerate(gradients):
-        #     vname = delta_model.trainable_variables[iv].name
-        #     # Find the places in DF tht match this variable's name 
-        #     # and set the susceptibility to the gradient value for this bit 
-        #     idx = df[(df['param'] == vname) & (df['bit'] == bit)].index
-        #     df.loc[idx,'susceptibility'] = g.numpy().flatten()
-            
-        #     # if not use_weight_as_delta, repeat this for all bits 
-        #     if not use_delta_as_weight:
-        #         for i in np.arange(quantization.n + quantization.s - 1, -quantization.f-1, -1):
-        #             if i != bit:
-        #                 idx = df[(df['param'] == vname) & (df['bit'] == i)].index
-        #                 df.loc[idx,'susceptibility'] = g.numpy().flatten()
+        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, ascending])
 
         # Store in place and return 
         self.df = df
@@ -2180,7 +1696,7 @@ class QPolarWeightRanker(WeightRanker):
         df = self.extract_weight_table(model, X, Y, self.quantization, ascending = ascending, **kwargs)
 
         # Finally, sort by susceptibility 
-        df = df.sort_values(by=['bit','susceptibility'], ascending = [False, ascending])
+        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, ascending])
 
         # assign to self 
         self.df = df
@@ -2188,7 +1704,7 @@ class QPolarWeightRanker(WeightRanker):
         return df
 
     def plot_ranking(self):
-        import matplotlib.pyplot as plt 
+        
         # Plot indexes in ranking
         fig, axs = plt.subplots(6, 1, figsize=(13, 13))
 
@@ -2285,6 +1801,7 @@ class QPolarGradWeightRanker(QPolarWeightRanker, GradRanker):
 ####################################################################################################################
 #
 # ORACLE RANKING (WORK IN PROGRESS...)
+# THIS IS BROKEN FOR NOW
 #
 ####################################################################################################################
 

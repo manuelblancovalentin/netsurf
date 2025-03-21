@@ -2,17 +2,17 @@
 from typing import Type
 
 # Modules 
-import re 
+#import re 
 import numpy as np
-import copy
+#import copy
 
 from tensorflow import keras
-from keras import backend as K # To get intermediate activations between layers
+#from keras import backend as K # To get intermediate activations between layers
 
 """ Qkeras """
-import qkeras 
-from tensorflow_model_optimization.sparsity.keras import strip_pruning
-from tensorflow_model_optimization.python.core.sparsity.keras import pruning_wrapper
+#import qkeras 
+#from tensorflow_model_optimization.sparsity.keras import strip_pruning
+#from tensorflow_model_optimization.python.core.sparsity.keras import pruning_wrapper
 
 """ Pandas """
 import pandas as pd
@@ -251,6 +251,8 @@ class ErrorInjector:
         """
         # Compute the delta for each variable
         variables = model.trainable_variables
+        # Get variable names (all, for pruned masks)
+        vnames = [v.name for v in model.variables]
 
         # Get the mapper from name to index (to speedup forward pass later)
         w_idx_mapper = {v.name: iv for iv, v in enumerate(self.model.trainable_variables)}
@@ -276,8 +278,16 @@ class ErrorInjector:
 
             # Get the susceptibility matrix for this variable
             # this is, the matrix of which bits can be flipped 
-            # for instance, pruned weights cannot be flipped. 
-            susceptibility = (var != 0) # IMPORTANT, NOTE THAT WE HAVE TO USE var HERE and NOT VAR_Q, BECAUSE THE QUANTIZATION CAN BE INDEED 0 EVEN FOR NON-PRUNED WEIGHTS.
+            # for instance, pruned weights cannot be flipped.
+            # try to get the pruned mask for this variable
+            pruned_vname = var.name.replace(':', '_prune_mask:')
+            if pruned_vname in vnames:
+                var_pruned = model.variables[vnames.index(pruned_vname)]
+                # Get the susceptibility matrix
+                susceptibility = (var_pruned != 0)
+            else:
+                # fallback to checking the value itself
+                susceptibility = (var != 0) # IMPORTANT, NOTE THAT WE HAVE TO USE var HERE and NOT VAR_Q, BECAUSE THE QUANTIZATION CAN BE INDEED 0 EVEN FOR NON-PRUNED WEIGHTS.
 
             # Add to structure 
             deltas[var.name] = delta
@@ -464,370 +474,7 @@ class ErrorInjector:
             else:
                 y = self.model.attack(X, N = attack, clamp = True, **kwargs)
         
-        
-        
-        # self.model.attack(X, N = attack)
-        
-        
-        
-        # S = {}
-        # if attack is not None:
-        #     # Loop thru all the variables
-        #     for vname in attack.N:
-        #         # Get the index of the variable
-        #         w_idx = self.w_idx_mapper[vname]
-        #         # Get the weight
-        #         w = self.delta_model.trainable_weights[w_idx]
-        #         # Get the delta for this attack from the model 
-        #         delta = self.deltas[vname]
-        #         # Apply the attack to this layer 
-        #         S[vname] = (attack.N[vname] * delta).sum(-1)
-        #         # Add the delta
-        #         w.assign(w + S[vname])
-        
-        # # Do the forward pass
-        # # Chck if X is a image generator
-        # if isinstance(X, keras.preprocessing.image.DirectoryIterator):
-        #     num_samples = np.minimum(2,len(X))
-        #     # Loop thru batches
-        #     y = []
-        #     for i in range(num_samples):
-        #         Xb, Yb = X.next()
-        #         yb = self.delta_model.predict(Xb, **kwargs)
-        #         y.append(yb)
-        #     # Turn into numpy array
-        #     y = np.concatenate(y, axis = 0)
-        # else:
-        #     y = self.delta_model.predict(X, **kwargs)
-
-        # # Undo the attack
-        # if attack is not None:
-        #     for vname in attack.N:
-        #         # Get the index of the variable
-        #         w_idx = self.w_idx_mapper[vname]
-        #         # Get the weight
-        #         w = self.delta_model.trainable_weights[w_idx]
-        #         # Get the delta for this attack from the model 
-        #         delta = self.deltas[vname]
-        #         # Apply the attack to this layer 
-        #         w.assign(w - S[vname])
-    
         return y
             
-
-
-    # def _OLD_compute_masks(self, verbose = True):
-    #     """ Compute the masks for the error injection """
-    #     """
-    #         1) COMPUTATION OF THE DELTA TO BE ADDED TO EACH WEIGHT, ACCORDING TO THEIR INDIVIDUAL BIT VALUE (0 or 1)
-    #     """
-    #     # Build array with delta per bit (0->1 vs 1->0)
-    #     num_bits = self.quantization.m
-
-    #     # Get df from ranker 
-    #     df = self.ranker.df
-
-    #     """
-    #         2) COMPUTATION OF THE DELTA TO BE ADDED TO EACH WEIGHT, ACCORDING TO THEIR INDIVIDUAL BIT VALUE (0 or 1)
-    #     """
-
-    #     # Get supported weights and pruned masks 
-    #     results = netsurf.models.get_supported_weights(self.model.model, numpy = False, pruned = True, verbose = False)
-    #     supported_weights, supported_pruned_masks, supported_layers, weights_param_num = results
-        
-    #     if verbose:
-    #         print(f'[INFO] - Found a total of {len(supported_weights)} supported weights: {", ".join(list(supported_weights.keys()))}')
-
-    #     # Get layer index per layer in supported_layers
-    #     supported_layers_idxs = {lname: self.model.model.layers.index(supported_layers[lname]) for lname in supported_layers}
-
-    #     # Get deltas per weight
-    #     deltas = {kw: netsurf.models.get_deltas(kv, num_bits = num_bits) for kw, kv in supported_weights.items()}
-    #     is_bit_one = {kw: deltas[kw][1] for kw in supported_weights}
-    #     deltas = {kw: deltas[kw][0] for kw in supported_weights}
-
-    #     # Build the susceptibility matrix based on PRUNED bits for each layer 
-    #     is_susceptible = {kw: np.ones_like(deltas[kw]) for kw in supported_weights}
-    #     for kw, w in supported_weights.items():
-    #         # Get mask 
-    #         msk = supported_pruned_masks[kw]
-
-    #         if msk is not None:
-    #             msk = np.reshape(msk, w.shape)
-    #             # Remember to add the extra dimension for the bits
-    #             msk = np.tile(msk[...,None], num_bits)
-    #             is_susceptible[kw] = 1-msk
-
-
-    #     """
-    #         COMPUTATION OF THE MASK THAT TELLS US WHICH WEIGHTS ARE SUSCEPTIBLE TO BIT FLIPS AND WHICH ARE NOT
-    #     """
-
-    #     # On top of the weights that have been pruned, we need to mark as NOT-SUSCEPTIBLE, the ones that will be triplicated
-    #     # following the protection range. 
-
-    #     # First, get the number of AVAILABLE WEIGHTS (not pruned). Consider from now on that the pruned weights don't exist.
-    #     unpruned_df = df[df['pruned'] == False]
-    #     total_num_unpruned_bits = len(unpruned_df)
-
-    #     # Pre convert coords into tuples for easy access 
-    #     unpruned_df.loc[:,'tuple_coord'] = unpruned_df.apply(lambda x: tuple([int(g) for g in re.findall('\[(\d+)\]', x.coord)]) + (x.bit,), axis = 1)
-
-    #     # Init previous affected masks (so we don't have to compute them every time, cause the protection is increasing)
-    #     susceptibility_masks = {0.0: copy.deepcopy(is_susceptible)}
-    #     susceptible_indices = {0.0: {kw: np.where(is_susceptible[kw].flatten() == 1)[0] for kw in is_susceptible}}
-    #     last_protection = 0.0
-
-    #     for protection in self.protection_range:
-    #         if protection > 0:
-    #             num_bits_triplicated_so_far = np.floor(total_num_unpruned_bits*last_protection).astype(int)
-    #             num_bits_to_triplicate = np.floor(total_num_unpruned_bits*protection).astype(int)
-
-    #             # Get only the first "weights_to_triplicate" weights from the ranked list 
-    #             bits_to_triplicate = unpruned_df[num_bits_triplicated_so_far:num_bits_to_triplicate]
-
-    #             # Group by layer and loop thru them 
-    #             flat_indices = {}
-    #             for ilayer, layer_df in bits_to_triplicate.groupby('layer'):
-    #                 # Replace name with actual object name 
-    #                 row_name = layer_df.iloc[0]['weight']
-    #                 w_name = row_name.split('[')[0].replace('prune_low_magnitude_', '') + '/kernel:0'
-    #                 w_name_prune = 'prune_low_magnitude_' + w_name   
-
-    #                 # Get coords
-    #                 cs = layer_df['tuple_coord'].to_numpy()
-                    
-    #                 var_name = None
-    #                 if w_name in is_susceptible:
-    #                     var_name = w_name
-    #                     for c in cs:
-    #                         is_susceptible[w_name][c] = 0.0
-
-    #                 elif w_name_prune in is_susceptible:
-    #                     var_name = w_name_prune
-    #                     for c in cs:
-    #                         is_susceptible[w_name_prune][c] = 0.0
-                    
-    #                 # 
-    #                 flat_indices[var_name] = np.where(is_susceptible[var_name].flatten() == 1.0)[0]
-
-    #             # Update susceptible_indices
-    #             susceptible_indices[protection] = flat_indices
-
-    #             # Update susceptibility masks
-    #             susceptibility_masks[protection] = copy.deepcopy(is_susceptible)
-
-    #             # Update last protection
-    #             last_protection = protection
-
-    #     # Now we can get the number of bits that are susceptible to bit flips
-    #     num_bits_susceptible_per_var = {kw: {var_name: susceptibility_masks[kw][var_name].sum() for var_name in susceptible_indices[kw]} \
-    #         for kw in susceptible_indices}
-    #     num_bits_susceptible = {kw: np.sum([len(susceptible_indices[kw][var_name]) for var_name in susceptible_indices[kw]]) \
-    #         for kw in susceptible_indices}
-
-    #     """ Now that we have the susceptible weights per protection level and variable, we can compute the number of 
-    #         ACTUAL bits we will be flipping (which depends on the ber rate) 
-    #     """
-    #     # Get the number of unpruned bits per variable
-    #     num_unpruned_bits_per_var = {kw: np.sum(1-supported_pruned_masks[kw]) for kw in susceptible_indices[0.0] if 'bias' not in kw}
-    #     total_num_unpruned_bits = np.sum(list(num_unpruned_bits_per_var.values()))
-        
-    #     num_bits_to_flip_per_var = {}
-    #     num_bits_to_flip_per_case = {}
-    #     true_ber_rates = {}
-    #     for protection in self.protection_range:
-    #         num_bits_to_flip_per_var[protection] = {}
-    #         num_bits_to_flip_per_case[protection] = {}
-    #         true_ber_rates[protection] = {}
-    #         for ber in self.ber_range:
-    #             num_bits_to_flip_per_var[protection][ber] = {}
-    #             num_bits_to_flip_per_case[protection][ber] = 0
-    #             M = 1
-    #             for var_name in susceptible_indices[protection]:
-    #                 if 'bias' not in var_name:
-    #                     K = np.maximum(M, np.round(num_unpruned_bits_per_var[var_name]*ber).astype(int))
-    #                     num_bits_to_flip_per_var[protection][ber][var_name] = K
-    #                     num_bits_to_flip_per_case[protection][ber] += K
-    #                     if K > 0:
-    #                         M = 0
-    #             true_ber_rates[protection][ber] = num_bits_to_flip_per_case[protection][ber]/total_num_unpruned_bits
-
-
-    #     """ Now set stuff into place for error injection """
-    #     self.susceptibility_masks = susceptibility_masks
-    #     self.susceptible_indices = susceptible_indices
-    #     self.true_ber_rates = true_ber_rates
-    #     self.num_bits_to_flip_per_var = num_bits_to_flip_per_var
-    #     self.num_bits_to_flip_per_case = num_bits_to_flip_per_case
-
-    #     self.num_bits_susceptible_per_var = num_bits_susceptible_per_var
-    #     self.num_bits_susceptible = num_bits_susceptible
-
-    #     self.num_unpruned_bits_per_var = num_unpruned_bits_per_var
-    #     self.total_num_unpruned_bits = total_num_unpruned_bits
-
-    #     self.is_susceptible = is_susceptible
-
-    #     # Set masks into place in structure
-    #     self._mask_deltas = deltas
-    #     self._mask_susceptibility = is_susceptible
-    #     self._supported_weights = supported_weights 
-    #     self._supported_pruned_masks = supported_pruned_masks 
-    #     self._supported_layers = supported_layers 
-    #     self._weights_param_num = weights_param_num
-
-
-    # """ Create noise and compile injected model (model with noise) - This is to speed up computation """
-    # def OLD_build_injection_models(self, num_reps, verbose = True, **kwargs):
-        
-    #     # Get name of the weights in the model
-    #     w_model = [w.name for w in self.model.model.trainable_weights]
-    #     # Get the indexes of each variable in susceptible_indices in w_model for easy access later 
-    #     w_idx_mapper = {w_name: w_model.index(w_name) for w_name in self.susceptible_indices[0.0] if w_name in w_model}
-
-    #     """ First of all, let's create a number of NUM_REPS deltas for each protection level and ber rate """
-    #     deltas = {}
-    #     selectors = []
-    #     for iprotection, protection in enumerate(self.protection_range):
-    #         deltas[protection] = {}
-    #         for iber, ber in enumerate(self.ber_range):
-    #             deltas[protection][ber] = [{var_name: np.zeros_like(self._mask_deltas[var_name][...,0]) \
-    #                     for var_name in self.susceptible_indices[protection]} \
-    #                         for _ in range(num_reps)]
-    #             # Append case to selector
-    #             selectors += [{'protection': protection, 'protection_idx': iprotection,
-    #                             'ber': ber, 'ber_idx': iber, 
-    #                             'rep': rep} for rep in range(num_reps)]
-    #             # Get indices for susceptible bits
-    #             for var_name in self.susceptible_indices[protection]:
-    #                 if 'bias' not in var_name:
-    #                     # Get affected indices
-    #                     affected_idxs = self.susceptible_indices[protection][var_name]
-    #                     # Get number of bits to flip
-    #                     num_bits_to_flip = self.num_bits_to_flip_per_var[protection][ber][var_name]
-    #                     # Get a random permutation
-    #                     random_idxs = np.random.permutation(affected_idxs)
-    #                     # # Get susceptibility mask (We don't need it, this info is implicit in affected_idxs)
-    #                     # S = self.susceptibility_masks[protection][var_name]
-    #                     # Get mask delta
-    #                     D = self._mask_deltas[var_name]
-    #                     # Loop thru reps
-    #                     for rep in range(num_reps):
-    #                         # Get subset of random indexes
-    #                         tmp_idxs = random_idxs[(num_bits_to_flip*rep):(num_bits_to_flip*(rep+1))]
-    #                         # Create flatten noise vector
-    #                         affected_flat = np.zeros(np.prod(D.shape))
-    #                         # Set affected bits to 1
-    #                         affected_flat[tmp_idxs] = 1
-    #                         # Unravel to original shape
-    #                         affected = np.reshape(affected_flat, D.shape)
-    #                         # Get total delta
-    #                         delta_tmp = (D*affected).sum(axis=-1)
-    #                         # Set in place
-    #                         deltas[protection][ber][rep][var_name] = delta_tmp
-
-    #     """ Let's clone our original model before modifying the weights """
-    #     # Duplicate the original model
-    #     co = {}
-    #     qkeras.utils._add_supported_quantized_objects(co)
-    #     co['PruneLowMagnitude'] = pruning_wrapper.PruneLowMagnitude
-
-    #     delta_model = qkeras.utils.clone_model(self.model.model, custom_objects=co)
-    #     delta_model = strip_pruning(delta_model)
-
-    #     """ Recompile model after changing weights """
-    #     delta_model.compile(loss = self.model.loss, 
-    #             optimizer=self.model.optimizer, 
-    #             metrics=self.model.metrics)
-        
-    #     # Do the same for the activation model 
-    #     activation_model = qkeras.utils.clone_model(self.model.activation_model, custom_objects=co)
-    #     activation_model = strip_pruning(activation_model)
-
-    #     # Recompile 
-    #     activation_model.compile(loss = self.model.loss,
-    #             optimizer=self.model.optimizer, 
-    #             metrics=self.model.metrics)
-
-    #     """ Set everything into place """
-    #     self.activation_model = activation_model
-
-
-    #     self.delta_model = delta_model
-    #     self.deltas = deltas
-    #     self.w_idx_mapper = w_idx_mapper
-
-    #     # Now, to facilitate everything, let's create some wrapper functions that we can pass to the user, so they can 
-    #     # call "forward_with_inject" like an iterator, without having to think about selecting each case and protection level
-    #     return selectors
-    
-
-    # """ Inject random bit flips during forward pass """
-    # def forward_with_inject(self, X, Y = None, verbose = True, protection = 0.0, ber = None, rep = 0, 
-    #                         protection_idx = None, ber_idx = None, 
-    #                         metric_fcns = {},
-    #                         **kwargs):
-
-    #     """ Init activations (ground truth), deltas (noise), and altered_activations """     
-    #     # Last activation is output
-    #     #y_gt = self.model.model(X).numpy())
-
-    #     # Assert ber is not None
-    #     if ber is None:
-    #         raise ValueError('BER rate must be provided')
-
-    #     # Select the delta 
-    #     delta = self.deltas[protection][ber][rep]
-
-    #     # Change weights in cloned model 
-    #     for var_name in delta:
-    #         # Get weight index
-    #         w_idx = self.w_idx_mapper[var_name]
-    #         # Get weight
-    #         w = self.delta_model.trainable_weights[w_idx]
-    #         # Add delta
-    #         w.assign(w + delta[var_name])
-    
-    #     # Chck if X is a image generator
-    #     if isinstance(X, keras.preprocessing.image.DirectoryIterator):
-    #         num_samples = np.minimum(2,len(X))
-    #         # Loop thru batches
-    #         y = []
-    #         for i in range(num_samples):
-    #             Xb, Yb = X.next()
-    #             yb = self.delta_model.predict(Xb, verbose = verbose, **kwargs)
-    #             y.append(yb)
-    #         # Turn into numpy array
-    #         y = np.concatenate(y, axis = 0)
-    #     else:
-    #         y = self.delta_model.predict(X, verbose = verbose, **kwargs)
-
-    #     # Undo changes in cloned model
-    #     for var_name in delta:
-    #         # Get weight index
-    #         w_idx = self.w_idx_mapper[var_name]
-    #         # Get weight
-    #         w = self.delta_model.trainable_weights[w_idx]
-    #         # Add delta
-    #         w.assign(w - delta[var_name])
-
-    #     # If this is a regression problem, compute r2 as "accuracy"
-    #     if Y.ndim == 1:
-    #         if y.ndim > 1:
-    #             if self.model.type == 'classification':
-    #                 y = np.argmax(y, axis = 1)
-    #             elif self.model.type == 'regression':
-    #                 y = y.flatten()
-        
-    #     metrics = self.evaluate_metrics(Y, y, metric_fcns)
-
-    #     # Calculate actual radiation
-    #     #tot_flipped = np.sum([np.sum(self.affected_per_var[kw]) for kw in self.affected_per_var if 'kernel' in kw])
-    #     #tot_w = np.sum([self.num_affected_bits[kw] for ikw, kw in enumerate(self.num_affected_bits) if 'kernel' in kw])
-    #     #actual_radiation = tot_flipped/tot_w
-    #     actual_radiation = self.true_ber_rates[protection][ber]
-
-    #     return y, metrics, actual_radiation
 
 

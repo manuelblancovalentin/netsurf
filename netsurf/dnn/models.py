@@ -39,7 +39,7 @@ from .layers import _QQLayer, QQDense, QQConv1D, QQConv2D, QQDepthwiseConv2D, QQ
                     QQActivation, QQSoftmax, \
                     QQBatchNormalization, \
                     QQFlatten, QQDropout, QQReshape, \
-                    QQLSTM, QQApplyAlpha
+                    QQLSTM, QQApplyAlpha, PrunableLayer
 
 
 """ Basic neural network """
@@ -1488,7 +1488,7 @@ def get_custom_objects(quantization_scheme, wrap = None):
     _add_supported_quantized_objects(custom_objects)
 
     # Add pruning wrapper support if you're using pruning.
-    custom_objects['PruneLowMagnitude'] = pruning_wrapper.PruneLowMagnitude
+    #custom_objects['PruneLowMagnitude'] = pruning_wrapper.PruneLowMagnitude
 
     # Register your custom model class.
     custom_objects['QModel'] = QModel
@@ -1500,6 +1500,9 @@ def get_custom_objects(quantization_scheme, wrap = None):
     # Register the base QQLayer.
     custom_objects['QQLayer'] = _QQLayer
     custom_objects['_QQLayer'] = _QQLayer
+
+    # Also the prunablelayer
+    custom_objects['PrunableLayer'] = PrunableLayer
 
     # All the rest 
     for name, layer_cls in netsurf.QQLAYERS.items():

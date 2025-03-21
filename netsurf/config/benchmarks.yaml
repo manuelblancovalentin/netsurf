@@ -46,6 +46,10 @@ mnist_fnn:
       epochs: 40
       optimizer_params:
         learning_rate: 0.001
+      pruning_params:
+        final_sparsity: 0.5
+        step: 2
+        end_epoch: 40
 
 
 mnist_lenet5:
@@ -84,22 +88,20 @@ ECONT_AE:
 autompg:
   dataset: autompg
   model: FNN
-  loss: mean_absolute_error
+  loss: mean_squared_error
   type: regression
   optimizer: adam
   model_params:
-    alpha_reg_loss : 2.0
+    alpha_reg_loss : 10.0
   metrics:
     - mean_absolute_error
     - R2Score
     - PearsonCorrelation
   sessions:
     - batch_size: 32
-      epochs: 300
+      epochs: 800
       optimizer_params:
         learning_rate: 0.001
-      callbacks:
-        print: 
 
 smartpixel_small:
   dataset: SmartPixel

@@ -133,7 +133,7 @@ class CustomPrinter(tf.keras.callbacks.Callback):
         netsurf.utils.log._custom('MDL',f'Epoch {epoch} - {logs}')
 
 
-def parse_callbacks(cbacks: dict, prune: Union[float] = 0.0):
+def parse_callbacks(model, cbacks: dict, pruning_params: dict = {}):
     # Loop thru cbacks
     callbacks = []
     for cback in cbacks:
@@ -152,8 +152,8 @@ def parse_callbacks(cbacks: dict, prune: Union[float] = 0.0):
         else:
             raise ValueError(f'Callback {cback} not recognized.')
         
-    if prune > 0.0:
-        callbacks.append(netsurf.dnn.callbacks.pruning_callbacks.UpdatePruningStep())
+    if len(pruning_params) > 0:
+        callbacks.append(PruningScheduler(model, **pruning_params))
     
     return callbacks
 
@@ -215,19 +215,19 @@ class AlphaBetaTracker(tf.keras.callbacks.Callback):
 
 """ Scheduler for pruning """
 class PruningScheduler(tf.keras.callbacks.Callback):
-    def __init__(self, model, final_sparsity=0.5, begin_epoch=2, end_epoch=10):
+    def __init__(self, model, final_sparsity=0.5, begin_epoch=2, step = 1, end_epoch=10):
         super().__init__()
         self.model = model
         self.final_sparsity = final_sparsity
         self.begin_epoch = begin_epoch
         self.end_epoch = end_epoch
+        self.step = step
 
     def on_epoch_begin(self, epoch, logs=None):
-        if self.begin_epoch <= epoch <= self.end_epoch:
+        if (self.begin_epoch <= epoch <= self.end_epoch) and ((epoch - self.begin_epoch) % self.step == 0):
             progress = (epoch - self.begin_epoch) / (self.end_epoch - self.begin_epoch)
             current_sparsity = progress * self.final_sparsity
-            print(f"[INFO] - Applying pruning at {current_sparsity:.2%} sparsity")
-            
+            netsurf.utils.log._custom('MDL', f"Applying pruning at {current_sparsity:.2%} sparsity")
             # Apply pruning only to PrunableLayer subclasses
             for layer in self.model.layers:
                 if isinstance(layer, PrunableLayer):

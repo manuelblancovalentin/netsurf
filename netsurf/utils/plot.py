@@ -886,12 +886,15 @@ def plot_sparsity(model, filepath = None, show = True, separated = False, verbos
                   bins = None, xlabel = "Values", ylabel = "Frequency", **kwargs):
 
     # Get the variables 
-    variables = model.variables
+    variables = model.trainable_variables
 
     # Now let's clean up this list by removing some that we don't want to plot
     # because pruning only applies to weight layers, basically let's only keep
     # stuff that has either "kernel" or "bias" in its name
-    variables = [v for v in variables if 'kernel' in v.name or 'bias' in v.name]
+    variables = [v for v in variables if 'kernel' in v.name or 'bias' in v.name 
+                 or 'alpha' in v.name or 'gamma' in v.name or 'beta' in v.name]
+
+    var_names = [v.name for v in model.variables]
 
     # First, compute the range of all variables
     # instead of using max and min, use +- 3 stds
@@ -938,26 +941,42 @@ def plot_sparsity(model, filepath = None, show = True, separated = False, verbos
     for iv, ii in enumerate(order):
         # Get the variable
         v = variables[ii]
+        
+        # get vname
+        vname = v.name
+
+        # Check if we have the pruning mask for this variable in var_names
+        mask_name = vname.replace(':','_prune_mask:')
+
+        if mask_name in var_names:
+            mask = model.variables[var_names.index(mask_name)]
+            v = tf.boolean_mask(v, mask)
+            zeros = tf.reduce_sum(tf.cast(tf.equal(mask, 0), tf.int32))
+            sparsity = zeros/tf.size(mask)
+        else:
+            # Keep track of how many zeros we have in this variable
+            zeros = tf.reduce_sum(tf.cast(tf.equal(v, 0), tf.int32))
+            # Compute the sparsity
+            sparsity = zeros/tf.size(v)
+        v = tf.reshape(v, [-1])
+        
         # Compute the histogram
-        counts = tf.histogram_fixed_width(tf.reshape(v, -1), [min_range, max_range], nbins = bins)
-        # Keep track of how many zeros we have in this variable
-        zeros = tf.reduce_sum(tf.cast(tf.equal(v, 0), tf.int32))
-        # Compute the sparsity
-        sparsity = zeros/tf.size(v)
+        counts = tf.histogram_fixed_width(v, [min_range, max_range], nbins = bins)
+        
         # Print the sparsity
-        if verbose: netsurf.utils.log._custom('PLOT', f"Variable {v.name} has sparsity {sparsity:3.2%}")
+        if verbose: netsurf.utils.log._custom('PLOT', f"Variable {vname} has sparsity {sparsity:3.2%}")
 
         # Get the axs where we should plot this 
         if separated:
-            ax = axs[groups.index(v.name.split("/")[0])]
+            ax = axs[groups.index(vname.split("/")[0])]
         else:
             ax = axs[0]
 
         # Label
-        label = f"{v.name} ({sparsity:3.2%})"
+        label = f"{vname} ({sparsity:3.2%})"
 
         # Plot the histogram
-        ax.stairs(counts, edges, label = label, linewidth = 1, fill = True, color = colors[v.name], 
+        ax.stairs(counts, edges, label = label, linewidth = 1, fill = True, color = colors[vname], 
                 edgecolor='black', alpha = 0.7)
 
         if separated or iv == 0:

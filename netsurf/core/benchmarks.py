@@ -32,8 +32,8 @@ import netsurf
 
 """ Tensorflow (for pruning) """
 import tensorflow as  tf 
-import tensorflow_model_optimization as tfmot
-from tensorflow_model_optimization.sparsity import keras as sparsity
+#import tensorflow_model_optimization as tfmot
+#from tensorflow_model_optimization.sparsity import keras as sparsity
 
 """ Quantized models printing summary """
 from qkeras.autoqkeras.utils import print_qmodel_summary
@@ -306,7 +306,7 @@ class Benchmark:
 
         return bmk_ct
 
-    def init_tasks(self, quantization, build_dirs = True, load_weights = True, **kwargs):
+    def init_tasks(self, quantization, build_dirs = True, load_weights = True, pruning = None, **kwargs):
         
         # if 'model_params' in kwargs:
         model_params = kwargs.pop('model_params') if 'model_params' in kwargs else {}
@@ -318,10 +318,23 @@ class Benchmark:
         
         # Now set the model name
         self.model_name = self.model.create_model_name_by_architecture()
-        self.model_full_name = self.model_prefix + self.model_name
         # Extract pruning factor from model name 
-        self.pruning_factor, _ =  netsurf.utils.get_pruning_factor(self.model_full_name)
+        if pruning is not None:
+            if not isinstance(pruning, float):
+                pruning = None
+                netsurf.err('Pruning factor must be a float between 0.0 and 1.0, setting it to None')
+            elif pruning < 0.0 or pruning > 1.0:
+                pruning = None
+                netsurf.err('Pruning factor must be a float between 0.0 and 1.0, setting it to None')
+        
+        self.pruning_factor, _ =  netsurf.utils.get_pruning_factor(self.model_full_name) if pruning is None else (pruning,None)
         self.total_num_params = self.model.count_trainable_parameters() - self.model.count_pruned_parameters()
+        
+        # if pruning_factor > 0.0 add to model full name
+        if self.pruning_factor > 0.0:
+            self.model_prefix += f'pruned_{self.pruning_factor}_'
+
+        self.model_full_name = self.model_prefix + self.model_name
 
         # Let's set the model path 
         benchmark_dir = os.path.join(self.benchmarks_dir, self.name)
@@ -768,15 +781,7 @@ class Benchmark:
         alpha_tracker = netsurf.dnn.callbacks.AlphaBetaTracker()
         callbacks += [alpha_tracker]
 
-        # Add pruning callback
-        if prune:
-            # If pruning_sparsity is not 0.0, then we prune the model
-            pruning_sparsity = pruning_params['final_sparsity'] if 'final_sparsity' in pruning_params else 0.0
-            if pruning_sparsity > 0.0:
-                pruning_callback = netsurf.dnn.callbacks.PruningScheduler(model = self.model, **pruning_params, verbose = verbose)
-                # Append to callbacks list
-                callbacks += [pruning_callback]
-
+        
         """ Fit the model """
         start = time()
 
@@ -988,7 +993,7 @@ def get_benchmark(benchmark: str, quantization: 'QuantizationScheme', *args, **k
 
 
 """ Get training session (load or train) """
-def get_training_session(bmk, train_model = False, prune = 0.0, show_plots = False, plot = True):
+def get_training_session(bmk, train_model = False, pruning = None, show_plots = False, plot = True):
 
     # Assert dataset is loaded 
     bmk.assert_dataset_is_loaded()
@@ -1013,22 +1018,26 @@ def get_training_session(bmk, train_model = False, prune = 0.0, show_plots = Fal
             batch_size = sp['batch_size']
             epochs = sp['epochs']
             pruning_params = {}
-            if prune > 0.0:
-                pruning_params = sp['pruning_params']
-                pruning_params['final_sparsity'] = prune
+            if pruning:
+                if isinstance(pruning, float) and pruning > 0.0 and pruning <= 1.0:
+                    pruning_params = sp['pruning_params']
+                    pruning_params['final_sparsity'] = pruning
+            else:
+                if bmk.pruning_factor > 0.0:
+                    pruning_params = sp['pruning_params']
+                    pruning_params['final_sparsity'] = bmk.pruning_factor
 
-            
             # Print info 
             netsurf.utils.log._custom('MDL', f'Running session with batch_size = {batch_size}, epochs = {epochs}, opt_params = {opt_params}, pruning_params = {pruning_params}')
 
             # Parse callbacks 
-            callbacks = netsurf.dnn.callbacks.parse_callbacks(sp['callbacks'], prune = prune)
+            callbacks = netsurf.dnn.callbacks.parse_callbacks(bmk.model, sp['callbacks'], pruning_params = pruning_params)
 
             # Compile model 
-            bmk.compile(opt_params = opt_params, pruning_params = pruning_params, batch_size = batch_size)
+            bmk.compile(opt_params = opt_params, batch_size = batch_size)
 
             # Run fitting
-            sess, logs = bmk.fit(batch_size = batch_size, epochs = epochs, callbacks = callbacks, prune = prune) #callbacks=[pruning_callbacks.UpdatePruningStep()]
+            sess, logs = bmk.fit(batch_size = batch_size, epochs = epochs, callbacks = callbacks) #callbacks=[pruning_callbacks.UpdatePruningStep()]
 
             # Save session config and object
             sess.save()
@@ -1050,16 +1059,24 @@ def get_training_session(bmk, train_model = False, prune = 0.0, show_plots = Fal
             opt_params = sp['optimizer_params']
             batch_size = sp['batch_size']
             epochs = sp['epochs']
-            pruning_params = sp['pruning_params'] if prune else {}
+            pruning_params = {}
+            if pruning:
+                if isinstance(pruning, float) and pruning > 0.0 and pruning <= 1.0:
+                    pruning_params = sp['pruning_params']
+                    pruning_params['final_sparsity'] = pruning
+            else:
+                if bmk.pruning_factor > 0.0:
+                    pruning_params = sp['pruning_params']
+                    pruning_params['final_sparsity'] = bmk.pruning_factor
             
             # Print info 
             netsurf.utils.log._custom('MDL', f'Loading session with batch_size = {batch_size}, epochs = {epochs}, opt_params = {opt_params}, pruning_params = {pruning_params}')
 
             # Parse callbacks 
-            callbacks = netsurf.dnn.callbacks.parse_callbacks(sp['callbacks'], prune = prune)
+            callbacks = netsurf.dnn.callbacks.parse_callbacks(bmk.model, sp['callbacks'], pruning_params = pruning_params)
             
         # Compile model 
-        bmk.compile(opt_params = opt_params, pruning_params = pruning_params, batch_size = batch_size)
+        bmk.compile(opt_params = opt_params, batch_size = batch_size)
 
         # Get logs 
         logs = sess.logs
