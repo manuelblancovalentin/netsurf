@@ -150,12 +150,26 @@ class WeightRanker:
         
         # Fields and titles
         items = [('bit','Bit number', lambda x: x, 'green'), 
+                 ('value', 'Param Value', lambda x: x, 'orange'),
+                 ('binary', 'Num Ones (bin)', lambda x: [np.sum([int(i) for i in xx]) for xx in x] , 'blue'),
+                 ('pruned', 'Pruned', lambda x: 1.0*x, 'red'),
+                 ('variable_index', 'Variable Index (~Layer)', lambda x: x, 'black'),
                   ('susceptibility', 'Raw susceptibility', lambda x: x, 'purple'),
-                  ('susceptibility', 'Absolute |Susceptibility|', lambda x: np.abs(x), 'purple'),
-                    ('value', 'Param Value', lambda x: x, 'orange'),
-                    ('variable_index', 'Variable Index (~Layer)', lambda x: x, 'black'),
-                    ('pruned', 'Pruned', lambda x: 1.0*x, 'red'),
-                    ('binary', 'Num Ones (bin)', lambda x: np.sum([int(i) for i in x]) ), 'blue']
+                  ('susceptibility', 'Absolute |Susceptibility|', lambda x: np.abs(x), 'purple')]
+        # Make sure that binary is actually a binary string 
+        if not isinstance(self.df['binary'][0], str):
+            self.df['binary'] = ["".join([str(xx) for xx in x]) for x in (1.0*self.quantization.bin(self.quantization(self.df['value'].values))).astype(int)]
+        elif isinstance(self.df['binary'][0], str):
+            # But length is not correct
+            if len(self.df['binary'][0]) != self.quantization.m:
+                self.df['binary'] = ["".join([str(xx) for xx in x]) for x in (1.0*self.quantization.bin(self.quantization(self.df['value'].values))).astype(int)]
+        # if impact in ranking, add it too
+        if 'impact' in self.df.columns:
+            items.append(('impact', 'Impact', lambda x: x, 'brown'))
+        if 'gradient' in self.df.columns:
+            items.append(('gradient', 'Gradient', lambda x: x, 'brown'))
+        if 'hessian' in self.df.columns:
+            items.append(('hessian', 'Hessian', lambda x: x, 'brown'))
 
         # available fields are
         # df = {'param': [], 'global_param_num': [], 'variable_index': [], 'internal_param_num': [],
@@ -170,15 +184,15 @@ class WeightRanker:
                 axs = None
 
         # Plot indexes in ranking
-        show_me = axs is None & show
+        show_me = (axs is None) & show
         if axs is None:
             fig, axs = plt.subplots(num_axs, 1, figsize=(13, 13))
         else:
             fig = axs[0].figure
 
         # Plot bit number first 
-        for i, (field, title, transform) in enumerate(items):
-            netsurf.utils.plot.plot_avg_and_std(transform(self.df[field]), w, axs[i], shadecolor='green', ylabel=title)
+        for i, (field, title, transform, color) in enumerate(items):
+            netsurf.utils.plot.plot_avg_and_std(transform(self.df[field]), w, axs[i], shadecolor=color, ylabel=title)
 
         if show_me:
             plt.tight_layout()
@@ -612,7 +626,10 @@ class GradRanker(WeightRanker):
                     loss += tf.math.add_n(delta_model.losses)
 
             # Get gradients
-            gradients = tape.gradient(loss, delta_model.trainable_variables)
+            orig_gradients = tape.gradient(loss, delta_model.trainable_variables)
+
+            # Copy gradients over
+            gradients = [tf.identity(g) for g in orig_gradients]
 
             # Apply transformations required
             if times_weights:
@@ -627,12 +644,14 @@ class GradRanker(WeightRanker):
                 gradients = [(g-tf.math.reduce_min(g))/(tf.math.reduce_max(g)-tf.math.reduce_min(g)) for g in gradients]
 
             # Now build the table for pandas
-            for iv, g in enumerate(gradients):
+            for iv, (g, g0) in enumerate(zip(gradients, orig_gradients)):
                 vname = model.trainable_variables[iv].name
                 # Find the places in DF tht match this variable's name 
                 # and set the susceptibility to the gradient value for this bit 
                 idx = df[(df['param'] == vname) & (df['bit'] == bit)].index
                 df.loc[idx,'susceptibility'] = g.numpy().flatten()
+                # Set the original gradient also just in case 
+                df.loc[idx, 'gradients'] = g0.numpy().flatten()
                 
                 # if not use_weight_as_delta, repeat this for all bits 
                 if not use_delta_as_weight:
@@ -1702,22 +1721,6 @@ class QPolarWeightRanker(WeightRanker):
         self.df = df
 
         return df
-
-    def plot_ranking(self):
-        
-        # Plot indexes in ranking
-        fig, axs = plt.subplots(6, 1, figsize=(13, 13))
-
-        # Plot bit number first 
-        w = 300
-        netsurf.utils.plot.plot_avg_and_std(self.df['bit'], w, axs[0], shadecolor='green', ylabel='Bit number')
-        netsurf.utils.plot.plot_avg_and_std(self.df['impact'], w, axs[1], shadecolor='red', ylabel='Impact P')
-        netsurf.utils.plot.plot_avg_and_std(self.df['susceptibility'], w, axs[2], shadecolor='purple', ylabel='Abs (Impact P)')
-        netsurf.utils.plot.plot_avg_and_std(np.abs(self.df['susceptibility']), w, axs[3], shadecolor='purple', ylabel='Absolute |Impact P|')
-        netsurf.utils.plot.plot_avg_and_std(self.df['value'], w, axs[4], shadecolor='orange', ylabel='Param Value')
-        netsurf.utils.plot.plot_avg_and_std(self.df['variable_index'], w, axs[5], shadecolor='black', ylabel='Variable Index (~Layer)')
-
-        plt.show()
 
     @property
     def alias(self):

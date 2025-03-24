@@ -591,7 +591,210 @@ class QQApplyAlpha(tf.keras.layers.Layer):
         return self.serialize(include_emojis=True, **kwargs)
 
 
-class QQDense(qkeras.QDense, _QQLayer, PrunableLayer):
+""" Weight Layer """
+class WeightLayer:
+    def build(self):
+        # Now let's add the bit-flipping variables for _QPROPS
+        for prop in self._QPROPS:
+            # Check if prop exists
+            if hasattr(self, prop):
+                prop_val = getattr(self, prop)
+                prop_shape = prop_val.shape
+                # Deltas and N
+                for suffix in ['delta', 'N']:
+                    attr_name = f'{prop}_{suffix}'
+                    
+                    # Set the attribute
+                    setattr(self, attr_name, self.add_weight(attr_name,
+                        shape = prop_shape + (self.quantizer.m,),
+                        initializer = 'zeros',
+                        trainable = False))
+                    
+            # Now the N variables
+            attr_name = f'{prop}_N'
+        
+        # self.kernel_delta = self.add_weight('kernel_delta',
+        #     shape = self.kernel.shape + (self.quantizer.m,),
+        #     initializer = 'zeros',
+        #     trainable = False)
+        
+        # self.kernel_N = self.add_weight('kernel_N',
+        #     shape = self.kernel.shape + (self.quantizer.m,),
+        #     initializer = 'zeros',
+        #     trainable = False)
+        
+        # # Same for bias 
+        # self.bias_delta = self.add_weight('bias_delta',
+        #     shape = self.bias.shape + (self.quantizer.m,),
+        #     initializer = 'zeros',
+        #     trainable = False)
+        
+        # self.bias_N = self.add_weight('bias_N',
+        #     shape = self.bias.shape + (self.quantizer.m,),
+        #     initializer = 'zeros',
+        #     trainable = False)
+    
+
+    """ Method to compute the deltas """
+    def compute_deltas(self):
+        # Compute the deltas for qprops
+        for prop in self._QPROPS:
+            # Check if prop exists
+            if hasattr(self, prop):
+                prop_val = getattr(self, prop)
+                prop_q = self.quantizer(prop_val)
+                prop_delta = self.quantizer.compute_delta_matrix(prop_q)
+                getattr(self, f'{prop}_delta').assign(prop_delta)
+
+        # # Compute the deltas
+        # kernel_q = self.quantizer(self.kernel)
+        # kernel_delta = self.quantizer.compute_delta_matrix(kernel_q)
+        # self.kernel_delta.assign(kernel_delta)
+
+        # # Now bias 
+        # bias_q = self.quantizer(self.bias)
+        # bias_delta = self.quantizer.compute_delta_matrix(bias_q)
+        # self.bias_delta.assign(bias_delta)
+    
+    def _dense_call(self, X, training = False, W = None, b = None):
+        if self.prune: self.apply_pruning() # Apply pruning masks before computation
+        if W is None:
+            W = self.kernel
+        if b is None:
+            b = self.bias
+        # Matmul
+        output = tf.matmul(X, W)
+        # Add bias
+        output = tf.nn.bias_add(output, b)
+        return output
+
+    def _conv_call(self, function, X, training = False, W = None, b = None, **kwargs):
+        # Apply pruning masks before computation
+        if self.prune: self.apply_pruning() 
+        # Get the kernel and bias
+        if W is None: W = self.kernel
+        if b is None: b = self.bias
+        # Perform convolution (assumes self.strides, self.padding, etc. are defined)
+        output = function(X, W, **kwargs)
+        # Add bias
+        output = tf.nn.bias_add(output, b)
+        return output
+
+    def _sep_conv_2d_call(self, X, training = False, depthwise = None, pointwise = None, b = None, **kwargs):
+        # Apply pruning masks before computation
+        if self.prune: self.apply_pruning() 
+        # Get the kernel and bias
+        if depthwise is None: depthwise = self.depthwise
+        if pointwise is None: pointwise = self.pointwise
+        if b is None: b = self.bias
+        # Perform convolution (assumes self.strides, self.padding, etc. are defined)
+        depthwise_out = tf.nn.depthwise_conv2d(X, depthwise, **kwargs)
+        pointwise_out = tf.nn.conv2d(depthwise_out, pointwise, strides=[1,1,1,1], padding='SAME')
+        # Add bias
+        output = tf.nn.bias_add(pointwise_out, b)
+        return output
+
+    """ This attack is valid for all normal conv layers and dense layer """
+    def _attack(self, X, N = None, **kwargs):
+        # If N is not an attack object, turn it into one 
+        if isinstance(N, Attack):
+            # Apply the "N" values to the variables 
+            if self.kernel.name in N:
+                self.kernel_N.assign(N[self.kernel.name])
+            if self.bias.name in N:
+                self.bias_N.assign(N[self.bias.name])
+            # Now apply the deltas 
+            W_d = self.kernel + tf.reduce_sum(self.kernel_delta * self.kernel_N, axis = -1)
+            b_d = self.bias + tf.reduce_sum(self.bias_delta * self.bias_N, axis = -1)
+            return self(X, training = False, W = W_d, b = b_d)
+        elif isinstance(N, dict) or isinstance(N, int) or isinstance(N, float):
+            # Turn into Attack object 
+            N = Attack(N = N, variables = {self.kernel.name: self.kernel_delta, self.bias.name: self.bias_delta})
+            return self.attack(X, N, **kwargs)
+        else:
+            return self(X)
+
+    # Serialize methods 
+    def _serialize_conv(self, include_emojis: bool = True, **kwargs):
+        conts, cats = _QQLayer._serialize(self, include_emojis=include_emojis, **kwargs)
+        # Base display for all convolutional layers
+        d = {
+            "📏 Kernel size": self.kernel_size,
+            "🎯 Strides": self.strides,
+            "🔁 Padding": self.padding,
+            "📚 Dilation rate": getattr(self, 'dilation_rate', None),
+            "⚓️ Use bias": "✅" if getattr(self, 'use_bias', False) else "❌",
+            "🔗 Use constraint": "✅" if getattr(self, 'use_constraint', False) else "❌"
+        }
+
+        # Add only if present in the layer
+        if hasattr(self, 'activation'):
+            d["📗 Activation"] = self.activation
+        if hasattr(self, 'groups'):
+            d["🧪 Groups"] = self.groups
+        if hasattr(self, 'depth_multiplier'):
+            d["🌀 Depth multiplier"] = self.depth_multiplier
+        if hasattr(self, 'output_padding'):
+            d["🧵 Output padding"] = self.output_padding
+        if hasattr(self, 'data_format'):
+            d["🧭 Data format"] = self.data_format
+        if hasattr(self, 'filters'):
+            d["🎚️ Filters"] = self.filters
+
+        props = pd.DataFrame([d]).T
+        conts[0]['Layer properties'] = pd.concat([conts[0]['Layer properties'], props])
+
+        conts.extend(cats)
+        return conts
+
+    def _serialize_dense(self, include_emojis: bool = True, **kwargs):
+        conts, cats = _QQLayer._serialize(self, include_emojis = include_emojis, **kwargs)
+        # Add this layer specific stuff to conts
+        # layer_specific = {'dense': ['units', 'activation', 'use_bias', 'use_constraint',]}
+
+        d = dict({
+            "🎱 Units": self.units,
+            "📗 Activation": self.activation,
+            "⚓️ Use bias": "✅" if self.use_bias else "❌",
+            "🔗 Use constraint": "✅" if self.use_constraint else "❌"})
+        
+        props = pd.DataFrame([d]).T
+        conts[0]['Layer properties'] = pd.concat([conts[0]['Layer properties'], props])
+        
+        # Concatenate into a single list
+        conts.extend(cats)
+        return conts
+
+    def _serialize_batchnorm(self, include_emojis: bool = True, **kwargs):
+        conts, cats = _QQLayer._serialize(self, include_emojis = include_emojis, **kwargs)
+        # Add this layer specific stuff to conts
+        # layer_specific = {'batchnorm': ['axis', 'momentum', 'epsilon', 'center', 'scale', 'beta_initializer', 'gamma_initializer', 'moving_mean_initializer', 'moving_variance_initializer', 'beta_regularizer', 'gamma_regularizer', 'beta_constraint', 'gamma_constraint']}
+
+        d = dict({
+            "🔀 Axis": self.axis,
+            "🔁 Momentum": self.momentum,
+            "🔗 Epsilon": self.epsilon,
+            "🔗 Center": "✅" if self.center else "❌",
+            "🔗 Scale": "✅" if self.scale else "❌",
+            "🏁 Beta initializer": self.beta_initializer,
+            "🏁 Gamma initializer": self.gamma_initializer,
+            "🏁 Moving mean initializer": self.moving_mean_initializer,
+            "🏁 Moving variance initializer": self.moving_variance_initializer,
+            "🎚️ Beta regularizer": self.beta_regularizer,
+            "🎚️ Gamma regularizer": self.gamma_regularizer,
+            "🔗 Beta constraint": self.beta_constraint,
+            "🔗 Gamma constraint": self.gamma_constraint
+        })
+        
+        props = pd.DataFrame([d]).T
+        conts[0]['Layer properties'] = pd.concat([conts[0]['Layer properties'], props])
+        
+        # Concatenate into a single list
+        conts.extend(cats)
+        return conts
+
+""" Dense / fully connected layer """
+class QQDense(qkeras.QDense, _QQLayer, PrunableLayer, WeightLayer):
     _QPROPS = ['kernel', 'bias']
     _PRUNED_QPROPS = ['kernel']
     _ICON = "📕"
@@ -621,95 +824,458 @@ class QQDense(qkeras.QDense, _QQLayer, PrunableLayer):
         _QQLayer.build(self, input_shape)
         # Now build the pruning masks
         PrunableLayer.build(self, input_shape)
+        # Finally build the bit-flip vars
+        WeightLayer.build(self)
         
-        # Now let's add the bit-flipping variables 
-        self.kernel_delta = self.add_weight('kernel_delta',
-            shape = self.kernel.shape + (self.quantizer.m,),
-            initializer = 'zeros',
-            trainable = False)
-        
-        self.kernel_N = self.add_weight('kernel_N',
-            shape = self.kernel.shape + (self.quantizer.m,),
-            initializer = 'zeros',
-            trainable = False)
-        
-        # Same for bias 
-        self.bias_delta = self.add_weight('bias_delta',
-            shape = self.bias.shape + (self.quantizer.m,),
-            initializer = 'zeros',
-            trainable = False)
-        
-        self.bias_N = self.add_weight('bias_N',
-            shape = self.bias.shape + (self.quantizer.m,),
-            initializer = 'zeros',
-            trainable = False)
-        
-    """ Method to compute the deltas """
-    def compute_deltas(self):
-        # Compute the deltas
-        kernel_q = self.quantizer(self.kernel)
-        kernel_delta = self.quantizer.compute_delta_matrix(kernel_q)
-        self.kernel_delta.assign(kernel_delta)
-
-        # Now bias 
-        bias_q = self.quantizer(self.bias)
-        bias_delta = self.quantizer.compute_delta_matrix(bias_q)
-        self.bias_delta.assign(bias_delta)
-
     # Call method to just do forward pass
     # USING TF/KERAS CONVENTION:
     # output = X @ W.T
-    def call(self, X, training = False, W = None, b = None):
-        if self.prune: self.apply_pruning() # Apply pruning masks before computation
-        if W is None:
-            W = self.kernel
-        if b is None:
-            b = self.bias
-        # Matmul
-        output = tf.matmul(X, W)
-        # Add bias
-        output = tf.nn.bias_add(output, b)
-        return output
+    def call(self, X, **kwargs):
+        return WeightLayer._dense_call(self, X, **kwargs)
+
+    # Attack method
+    def attack(self, X, N = None, **kwargs):
+        return WeightLayer._attack(self, X, N = N, **kwargs)
+
+    # Serialize (for display)
+    def serialize(self, **kwargs):
+        return WeightLayer._serialize_dense(self, **kwargs)
+    
+
+""" Convolution layers """
+class QQConv1D(qkeras.QConv1D, _QQLayer, PrunableLayer, WeightLayer):
+    _QPROPS = ['kernel', 'bias']
+    _PRUNED_QPROPS = ['kernel']
+    _ICON = "📕"
+    def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
+                 kernel_initializer: str = 'glorot_normal', bias_initializer = 'zeros', 
+                 use_constraint: bool = True, **kwargs):
+        # After calling this, we will have the actual quantizer objects in "self._qkwargs"
+        _QQLayer.__init__(self, quantizer, 
+                          kernel_quantizer = kernel_quantizer, 
+                          bias_quantizer = bias_quantizer, 
+                          kernel_initializer = kernel_initializer, 
+                          bias_initializer = bias_initializer,
+                          use_constraint = use_constraint)
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
+
+        # Finally just call the parent class
+        qkeras.QConv1D.__init__(self, *args, **self._qkwargs, **kwargs)
+
+        # 🔹 Enable bit-flip perturbation support
+        self.has_delta = True
+    
+    def build(self, input_shape):
+        """Add bit-flip attack variables for kernel and bias."""
+        super().build(input_shape)  # Call QKeras build method
+        # First call super to build kernel/bias
+        _QQLayer.build(self, input_shape)
+        # Now build the pruning masks
+        PrunableLayer.build(self, input_shape)
+        # Build the bit-flip attack variables
+        WeightLayer.build(self)
+    
+    # Call method to just do forward pass
+    def call(self, X, **kwargs):
+        return WeightLayer._conv_call(self, tf.nn.conv1d, X, **kwargs, 
+                                      strides=self.strides, padding=self.padding.upper(), dilations=self.dilation_rate)
+
+    # Attack method
+    def attack(self, X, N = None, **kwargs):
+        return WeightLayer._attack(self, X, N = N, **kwargs)
+
+    # Serialize
+    def serialize(self, **kwargs):
+        return WeightLayer._serialize_conv(self, **kwargs)
 
 
+class QQConv2D(qkeras.QConv2D, _QQLayer, PrunableLayer, WeightLayer):
+    _QPROPS = ['kernel', 'bias']
+    _PRUNED_QPROPS = ['kernel']
+    _ICON = "📕"
+    def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
+                 kernel_initializer: str = 'glorot_normal', bias_initializer = 'zeros', 
+                 use_constraint: bool = True, **kwargs):
+        # After calling this, we will have the actual quantizer objects in "self._qkwargs"
+        _QQLayer.__init__(self, quantizer, 
+                          kernel_quantizer = kernel_quantizer, 
+                          bias_quantizer = bias_quantizer, 
+                          kernel_initializer = kernel_initializer, 
+                          bias_initializer = bias_initializer,
+                          use_constraint = use_constraint)
+        
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
+
+        # Finally just call the parent class
+        qkeras.QConv2D.__init__(self, *args, **self._qkwargs, **kwargs)
+
+        # 🔹 Enable bit-flip perturbation support
+        self.has_delta = True
+    
+    # Modify self.build to include bit-flip vars 
+    def build(self, input_shape):
+        """Add bit-flip attack variables for kernel and bias."""
+        super().build(input_shape)  # Call QKeras build method
+        # First call super to build kernel/bias
+        _QQLayer.build(self, input_shape)
+        # Now build the pruning masks
+        PrunableLayer.build(self, input_shape)
+        # Build the bit-flip attack variables
+        WeightLayer.build(self)
+    
+    # Call method to just do forward pass
+    # USING TF/KERAS CONVENTION:
+    # output = X @ W.T
+    def call(self, X, **kwargs):
+        # Add some kwargs
+        return WeightLayer._conv_call(self, tf.nn.conv2d, X, **kwargs, 
+                               strides=self.strides, padding=self.padding.upper(), dilations=self.dilation_rate)
+    
+    # Attack method
+    def attack(self, X, N = None, **kwargs):
+        return WeightLayer._attack(self, X, N = N, **kwargs)
+
+    # Serialize
+    def serialize(self, **kwargs):
+        return WeightLayer._serialize_conv(self, **kwargs)
+        
+
+class QQConv3D(tf.keras.layers.Conv3D, _QQLayer, PrunableLayer, WeightLayer):
+    _QPROPS = ['kernel', 'bias']
+    _PRUNED_QPROPS = ['kernel']
+    _ICON = "📕"
+    def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
+                 kernel_initializer: str = 'glorot_normal', bias_initializer: str = 'zeros', 
+                 use_constraint: bool = True, **kwargs):
+        # After calling this, we will have the actual quantizer objects in "self._qkwargs"
+        _QQLayer.__init__(self, quantizer,
+                        kernel_quantizer = kernel_quantizer, 
+                        bias_quantizer = bias_quantizer, 
+                        kernel_initializer = kernel_initializer, 
+                        bias_initializer = bias_initializer,
+                        use_constraint = use_constraint)
+
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
+
+        # Not implemented in qkeras yet
+        tf.keras.layers.Conv3D.__init__(self, *args, **kwargs)
+
+        # 🔹 Enable bit-flip perturbation support
+        self.has_delta = True
+    
+    def build(self, input_shape):
+        """Add bit-flip attack variables for kernel and bias."""
+        super().build(input_shape)  # Call QKeras build method
+        # First call super to build kernel/bias
+        _QQLayer.build(self, input_shape)
+        # Now build the pruning masks
+        PrunableLayer.build(self, input_shape)
+        # Finally build the bit-flip vars
+        WeightLayer.build(self)
+    
+    # Call method to just do forward pass
+    # USING TF/KERAS CONVENTION:
+    # output = X @ W.T
+    def call(self, X, **kwargs):
+        # Add some kwargs
+        return WeightLayer._conv_call(self, tf.nn.conv3d, X, **kwargs, 
+                               strides=self.strides, padding=self.padding.upper(), dilations=self.dilation_rate)
+    
+    # Attack method
+    def attack(self, X, N = None, **kwargs):
+        return WeightLayer._attack(self, X, N = N, **kwargs)
+
+    # Serialize
+    def serialize(self, **kwargs):
+        return WeightLayer._serialize_conv(self, **kwargs)
+
+""" 
+    Deconvolutional layers
+"""
+class QQConv1DTranspose(tf.keras.layers.Conv1DTranspose, _QQLayer, PrunableLayer, WeightLayer):
+    _QPROPS = ['kernel', 'bias']
+    _PRUNED_QPROPS = ['kernel']
+    _ICON = "📕"
+    def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
+                 kernel_initializer: str = 'glorot_normal', bias_initializer: str = 'zeros', 
+                 use_constraint: bool = True, **kwargs):
+        _QQLayer.__init__(self, quantizer, 
+                          kernel_quantizer = kernel_quantizer, 
+                          bias_quantizer = bias_quantizer, 
+                          kernel_initializer = kernel_initializer, 
+                          bias_initializer = bias_initializer,
+                          use_constraint = use_constraint)
+        
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
+
+        # Not implemnted in qkeras yet
+        tf.keras.layers.Conv1DTranspose.__init__(self, *args, **kwargs)
+
+        # 🔹 Enable bit-flip perturbation support
+        self.has_delta = True
+    
+    def build(self, input_shape):
+        """Add bit-flip attack variables for kernel and bias."""
+        super().build(input_shape)  # Call QKeras build method
+        # First call super to build kernel/bias
+        _QQLayer.build(self, input_shape)
+        # Now build the pruning masks
+        PrunableLayer.build(self, input_shape)
+        # Finally build the bit-flip vars
+        WeightLayer.build(self)
+    
+    def call(self, X, **kwargs):
+        raise NotImplementedError("Conv1DTranspose is not implemented in TensorFlow yet.")
+    
+    # Attack method
+    def attack(self, X, N = None, **kwargs):
+        return WeightLayer._attack(self, X, N = N, **kwargs)
+
+    def serialize(self, **kwargs):
+        return WeightLayer._serialize_conv(self, **kwargs)
+    
+
+class QQConv2DTranspose(qkeras.QConv2DTranspose, _QQLayer, PrunableLayer, WeightLayer):
+    _QPROPS = ['kernel', 'bias']
+    _PRUNED_QPROPS = ['kernel']
+    _ICON = "📕"
+    def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
+                 kernel_initializer: str = 'glorot_normal', bias_initializer: str = 'zeros', 
+                 use_constraint: bool = True, **kwargs):
+        # After calling this, we will have the actual quantizer objects in "self._qkwargs"
+        _QQLayer.__init__(self, quantizer, 
+                          kernel_quantizer = kernel_quantizer, 
+                          bias_quantizer = bias_quantizer, 
+                          kernel_initializer = kernel_initializer, 
+                          bias_initializer = bias_initializer,
+                          use_constraint = use_constraint)
+        
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
+
+        # Finally just call the parent class
+        qkeras.QConv2DTranspose.__init__(self, *args, **self._qkwargs, **kwargs)
+
+        # 🔹 Enable bit-flip perturbation support
+        self.has_delta = True
+    
+    def build(self, input_shape):
+        """Add bit-flip attack variables for kernel and bias."""
+        super().build(input_shape)  # Call QKeras build method
+        # First call super to build kernel/bias
+        _QQLayer.build(self, input_shape)
+        # Now build the pruning masks
+        PrunableLayer.build(self, input_shape)
+        # Finally build the bit-flip vars
+        WeightLayer.build(self)
+    
+    def call(self, X, **kwargs):
+        # Compute output shape manually
+        output_shape = tf.keras.layers.Conv2DTranspose(
+            filters=self.filters,
+            kernel_size=self.kernel_size,
+            strides=self.strides,
+            padding=self.padding.upper(),
+            output_padding=self.output_padding,
+            dilation_rate=self.dilation_rate
+        ).compute_output_shape(X.shape)
+
+        # Add some kwargs
+        return WeightLayer._conv_call(self, tf.nn.tf.nn.conv2d_transpose, X, output_shape = output_shape, 
+                                      **kwargs, strides=self.strides, padding=self.padding.upper())
+    
+    # Attack method
+    def attack(self, X, N = None, **kwargs):
+        return WeightLayer._attack(self, X, N = N, **kwargs)
+    
+    def serialize(self, **kwargs):
+        return WeightLayer._serialize_conv(self, **kwargs)
+
+
+class QQConv3DTranspose(tf.keras.layers.Conv3DTranspose, _QQLayer, PrunableLayer, WeightLayer):
+    _QPROPS = ['kernel', 'bias']
+    _PRUNED_QPROPS = ['kernel']
+    _ICON = "📕"
+    def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
+                 kernel_initializer: str = 'glorot_normal', bias_initializer: str = 'zeros', 
+                 use_constraint: bool = True, **kwargs):
+        # After calling this, we will have the actual quantizer objects in "self._qkwargs"
+        _QQLayer.__init__(self, quantizer, 
+                          kernel_quantizer = kernel_quantizer, 
+                          bias_quantizer = bias_quantizer, 
+                          kernel_initializer = kernel_initializer, 
+                          bias_initializer = bias_initializer,
+                          use_constraint = use_constraint)
+
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
+
+        # Not implemnted in qkeras yet
+        tf.keras.layers.Conv3DTranspose.__init__(self, *args, **kwargs)
+
+        # 🔹 Enable bit-flip perturbation support
+        self.has_delta = True
+    
+    def build(self, input_shape):
+        """Add bit-flip attack variables for kernel and bias."""
+        super().build(input_shape)  # Call QKeras build method
+        # First call super to build kernel/bias
+        _QQLayer.build(self, input_shape)
+        # Now build the pruning masks
+        PrunableLayer.build(self, input_shape)
+        # Finally build the bit-flip vars
+        WeightLayer.build(self)
+    
+    def call(self, X, **kwargs):
+        # Compute output shape manually
+        output_shape = tf.keras.layers.Conv3DTranspose(
+            filters=self.filters,
+            kernel_size=self.kernel_size,
+            strides=self.strides,
+            padding=self.padding.upper(),
+            output_padding=self.output_padding,
+            dilation_rate=self.dilation_rate
+        ).compute_output_shape(X.shape)
+
+        # Add some kwargs
+        return WeightLayer._conv_call(self, tf.nn.tf.nn.conv3d_transpose, X, output_shape = output_shape, 
+                                      **kwargs, strides=self.strides, padding=self.padding.upper())
+    
+    # Attack method
+    def attack(self, X, N = None, **kwargs):
+        return WeightLayer._attack(self, X, N = N, **kwargs)
+
+    def serialize(self, **kwargs):
+        return WeightLayer._serialize_conv(self, **kwargs)
+
+
+class QQDepthwiseConv2D(qkeras.QDepthwiseConv2D, _QQLayer, PrunableLayer):
+    _QPROPS = ['depthwise', 'bias']
+    _PRUNED_QPROPS = ['kernel']
+    _ICON = "📕"
+    def __init__(self, quantizer, *args, 
+                 depthwise_quantizer: str = 'logit', 
+                 depthwise_initializer: str = 'glorot_normal',
+                 bias_quantizer: str = 'logit', bias_initializer: str = 'zeros', 
+                 use_constraint: bool = True, **kwargs):
+        # After calling this, we will have the actual quantizer objects in "self._qkwargs"
+        _QQLayer.__init__(self, quantizer,
+                          depthwise_quantizer = depthwise_quantizer, 
+                          depthwise_initializer = depthwise_initializer,
+                          bias_quantizer = bias_quantizer, 
+                          bias_initializer = bias_initializer,
+                          use_constraint = use_constraint, **kwargs)
+        
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
+        
+        # Finally just call the parent class
+        qkeras.QDepthwiseConv2D.__init__(self, *args, **self._qkwargs, **kwargs)
+
+        # 🔹 Enable bit-flip perturbation support
+        self.has_delta = True
+    
+    def build(self, input_shape):
+        """Add bit-flip attack variables for kernel and bias."""
+        super().build(input_shape)  # Call QKeras build method
+        # First call super to build kernel/bias
+        _QQLayer.build(self, input_shape)
+        # Now build the pruning masks
+        PrunableLayer.build(self, input_shape)
+        # Finally build the bit-flip vars
+        WeightLayer.build(self)
+    
+    def call(self, X, **kwargs):
+        # Add some kwargs
+        return WeightLayer._conv_call(self, tf.nn.depthwise_conv2d, X, 
+                                      **kwargs, strides=self.strides, padding=self.padding.upper())
+    
+    # Attack method
+    def attack(self, X, N = None, **kwargs):
+        return WeightLayer._attack(self, X, N = N, **kwargs)
+
+    def serialize(self, **kwargs):
+        return WeightLayer._serialize_conv(self, **kwargs)
+        
+
+class QQSeparableConv2D(qkeras.QSeparableConv2D, _QQLayer, PrunableLayer, WeightLayer):
+    _QPROPS = ['depthwise', 'pointwise', 'bias']
+    _PRUNED_QPROPS = ['depthwise', 'pointwise']
+    _ICON = "📕"
+    def __init__(self, quantizer, *args, depthwise_quantizer: str = 'logit', pointwise_quantizer: str = 'logit', 
+                 depthwise_initializer: str = 'glorot_normal', pointwise_initializer: str = 'zeros', 
+                 bias_quantizer: str = 'logit', bias_initializer: str = 'zeros', 
+                 use_constraint: bool = True, **kwargs):
+        # After calling this, we will have the actual quantizer objects in "self._qkwargs"
+        _QQLayer.__init__(self, quantizer,
+                          depthwise_quantizer = depthwise_quantizer, 
+                          pointwise_quantizer = pointwise_quantizer, 
+                          depthwise_initializer = depthwise_initializer, 
+                          pointwise_initializer = pointwise_initializer,
+                            bias_quantizer = bias_quantizer, bias_initializer = bias_initializer,
+                          use_constraint = use_constraint, **kwargs)
+        
+        # Initialize pruning logic
+        PrunableLayer.__init__(self) 
+        
+        # Finally just call the parent class
+        qkeras.QSeparableConv2D.__init__(self, *args, **self._qkwargs, **kwargs)
+
+        # 🔹 Enable bit-flip perturbation support
+        self.has_delta = True
+    
+    def build(self, input_shape):
+        """Add bit-flip attack variables for kernel and bias."""
+        super().build(input_shape)  # Call QKeras build method
+        # First call super to build kernel/bias
+        _QQLayer.build(self, input_shape)
+        # Now build the pruning masks
+        PrunableLayer.build(self, input_shape)
+        # Finally build the bit-flip vars
+        WeightLayer.build(self)
+    
+    def call(self, X, **kwargs):
+        # Add some kwargs
+        return WeightLayer._sep_conv_2d_call(self, X, **kwargs, strides=self.strides, padding=self.padding.upper())
+    
+    # Attack method
+    """ This attack is valid for all normal conv layers and dense layer """
     def attack(self, X, N = None, **kwargs):
         # If N is not an attack object, turn it into one 
         if isinstance(N, Attack):
             # Apply the "N" values to the variables 
-            if self.kernel.name in N:
-                self.kernel_N.assign(N[self.kernel.name])
+            if self.depthwise.name in N:
+                self.depthwise_N.assign(N[self.depthwise.name])
+            if self.pointwise.name in N:
+                self.pointwise_N.assign(N[self.pointwise.name])
             if self.bias.name in N:
                 self.bias_N.assign(N[self.bias.name])
             # Now apply the deltas 
-            W_d = self.kernel + tf.reduce_sum(self.kernel_delta * self.kernel_N, axis = -1)
+            depthwise_d = self.depthwise + tf.reduce_sum(self.depthwise_delta * self.depthwise_N, axis = -1)
+            pointwise_d = self.pointwise + tf.reduce_sum(self.pointwise_delta * self.pointwise_N, axis = -1)
             b_d = self.bias + tf.reduce_sum(self.bias_delta * self.bias_N, axis = -1)
-            return self(X, training = False, W = W_d, b = b_d)
+            return self(X, training = False, depthwise = depthwise_d, pointwise = pointwise_d, b = b_d)
         elif isinstance(N, dict) or isinstance(N, int) or isinstance(N, float):
             # Turn into Attack object 
-            N = Attack(N = N, variables = {self.kernel.name: self.kernel_delta, self.bias.name: self.bias_delta})
+            N = Attack(N = N, variables = {self.depthwise.name: self.depthwise_delta, 
+                                           self.pointwise.name: self.pointwise_delta,
+                                           self.bias.name: self.bias_delta})
             return self.attack(X, N, **kwargs)
         else:
             return self(X)
 
-    def serialize(self, include_emojis: bool = True, **kwargs):
-        conts, cats = super()._serialize(include_emojis = include_emojis, **kwargs)
-        # Add this layer specific stuff to conts
-        # layer_specific = {'dense': ['units', 'activation', 'use_bias', 'use_constraint',]}
+    def serialize(self, **kwargs):
+        return WeightLayer._serialize_conv(**kwargs)
 
-        d = dict({
-            "🎱 Units": self.units,
-            "📗 Activation": self.activation,
-            "⚓️ Use bias": "✅" if self.use_bias else "❌",
-            "🔗 Use constraint": "✅" if self.use_constraint else "❌"})
-        
-        props = pd.DataFrame([d]).T
-        conts[0]['Layer properties'] = pd.concat([conts[0]['Layer properties'], props])
-        
-        # Concatenate into a single list
-        conts.extend(cats)
-        return conts
 
-class QQBatchNormalization(qkeras.QBatchNormalization, _QQLayer):
+""" 
+    Batch norm 
+"""
+class QQBatchNormalization(qkeras.QBatchNormalization, _QQLayer, PrunableLayer, WeightLayer):
     _QPROPS = ['beta', 'gamma']
     _PRUNED_QPROPS = ['gamma']
     _ICON = "📒"
@@ -751,38 +1317,13 @@ class QQBatchNormalization(qkeras.QBatchNormalization, _QQLayer):
     def build(self, input_shape):
         """Add bit-flip attack variables to beta and gamma."""
         super().build(input_shape)  # Call QKeras build method
+        # First call super to build kernel/bias
+        _QQLayer.build(self, input_shape)
+        # Now build the pruning masks
+        PrunableLayer.build(self, input_shape)
+        # Finally build the bit-flip vars
+        WeightLayer.build(self)
 
-        # 🔹 Create bit-flip attack variables for gamma and beta
-        self.gamma_delta = self.add_weight(name="gamma_delta",
-                                           shape=self.gamma.shape + (self.quantizer.m,),
-                                           initializer="zeros",
-                                           trainable=False)
-
-        self.gamma_N = self.add_weight(name="gamma_N",
-                                       shape=self.gamma.shape + (self.quantizer.m,),
-                                       initializer="zeros",
-                                       trainable=False)
-
-        self.beta_delta = self.add_weight(name="beta_delta",
-                                          shape=self.beta.shape + (self.quantizer.m,),
-                                          initializer="zeros",
-                                          trainable=False)
-
-        self.beta_N = self.add_weight(name="beta_N",
-                                      shape=self.beta.shape + (self.quantizer.m,),
-                                      initializer="zeros",
-                                      trainable=False)
-
-    """ Method to compute the deltas """
-    def compute_deltas(self):
-        """Compute and store bit-flip perturbations for gamma and beta."""
-        gamma_q = self.quantizer(self.gamma)
-        gamma_delta = self.quantizer.compute_delta_matrix(gamma_q)
-        self.gamma_delta.assign(gamma_delta)
-
-        beta_q = self.quantizer(self.beta)
-        beta_delta = self.quantizer.compute_delta_matrix(beta_q)
-        self.beta_delta.assign(beta_delta)
 
     """ Override the call method to include bit-flip perturbations """
     def call(self, inputs, training=False, apply_attack=False):
@@ -831,250 +1372,14 @@ class QQBatchNormalization(qkeras.QBatchNormalization, _QQLayer):
         else:
             return self(X)
 
-
-
-class QQConv1D(qkeras.QConv1D, _QQLayer, PrunableLayer):
-    _QPROPS = ['kernel', 'bias']
-    _PRUNED_QPROPS = ['kernel']
-    _ICON = "📕"
-    def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
-                 kernel_initializer: str = 'glorot_normal', bias_initializer = 'zeros', 
-                 use_constraint: bool = True, **kwargs):
-        # After calling this, we will have the actual quantizer objects in "self._qkwargs"
-        _QQLayer.__init__(self, quantizer, 
-                          kernel_quantizer = kernel_quantizer, 
-                          bias_quantizer = bias_quantizer, 
-                          kernel_initializer = kernel_initializer, 
-                          bias_initializer = bias_initializer,
-                          use_constraint = use_constraint)
-        # Initialize pruning logic
-        PrunableLayer.__init__(self) 
-
-        # Finally just call the parent class
-        qkeras.QConv1D.__init__(self, *args, **self._qkwargs, **kwargs)
-    
-    def build(self, input_shape):
-        """Add bit-flip attack variables for kernel and bias."""
-        super().build(input_shape)  # Call QKeras build method
-        # First call super to build kernel/bias
-        _QQLayer.build(self, input_shape)
-        # Now build the pruning masks
-        PrunableLayer.build(self, input_shape)
-
-
-class QQConv2D(qkeras.QConv2D, _QQLayer, PrunableLayer):
-    _QPROPS = ['kernel', 'bias']
-    _PRUNED_QPROPS = ['kernel']
-    _ICON = "📕"
-    def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
-                 kernel_initializer: str = 'glorot_normal', bias_initializer = 'zeros', 
-                 use_constraint: bool = True, **kwargs):
-        # After calling this, we will have the actual quantizer objects in "self._qkwargs"
-        _QQLayer.__init__(self, quantizer, 
-                          kernel_quantizer = kernel_quantizer, 
-                          bias_quantizer = bias_quantizer, 
-                          kernel_initializer = kernel_initializer, 
-                          bias_initializer = bias_initializer,
-                          use_constraint = use_constraint)
-        
-        # Initialize pruning logic
-        PrunableLayer.__init__(self) 
-
-        # Finally just call the parent class
-        qkeras.QConv2D.__init__(self, *args, **self._qkwargs, **kwargs)
-    
-    def build(self, input_shape):
-        """Add bit-flip attack variables for kernel and bias."""
-        super().build(input_shape)  # Call QKeras build method
-        # First call super to build kernel/bias
-        _QQLayer.build(self, input_shape)
-        # Now build the pruning masks
-        PrunableLayer.build(self, input_shape)
-        
-
-class QQConv3D(tf.keras.layers.Conv3D, _QQLayer, PrunableLayer):
-    _QPROPS = ['kernel', 'bias']
-    _PRUNED_QPROPS = ['kernel']
-    _ICON = "📕"
-    def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
-                 kernel_initializer: str = 'glorot_normal', bias_initializer: str = 'zeros', 
-                 use_constraint: bool = True, **kwargs):
-        # After calling this, we will have the actual quantizer objects in "self._qkwargs"
-        _QQLayer.__init__(self, quantizer,
-                        kernel_quantizer = kernel_quantizer, 
-                        bias_quantizer = bias_quantizer, 
-                        kernel_initializer = kernel_initializer, 
-                        bias_initializer = bias_initializer,
-                        use_constraint = use_constraint)
-
-        # Initialize pruning logic
-        PrunableLayer.__init__(self) 
-
-        # Not implemented in qkeras yet
-        tf.keras.layers.Conv3D.__init__(self, *args, **kwargs)
-    
-    def build(self, input_shape):
-        """Add bit-flip attack variables for kernel and bias."""
-        super().build(input_shape)  # Call QKeras build method
-        # First call super to build kernel/bias
-        _QQLayer.build(self, input_shape)
-        # Now build the pruning masks
-        PrunableLayer.build(self, input_shape)
+    def serialize(self, **kwargs):
+        return WeightLayer._serialize_batchnorm(self, **kwargs)
 
 
 
-class QQConv1DTranspose(tf.keras.layers.Conv1DTranspose, _QQLayer, PrunableLayer):
-    _QPROPS = ['kernel', 'bias']
-    _PRUNED_QPROPS = ['kernel']
-    _ICON = "📕"
-    def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
-                 kernel_initializer: str = 'glorot_normal', bias_initializer: str = 'zeros', 
-                 use_constraint: bool = True, **kwargs):
-        _QQLayer.__init__(self, quantizer, 
-                          kernel_quantizer = kernel_quantizer, 
-                          bias_quantizer = bias_quantizer, 
-                          kernel_initializer = kernel_initializer, 
-                          bias_initializer = bias_initializer,
-                          use_constraint = use_constraint)
-        
-        # Initialize pruning logic
-        PrunableLayer.__init__(self) 
-
-        # Not implemnted in qkeras yet
-        tf.keras.layers.Conv1DTranspose.__init__(self, *args, **kwargs)
-    
-    def build(self, input_shape):
-        """Add bit-flip attack variables for kernel and bias."""
-        super().build(input_shape)  # Call QKeras build method
-        # First call super to build kernel/bias
-        _QQLayer.build(self, input_shape)
-        # Now build the pruning masks
-        PrunableLayer.build(self, input_shape)
-
-class QQConv2DTranspose(qkeras.QConv2DTranspose, _QQLayer, PrunableLayer):
-    _QPROPS = ['kernel', 'bias']
-    _PRUNED_QPROPS = ['kernel']
-    _ICON = "📕"
-    def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
-                 kernel_initializer: str = 'glorot_normal', bias_initializer: str = 'zeros', 
-                 use_constraint: bool = True, **kwargs):
-        # After calling this, we will have the actual quantizer objects in "self._qkwargs"
-        _QQLayer.__init__(self, quantizer, 
-                          kernel_quantizer = kernel_quantizer, 
-                          bias_quantizer = bias_quantizer, 
-                          kernel_initializer = kernel_initializer, 
-                          bias_initializer = bias_initializer,
-                          use_constraint = use_constraint)
-        
-        # Initialize pruning logic
-        PrunableLayer.__init__(self) 
-
-        # Finally just call the parent class
-        qkeras.QConv2DTranspose.__init__(self, *args, **self._qkwargs, **kwargs)
-    
-    def build(self, input_shape):
-        """Add bit-flip attack variables for kernel and bias."""
-        super().build(input_shape)  # Call QKeras build method
-        # First call super to build kernel/bias
-        _QQLayer.build(self, input_shape)
-        # Now build the pruning masks
-        PrunableLayer.build(self, input_shape)
-
-
-class QQConv3DTranspose(tf.keras.layers.Conv3DTranspose, _QQLayer, PrunableLayer):
-    _QPROPS = ['kernel', 'bias']
-    _PRUNED_QPROPS = ['kernel']
-    _ICON = "📕"
-    def __init__(self, quantizer, *args, kernel_quantizer: str = 'logit', bias_quantizer: str = 'logit', 
-                 kernel_initializer: str = 'glorot_normal', bias_initializer: str = 'zeros', 
-                 use_constraint: bool = True, **kwargs):
-        # After calling this, we will have the actual quantizer objects in "self._qkwargs"
-        _QQLayer.__init__(self, quantizer, 
-                          kernel_quantizer = kernel_quantizer, 
-                          bias_quantizer = bias_quantizer, 
-                          kernel_initializer = kernel_initializer, 
-                          bias_initializer = bias_initializer,
-                          use_constraint = use_constraint)
-
-        # Initialize pruning logic
-        PrunableLayer.__init__(self) 
-
-        # Not implemnted in qkeras yet
-        tf.keras.layers.Conv3DTranspose.__init__(self, *args, **kwargs)
-    
-    def build(self, input_shape):
-        """Add bit-flip attack variables for kernel and bias."""
-        super().build(input_shape)  # Call QKeras build method
-        # First call super to build kernel/bias
-        _QQLayer.build(self, input_shape)
-        # Now build the pruning masks
-        PrunableLayer.build(self, input_shape)
-
-
-class QQDepthwiseConv2D(qkeras.QDepthwiseConv2D, _QQLayer, PrunableLayer):
-    _QPROPS = ['depthwise', 'bias']
-    _PRUNED_QPROPS = ['kernel']
-    _ICON = "📕"
-    def __init__(self, quantizer, *args, 
-                 depthwise_quantizer: str = 'logit', 
-                 depthwise_initializer: str = 'glorot_normal',
-                 bias_quantizer: str = 'logit', bias_initializer: str = 'zeros', 
-                 use_constraint: bool = True, **kwargs):
-        # After calling this, we will have the actual quantizer objects in "self._qkwargs"
-        _QQLayer.__init__(self, quantizer,
-                          depthwise_quantizer = depthwise_quantizer, 
-                          depthwise_initializer = depthwise_initializer,
-                          bias_quantizer = bias_quantizer, 
-                          bias_initializer = bias_initializer,
-                          use_constraint = use_constraint, **kwargs)
-        
-        # Initialize pruning logic
-        PrunableLayer.__init__(self) 
-        
-        # Finally just call the parent class
-        qkeras.QDepthwiseConv2D.__init__(self, *args, **self._qkwargs, **kwargs)
-    
-    def build(self, input_shape):
-        """Add bit-flip attack variables for kernel and bias."""
-        super().build(input_shape)  # Call QKeras build method
-        # First call super to build kernel/bias
-        _QQLayer.build(self, input_shape)
-        # Now build the pruning masks
-        PrunableLayer.build(self, input_shape)
-        
-
-class QQSeparableConv2D(qkeras.QSeparableConv2D, _QQLayer, PrunableLayer):
-    _QPROPS = ['depthwise', 'pointwise', 'bias']
-    _PRUNED_QPROPS = ['kernel', 'pointwise']
-    _ICON = "📕"
-    def __init__(self, quantizer, *args, depthwise_quantizer: str = 'logit', pointwise_quantizer: str = 'logit', 
-                 depthwise_initializer: str = 'glorot_normal', pointwise_initializer: str = 'zeros', 
-                 bias_quantizer: str = 'logit', bias_initializer: str = 'zeros', 
-                 use_constraint: bool = True, **kwargs):
-        # After calling this, we will have the actual quantizer objects in "self._qkwargs"
-        _QQLayer.__init__(self, quantizer,
-                          depthwise_quantizer = depthwise_quantizer, 
-                          pointwise_quantizer = pointwise_quantizer, 
-                          depthwise_initializer = depthwise_initializer, 
-                          pointwise_initializer = pointwise_initializer,
-                            bias_quantizer = bias_quantizer, bias_initializer = bias_initializer,
-                          use_constraint = use_constraint, **kwargs)
-        
-        # Initialize pruning logic
-        PrunableLayer.__init__(self) 
-        
-        # Finally just call the parent class
-        qkeras.QSeparableConv2D.__init__(self, *args, **self._qkwargs, **kwargs)
-    
-    def build(self, input_shape):
-        """Add bit-flip attack variables for kernel and bias."""
-        super().build(input_shape)  # Call QKeras build method
-        # First call super to build kernel/bias
-        _QQLayer.build(self, input_shape)
-        # Now build the pruning masks
-        PrunableLayer.build(self, input_shape)
-        
-
+"""
+    OTHER LAYERS
+"""
 class QQActivation(qkeras.QActivation, _QQLayer):
     _QPROPS = ['activation']
     _ICON = "📗"
@@ -1164,8 +1469,9 @@ class QQSigmoid(tf.keras.layers.Activation, _QQLayer):
         tf.keras.layers.Activation.__init__(self, 'sigmoid', *args, **kwargs)
 
 
-
-
+"""
+    LSTM
+"""
 class QQLSTM(qkeras.QLSTM, _QQLayer, PrunableLayer):
     _QPROPS = ['kernel', 'recurrent', 'bias', 'state']
     _PRUNED_QPROPS = ['kernel', 'recurrent']

@@ -253,7 +253,7 @@ class Benchmark:
 
         # Plot sparsity
         filename = netsurf.utils.io.create_temporary_file(prefix='netsurf_sparsity', ext = '.png')
-        netsurf.utils.plot.plot_sparsity(self.model, filepath = filename, show = False, separated = False, verbose = False)
+        netsurf.utils.plot.plot_sparsity(self.model, filepath = filename, show = False, separated = False, verbose = True)
         if os.path.exists(filename):
             ct = pg.CollapsibleContainer('🎨 Sparsity', layout='vertical')
             ct.append(pg.Image(filename, embed = True))
@@ -263,7 +263,7 @@ class Benchmark:
         
         # Now separated
         filename = netsurf.utils.io.create_temporary_file(prefix='netsurf_sparsity_separated', ext = '.png')
-        netsurf.utils.plot.plot_sparsity(self.model, filepath = filename, show = False, separated = True, verbose = False)
+        netsurf.utils.plot.plot_sparsity(self.model, filepath = filename, show = False, separated = True, verbose = True)
         if os.path.exists(filename):
             ct = pg.CollapsibleContainer('🎨 Sparsity (separated)', layout='vertical')
             ct.append(pg.Image(filename, embed = True))
@@ -281,7 +281,7 @@ class Benchmark:
                                         ip = self.model.input, out = self.model._activations)
 
         # Get xdata 
-        xsample, ysample = self.get_dataset_sample(subset = 'validation', nsamples = -1)
+        xsample, ysample = self.get_dataset_sample(subset = 'validation', nsamples = 1000)
 
         # Plot the histogram of the activations at the output of each one of the layers
         fig, axs = netsurf.utils.plot.plot_histogram_activations(activation_model, X = xsample, 

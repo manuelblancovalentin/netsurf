@@ -1151,7 +1151,6 @@ class Experiment:
     def html(self):
        
         # Create a collapsible container for this 
-
         # First, we want a summary table with all the config parameters for this method 
         if self.ranker._ICON is not None:
             cname = f'{self.ranker._ICON} {self.ranking_method}'
@@ -1189,8 +1188,19 @@ class Experiment:
         
         g.append(p)
 
-        # Now let's add the rank 
-        # if self.ranking is not None:
+        # Now let's add the ranking plot
+        if self.ranking is not None:
+            fig, axs = self.ranker.plot_ranking(axs = None, w = 300, show = False)
+            # Create a container for the plot
+            ct = pg.CollapsibleContainer('🏆 Ranking', layout = 'vertical')
+            # Create plot img
+            p = pg.Plot(fig)
+            ct.append(p)
+            # Append to group
+            g.append(ct)
+            # Close fig
+            plt.close(fig)
+            
         #     t = pg.Table.from_data(self.ranking)
         #     # Create a container for the table
         #     ct = pg.CollapsibleContainer('Ranking', layout = 'vertical')

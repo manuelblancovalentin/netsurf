@@ -1242,7 +1242,7 @@ def plot_quantized_histogram(data: np.ndarray, quantizer: 'QuantizationScheme',
 """ Define a function to plot the histogram of the activations at the output of each 
     one of the layers 
 """
-def plot_histogram_activations(model, X = None, Y = None, show = True, bins = 100, sharex = True):
+def plot_histogram_activations(model, X = None, Y = None, show = True, bins = 100, sharex = True, verbose = True):
     # Get quantizer
     Q = model.quantizer
     
@@ -1267,19 +1267,21 @@ def plot_histogram_activations(model, X = None, Y = None, show = True, bins = 10
     if not isinstance(Y, list):
         Y = [Y]
     
-    if hasattr(Y[0], 'numpy'):
-        Y = [y.numpy() for y in Y]
-        
     # Find max and min values of Y to use the same bins for all 
     # [Errata]: Instead of max/min, use +- 3 stds
 
     # min_value = min([y.min() for y in Y])
     # max_value = max([y.max() for y in Y])
-    min_value = min([np.mean(y) - 3*np.std(y) for y in Y])
-    max_value = max([np.mean(y) + 3*np.std(y) for y in Y])
+    _mins = [tf.reduce_mean(y) - 3*tf.math.reduce_std(y) for y in Y]
+    _maxs = [tf.reduce_mean(y) + 3*tf.math.reduce_std(y) for y in Y]
+    min_value = tf.reduce_min(_mins)
+    max_value = tf.reduce_max(_maxs)
     if isinstance(bins, int) and sharex:
         bins = np.linspace(min_value, max_value, bins)
 
+    if hasattr(Y[0], 'numpy'):
+        Y = [y.numpy() for y in Y]
+        
     # Plot histogram of each layers' weights
     num_outputs = len(Y)
     fig, axs = plt.subplots(num_outputs, 1, figsize=(10, 5*num_outputs), sharex=sharex)
@@ -1287,11 +1289,16 @@ def plot_histogram_activations(model, X = None, Y = None, show = True, bins = 10
     if not isinstance(axs, np.ndarray):
         axs = [axs]
 
+    onames = model.output_names
+
     for i, ax in enumerate(axs):
-        _max = np.mean(Y[i]) + 3*np.std(Y[i]) if not sharex else max_value
-        _min = np.min(Y[i]) - 3*np.std(Y[i]) if not sharex else min_value
+        if verbose: netsurf.utils.log._custom('PLT', f'Plotting histogram for activation {onames[i]}')
+        # _max = np.mean(Y[i]) + 3*np.std(Y[i]) if not sharex else max_value
+        # _min = np.min(Y[i]) - 3*np.std(Y[i]) if not sharex else min_value
+        _max = _maxs[i].numpy()
+        _min = _mins[i].numpy()
         plot_quantized_histogram(Y[i], Q, ax = ax, bins = bins, 
-                                title = f'Layer {i+1} {model.outputs[i].name} (Out)',
+                                title = f'{onames[i]} (Out)',
                                 min_value = _min, max_value = _max)
 
     if show:
@@ -1361,6 +1368,11 @@ def plot_avg_and_std(values, window, ax, shadecolor = 'red', alpha = 0.5, ylabel
     for i in [1,3,5]:
         ax.fill_between(np.arange(len(running_avg)), running_avg - i*running_std, running_avg + i*running_std, 
                             color=shadecolor, alpha=alpha/i, label=f'±{i}std')
+    # If the range of data is greater than 2/3 times the mean of the std, 
+    # and if the range spans at least two order of magnitudes, set yscale to log
+    if (np.abs(np.max(values) - np.min(values)) > 2*np.mean(running_std)) and (np.abs(np.max(values) - np.min(values)) > 1e2):
+        ax.set_yscale('log')
+        ylabel += ' (log scale)'
     # legend outside the plot 
     ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
     turn_grids_on(ax)
