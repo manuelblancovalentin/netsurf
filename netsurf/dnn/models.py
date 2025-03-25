@@ -323,6 +323,9 @@ class QModel(tf.keras.Model):
         if metrics:
             if isinstance(metrics[0], str):
                 metrics = netsurf.dnn.metrics.parse_metrics(metrics)
+        
+        # Optimizer
+        optimizer = self._config['optimizer'] if optimizer is None else optimizer
 
         super().compile(loss = loss, optimizer = optimizer, metrics = metrics)
 
