@@ -124,6 +124,11 @@ class ResultSpace(pd.DataFrame):
             loss_index = columns.index('loss')
             columns = columns[:loss_index+1] + metrics + columns[loss_index+1:]
 
+        # We need to make sure that we have a column with the loss itself (this is, that the column name is <loss_name>)
+        if loss_name not in columns:
+            columns.insert(columns.index('loss')+1, loss_name)
+            
+
         init = False 
         if data is None:
             init = True 

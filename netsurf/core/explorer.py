@@ -1510,7 +1510,7 @@ class ModelContainer(Bucket):
 
     def plot_methodwise(self, type, x = 'ber', y = 'mean', hue = 'protection', 
                      axs = None, colors = None, 
-                     xrange = None, yrange = None, 
+                     xrange = None, yrange = None, metric = None,
                      xlabel = 'Bit-Error Rate (BER)', ylabel = 'Accuracy', 
                      info_label = None, standalone = True, **kwargs):
 
@@ -1524,7 +1524,13 @@ class ModelContainer(Bucket):
             colors = self.hyperspace_global_config[f'{hue}_colors'] if f'{hue}_colors' in self.hyperspace_global_config._keys else None
         if xrange is None:
             xrange = self.hyperspace_global_config[x] if x in self.hyperspace_global_config._keys else None
-        metric = self.hyperspace_global_config['loss'] if 'loss' in self.hyperspace_global_config._keys else 'mse'
+        
+        if metric is not None:
+            # check if exists in hyperspace_global_config
+            if metric not in self.hyperspace_global_config._keys:
+                metric = None
+        if metric is None:
+            metric = self.hyperspace_global_config['loss'] if 'loss' in self.hyperspace_global_config._keys else 'mse'
         if yrange is None:
             yrange = self.hyperspace_global_config[metric] if metric in self.hyperspace_global_config._keys else None
 
@@ -1778,6 +1784,7 @@ class ExperimentWrapper(HierarchicalContainer):
         self.level = level
         self.type = 'experiment'
         self.metadata = metadata
+        self.is_running = False
 
         # Set hyperspace_global_config
         self.hyperspace_global_config = hyperspace_global_config if isinstance(hyperspace_global_config, HyperspaceConfig) else HyperspaceConfig('global', **kwargs)
@@ -1795,7 +1802,7 @@ class ExperimentWrapper(HierarchicalContainer):
         self.status, self.coverage, self.coverage_progress, self.coverage_table = self.update_experiment_status()
 
         # Get the plotter
-        self.plotter = self.build_plotter(**kwargs)
+        self.plotter = self.build_plotters(**kwargs)
 
         # In this particular case, the local metrics are the same as the global metrics
         self.structure_config = {**self.structure_config, **self.get_structural_global_metrics()}
@@ -2010,10 +2017,14 @@ class ExperimentWrapper(HierarchicalContainer):
         return config
 
     """ Build plotter for results """
-    def build_plotter(self, **kwargs):
-        # Get the metric from netsurf.config for this benchmark
-        metric = 'accuracy'
-        if 'loss' in self.results:
+    def build_plotters(self, **kwargs):
+        # Get plotters for loss + metrics
+        metric = 'loss'
+        if self.results._loss:
+            metric = self.results._loss
+            if metric not in self.results:
+                metric = 'loss'
+        elif 'loss' in self.results:
             if len(self.results['loss']) > 0:
                 try:
                     metric = self.results['loss'].mode()[0]
@@ -2021,18 +2032,29 @@ class ExperimentWrapper(HierarchicalContainer):
                     print(e)
         elif 'loss' in self.structure_config:
             metric = self.structure_config['loss']
-
         elif 'benchmark' in self.structure_config:
             b = self.structure_config['benchmark']
             if b in netsurf.config.BENCHMARKS_CONFIG:
                 metric = netsurf.config.BENCHMARKS_CONFIG[b].get('loss', 'accuracy')
         # Build plotter
-        plotter = netsurf.gui.plotter.ExperimentsPlotter(self.results, metric = metric, structure_config = self.structure_config, **kwargs)
-        return plotter
+        loss_plotter = netsurf.gui.plotter.ExperimentsPlotter(self.results, metric = metric, structure_config = self.structure_config, **kwargs)
+
+        # Now for metrics 
+        plotters = {'loss': loss_plotter}
+        for m in self.results._metrics:
+            if m.lower() not in self.results:
+                if m in self.results:
+                    plotters[m] = netsurf.gui.plotter.ExperimentsPlotter(self.results, metric = m, structure_config = self.structure_config, **kwargs)
+                else:
+                    continue
+            else:
+                plotters[m.lower()] = netsurf.gui.plotter.ExperimentsPlotter(self.results, metric = m.lower(), structure_config = self.structure_config, **kwargs)
+            
+        return plotters
 
     """ Plotting functions (will delegate this to the plotter, but we need this access thru here) """
     def plot_curves(self, type, *args, x = 'ber', y = 'mean', hue = 'protection', axs = None, colors = None, 
-                        xrange = None, yrange = None, 
+                        xrange = None, yrange = None, metric = None,
                         xlabel = 'Bit-Error Rate (BER)', ylabel = 'Accuracy', 
                         info_label = None, standalone = True, **kwargs):
         
@@ -2051,7 +2073,13 @@ class ExperimentWrapper(HierarchicalContainer):
             colors = self.hyperspace_global_config[f'{hue}_colors'] if f'{hue}_colors' in self.hyperspace_global_config._keys else None
         if xrange is None:
             xrange = self.hyperspace_global_config[x] if x in self.hyperspace_global_config._keys else None
-        metric = self.hyperspace_global_config['loss'] if 'loss' in self.hyperspace_global_config._keys else 'mse'
+        
+        if metric is not None:
+            # check if exists in hyperspace_global_config
+            if metric not in self.hyperspace_global_config._keys:
+                metric = None
+        if metric is None:
+            metric = self.hyperspace_global_config['loss'] if 'loss' in self.hyperspace_global_config._keys else 'mse'
         if yrange is None:
             yrange = self.hyperspace_global_config[metric] if metric in self.hyperspace_global_config._keys else None
 
@@ -2082,9 +2110,9 @@ class ExperimentWrapper(HierarchicalContainer):
             fig = axs[0].figure
 
         # Make sure the plotter.aucs is not empty 
-        if hasattr(self.plotter, 'aucs'):
-            if len(self.plotter.aucs) > 0 and (~self.results['loss'].isna()).any():
-                _fig, _ax, _t, _lines = getattr(self.plotter,fcn)(ax = axs[0], x = 'ber', y = 'mean', hue = 'protection', colors = colors,
+        if hasattr(self.plotter[metric], 'aucs'):
+            if len(self.plotter[metric].aucs) > 0 and (~self.results['loss'].isna()).any():
+                _fig, _ax, _t, _lines = getattr(self.plotter[metric],fcn)(ax = axs[0], x = 'ber', y = 'mean', hue = 'protection', colors = colors,
                                                         xrange = xrange, yrange = yrange,
                                                         xlabel = xlabel, ylabel = ylabel,
                                                         info_label = info_label, 

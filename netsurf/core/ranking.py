@@ -1724,7 +1724,7 @@ class QPolarWeightRanker(WeightRanker):
 
     @property
     def alias(self):
-        return 'QPolar'
+        return 'qpolar'
 
 
 class QPolarGradWeightRanker(QPolarWeightRanker, GradRanker):
@@ -1797,6 +1797,10 @@ class QPolarGradWeightRanker(QPolarWeightRanker, GradRanker):
 
     def rank(self, model, X, Y, ascending=False, **kwargs):
         return QPolarWeightRanker.rank(self, model, X, Y, ascending, **kwargs)
+
+    @property
+    def alias(self):
+        return 'qpolargrad'
 
 
 

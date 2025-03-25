@@ -327,7 +327,7 @@ class Benchmark:
                 pruning = None
                 netsurf.err('Pruning factor must be a float between 0.0 and 1.0, setting it to None')
         
-        self.pruning_factor, _ =  netsurf.utils.get_pruning_factor(self.model_full_name) if pruning is None else (pruning,None)
+        self.pruning_factor, _ =  netsurf.utils.get_pruning_factor(self.model_name) if pruning is None else (pruning,None)
         self.total_num_params = self.model.count_trainable_parameters() - self.model.count_pruned_parameters()
         
         # if pruning_factor > 0.0 add to model full name

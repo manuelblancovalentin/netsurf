@@ -77,7 +77,7 @@ def plot_boxplot(subplotters,
         # Loop thru configs 
         for config in subplotters[method]:
             # Get the plotter obj
-            plotter = subplotters[method][config]
+            plotter = subplotters[method][config][metric]
             # Get the vuc
             VUCs += [{'method': method, 'config': config, **plotter.vus.loc['vus'].to_dict()}]
 
@@ -93,8 +93,8 @@ def plot_boxplot(subplotters,
 
     # Create color mapper 
     # Get the min and max values
-    vmin = (df['median'] - df['std']).min()
-    vmax = (df['median'] + df['std']).max()
+    vmin = (df['mean'] - df['std']).min()
+    vmax = (df['mean'] + df['std']).max()
     # Create a color palette
     cmap = plt.get_cmap(cmap)
     # Normalize the values
@@ -159,6 +159,7 @@ def plot_boxplot(subplotters,
         
             config = row['config']
             median = row['median']
+            mean = row['mean']
             std = row['std']
             max = row['max']
             min = row['min']
@@ -167,7 +168,7 @@ def plot_boxplot(subplotters,
             x = i*(bar_w + bar_space) + j*bar_w
             
             # Now get all four coordinates, for simplicity 
-            x0, x1, y0, y1, ym = x, x + bar_w, median - std, median + std, median
+            x0, x1, y0, y1, ym = x, x + bar_w, mean - std, mean + std, mean
 
             # Get this bar's value
             c = color_mapper(y1)
@@ -200,7 +201,7 @@ def plot_boxplot(subplotters,
 
             """ Add whiskers now """
             # Top whisker 
-            wx0, wx1, wy0, wy1 = x + bar_w/2 - lw/2, x + bar_w/2 + lw/2, median + std, max
+            wx0, wx1, wy0, wy1 = x + bar_w/2 - lw/2, x + bar_w/2 + lw/2, mean + std, max
             # try this with a patch instead of a line 
             warnings.filterwarnings("ignore")
             ax.imshow([[wy1, wy1], [wy0, wy0]], 
@@ -220,7 +221,7 @@ def plot_boxplot(subplotters,
             ax.plot([x + bar_w/2 - lw, x + bar_w/2 + lw], [wy0, wy0], color='k', linewidth = 0.1)
 
             # Bottom whisker 
-            wx0, wx1, wy0, wy1 = x + bar_w/2 - lw/2, x + bar_w/2 + lw/2, min, median - std
+            wx0, wx1, wy0, wy1 = x + bar_w/2 - lw/2, x + bar_w/2 + lw/2, min, mean - std
             # try this with a patch instead of a line 
             warnings.filterwarnings("ignore")
             ax.imshow([[wy1, wy1], [wy0, wy0]], 
@@ -265,7 +266,8 @@ def plot_boxplot(subplotters,
             #boxes.append([ptop, pbot])
 
             # Add a label on top of the box with the value of the VUS
-            ax.text(x + bar_w/2, max + label_new_line_height/2, f'{median:.3f}', ha='center', va='bottom', fontsize=9)
+            ax.text(x + bar_w/2, max + label_new_line_height/2, f'{max:.3f}', ha='center', va='bottom', fontsize=9)
+            ax.text(x + bar_w/2, min - label_new_line_height/2, f'{min:.3f}', ha='center', va='top', fontsize=9)
 
             # Add xlabel to list 
             xticks += [x + bar_w/2]
@@ -275,15 +277,15 @@ def plot_boxplot(subplotters,
             xticklabels += [f'{sp}{mstr}\n{config}' if nconfigs > 1 else f'{sp}{mstr}']
 
             # Add a line to connect the bar to the xticklabel underneath (only if i+j is odd)
-            if (i+j) % 2 == 1:
-                line = mlines.Line2D(
-                    [x + bar_w/2, x + bar_w/2],           # x-coordinates
-                    [-label_new_line_height, 2*label_new_line_height],        # y-coordinates (outside the plot area)
-                    color="black",
-                    lw=0.8
-                )
-                line.set_clip_on(False)  # Ensure the line is not clipped by the axis
-                ax.add_artist(line)     # Add the line as an artist
+            # if (i+j) % 2 == 1:
+            #     line = mlines.Line2D(
+            #         [x + bar_w/2, x + bar_w/2],           # x-coordinates
+            #         [-label_new_line_height, 2*label_new_line_height],        # y-coordinates (outside the plot area)
+            #         color="black",
+            #         lw=0.8
+            #     )
+            #     line.set_clip_on(False)  # Ensure the line is not clipped by the axis
+            #     ax.add_artist(line)     # Add the line as an artist
 
     # Set grid to dashed and also turn minor grid on
     ax.grid(which='major', linestyle='--')
@@ -364,7 +366,12 @@ def plot_barplot(subplotters,
             # Get the plotter obj
             plotter = subplotters[method][config]
             # Get the vuc
-            VUCs += [{'method': method, 'config': config, 'vus': plotter.vus.loc['vus'][y]}]
+            if metric not in plotter.keys():
+                metric = None
+            if metric is None:
+                metric = list(plotter.keys())[0]
+        
+            VUCs += [{'method': method, 'config': config, 'vus': plotter[metric].vus.loc['vus'][y]}]
 
     # Convert VUCs to a dataframe
     df = pd.DataFrame(VUCs)
@@ -1076,6 +1083,45 @@ class ExperimentsPlotter:
         return pd.DataFrame(aucs)
 
 
+    def triangle_based_volume(self, points):
+        """ Compute the volume under the curve using the triangle method """
+        # First form two triangles T1 = (p0, p1, p2) and T2 = (p1, p2, p3)
+        # Each triangle spans an area in the XY-plane, and the “height” at each vertex is the Z value.
+        # The volume of each tetrahedron is the volume of the prism spanned by the triangle and the Z value at the fourth point.
+        # The volume of the tetrahedron is 1/6 of the absolute value of the scalar triple product of the vectors formed by the three points.
+        if len(points) == 0:
+            return 0.0
+        # Ensure the input is a NumPy array
+        points = np.array(points)
+
+        # Ensure we have the right dimensions
+        if len(points) < 4:
+            return 0.0
+
+        # Then define your tetrahedra as:
+        (x0, y0, z00), (x1, y0, z10), (x0, y1, z01), (x1, y1, z11) = points
+        
+        # The base of the tetrahedron is the triangle formed by the first three points
+        P0 = np.array([x0, y0, z00])
+        P1 = np.array([x0, y1, z01])
+        P2 = np.array([x1, y0, z10])
+        P3 = np.array([x1, y1, z11])
+
+        # Bases of the tetrahedra
+        B0 = np.array([x0, y0, 0.0])
+        B1 = np.array([x0, y1, 0.0])
+        B2 = np.array([x1, y0, 0.0])
+        B3 = np.array([x1, y1, 0.0])
+
+        # Now we can compute each tetrahedron volume independently 
+        V1 = self.tetrahedron_volume((P0, P1, P2, B0))
+        V2 = self.tetrahedron_volume((P1, P2, P3, B3))
+
+        # The volume is the sum of the two tetrahedra
+        volume = V1 + V2
+        return volume
+
+
     # Compute the volume under the curve using the tetrahedron method
     def tetrahedron_volume(self, points):
         """
@@ -1147,12 +1193,12 @@ class ExperimentsPlotter:
                                 mean = mean[0]
                                 points.append((xx, yy, mean))
                                 minz = min(minz, mean)
-                        
-                                # We need to add the minimum volume of the column below the lowest point in Z
-                                _min_vol = minz * abs(x[i+1] - x[i]) * abs(y[j+1] - y[j])
 
-                                # Compute the volume
-                                _volume += (self.tetrahedron_volume(points) + _min_vol)
+                        # We need to add the minimum volume of the column below the lowest point in Z
+                        _min_vol = minz * abs(x[i+1] - x[i]) * abs(y[j+1] - y[j])
+
+                        # Compute the volume
+                        _volume += (self.tetrahedron_volume(points) + _min_vol)
 
                 if _volume > 0:
                     # We need to normalize over the maximum possible
