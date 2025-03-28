@@ -498,6 +498,57 @@ class QQApplyAlpha(tf.keras.layers.Layer):
         
         return output
 
+    # Compute impact 
+    def compute_impact(self, X, N = None, batch_size = None, **kwargs):
+        if N is None:
+            N = Attack(N = None, variables = {self.alpha.name: self.alpha_delta, 
+                                              self.beta.name: self.beta_delta})
+        
+        if batch_size is None:
+            batch_size = tf.shape(X)[0]
+        # Compute the deltas
+        self.compute_deltas()
+
+        # compute num batches
+        num_batches = int(tf.math.ceil(tf.cast(tf.shape(X)[0], tf.float32) / batch_size))
+
+        # Calculate P
+        P = {}
+        for prop in self._QPROPS:
+            # Check if prop exists
+            if hasattr(self, prop):
+                prop_val = getattr(self, prop)
+                prop_shape = prop_val.shape
+                # Compute the impact
+                if prop == 'alpha':
+                    P_d = []
+                    # Loop over batch_size
+                    for i in range(self.quantizer.m):
+                        P_bit = []
+                        # Loop over the bits 
+                        for b in range(num_batches):
+                            # Compute the impact of the attack
+                            P_bit.append(X[b*batch_size:(b+1)*batch_size] * (self.alpha_delta[...,i] * N[self.alpha.name][...,i]))
+                        # Concat over 0 
+                        P_d.append(tf.concat(P_bit, axis = 0))
+
+                    # Stack
+                    P_d = tf.stack(P_d, axis = len(X.shape))
+
+                    # We need to average over all dimensions but 0 and last 
+                    if len(X.shape) > 2:
+                        P_d = tf.reduce_mean(P_d, axis = tuple(range(1, len(X.shape))))
+
+                    pname = self.alpha.name
+                elif prop == 'beta':
+                    # Compute the impact of the attack
+                    P_d = self.beta_delta * N[self.beta.name]
+                    pname = self.beta.name
+                P[pname] = P_d
+        
+        return P
+            
+
     def get_config(self):
         """
         Allows the layer to be serialized (e.g., when saving a model).
@@ -612,28 +663,6 @@ class WeightLayer:
                     
             # Now the N variables
             attr_name = f'{prop}_N'
-        
-        # self.kernel_delta = self.add_weight('kernel_delta',
-        #     shape = self.kernel.shape + (self.quantizer.m,),
-        #     initializer = 'zeros',
-        #     trainable = False)
-        
-        # self.kernel_N = self.add_weight('kernel_N',
-        #     shape = self.kernel.shape + (self.quantizer.m,),
-        #     initializer = 'zeros',
-        #     trainable = False)
-        
-        # # Same for bias 
-        # self.bias_delta = self.add_weight('bias_delta',
-        #     shape = self.bias.shape + (self.quantizer.m,),
-        #     initializer = 'zeros',
-        #     trainable = False)
-        
-        # self.bias_N = self.add_weight('bias_N',
-        #     shape = self.bias.shape + (self.quantizer.m,),
-        #     initializer = 'zeros',
-        #     trainable = False)
-    
 
     """ Method to compute the deltas """
     def compute_deltas(self):
@@ -646,16 +675,6 @@ class WeightLayer:
                 prop_delta = self.quantizer.compute_delta_matrix(prop_q)
                 getattr(self, f'{prop}_delta').assign(prop_delta)
 
-        # # Compute the deltas
-        # kernel_q = self.quantizer(self.kernel)
-        # kernel_delta = self.quantizer.compute_delta_matrix(kernel_q)
-        # self.kernel_delta.assign(kernel_delta)
-
-        # # Now bias 
-        # bias_q = self.quantizer(self.bias)
-        # bias_delta = self.quantizer.compute_delta_matrix(bias_q)
-        # self.bias_delta.assign(bias_delta)
-    
     def _dense_call(self, X, training = False, W = None, b = None):
         if self.prune: self.apply_pruning() # Apply pruning masks before computation
         if W is None:
@@ -713,6 +732,10 @@ class WeightLayer:
             return self.attack(X, N, **kwargs)
         else:
             return self(X)
+    
+    """ Base method to compute the impact (this has to be implemented by child) """
+    def compute_impact(self, X, N = None, batch_size = None, **kwargs):
+        raise NotImplementedError("This method has to be implemented by the child class")
 
     # Serialize methods 
     def _serialize_conv(self, include_emojis: bool = True, **kwargs):
@@ -836,6 +859,59 @@ class QQDense(qkeras.QDense, _QQLayer, PrunableLayer, WeightLayer):
     # Attack method
     def attack(self, X, N = None, **kwargs):
         return WeightLayer._attack(self, X, N = N, **kwargs)
+    
+    # Compute the impact of the attack
+    def compute_impact(self, X, N = None, batch_size = None, **kwargs):
+        # Compute the impact of the attack
+        if N is None:
+            N = Attack(N = 1, variables = {self.kernel.name: self.kernel_delta,
+                                           self.bias.name: self.bias_delta})
+        # Make sure the deltas have been calculated
+        self.compute_deltas()
+
+        # if batch_size is None:
+        if batch_size is None:
+            batch_size = tf.shape(X)[0]
+        
+        # Compute num_batches
+        num_batches = tf.maximum(1, tf.shape(X)[0]//batch_size)
+
+        # Impact for dense layer is just:
+        # P_k = X @ delta_k*N 
+        # P_b = delta_b*N
+        P = {}
+        for prop in self._QPROPS:
+            # Check if prop exists
+            if hasattr(self, prop):
+                prop_val = getattr(self, prop)
+                prop_shape = prop_val.shape
+                # Compute the impact
+                if prop == 'kernel':
+                    P_d = []
+                    # Loop over batch_size
+                    for i in range(self.quantizer.m):
+                        P_bit = []
+                        # Loop over the bits 
+                        for b in range(num_batches):
+                            # Compute the impact of the attack
+                            P_bit.append(X[b*batch_size:(b+1)*batch_size] @ ((self.kernel_delta[...,i] * N[self.kernel.name][...,i])))
+                        # Concat over 0 
+                        P_d.append(tf.concat(P_bit, axis = 0))
+                    # Stack
+                    P_d = tf.stack(P_d, axis = len(self.kernel_delta.shape)-1)
+                    if len(X.shape) > 2:
+                        # We need to average over all dimensions but 0 and last 
+                        P_d = tf.reduce_mean(P_d, axis = tuple(range(1, len(X.shape))))
+                    pname = self.kernel.name
+                elif prop == 'bias':
+                    # Compute the impact of the attack
+                    P_d = self.bias_delta * N[self.bias.name]
+                    pname = self.bias.name
+                
+                P[pname] = P_d
+        
+        return P
+        
 
     # Serialize (for display)
     def serialize(self, **kwargs):
@@ -936,6 +1012,90 @@ class QQConv2D(qkeras.QConv2D, _QQLayer, PrunableLayer, WeightLayer):
     # Attack method
     def attack(self, X, N = None, **kwargs):
         return WeightLayer._attack(self, X, N = N, **kwargs)
+
+    def compute_conv2d_bitwise_impact(self, X, batch_size, delta_kernel, N_kernel, 
+                                   strides, padding, dilation_rate=(1, 1), 
+                                   data_format="channels_last"):
+        """
+        Compute per-bit impact of each weight in a Conv2D layer.
+        Returns a tensor of shape (kh, kw, in_channels, out_channels, n_bits)
+        with the L2 norm of the output perturbation from each bit.
+        """
+        kh, kw, cin, cout, n_bits = delta_kernel.shape
+        impact_map = np.zeros((kh, kw, cin, cout, n_bits), dtype=np.float32)
+
+        num_batches = int(tf.math.ceil(tf.cast(tf.shape(X)[0], tf.float32) / batch_size))
+
+        for i in range(kh):
+            for j in range(kw):
+                for inc in range(cin):
+                    for outc in range(cout):
+                        for k in range(n_bits):
+                            # Construct a kernel with delta at one position
+                            delta = np.zeros((kh, kw, cin, cout), dtype=np.float32)
+                            delta[i, j, inc, outc] = delta_kernel[i, j, inc, outc, k] * N_kernel[i, j, inc, outc, k]
+                            delta_tensor = tf.convert_to_tensor(delta, dtype=tf.float32)
+
+                            for b in range(num_batches):
+                                x_batch = X[b*batch_size:(b+1)*batch_size]
+                                conv_out = tf.nn.conv2d(
+                                    x_batch,
+                                    delta_tensor,
+                                    strides=[1, *strides, 1],
+                                    padding=padding.upper(),
+                                    dilations=[1, *dilation_rate, 1],
+                                    data_format='NHWC' if data_format == 'channels_last' else 'NCHW'
+                                )
+
+                                # L2 norm = total impact of that bit
+                                impact_map[i, j, inc, outc, k] += tf.norm(conv_out).numpy()
+                            
+                            # Normalize over num_batches
+                            impact_map[i, j, inc, outc, k] /= num_batches
+
+        return impact_map
+
+    # Compute the impact of the attack
+    def compute_impact(self, X, N = None, batch_size = None, **kwargs):
+        # Compute the impact of the attack
+        if N is None:
+            N = Attack(N = 1, variables = {self.kernel.name: self.kernel_delta, 
+                                           self.bias.name: self.bias_delta})
+        # Make sure the deltas have been calculated
+        self.compute_deltas()
+
+        if batch_size is None:
+            batch_size = tf.shape(X)[0]
+        
+        # Impact for conv layers is just:
+        # P_k = X * delta_k*N  (where * represents convolution, remember conv is a distributive operator)
+        # P_b = delta_b*N
+        P = {}
+        for prop in self._QPROPS:
+            # Check if prop exists
+            if hasattr(self, prop):
+                prop_val = getattr(self, prop)
+                prop_shape = prop_val.shape
+                # Compute the impact
+                if prop == 'kernel':
+                    # Compute the impact of the attack as the conv (per bit)
+                    P_d = self.compute_conv2d_bitwise_impact(X, batch_size, 
+                                                             self.kernel_delta, 
+                                                             self.kernel_N, 
+                                                             self.strides,
+                                                             self.padding, 
+                                                             dilation_rate=self.dilation_rate,
+                                                             data_format = self.data_format)
+
+                    pname = self.kernel.name
+                elif prop == 'bias':
+                    # Compute the impact of the attack
+                    P_d = self.bias_delta * N[self.bias.name]
+                    pname = self.bias.name
+                # Add to the dict
+                P[pname] = P_d
+        
+        return P
 
     # Serialize
     def serialize(self, **kwargs):
@@ -1079,19 +1239,109 @@ class QQConv2DTranspose(qkeras.QConv2DTranspose, _QQLayer, PrunableLayer, Weight
             filters=self.filters,
             kernel_size=self.kernel_size,
             strides=self.strides,
-            padding=self.padding.upper(),
+            padding=self.padding,
             output_padding=self.output_padding,
             dilation_rate=self.dilation_rate
         ).compute_output_shape(X.shape)
 
         # Add some kwargs
-        return WeightLayer._conv_call(self, tf.nn.tf.nn.conv2d_transpose, X, output_shape = output_shape, 
-                                      **kwargs, strides=self.strides, padding=self.padding.upper())
+        ## [@manuelbv]: NOTE: THE REASON WHY WE ARE USING tf.keras.backend.conv2d_transpose here, instead of 
+        # tf.nn.conv2d_transpose is because the latter does not fully support the output_shape to be dynamic 
+        # (that is, not knowing what the batch_size is gonna be). 
+        return WeightLayer._conv_call(self, tf.keras.backend.conv2d_transpose, X, output_shape = output_shape, 
+                                      **kwargs, strides=self.strides, padding=self.padding)
     
     # Attack method
     def attack(self, X, N = None, **kwargs):
         return WeightLayer._attack(self, X, N = N, **kwargs)
     
+    def compute_conv2dtranspose_bitwise_impact(self, X, batch_size, delta_kernel, N_kernel, 
+                                           kernel_size, strides, padding, filters,
+                                           dilation_rate=(1, 1), data_format="channels_last"):
+        """
+        Compute per-bit impact of each weight in a Conv2DTranspose layer.
+        Returns a tensor of shape (kh, kw, in_channels, out_channels, n_bits)
+        with the L2 norm of the output perturbation from each bit.
+        """
+        kh, kw, cin, cout, n_bits = delta_kernel.shape
+        impact_map = np.zeros((kh, kw, cin, cout, n_bits), dtype=np.float32)
+
+        num_batches = int(tf.math.ceil(tf.shape(X)[0]/batch_size))
+
+        for i in range(kh):
+            for j in range(kw):
+                for inc in range(cin):
+                    for outc in range(cout):
+                        for k in range(n_bits):
+                            delta = np.zeros((kh, kw, cin, cout), dtype=np.float32)
+                            delta[i, j, inc, outc] = delta_kernel[i, j, inc, outc, k] * N_kernel[i, j, inc, outc, k]
+                            delta_tensor = tf.convert_to_tensor(delta, dtype=tf.float32)
+
+                            for b in range(num_batches):
+                                x_batch = X[b*batch_size:(b+1)*batch_size]
+                                
+                                # Compute output shape
+                                height = (x_batch.shape[1] - 1) * strides[0] + kernel_size[0]
+                                width = (x_batch.shape[2] - 1) * strides[1] + kernel_size[1]
+                                output_shape = tf.stack([x_batch.shape[0], height, width, filters])
+
+                                conv_out = tf.nn.conv2d_transpose(
+                                    x_batch,
+                                    delta_tensor,
+                                    output_shape=output_shape,
+                                    strides=[1, *strides, 1],
+                                    padding=padding.upper(),
+                                    dilations=[1, *dilation_rate, 1],
+                                    data_format='NHWC' if data_format == 'channels_last' else 'NCHW'
+                                )
+
+                                # Store L2 norm of the resulting output change
+                                impact_map[i, j, inc, outc, k] += tf.norm(conv_out).numpy()
+                            
+                            # Normalize the impact map
+                            impact_map[i, j, inc, outc, k] /= num_batches
+
+        return impact_map
+
+    # Compute the impact of the attack
+    def compute_impact(self, X, N = None, batch_size = None, **kwargs):
+        if N is None:
+            N = Attack(N = 1, variables = {self.kernel.name: self.kernel_delta,
+                                             self.bias.name: self.bias_delta})
+        # Make sure the deltas have been calculated
+        self.compute_deltas()
+
+        if batch_size is None:
+            batch_size = tf.shape(X)[0]
+        
+        # Compute num_batches
+        num_batches = int(tf.math.ceil(tf.shape(X)[0]/batch_size))
+
+        P = {}
+        for prop in self._QPROPS:
+            # Check if prop exists
+            if hasattr(self, prop):
+                prop_val = getattr(self, prop)
+                prop_shape = prop_val.shape
+                # Compute the impact
+                if prop == 'kernel':
+                    P_d = self.compute_conv2dtranspose_bitwise_impact(X, 
+                                                                      batch_size,
+                                                                self.kernel_delta, 
+                                                                N[self.kernel.name], 
+                                                                kernel_size=self.kernel_size,
+                                                                strides=self.strides,
+                                                                padding='valid',
+                                                                filters = self.filters,
+                                                                dilation_rate=self.dilation_rate,
+                                                                data_format=self.data_format)
+                    pname = self.kernel.name
+                elif prop == 'bias':
+                    P_d = self.bias_delta * N[self.bias.name]
+                    pname = self.bias.name
+                
+                P[pname] = P_d
+
     def serialize(self, **kwargs):
         return WeightLayer._serialize_conv(self, **kwargs)
 
@@ -1142,7 +1392,7 @@ class QQConv3DTranspose(tf.keras.layers.Conv3DTranspose, _QQLayer, PrunableLayer
         ).compute_output_shape(X.shape)
 
         # Add some kwargs
-        return WeightLayer._conv_call(self, tf.nn.tf.nn.conv3d_transpose, X, output_shape = output_shape, 
+        return WeightLayer._conv_call(self, tf.nn.conv3d_transpose, X, output_shape = output_shape, 
                                       **kwargs, strides=self.strides, padding=self.padding.upper())
     
     # Attack method
@@ -1371,6 +1621,58 @@ class QQBatchNormalization(qkeras.QBatchNormalization, _QQLayer, PrunableLayer, 
 
         else:
             return self(X)
+    
+    def compute_impact(self, X, N=None, batch_size=None, **kwargs):
+        # Impact for batchnorm is similar to dense layer, but even easier
+        # P_k = X * delta_k*N
+        # P_b = delta_b*N
+        if N is None:
+            N = Attack(N=1, variables={self.gamma.name: self.gamma_delta, 
+                                       self.beta.name: self.beta_delta})
+        # Make sure the deltas have been calculated
+        self.compute_deltas()
+
+        if batch_size is None:
+            batch_size = tf.shape(X)[0]
+        
+        # Compute num_batches
+        num_batches = tf.maximum(1, tf.shape(X)[0]//batch_size)
+
+        # We need to remove mean and divide by stddev
+        # Get the mean and std of the activations
+        mean = np.mean(X, axis = 0)
+        std = np.std(X, axis = 0)
+        # Renormalize
+        X = (X - mean)/std
+
+        P = {}
+        for prop in self._QPROPS:
+            # Check if prop exists
+            if hasattr(self, prop):
+                prop_val = getattr(self, prop)
+                prop_shape = prop_val.shape
+                # Compute the impact
+                if prop == 'gamma':
+                    P_d = []
+                    for i in range(self.gamma_delta.shape[-1]):
+                        P_bit = []
+                        for b in range(num_batches):
+                            P_dd = X[b*batch_size:(b+1)*batch_size] * self.gamma_delta[...,i] * N[self.gamma.name][...,i]
+                            P_bit.append(P_dd)
+                        # Concat over axis 0
+                        P_bit = tf.concat(P_bit, axis = 0)
+                        P_d.append(P_bit)
+                    # Stack
+                    P_d = tf.stack(P_d, axis = len(self.gamma_delta.shape) - 1)
+                    pname = self.gamma.name
+                elif prop == 'beta':
+                    P_d = self.beta_delta * N[self.beta.name]
+                    pname = self.beta.name
+                
+                P[pname] = P_d
+        
+        return P
+
 
     def serialize(self, **kwargs):
         return WeightLayer._serialize_batchnorm(self, **kwargs)

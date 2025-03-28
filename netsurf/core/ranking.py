@@ -1596,73 +1596,15 @@ class QPolarWeightRanker(WeightRanker):
 
             act = corrupted_activations[input_tensor]
 
-            # Get the delta for this layer for anything that has this as an input, any variable inside this layer
-            for v in ly.trainable_variables:
-                vname = v.name
-                if vname not in deltas:
-                    continue 
-            
-                delta = deltas[vname]
-                # Act will be in the shape (batch_size, s, *)
-                # delta will be in the shape (s, *)
-                # so we need to broadcast one to the other 
-                delta = delta[None,...]
-                if act.shape[1:] != delta.shape[1:]:
-                    subact = np.reshape(act, act.shape + tuple([1]*len(delta.shape[2:])))
-                else:
-                    subact = act*1.0
+            if hasattr(ly, 'compute_impact'):
+                # Just compute the impact by directly calling the layer's method 
+                impact = ly.compute_impact(act, batch_size = batch_size)
 
-                # If this is a batchnorm layer, we need to first renormalize subact 
-                if 'batch_normalization' in ly.name:
-                    # Get the mean and std of the activations
-                    mean = np.mean(subact, axis = 0)
-                    std = np.std(subact, axis = 0)
-                    # Renormalize
-                    subact = (subact - mean)/std
-
-                
-                # Let's parse the name 
-                pvname = vname.split('/')[1].split(':')[0]
-                
-                # Some vars require computation of impact (X*delta, for kernel/alpha/..., while others
-                # don't, like bias/beta/...)
-                if pvname in ['kernel', 'alpha', 'gamma']:
-                    # Compute the impact per batch (so memory oesn't blow up)
-                    subimpact = np.zeros(delta.shape[1:])
-                    # Create tqdm pbar 
-                    
-                    #for i in tqdm(range(num_batches), total = num_batches, desc = f'Computing impact for {vname}'):
-                    for i in range(num_batches):
-                        if i%10 == 0:
-                            print(f'Computing impact for {vname} - Batch {i}/{num_batches-1}')
-                        # Get the batch
-                        actb = subact[i*batch_size:(i+1)*batch_size]
-
-                        # Compute the impact
-                        impact = actb*delta
-
-                        # Average per batch
-                        subimpact += np.sum(impact, axis = 0)
-
-                    # Average out
-                    subimpact /= (num_batches*batch_size)
-                
-                elif pvname in ['bias','beta']:
-                    print(f'Computing impact for {vname}')
-                    # subimpact is simply the delta
-                    subimpact = delta[0] if delta.shape[0] == 1 else delta
-                
-                else:
-                    raise ValueError(f'Variable {vname} not supported for impact computation')
-
-
-                # fig, ax = plt.subplots(1,1, figsize = (10,10))
-                # ax.hist(subimpact.flatten(), bins = 100)
-                # ax.set_title(f'Impact for {vname}')
-                # plt.show()
-
-                P[vname] = subimpact
-
+                # Compute avg and std per batch 
+                impact_std = {kw: np.std(v, axis = 0) for kw, v in impact.items()}
+                impact = {kw: np.mean(v, axis = 0) for kw, v in impact.items()}
+                # Store in P
+                P = {**P, **impact}
 
         # Plot histogram for each P
         # import matplotlib.pyplot as plt
