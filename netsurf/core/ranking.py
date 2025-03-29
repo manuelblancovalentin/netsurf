@@ -1597,12 +1597,11 @@ class QPolarWeightRanker(WeightRanker):
             act = corrupted_activations[input_tensor]
 
             if hasattr(ly, 'compute_impact'):
+                # Print message
+                netsurf.info(f'Computing impact for layer {ily} ({ly.name})')
                 # Just compute the impact by directly calling the layer's method 
                 impact = ly.compute_impact(act, batch_size = batch_size)
 
-                # Compute avg and std per batch 
-                impact_std = {kw: np.std(v, axis = 0) for kw, v in impact.items()}
-                impact = {kw: np.mean(v, axis = 0) for kw, v in impact.items()}
                 # Store in P
                 P = {**P, **impact}
 
@@ -1620,14 +1619,31 @@ class QPolarWeightRanker(WeightRanker):
 
         # Now let's turn the P into the table we want and add it to the df
         for vname, impact in P.items(): 
-            if impact.ndim == 3:
+            
+            if impact.ndim == 5:
+                # Make sure impact is a numpy array
+                impact = np.array(impact)
+                f_P = impact.transpose(3,0,1,2,4).flatten('F')
+            elif impact.ndim == 4:
+                # Make sure impact is a numpy array
+                impact = np.array(impact)
+                f_P = impact.transpose(2,0,1,3).flatten('F')
+            elif impact.ndim == 3:
+                impact = np.array(impact)
                 f_P = impact.transpose(1,0,2).flatten('F')
             elif impact.ndim == 2:
+                # Make sure impact is a numpy array
+                impact = np.array(impact)
                 f_P = impact.flatten('F')
+            else:
+                raise ValueError(f'Impact has invalid shape {impact.shape}.')
             
             # Sanity check
             # k = np.random.randint(len(df[df['param'] == vname])); print(k, ',', impact[tuple(df[df['param'] == vname]['coord'].iloc[k]) + (abs(df[df['param'] == vname]['bit'].iloc[k]),)], '?=', f_P[k])
-            df.loc[df[df['param'] == vname].index, 'impact'] = f_P
+            try:
+                df.loc[df[df['param'] == vname].index, 'impact'] = f_P
+            except:
+                print('stop here')
 
         # Plot the dist of impact
         # fig, ax = plt.subplots(1,1, figsize = (10,10))

@@ -501,7 +501,7 @@ class QQApplyAlpha(tf.keras.layers.Layer):
     # Compute impact 
     def compute_impact(self, X, N = None, batch_size = None, **kwargs):
         if N is None:
-            N = Attack(N = None, variables = {self.alpha.name: self.alpha_delta, 
+            N = Attack(N = 1, variables = {self.alpha.name: self.alpha_delta, 
                                               self.beta.name: self.beta_delta})
         
         if batch_size is None:
@@ -535,9 +535,9 @@ class QQApplyAlpha(tf.keras.layers.Layer):
                     # Stack
                     P_d = tf.stack(P_d, axis = len(X.shape))
 
-                    # We need to average over all dimensions but 0 and last 
-                    if len(X.shape) > 2:
-                        P_d = tf.reduce_mean(P_d, axis = tuple(range(1, len(X.shape))))
+                    # We need to average over all dimensions but last 
+                    if len(P_d.shape) > len(self.alpha.shape):
+                        P_d = tf.reduce_mean(P_d, axis = tuple(range(0, len(X.shape)-1)))
 
                     pname = self.alpha.name
                 elif prop == 'beta':
@@ -894,14 +894,14 @@ class QQDense(qkeras.QDense, _QQLayer, PrunableLayer, WeightLayer):
                         # Loop over the bits 
                         for b in range(num_batches):
                             # Compute the impact of the attack
-                            P_bit.append(X[b*batch_size:(b+1)*batch_size] @ ((self.kernel_delta[...,i] * N[self.kernel.name][...,i])))
+                            P_bit.append(X[b*batch_size:(b+1)*batch_size,...,None] * ((self.kernel_delta[...,i] * N[self.kernel.name][...,i])))
                         # Concat over 0 
                         P_d.append(tf.concat(P_bit, axis = 0))
                     # Stack
-                    P_d = tf.stack(P_d, axis = len(self.kernel_delta.shape)-1)
+                    P_d = tf.stack(P_d, axis = len(self.kernel_delta.shape))
                     if len(X.shape) > 2:
                         # We need to average over all dimensions but 0 and last 
-                        P_d = tf.reduce_mean(P_d, axis = tuple(range(1, len(X.shape))))
+                        P_d = tf.reduce_mean(P_d, axis = tuple(range(0, len(self.kernel.shape)-1)))
                     pname = self.kernel.name
                 elif prop == 'bias':
                     # Compute the impact of the attack
@@ -1341,6 +1341,7 @@ class QQConv2DTranspose(qkeras.QConv2DTranspose, _QQLayer, PrunableLayer, Weight
                     pname = self.bias.name
                 
                 P[pname] = P_d
+        return P
 
     def serialize(self, **kwargs):
         return WeightLayer._serialize_conv(self, **kwargs)

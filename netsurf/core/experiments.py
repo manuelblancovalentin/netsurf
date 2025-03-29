@@ -769,7 +769,7 @@ class Experiment:
         ranking.to_csv(filepath, index = False)
 
     """ Run experiment"""
-    def run_experiment(self, benchmark, 
+    def run_experiment(self, benchmark, XY = None,
                        batch_size = 10000, 
                        interlayer_mse = False,
                        rerun = False, verbose = True, 
@@ -826,67 +826,75 @@ class Experiment:
         # Log
         netsurf.utils.log._info(f'Experiment {self.name} started. Coverage: {100*coverage:3.1f}%')
 
-        # Get data 
-        dataset = benchmark.dataset.dataset['train']
-
-        # Apply pre-processing to data, if needed 
-        if hasattr(benchmark.model, 'preprocess_input'):
-            s0 = time.time()
-            netsurf.utils.log._info(f'Preprocessing input data...', end = '')
-            dset = benchmark.model.preprocess_input(dataset[0])
-            dataset = (dset, dataset[1])
-            print(f'done in {time.time() - s0:.2f} seconds')
-
-        if hasattr(benchmark.model, 'preprocess_output'):
-            s0 = time.time()
-            netsurf.utils.log._info(f'Preprocessing output data...', end = '')
-            dset = benchmark.model.preprocess_output(dataset[1])
-            dataset = (dataset[0], dset)
-            print(f'done in {time.time() - s0:.2f} seconds')
-
         model = benchmark.model
 
-        if isinstance(dataset, tuple):
-            num_samples = len(dataset[0])
-            X = dataset[0]
-            Y = dataset[1]
+        # # Get data 
+        if XY is None:
+            dataset = benchmark.dataset.dataset['train']
 
-            # MAke sure they are numpy arrays
-            if not isinstance(X, np.ndarray):
-                X = np.array(X)
-            if not isinstance(Y, np.ndarray):
-                Y = np.array(Y)
+            # Apply pre-processing to data, if needed 
+            if hasattr(benchmark.model, 'preprocess_input'):
+                s0 = time.time()
+                netsurf.utils.log._info(f'Preprocessing input data...', end = '')
+                dset = benchmark.model.preprocess_input(dataset[0])
+                dataset = (dset, dataset[1])
+                print(f'done in {time.time() - s0:.2f} seconds')
 
-        elif isinstance(dataset, keras.preprocessing.image.DirectoryIterator):
-            num_samples = dataset.n
-            # Concatenate a couple of batches
-            X, Y = dataset.next()
-            for i in range(2):
-                Xb, Yb = dataset.next()
-                X = np.concatenate((X,Xb), axis = 0)
-                Y = np.concatenate((Y,Yb), axis = 0)
-        elif isinstance(dataset, tf.data.Dataset):
-            # For some reason the batch size I set in the dataset is not working, so let's get it manually by iterating a couple of times
-            exp_batch_size = 0
-            # concatenate some batches 
-            X, Y = None, None
-            max_num_samples = len(dataset)
-            for it, (Xb, Yb) in enumerate(dataset):
-                if X is None or Y is None:
-                    X, Y = Xb, Yb
-                else:
+            if hasattr(benchmark.model, 'preprocess_output'):
+                s0 = time.time()
+                netsurf.utils.log._info(f'Preprocessing output data...', end = '')
+                dset = benchmark.model.preprocess_output(dataset[1])
+                dataset = (dataset[0], dset)
+                print(f'done in {time.time() - s0:.2f} seconds')
+
+
+            if isinstance(dataset, tuple):
+                num_samples = len(dataset[0])
+                X = dataset[0]
+                Y = dataset[1]
+
+                # MAke sure they are numpy arrays
+                if not isinstance(X, np.ndarray):
+                    X = np.array(X)
+                if not isinstance(Y, np.ndarray):
+                    Y = np.array(Y)
+
+            elif isinstance(dataset, keras.preprocessing.image.DirectoryIterator):
+                num_samples = dataset.n
+                # Concatenate a couple of batches
+                X, Y = dataset.next()
+                for i in range(2):
+                    Xb, Yb = dataset.next()
                     X = np.concatenate((X,Xb), axis = 0)
                     Y = np.concatenate((Y,Yb), axis = 0)
-                exp_batch_size = Xb.shape[0]
-                max_num_samples = len(dataset)*exp_batch_size
-                if len(X) >= batch_size:
-                    break
-            num_samples = len(X)
-            num_iters = np.ceil(num_samples/batch_size).astype(int)
-            X = X[:batch_size*num_iters]
-            Y = Y[:batch_size*num_iters]
+            elif isinstance(dataset, tf.data.Dataset):
+                # For some reason the batch size I set in the dataset is not working, so let's get it manually by iterating a couple of times
+                exp_batch_size = 0
+                # concatenate some batches 
+                X, Y = None, None
+                max_num_samples = len(dataset)
+                for it, (Xb, Yb) in enumerate(dataset):
+                    if X is None or Y is None:
+                        X, Y = Xb, Yb
+                    else:
+                        X = np.concatenate((X,Xb), axis = 0)
+                        Y = np.concatenate((Y,Yb), axis = 0)
+                    exp_batch_size = Xb.shape[0]
+                    max_num_samples = len(dataset)*exp_batch_size
+                    if len(X) >= batch_size:
+                        break
+                num_samples = len(X)
+                num_iters = np.ceil(num_samples/batch_size).astype(int)
+                X = X[:batch_size*num_iters]
+                Y = Y[:batch_size*num_iters]
+            else:
+                raise ValueError('Dataset not recognized')
         else:
-            raise ValueError('Dataset not recognized')
+            # Get data
+            X, Y = XY
+
+            # Get number of samples
+            num_samples = XY[0].shape[0]
         
         # if interlayer_mse also get interlayer activations
         interactivations = None 
