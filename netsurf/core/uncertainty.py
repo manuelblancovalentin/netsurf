@@ -821,7 +821,7 @@ class RobustnessSignature:
         return fig, axs
 
 
-    def plot_radar_fingerprints(self, methods=None, figsize: Tuple[int, int] = (8, 8), axs = None, show = True):
+    def plot_radar_fingerprints(self, methods=None, figsize: Tuple[int, int] = (5, 5), axs = None, show = True):
         """
         Plots individual radar (spider) charts for each distribution method,
         visualizing the normalized summary statistics.
@@ -858,7 +858,7 @@ class RobustnessSignature:
  
         if axs is None:
             n = len(available_methods)
-            ncols = int(np.ceil(np.sqrt(n)))
+            ncols = 1
             nrows = int(np.ceil(n / ncols))
             fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=(figsize[0]*ncols, figsize[1]*nrows),
                                     subplot_kw=dict(polar=True))
