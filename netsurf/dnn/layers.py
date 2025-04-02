@@ -26,6 +26,7 @@ import numpy as np
 """ Matplotlib """
 import matplotlib.pyplot as plt
 
+
 class QConstraint(tf.keras.constraints.Constraint):
     _ICON = "🔗"
     """Clips layer weights to a given min/max range after each training step."""
@@ -521,23 +522,25 @@ class QQApplyAlpha(tf.keras.layers.Layer):
                 prop_shape = prop_val.shape
                 # Compute the impact
                 if prop == 'alpha':
-                    P_d = []
-                    # Loop over batch_size
-                    for i in range(self.quantizer.m):
-                        P_bit = []
-                        # Loop over the bits 
-                        for b in range(num_batches):
-                            # Compute the impact of the attack
-                            P_bit.append(X[b*batch_size:(b+1)*batch_size] * (self.alpha_delta[...,i] * N[self.alpha.name][...,i]))
-                        # Concat over 0 
-                        P_d.append(tf.concat(P_bit, axis = 0))
+                    with utils.ProgressBar(total=self.quantizer.m*num_batches, prefix=f'Computing impact for {self.name}') as pbar:
+                        P_d = []
+                        # Loop over batch_size
+                        for i in range(self.quantizer.m):
+                            P_bit = tf.zeros(prop_shape, dtype = prop_val.dtype)
+                            # Loop over the bits 
+                            total_values = 0
+                            for b in range(num_batches):
+                                # Compute the impact of the attack
+                                P_bit += tf.reduce_sum(X[b*batch_size:(b+1)*batch_size] * (self.alpha_delta[...,i] * N[self.alpha.name][...,i]), axis = 0)
+                                total_values += tf.cast(tf.shape(X[b*batch_size:(b+1)*batch_size])[0], dtype = tf.float32)
+                                pbar.update(i*num_batches + b + 1)
+                            # Normalize 
+                            P_bit /= total_values
+                            # Append to the list
+                            P_d.append(P_bit)
 
-                    # Stack
-                    P_d = tf.stack(P_d, axis = len(X.shape))
-
-                    # We need to average over all dimensions but last 
-                    if len(P_d.shape) > len(self.alpha.shape):
-                        P_d = tf.reduce_mean(P_d, axis = tuple(range(0, len(X.shape)-1)))
+                        # Stack
+                        P_d = tf.stack(P_d, axis = len(prop_shape))
 
                     pname = self.alpha.name
                 elif prop == 'beta':
@@ -874,7 +877,7 @@ class QQDense(qkeras.QDense, _QQLayer, PrunableLayer, WeightLayer):
             batch_size = tf.shape(X)[0]
         
         # Compute num_batches
-        num_batches = tf.maximum(1, tf.shape(X)[0]//batch_size)
+        num_batches = int(tf.maximum(1, tf.shape(X)[0]//batch_size))
 
         # Impact for dense layer is just:
         # P_k = X @ delta_k*N 
@@ -887,21 +890,26 @@ class QQDense(qkeras.QDense, _QQLayer, PrunableLayer, WeightLayer):
                 prop_shape = prop_val.shape
                 # Compute the impact
                 if prop == 'kernel':
+                    # Init P_d 
                     P_d = []
-                    # Loop over batch_size
-                    for i in range(self.quantizer.m):
-                        P_bit = []
-                        # Loop over the bits 
-                        for b in range(num_batches):
-                            # Compute the impact of the attack
-                            P_bit.append(X[b*batch_size:(b+1)*batch_size,...,None] * ((self.kernel_delta[...,i] * N[self.kernel.name][...,i])))
-                        # Concat over 0 
-                        P_d.append(tf.concat(P_bit, axis = 0))
-                    # Stack
-                    P_d = tf.stack(P_d, axis = len(self.kernel_delta.shape))
-                    if len(X.shape) > 2:
-                        # We need to average over all dimensions but 0 and last 
-                        P_d = tf.reduce_mean(P_d, axis = tuple(range(0, len(self.kernel.shape)-1)))
+                    with utils.ProgressBar(total=self.quantizer.m*num_batches, prefix=f'Computing impact for {self.name}') as pbar:
+                        # Loop over batch_size
+                        for i in range(self.quantizer.m):
+                            # Loop over the bits 
+                            tot_samples = 0
+                            P_bit = tf.zeros(shape = prop_shape)
+                            for b in range(num_batches):
+                                # Compute the impact of the attack
+                                P_bit += tf.reduce_sum(X[b*batch_size:(b+1)*batch_size,...,None] * ((self.kernel_delta[...,i] * N[self.kernel.name][...,i])), axis = 0)
+                                tot_samples += tf.shape(X[b*batch_size:(b+1)*batch_size])[0]
+                                pbar.update(i*num_batches + b + 1)
+                            # Normalize 
+                            P_bit /= tf.cast(tot_samples, tf.float32)
+                            # Concat 
+                            P_d.append(P_bit)
+                        # Stack
+                        P_d = tf.stack(P_d, axis = len(X.shape))
+                    
                     pname = self.kernel.name
                 elif prop == 'bias':
                     # Compute the impact of the attack
@@ -1025,33 +1033,35 @@ class QQConv2D(qkeras.QConv2D, _QQLayer, PrunableLayer, WeightLayer):
         impact_map = np.zeros((kh, kw, cin, cout, n_bits), dtype=np.float32)
 
         num_batches = int(tf.math.ceil(tf.cast(tf.shape(X)[0], tf.float32) / batch_size))
+        with utils.ProgressBar(total=n_bits*num_batches*kh*kw*cin*cout, prefix=f'Computing impact for {self.name}') as pbar:
+            # Loop over each bit position
+            for i in range(kh):
+                for j in range(kw):
+                    for inc in range(cin):
+                        for outc in range(cout):
+                            for k in range(n_bits):
+                                # Construct a kernel with delta at one position
+                                delta = np.zeros((kh, kw, cin, cout), dtype=np.float32)
+                                delta[i, j, inc, outc] = delta_kernel[i, j, inc, outc, k] * N_kernel[i, j, inc, outc, k]
+                                delta_tensor = tf.convert_to_tensor(delta, dtype=tf.float32)
 
-        for i in range(kh):
-            for j in range(kw):
-                for inc in range(cin):
-                    for outc in range(cout):
-                        for k in range(n_bits):
-                            # Construct a kernel with delta at one position
-                            delta = np.zeros((kh, kw, cin, cout), dtype=np.float32)
-                            delta[i, j, inc, outc] = delta_kernel[i, j, inc, outc, k] * N_kernel[i, j, inc, outc, k]
-                            delta_tensor = tf.convert_to_tensor(delta, dtype=tf.float32)
+                                for b in range(num_batches):
+                                    x_batch = X[b*batch_size:(b+1)*batch_size]
+                                    conv_out = tf.nn.conv2d(
+                                        x_batch,
+                                        delta_tensor,
+                                        strides=[1, *strides, 1],
+                                        padding=padding.upper(),
+                                        dilations=[1, *dilation_rate, 1],
+                                        data_format='NHWC' if data_format == 'channels_last' else 'NCHW'
+                                    )
 
-                            for b in range(num_batches):
-                                x_batch = X[b*batch_size:(b+1)*batch_size]
-                                conv_out = tf.nn.conv2d(
-                                    x_batch,
-                                    delta_tensor,
-                                    strides=[1, *strides, 1],
-                                    padding=padding.upper(),
-                                    dilations=[1, *dilation_rate, 1],
-                                    data_format='NHWC' if data_format == 'channels_last' else 'NCHW'
-                                )
-
-                                # L2 norm = total impact of that bit
-                                impact_map[i, j, inc, outc, k] += tf.norm(conv_out).numpy()
-                            
-                            # Normalize over num_batches
-                            impact_map[i, j, inc, outc, k] /= num_batches
+                                    # L2 norm = total impact of that bit
+                                    impact_map[i, j, inc, outc, k] += tf.norm(conv_out).numpy()
+                                    pbar.update(batch_size*kh*kw*cin*cout + i*kw*cin*cout + j*cin*cout + inc*cout + outc*n_bits + k + 1)
+                                
+                                # Normalize over num_batches
+                                impact_map[i, j, inc, outc, k] /= num_batches
 
         return impact_map
 
@@ -1268,38 +1278,42 @@ class QQConv2DTranspose(qkeras.QConv2DTranspose, _QQLayer, PrunableLayer, Weight
 
         num_batches = int(tf.math.ceil(tf.shape(X)[0]/batch_size))
 
-        for i in range(kh):
-            for j in range(kw):
-                for inc in range(cin):
-                    for outc in range(cout):
-                        for k in range(n_bits):
-                            delta = np.zeros((kh, kw, cin, cout), dtype=np.float32)
-                            delta[i, j, inc, outc] = delta_kernel[i, j, inc, outc, k] * N_kernel[i, j, inc, outc, k]
-                            delta_tensor = tf.convert_to_tensor(delta, dtype=tf.float32)
+        with tqdm(total=kh*kw*cin*cout*n_bits*num_batches, desc=f"Computing impact for {self.name}") as pbar:
 
-                            for b in range(num_batches):
-                                x_batch = X[b*batch_size:(b+1)*batch_size]
+            for i in range(kh):
+                for j in range(kw):
+                    for inc in range(cin):
+                        for outc in range(cout):
+                            for k in range(n_bits):
+                                delta = np.zeros((kh, kw, cin, cout), dtype=np.float32)
+                                delta[i, j, inc, outc] = delta_kernel[i, j, inc, outc, k] * N_kernel[i, j, inc, outc, k]
+                                delta_tensor = tf.convert_to_tensor(delta, dtype=tf.float32)
+
+                                for b in range(num_batches):
+                                    x_batch = X[b*batch_size:(b+1)*batch_size]
+                                    
+                                    # Compute output shape
+                                    height = (x_batch.shape[1] - 1) * strides[0] + kernel_size[0]
+                                    width = (x_batch.shape[2] - 1) * strides[1] + kernel_size[1]
+                                    output_shape = tf.stack([x_batch.shape[0], height, width, filters])
+
+                                    conv_out = tf.nn.conv2d_transpose(
+                                        x_batch,
+                                        delta_tensor,
+                                        output_shape=output_shape,
+                                        strides=[1, *strides, 1],
+                                        padding=padding.upper(),
+                                        dilations=[1, *dilation_rate, 1],
+                                        data_format='NHWC' if data_format == 'channels_last' else 'NCHW'
+                                    )
+
+                                    # Store L2 norm of the resulting output change
+                                    impact_map[i, j, inc, outc, k] += tf.norm(conv_out).numpy()
+
+                                    pbar.update(1)
                                 
-                                # Compute output shape
-                                height = (x_batch.shape[1] - 1) * strides[0] + kernel_size[0]
-                                width = (x_batch.shape[2] - 1) * strides[1] + kernel_size[1]
-                                output_shape = tf.stack([x_batch.shape[0], height, width, filters])
-
-                                conv_out = tf.nn.conv2d_transpose(
-                                    x_batch,
-                                    delta_tensor,
-                                    output_shape=output_shape,
-                                    strides=[1, *strides, 1],
-                                    padding=padding.upper(),
-                                    dilations=[1, *dilation_rate, 1],
-                                    data_format='NHWC' if data_format == 'channels_last' else 'NCHW'
-                                )
-
-                                # Store L2 norm of the resulting output change
-                                impact_map[i, j, inc, outc, k] += tf.norm(conv_out).numpy()
-                            
-                            # Normalize the impact map
-                            impact_map[i, j, inc, outc, k] /= num_batches
+                                # Normalize the impact map
+                                impact_map[i, j, inc, outc, k] /= num_batches
 
         return impact_map
 
@@ -1654,17 +1668,27 @@ class QQBatchNormalization(qkeras.QBatchNormalization, _QQLayer, PrunableLayer, 
                 prop_shape = prop_val.shape
                 # Compute the impact
                 if prop == 'gamma':
-                    P_d = []
-                    for i in range(self.gamma_delta.shape[-1]):
-                        P_bit = []
-                        for b in range(num_batches):
-                            P_dd = X[b*batch_size:(b+1)*batch_size] * self.gamma_delta[...,i] * N[self.gamma.name][...,i]
-                            P_bit.append(P_dd)
-                        # Concat over axis 0
-                        P_bit = tf.concat(P_bit, axis = 0)
-                        P_d.append(P_bit)
-                    # Stack
-                    P_d = tf.stack(P_d, axis = len(self.gamma_delta.shape) - 1)
+                    with tqdm(total=self.quantizer.m*num_batches, desc=f"Computing impact for {self.name}") as pbar:
+                        # Compute the impact of the attack
+                        # P_d = X * delta_k*N
+                        # P_b = delta_b*N
+                        # We need to loop over the bits of the gamma delta
+                        # and compute the impact for each bit
+                        # Loop over the bits
+                        P_d = []
+                        for i in range(self.quantizer.m):
+                            P_bit = tf.zeros(prop_shape, dtype = tf.float32)
+                            total_samples = 0.0
+                            for b in range(num_batches):
+                                P_bit += tf.reduce_sume(X[b*batch_size:(b+1)*batch_size] * self.gamma_delta[...,i] * N[self.gamma.name][...,i], axis = 0)
+                                total_samples += tf.cast(tf.shape(X[b*batch_size:(b+1)*batch_size])[0], tf.float32)
+                                pbar.update(1)
+                            # Normalize by the number of samples
+                            P_bit /= total_samples
+
+                            P_d.append(P_bit)
+                        # Stack
+                        P_d = tf.stack(P_d, axis = len(self.gamma_delta.shape) - 1)
                     pname = self.gamma.name
                 elif prop == 'beta':
                     P_d = self.beta_delta * N[self.beta.name]

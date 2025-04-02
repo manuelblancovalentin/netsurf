@@ -125,6 +125,14 @@ class QuantizationScheme:
     # Add [0] to the bins
     bins = np.concatenate(([0.0], bins)) if not self.s else np.concatenate((-bins[::-1], [0.0], bins))
     return bins
+  
+  @property 
+  def qbins(self):
+    bits_delta = 2.0**(np.arange(self.n-1+self.s,-self.f-1,-1))
+    # Concat the negative values (mirrored)
+    bits_delta = np.concatenate((-bits_delta, [0.0], bits_delta[::-1]))
+    return bits_delta
+
 
   @property
   def __fmt__(self):

@@ -97,3 +97,78 @@ If you found my work valuable and it was useful for you, consider citing it in a
   howpublished = {\url{https://github.com/manuelblancovalentin/nodus}}
 }
 ```
+
+
+
+## 1. Loss Taylor expansion
+
+Given a loss function $\mathcal{L}(\mathbf{w})$, where $\mathbf{w}$ is the vector of all weights in the network, the Taylor expansion around some point $\mathbf{w}_0$ (say, the trained weights) for a small perturbation $\Delta \mathbf{w}$ is:
+
+$$\mathcal{L}(\mathbf{w}_0 + \Delta \mathbf{w}) \approx \mathcal{L}(\mathbf{w}_0) + \nabla \mathcal{L}(\mathbf{w}_0)^T \Delta \mathbf{w} + \frac{1}{2} \Delta \mathbf{w}^T H \Delta \mathbf{w}$$
+
+Where:
+ * $\nabla \mathcal{L}(\mathbf{w}_0)$ is the gradient vector of the loss at \mathbf{w}_0
+ * $H$ is the Hessian matrix, i.e. $H = \nabla^2 \mathcal{L}(\mathbf{w}_0)$
+
+---
+
+## 2. If the model is trained…
+
+If the model has been well trained, then:
+$\nabla \mathcal{L}(\mathbf{w}_0) \approx 0$
+Because you’re sitting near a (local) minimum.
+
+This removes the linear term:
+$\mathcal{L}(\mathbf{w}_0 + \Delta \mathbf{w}) - \mathcal{L}(\mathbf{w}_0) \approx \frac{1}{2} \Delta \mathbf{w}^T H \Delta \mathbf{w}$
+
+So the change in loss caused by a perturbation $\Delta \mathbf{w}$ is approximately:
+$\Delta \mathcal{L} \approx \frac{1}{2} \Delta \mathbf{w}^T H \Delta \mathbf{w}$
+
+---
+
+## 3. Interpretation for bit flips
+
+A bit flip in the quantized weights causes a small but structured change in the weights:
+ * Say, flipping the 3rd bit in weight $w_i$ causes it to change by $\delta_i$, so:
+$\Delta \mathbf{w} = \begin{bmatrix}
+0 \\ \cdots \\ \delta_i \\ \cdots \\ 0
+\end{bmatrix}$
+
+Then the loss increase is (approximately):
+$\Delta \mathcal{L} \approx \frac{1}{2} \delta_i^2 H_{ii}$
+
+If multiple bits are flipped across weights, you sum their pairwise interactions via H, including off-diagonal terms (if not ignored).
+
+--- 
+
+## 4. Implications for ranking
+
+This approximation motivates ranking bit positions (or weights) by:
+ * $\delta^2 \cdot H_{ii}$: bit-flip magnitude times curvature
+ * This is the FKeras method: estimates $H_{ii}$ and ranks accordingly
+ * You could generalize it to your method:
+ $\text{Impact} \cdot H$, not just gradients
+
+---
+
+## 5. When does this approximation hold?
+
+✅ Works well when:
+ * Bit-flip magnitude is small (i.e., local region)
+ * Model is near a minimum
+ * Hessian is stable (not exploding)
+
+❌ Fails when:
+ * Model isn’t trained well (gradient is large)
+ * Loss surface is highly non-quadratic
+
+---
+
+## Summary
+
+The formula:
+$\Delta \mathcal{L} \approx \frac{1}{2} \Delta \mathbf{w}^T H \Delta \mathbf{w}$
+
+tells us how bit-flips propagate into loss increases, and explains why the Hessian is so powerful for ranking robustness. It encodes:
+ * How impactful a perturbation is (via $\delta$)
+ * How sensitive the loss is locally (via $H$)

@@ -22,6 +22,9 @@ from tensorflow_model_optimization.python.core.sparsity.keras import pruning_wra
 
 # Log utils
 from . import log
+from .time import seconds_to_hms
+
+from time import time
 
 """ Create temporary file (at /tmp) """
 def create_temporary_file(prefix = '', suffix = '', ext = '.tmp'):
@@ -488,3 +491,69 @@ def open_terminal_with_command(command, generic = False):
             subprocess.run(["gnome-terminal", "--", "bash", "-c", f"{command}; exec bash"])  # GNOME Terminal
             # or
             # subprocess.run(["xterm", "-e", command])  # xterm
+
+import sys
+
+class ProgressBar:
+    """
+    A simple text-based progress bar for console output.
+    Example:
+        bar = ProgressBar(total=60, prefix="Computing batch")
+        for i in range(60):
+            bar.update(i + 1)
+    """
+    def __init__(self, total, width=30, prefix="Progress", stream=sys.stdout):
+        self.total = total            # Total number of steps
+        self.width = width            # Width of the progress bar
+        self.prefix = prefix          # Text prefix before the bar
+        self.stream = stream          # Output stream (e.g., sys.stdout)
+        self.last_len = 0             # For overwriting the line
+        self.counter = 0
+        self.start_time = None
+
+    def update(self, current = None):
+        """
+        Update the progress bar.
+        :param current: current step (1-indexed)
+        """
+        if current is None:
+            # Update counter 
+            self.counter += 1
+            current = self.counter
+        
+        progress = current / self.total
+        filled = int(self.width * progress)
+        if self.start_time is None: self.start_time = time()
+        
+        elapsed = time() - self.start_time if self.start_time else 0
+        eta = (elapsed / current * self.total) - elapsed if current > 0 else 0
+
+        # Format the ETA
+        elapsed_str = seconds_to_hms(elapsed) if elapsed > 0 else "N/A"
+        t = f'[{elapsed_str}'
+        # Format the ETA
+        if eta > 0:
+            # Format the ETA
+            eta_str = seconds_to_hms(eta)
+            # append 
+            t += f' < {eta_str}'
+        # close
+        t += ']'
+
+        bar = "[" + "=" * filled + ">" + " " * (self.width - filled - 1) + "]"
+        msg = f"{self.prefix:<40s} {current}/{self.total}: {bar} {t}"
+        self.stream.write("\r" + msg + " " * max(0, self.last_len - len(msg)))
+        self.stream.flush()
+        self.last_len = len(msg)
+
+        if current == self.total:
+            self.stream.write("\n")
+    
+    def __enter__(self):
+        self.counter = 0
+        self.start_time = time()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        # do nothing
+        pass

@@ -235,3 +235,100 @@ class PruningScheduler(tf.keras.callbacks.Callback):
 
 
 
+class FisherTrackingCallback(tf.keras.callbacks.Callback):
+    def __init__(self, model,
+                 val_data, 
+                 loss_fn, 
+                 n_batches=10, 
+                 verbose=1):
+        super().__init__()
+        self.model = model
+        self.val_data = val_data
+        self.loss_fn = loss_fn
+        self.n_batches = n_batches
+        self.verbose = verbose
+
+        # Get number of trainable parameters
+        self.n_params = sum(tf.size(v).numpy() for v in self.model.trainable_variables)
+
+        self.history = {
+            'fisher_trace': [],
+            'fisher_entropy': [],
+            'fisher_trace_norm': [],
+            'fisher_entropy_norm': []
+        }
+
+    def on_epoch_end(self, epoch, logs=None):
+        if logs is None:
+            logs = {}
+
+        fisher_trace, fisher_entropy = self.compute_fisher_from_dataset(
+            self.model,
+            self.val_data,
+            self.loss_fn,
+            n_batches=self.n_batches
+        )
+
+        # Total number of trainable parameters
+       
+        fisher_trace_norm = fisher_trace / self.n_params
+        fisher_entropy_norm = fisher_entropy / self.n_params
+
+        self.history['fisher_trace'].append(fisher_trace)
+        self.history['fisher_entropy'].append(fisher_entropy)
+        self.history['fisher_trace_norm'].append(fisher_trace_norm)
+        self.history['fisher_entropy_norm'].append(fisher_entropy_norm)
+
+
+        # ✅ Add to logs so they appear in Keras history
+        logs['fisher_trace'] = fisher_trace_norm
+        logs['fisher_entropy'] = fisher_entropy_norm
+
+    @staticmethod
+    def compute_fisher_from_dataset(model, dataset, loss_fn, n_batches=None):
+        """
+        Compute Fisher trace and entropy on a given dataset (e.g., validation).
+
+        Args:
+            model: A tf.keras.Model
+            dataset: tf.data.Dataset or (X, Y) tuple
+            loss_fn: the loss function
+            n_batches: limit to N batches for performance
+
+        Returns:
+            fisher_trace: scalar
+            fisher_entropy: scalar
+        """
+        fisher_accumulator = {}
+        variables = model.trainable_variables
+        for v in variables:
+            fisher_accumulator[v.name] = tf.zeros_like(v, dtype=tf.float32)
+
+        # Handle tuple data
+        if isinstance(dataset, tuple):
+            X, Y = dataset
+            dataset = tf.data.Dataset.from_tensor_slices((X, Y)).batch(32)
+
+        # Iterate through dataset
+        for i, (x_batch, y_batch) in enumerate(dataset):
+            if n_batches is not None and i >= n_batches:
+                break
+
+            with tf.GradientTape() as tape:
+                preds = model(x_batch, training=False)
+                loss = loss_fn(y_batch, preds)
+            grads = tape.gradient(loss, variables)
+
+            for v, g in zip(variables, grads):
+                if g is not None:
+                    fisher_accumulator[v.name] += tf.square(g)
+
+        fisher_trace = 0.0
+        fisher_entropy = 0.0
+        epsilon = 1e-8
+        for v_name, diag in fisher_accumulator.items():
+            diag = diag / (i + 1)
+            fisher_trace += tf.reduce_sum(diag).numpy()
+            fisher_entropy += tf.reduce_sum(tf.math.log(diag + epsilon)).numpy()
+
+        return fisher_trace, fisher_entropy

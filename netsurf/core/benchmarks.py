@@ -753,10 +753,6 @@ class Benchmark:
         # Initialize a session object 
         sess = Session('training', session_name, current_datetime, session_path = session_path)
 
-        """ Create custom callback to print on every epoch using our own printer"""
-        # Add custom printer callback
-        callbacks += [netsurf.dnn.callbacks.CustomPrinter()]
-
         # If activated, save the model every epoch
         if False:
 
@@ -828,6 +824,19 @@ class Benchmark:
                 netsurf.utils.log._error(f'Model looks uncompiled. Recompiling now...')
                 self.model.compile(self.optimizer, loss = self.loss, metrics = self.metrics)
 
+
+            # Add fisher tracker 
+            fisher_tracker = netsurf.dnn.callbacks.FisherTrackingCallback(self.model, 
+                                                                          (np.array(XTest), np.array(YTest)),
+                                                                          loss_fn = self.model.loss, 
+                                                                          n_batches = 10)
+            callbacks += [fisher_tracker]
+
+            """ Create custom callback to print on every epoch using our own printer"""
+            # THIS HAS TO BE THE LAST TO BE ADDED
+            # Add custom printer callback
+            callbacks += [netsurf.dnn.callbacks.CustomPrinter()]
+
             logs = self.model.fit(np.array(XTrain), np.array(YTrain),
                 epochs = epochs,
                 batch_size = batch_size,
@@ -838,6 +847,18 @@ class Benchmark:
             )
 
         elif isinstance(self.dataset['train'], keras.preprocessing.image.DirectoryIterator) or isinstance(self.dataset['train'], tf.data.Dataset):
+
+            # Add fisher tracker 
+            fisher_tracker = netsurf.dnn.callbacks.FisherTrackingCallback(self.model, 
+                                                                          self.dataset['validation'],
+                                                                          loss_fn = self.model.loss, 
+                                                                          n_batches = 10)
+            callbacks += [fisher_tracker]
+
+            """ Create custom callback to print on every epoch using our own printer"""
+            # THIS HAS TO BE THE LAST TO BE ADDED
+            # Add custom printer callback
+            callbacks += [netsurf.dnn.callbacks.CustomPrinter()]
 
             logs = self.model.fit(self.dataset['train'], 
                                         epochs = epochs,

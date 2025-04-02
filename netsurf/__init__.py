@@ -117,6 +117,9 @@ from .dnn.losses import LOSSES
 from .dnn.models import QModel, load_model
 from .dnn.layers import QQLAYERS
 
+# Import documentation
+from . import doc
+
 # Import the rest of the modules
 #from . import plots
 

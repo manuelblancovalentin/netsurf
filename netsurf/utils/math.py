@@ -12,3 +12,24 @@ def float_to_binary(x, nbits):
         else:
             binary_rep += '0'
     return str(sign) + binary_rep
+
+import numpy as np
+
+def freedman_diaconis_bins(data):
+  """
+  Calculates the optimal number of bins using the Freedman-Diaconis rule.
+
+  Args:
+    data: A 1D numpy array of data.
+
+  Returns:
+    The optimal number of bins as an integer.
+  """
+  iqr = np.percentile(data, 75) - np.percentile(data, 25)
+  n = len(data)
+  if iqr > 0:
+    bin_width = 2 * iqr / (n**(1/3))
+    num_bins = int(np.ceil((np.max(data) - np.min(data)) / bin_width))
+  else:
+    num_bins = int(np.ceil(np.sqrt(n)))
+  return num_bins
