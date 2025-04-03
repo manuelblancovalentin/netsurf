@@ -152,6 +152,25 @@ class DistributionSignature:
     _specific_fields: Optional[dict] = None  # New field
     _plotting_methods: set = field(default_factory=lambda: {'plot_distribution'})
 
+    def save_to_file(self, filepath: str = None):
+        """
+        Save the distribution signature to a file.
+        """
+        if filepath is None:
+            filepath = f"{self.name}_dist.netsurf.sgn"
+        # Convert the dataclass to a dictionary
+        data_dict = self.__dict__
+        netsurf.utils.io.save_object(data_dict, filepath, meta_attributes = {"type": self.__class__.__name__, "app": "netsurf"}, custom_objects = {})
+
+    @staticmethod
+    def load_from_file(filepath: str) -> "DistributionSignature":
+        """
+        Load a distribution signature from a file.
+        """
+        data_dict = netsurf.utils.io.load_object(filepath)
+        # Convert the dictionary back to a dataclass
+        return DistributionSignature(**data_dict)
+
     @staticmethod
     def compute_gini(x):
         x = np.abs(np.sort(x))
@@ -708,6 +727,25 @@ class RobustnessSignature:
     empirical_ber_accuracy: Optional[DistributionSignature] = None  # Accuracy after bit flip
     ranking_effectiveness: Optional[DistributionSignature] = None  # Ranking impact on protection
 
+    def save_to_file(self, filepath: str = None):
+        """
+        Save the distribution signature to a file.
+        """
+        if filepath is None:
+            filepath = f"{self.name}_robustness.netsurf.sgn"
+        # Convert the dataclass to a dictionary
+        data_dict = self.__dict__
+        netsurf.utils.io.save_object(data_dict, filepath, meta_attributes = {"type": self.__class__.__name__, "app": "netsurf"}, custom_objects = {})
+
+    @staticmethod
+    def load_from_file(filepath: str) -> "RobustnessSignature":
+        """
+        Load a distribution signature from a file.
+        """
+        data_dict = netsurf.utils.io.load_object(filepath)
+        # Convert the dictionary back to a dataclass
+        return RobustnessSignature(**data_dict)
+
     @property
     def weight_abs_value(self) -> DistributionSignature:
         """
@@ -1170,7 +1208,16 @@ class UncertaintyProfiler:
     Computes various sources of uncertainty and robustness-related statistics
     for a given model and dataset. Returns a populated RobustnessSignature.
     """
-    
+   
+    @staticmethod
+    def from_file(filepath: str) -> "RobustnessSignature":
+        """
+        Load a distribution signature from a file.
+        """
+        # Convert the dictionary back to a dataclass
+        return RobustnessSignature.load_from_file(filepath)
+
+
     @staticmethod
     def compute_weight_abs_value_distribution(model, **kwargs) -> DistributionSignature:
         """
@@ -1517,7 +1564,7 @@ class UncertaintyProfiler:
         return uncorrupted_impacts, corrupted_impacts
 
     @staticmethod
-    def profile(model, dataset, loss_fn, methods=DEFAULT_METHODS, **kwargs) -> RobustnessSignature:
+    def profile(model, dataset, loss_fn, methods=DEFAULT_METHODS, filepath:str = None, **kwargs) -> RobustnessSignature:
         """
         Generates a complete robustness signature for the given model and evaluation data.
         """
@@ -1553,6 +1600,31 @@ class UncertaintyProfiler:
                         'hessian': 'hessian_distribution',
                         'weight_abs_value': 'weight_abs_value_distribution',
                       }
+        
+        # Check if filepath exists. If it is, then we can try to load the file from there which will return the signatures already 
+        reloaded = False # Internal flag for us to keep track of whether we reloaded the file or not
+        if netsurf.utils.io.path_exists(filepath):
+            try:
+                signs = RobustnessSignature.load_from_file(filepath)
+                reloaded = True # Update
+                # Check which methods we have 
+                methods_left = []
+                for method in methods:
+                    # lowercase
+                    method = method.lower()
+                    t = translate.get(method, method)
+                    if hasattr(signs, t):
+                        dists[t] = getattr(signs, t)
+                        # add to methods_left
+                        methods_left.append(method)
+                    else:
+                        netsurf.error(f"Method {method} not found in file {filepath}")
+                # Remove the methods that we already have
+                methods = methods_left
+            except Exception as e:
+                netsurf.error(f"Error loading file: {e}")
+                signs = None
+
         for method in methods:
             # lowercase
             method = method.lower()
@@ -1565,6 +1637,9 @@ class UncertaintyProfiler:
             elif method in methods_caller:
                 # Remember that In reality, qpolar is just the impact (total_impacts_abs) (msb)
                 # so if we already have it, we can just return it
+                if reloaded: 
+                    # Print message to let user know that even though we loaded the file, we didn't find this particular method so we are computing it now 
+                    netsurf.warning(f"Method {method} not found in file {filepath}. Computing it now...")
                 res = methods_caller[method](model, dataset, loss_fn, **kwargs)
                 if isinstance(res, dict):
                     # Unpack the msb impact ratio

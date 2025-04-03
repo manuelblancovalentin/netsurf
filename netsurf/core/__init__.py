@@ -5,4 +5,5 @@ from . import injection
 from . import ranking
 from . import quantization
 from . import uncertainty
-from .uncertainty import UncertaintyProfiler, ProfileDivergence
+from .uncertainty import UncertaintyProfiler, ProfileDivergence, RankingComparator
+from .experiments import Experiment
