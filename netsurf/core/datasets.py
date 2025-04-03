@@ -583,6 +583,44 @@ class MNIST(Dataset):
         return dataset
     
 
+""" Build Fashion MNIST Dataset """
+class FashionMNIST(Dataset):
+    def __init__(self, quantizer: 'QuantizationScheme', **kwargs):
+        """ Init super """
+        super().__init__(quantizer, **kwargs)
+
+        # Build data
+        dataset = self.build_dataset(**kwargs)
+        types = {'input': 'img', 'output': '1d'}
+
+        # Now call super 
+        super().build_dataset(dataset, types = types, **kwargs)
+    
+    def get_figsize(self, nrows, ncols):
+        return (3*nrows, 3*ncols)
+        
+    """ Function to build the dataset """
+    def build_dataset(self, verbose = True, **kwargs):
+
+        """ Get MNIST data """
+        (XTrain, YTrain), (XTest, YTest) = keras.datasets.fashion_mnist.load_data()
+
+        # Reshape 
+        XTrain = XTrain.reshape(XTrain.shape + (1,)).astype("float32")
+        XTest = XTest.reshape(XTest.shape + (1,)).astype("float32")
+
+        # Convert labels to one-hot
+        nb_classes = np.max(YTrain)+1
+        YTrain = keras.utils.to_categorical(YTrain, nb_classes)
+        YTest = keras.utils.to_categorical(YTest, nb_classes)
+
+        # Set everything in place 
+        dataset = {'train': (XTrain, YTrain), 'validation': (XTest, YTest)}
+
+        return dataset
+
+
+
 """ Build CIFAR10 Dataset """
 class CIFAR10(Dataset):
     def __init__(self, quantizer: 'QuantizationScheme', **kwargs):
@@ -2229,6 +2267,7 @@ class KeywordSpotting(Dataset):
 """ Generic function to pick a dataset """
 def load(dataset, quantizer, **kwargs):
     options = {'mnist': MNIST, 
+               'fashion_mnist': FashionMNIST,
                 'svhn': SVHN,
                 'toyadmos': ToyADMOS, 
                 'cifar10': CIFAR10, 'cifar': CIFAR10,

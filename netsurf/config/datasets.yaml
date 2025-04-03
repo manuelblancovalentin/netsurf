@@ -2,6 +2,10 @@ MNIST:
   in_shape: !!python/tuple [-1,28,28,1]
   out_shape: !!python/tuple [-1,10]
 
+FashionMNIST:
+  in_shape: !!python/tuple [-1,28,28,1]
+  out_shape: !!python/tuple [-1,10]
+
 HGCal:
   in_shape: !!python/tuple [-1,8,8,1]
   out_shape: !!python/tuple [-1,8,8,1]

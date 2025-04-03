@@ -51,6 +51,28 @@ mnist_fnn:
         step: 2
         end_epoch: 40
 
+fashion_mnist_fnn:
+  dataset: FashionMNIST
+  model: FNN
+  model_params:
+    units: [64]
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: adam
+  metrics:
+    - categorical_accuracy
+    # - emd
+    # - kl_div
+    # - wd
+  sessions:
+    - batch_size: 64
+      epochs: 40
+      optimizer_params:
+        learning_rate: 0.001
+      pruning_params:
+        final_sparsity: 0.5
+        step: 2
+        end_epoch: 40
 
 mnist_lenet5:
   dataset: MNIST
