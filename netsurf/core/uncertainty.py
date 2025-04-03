@@ -17,6 +17,8 @@ import netsurf # For utils
 # import pergamos
 import pergamos as pg
 
+DEFAULT_METHODS = ["fisher", "aleatoric", "msb_impact_ratio", "delta", "qpolar", "qpolargrad", "weight_abs_value"]
+
 DEFAULT_DISTRIBUTION_COLORS = {
     "fisher": "#FF8C42",       # Orange (strong highlight, conveys sensitivity)
     "aleatoric": "#4BA3C7",    # Sky Blue (clean, associated with variability)
@@ -26,17 +28,21 @@ DEFAULT_DISTRIBUTION_COLORS = {
     "qpolar": "#FF5C8A",       # Pinkish Red (emphasizes custom nature)
     "qpolargrad": "#D7263D",   # Deep Red (gradient + qpolar fusion = intense)
     "empirical_ber_accuracy": "#5B5F97",  # Indigo (robust/experimental nature)
-    "ranking_effectiveness": "#F4A261",   # Muted Orange (signal performance)
+    "ranking_effectiveness": "#F4A261",   # Muted Orange (signal performance),
+    "weight_abs_value": "#2A9D8F",  # Teal (neutral, represents weight values),
+    "hessian": "#000000",  # Black (captures curvature, sensitivity)
 }
 
 DEFAULT_PLOT_FUNCTIONS = {
     'fisher': {'plot_distribution', 'plot_lorenz_curve', 'plot_perce_curve', 'plot_cumulative_mass'},
-    'aleatoric': {'plot_distribution'},
-    'msb': {'plot_distribution'},
+    'aleatoric': {'plot_distribution', 'plot_lorenz_curve', 'plot_perce_curve', 'plot_cumulative_mass'},
+    'msb': {'plot_distribution', 'plot_lorenz_curve', 'plot_perce_curve', 'plot_cumulative_mass'},
     'delta': {'plot_distribution'},
     'qpolar': {'plot_distribution', 'plot_lorenz_curve', 'plot_perce_curve', 'plot_cumulative_mass'},
     'qpolargrad': {'plot_distribution', 'plot_lorenz_curve', 'plot_perce_curve', 'plot_cumulative_mass'},
     'empirical_ber_accuracy': {'plot_distribution'},
+    'weight_abs_value': {'plot_distribution', 'plot_lorenz_curve', 'plot_perce_curve', 'plot_cumulative_mass'},
+    'hessian': {'plot_distribution', 'plot_lorenz_curve', 'plot_perce_curve', 'plot_cumulative_mass'},
 }
 
 
@@ -703,6 +709,13 @@ class RobustnessSignature:
     ranking_effectiveness: Optional[DistributionSignature] = None  # Ranking impact on protection
 
     @property
+    def weight_abs_value(self) -> DistributionSignature:
+        """
+        Returns the absolute value of the weights.
+        """
+        return self.weight_abs_value_distribution
+
+    @property
     def fisher(self) -> DistributionSignature:
         """
         Returns the Fisher distribution signature.
@@ -721,7 +734,7 @@ class RobustnessSignature:
         """
         Returns the MSB impact ratio.
         """
-        return self.msb_impact_ratio, self.msb_impact_ratio_abs, self.msb_impact, self.total_impact, self.msb_impact_abs, self.total_impact_abs
+        return self.msb_impact_ratio #, self.msb_impact_ratio_abs, self.msb_impact, self.total_impact, self.msb_impact_abs, self.total_impact_abs
     
 
     @property
@@ -755,9 +768,7 @@ class RobustnessSignature:
     """
         Plot all dists
     """
-    def plot_distributions(self, methods = None, bins: int = None, figsize: Tuple[int, int] = (8, 7), logbin=True):
-        if methods is None:
-            methods = ["fisher", "aleatoric", "msb", "delta", "qpolar", "qpolargrad"]
+    def plot_distributions(self, methods = DEFAULT_METHODS, bins: int = None, figsize: Tuple[int, int] = (8, 7), logbin=True):
         
         for i, method in enumerate(methods):
             # Get the method name and plot
@@ -783,7 +794,7 @@ class RobustnessSignature:
     
 
     """ Plot pairplot between dists """
-    def plot_correlations(self, methods=None, figsize: Tuple[int, int] = (8, 16), sample_size: int = -1, axs = None, show = True):
+    def plot_correlations(self, methods=DEFAULT_METHODS, figsize: Tuple[int, int] = (8, 16), sample_size: int = -1, axs = None, show = True):
         """
         Plots a heatmap of correlation coefficients between the summary statistics of each DistributionSignature.
  
@@ -792,9 +803,7 @@ class RobustnessSignature:
             figsize (tuple): Size of the matplotlib figure.
             sample_size (int): Max number of points to sample from each distribution to compute correlations.
         """
-        if methods is None:
-            methods = ["fisher", "aleatoric", 'msb_impact_ratio', "delta", "qpolar", "qpolargrad"]
- 
+
         # if sample_size == -1, we need to find the minimum number of samples 
         if sample_size == -1:
             sample_size = min([getattr(self, method).count for method in methods if getattr(self, method) is not None])
@@ -871,7 +880,7 @@ class RobustnessSignature:
         return fig, axs
 
 
-    def plot_radar_fingerprints(self, methods=None, figsize: Tuple[int, int] = (3, 3), axs = None, show = True):
+    def plot_radar_fingerprints(self, methods=DEFAULT_METHODS, figsize: Tuple[int, int] = (3, 3), axs = None, show = True):
         """
         Plots three radar (spider) charts per distribution method:
         - Min-max normalized stats
@@ -884,8 +893,6 @@ class RobustnessSignature:
             axs: Optional list of matplotlib axes.
             show (bool): Whether to display the plots immediately.
         """
-        if methods is None:
-            methods = ["fisher", "aleatoric", "msb_impact_ratio", "delta", "qpolar", "qpolargrad"]
  
         stats_names = ["entropy", "variance", "skewness", "kurtosis", "mean", "std", "l1_energy", "l2_energy", "gini"]
         stats_symbol = ["\U0000210B", "\u03C3\u00B2", "\u03B3\u2081", "\u03B3\u2082", "\u03BC", "\u03C3", "\u2016x\u2016\u2081", "\u2016x\u2016\u2082", "Gini"]
@@ -1058,12 +1065,10 @@ class ProfileDivergence:
     divergences: Dict[str, RobustnessDivergence]
 
     @staticmethod
-    def from_signatures(pre: RobustnessSignature, post: RobustnessSignature, methods=None) -> "ProfileDivergence":
+    def from_signatures(pre: RobustnessSignature, post: RobustnessSignature, methods=DEFAULT_METHODS) -> "ProfileDivergence":
         """
         Compares two RobustnessSignatures and returns divergence metrics per method.
         """
-        if methods is None:
-            methods = ["fisher", "aleatoric", "delta", "qpolar", "qpolargrad"]
 
         divergences = {}
         for method in methods:
@@ -1166,6 +1171,27 @@ class UncertaintyProfiler:
     for a given model and dataset. Returns a populated RobustnessSignature.
     """
     
+    @staticmethod
+    def compute_weight_abs_value_distribution(model, **kwargs) -> DistributionSignature:
+        """
+        Computes the absolute value of weights in the model.
+        Returns a DistributionSignature summarizing the distribution of absolute weight values.
+        """
+        # Get all weights
+        weights = model.trainable_variables
+        # Flatten and concatenate all weights
+        all_weights = tf.concat([tf.reshape(w, [-1]) for w in weights], axis=0)
+        # Compute the absolute value
+        abs_weights = tf.abs(all_weights)
+        
+        dis = DistributionSignature.from_array(abs_weights.numpy(), 
+                                                name="abs_weights", 
+                                                color = DEFAULT_DISTRIBUTION_COLORS['abs_weights'],
+                                                plot_functions = DEFAULT_PLOT_FUNCTIONS['abs_weights'],
+                                                is_data_pdf = True)
+
+        return dis
+
     @staticmethod
     def compute_fisher_distribution(model, dataset, loss_fn, batch_size = 32, verbose = True, **kwargs) -> DistributionSignature:
         """
@@ -1491,12 +1517,10 @@ class UncertaintyProfiler:
         return uncorrupted_impacts, corrupted_impacts
 
     @staticmethod
-    def profile(model, dataset, loss_fn, methods=None, **kwargs) -> RobustnessSignature:
+    def profile(model, dataset, loss_fn, methods=DEFAULT_METHODS, **kwargs) -> RobustnessSignature:
         """
         Generates a complete robustness signature for the given model and evaluation data.
         """
-        if methods is None:
-            methods = ["fisher", "aleatoric", "msb", "delta", "qpolar", "qpolargrad"]
         # Initialize 
         dists = {'empirical_ber_accuracy': None, 'ranking_effectiveness': None}
         
@@ -1515,15 +1539,19 @@ class UncertaintyProfiler:
                           'msb': lambda m,d,*args,**kws: UncertaintyProfiler.compute_msb_impact_ratio(m, d, **kws),
                           'delta': lambda m,*args,**kws: UncertaintyProfiler.compute_delta_distribution(m, **kws),
                           'qpolar': lambda m,d,*args,**kws: UncertaintyProfiler.compute_qpolar_distribution(m, d, **kws),
-                          'qpolargrad': lambda m,d,l,**kws: UncertaintyProfiler.compute_qpolargrad_distribution(m, d, l, **kws)
+                          'qpolargrad': lambda m,d,l,**kws: UncertaintyProfiler.compute_qpolargrad_distribution(m, d, l, **kws),
+                          'hessian': lambda m,d,l,**kws: UncertaintyProfiler.compute_hessian_distribution(m, d, l, **kws),
+                          'weight_abs_value': lambda m,d,*args,**kws: UncertaintyProfiler.compute_weight_abs_value_distribution(m, **kws),
                           }
         
         translate = {'fisher': 'fisher_distribution',
-                      'aleatoric': 'aleatoric_distribution',
-                      'msb': 'msb_impact_ratio',
-                      'delta': 'delta_distribution',
-                      'qpolar': 'qpolar_distribution',
-                      'qpolargrad': 'qpolargrad_distribution',
+                        'aleatoric': 'aleatoric_distribution',
+                        'msb': 'msb_impact_ratio',
+                        'delta': 'delta_distribution',
+                        'qpolar': 'qpolar_distribution',
+                        'qpolargrad': 'qpolargrad_distribution',
+                        'hessian': 'hessian_distribution',
+                        'weight_abs_value': 'weight_abs_value_distribution',
                       }
         for method in methods:
             # lowercase
