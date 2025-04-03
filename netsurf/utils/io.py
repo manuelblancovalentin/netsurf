@@ -180,6 +180,7 @@ def save_object(obj, filename, meta_attributes = {}, custom_objects = {}):
     # Redirect output to a log file 
     original_stdout = sys.stdout
     log_filename = filename.replace('.' + filename.split('.')[-1],'.log') if '.' in filename else filename + '.log'
+    os.makedirs(os.path.dirname(log_filename), exist_ok=True)
     
     with open(log_filename, 'w') as flog:
         # [@manuelbv]: THIS IS EXTREMELY IMPORTANT!!!!!! EARLIER, I WAS REASSIGNING sys.stdout 
