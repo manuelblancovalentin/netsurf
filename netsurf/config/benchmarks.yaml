@@ -43,13 +43,13 @@ mnist_fnn:
     # - wd
   sessions:
     - batch_size: 64
-      epochs: 40
+      epochs: 120
       optimizer_params:
         learning_rate: 0.001
       pruning_params:
         final_sparsity: 0.5
         step: 2
-        end_epoch: 40
+        end_epoch: 120
 
 fashion_mnist_fnn:
   dataset: fashion_mnist

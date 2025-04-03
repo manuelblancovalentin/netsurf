@@ -1761,6 +1761,65 @@ class QPolarGradWeightRanker(QPolarWeightRanker, GradRanker):
         return 'qpolargrad'
 
 
+"""
+Fisher weight ranker
+"""
+class FisherWeightRanker(WeightRanker):
+    _ICON = "🐟"
+    def __init__(self, quantization, ascending=False, **kwargs):
+        super().__init__(quantization, ascending=ascending, **kwargs)
+
+        # Init df
+        self.df = None
+        self.quantization = quantization
+
+    def extract_weight_table(self, model, X, Y, quantization, ascending = False, verbose=False, batch_size = 1000, **kwargs):
+        # Call super to get the basic df 
+        df = WeightRanker.extract_weight_table(self, model, quantization, verbose = verbose, 
+                                          ascending = ascending, **kwargs)
+        # Make sure susceptibility is float
+        df['susceptibility'] = df['susceptibility'].astype(float)
+
+        # MAKE SURE YOU ARE SORTED BY BIT AND INTERNAL PARAM NUM
+        df = df.sort_values(by=['param','bit', 'internal_param_num'], ascending=[False,False, True])
+
+        # Step 2: Compute Fisher diagonal (gradient^2 per parameter)
+        with tf.GradientTape() as tape:
+            preds = model(X, training=False)
+            loss = model.loss(Y, preds)
+            loss = tf.reduce_mean(loss)
+
+            if model.losses:
+                loss += tf.add_n(model.losses)
+
+        grads = tape.gradient(loss, model.trainable_variables)
+        fisher_diagonals = [tf.square(g).numpy().flatten() if g is not None else np.zeros_like(v.numpy().flatten()) 
+                            for g, v in zip(grads, model.trainable_variables)]
+
+        # Step 3: Assign to df
+        for v, diag in zip(model.trainable_variables, fisher_diagonals):
+            name = v.name
+            # Repeat per bit
+            for b in df['bit'].unique():
+                df.loc[(df['param'] == name) & (df['bit'] == b), 'fisher'] = diag
+
+        # Susceptibility is just fisher
+        df['susceptibility'] = df['fisher']
+
+        self.df = df
+        return df
+
+    def rank(self, model, X, Y, ascending=False, **kwargs):
+        df = self.extract_weight_table(model, X, Y, self.quantization, ascending=ascending, **kwargs)
+        df = df.sort_values(by=['pruned', 'bit', 'susceptibility'], ascending=[True, False, ascending])
+        self.df = df
+        return df
+
+    @property
+    def alias(self):
+        return 'fisher'
+
+
 
 
 
@@ -1786,6 +1845,7 @@ def build_weight_ranker(method: str, *args, **kwargs):
                 'hessiandelta': HessianDeltaWeightRanker,
                 'qpolar': QPolarWeightRanker,
                 'qpolargrad': QPolarGradWeightRanker,
+                'fisher': FisherWeightRanker,
                 'aiber': AIBerWeightRanker}
                 
     ranker = options.get(method.lower(), WeightRanker)(*args, **kwargs)

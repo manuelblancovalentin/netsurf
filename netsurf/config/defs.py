@@ -13,14 +13,14 @@ DEFAULT_QUANTIZATIONS = ['q<6,0,1>']
 DEFAULT_BENCHMARKS = ['mnist_hls4ml', 'ECONT_AE']
 DEFAULT_METHODS = ['bitwise_msb', 'random', 'layerwise_first', 'layerwise_last', 'weight_abs_value', 
                    'hirescam_norm', 'hiresdelta', 'hessian', 'hessiandelta',
-                   'qpolar', 'qpolargrad', 'aiber']
+                   'qpolar', 'qpolargrad', 'aiber','fisher']
 # Default simulation config values
 DEFAULT_NUM_REPS = 10
 
 AVAILABLE_METHODS = ['bitwise_msb', 'bitwise_lsb', 'random', 'layerwise_first', 'layerwise_last', 'weight_abs_value', 
                     'hirescam', 'hirescam_norm', 'hirescam_times_weights', 'hirescam_times_weights_norm', 
                     'hiresdelta', 'hiresdelta_norm', 'hiresdelta_times_weights', 'hiresdelta_times_weights_norm',
-                    'hessian', 'hessiandelta', 'aiber', 'qpolar', 'qpolargrad']
+                    'hessian', 'hessiandelta', 'aiber', 'qpolar', 'qpolargrad','fisher']
 
 METHODS_NAMES = {'bitwise': 'bitwise', 
                  'bitwise_msb': 'bitwise', 
@@ -42,7 +42,9 @@ METHODS_NAMES = {'bitwise': 'bitwise',
                  'hessiandelta': 'hessiandelta',
                  'qpolar': 'qpolar',
                  'qpolargrad': 'qpolargrad',
-                 'aiber': 'aiber',}
+                 'aiber': 'aiber',
+                 'fisher': 'fisher',
+                 }
 
 
 """ Config per method """
@@ -76,6 +78,8 @@ config_per_method = {
 
     'qpolar': {'method': 'qpolar', 'method_suffix': None, 'method_kws': 'ascending=False batch_size=96'},
     'qpolargrad': {'method': 'qpolargrad', 'method_suffix': None, 'method_kws': 'ascending=False batch_size=96'},
+
+    'fisher': {'method': 'fisher', 'method_suffix': None, 'method_kws': 'ascending=False batch_size=96'},
 }
 
 
@@ -110,6 +114,8 @@ key_map = {'hiresdelta_None': 'HiResDelta', 'hiresdelta': 'HiResDelta',
             'weight_abs_value': 'Weight Abs. Value',
             'bitwise_msb_to_lsb': 'MSB to LSB',
             'bitwise_lsb_to_msb': 'LSB to MSB',
+
+            'fisher': 'Fisher', 'fisher_None': 'Fisher',
             
             '_None': '',
             '_ranking_msb_ranking_method_msb': ' (Original - MSB)', 
