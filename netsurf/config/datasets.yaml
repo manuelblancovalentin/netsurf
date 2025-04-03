@@ -2,7 +2,7 @@ MNIST:
   in_shape: !!python/tuple [-1,28,28,1]
   out_shape: !!python/tuple [-1,10]
 
-FashionMNIST:
+fashion_mnist:
   in_shape: !!python/tuple [-1,28,28,1]
   out_shape: !!python/tuple [-1,10]
 

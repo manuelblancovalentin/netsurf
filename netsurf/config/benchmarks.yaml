@@ -52,7 +52,7 @@ mnist_fnn:
         end_epoch: 40
 
 fashion_mnist_fnn:
-  dataset: FashionMNIST
+  dataset: fashion_mnist
   model: FNN
   model_params:
     units: [64]

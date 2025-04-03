@@ -2267,7 +2267,7 @@ class KeywordSpotting(Dataset):
 """ Generic function to pick a dataset """
 def load(dataset, quantizer, **kwargs):
     options = {'mnist': MNIST, 
-               'fashion_mnist': FashionMNIST,
+               'fashion_mnist': FashionMNIST, 'fashionmnist': FashionMNIST, 'fashion': FashionMNIST,
                 'svhn': SVHN,
                 'toyadmos': ToyADMOS, 
                 'cifar10': CIFAR10, 'cifar': CIFAR10,

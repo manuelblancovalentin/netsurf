@@ -5,23 +5,28 @@
 
 UNCERTAINTY_METRICS_DOC_LORENZ_PLOT = r"""
 ## 🔎 What the Lorenz Curve Shows
+
  * X-axis: Cumulative proportion of parameters (e.g. 0.8 means 80% of least influential parameters).
  * Y-axis: Cumulative proportion of total “importance mass” (e.g. Fisher, qpolar, etc.).
 
 #### 🔹 Interpretation:
+
 - The **diagonal line** represents perfect equality — each element contributes equally.
 - The **further below the diagonal** the curve bends, the **more unequal** the distribution is.
 - If 20% of elements contribute only 1% of total mass, you’ll see that as a sharp curve.
 
 #### 📊 Use Case:
+
 - Quantifies **how many parameters matter**.
 - Visually identifies whether **sensitivity is sparse or dense**.
 - Useful for deciding if ranking or pruning strategies will be effective.
 
 #### 🧮 Bonus: Gini Coefficient
+
 - Area between the diagonal and the Lorenz curve → **Gini index** (0 = equality, 1 = total inequality).
     
 #### 🧠 Gini Coefficient as a Ranking Proxy
+
  * The Gini coefficient quantifies inequality — in our context, the inequality of importance/sensitivity across parameters.
  * A high Gini value means that a few parameters dominate the total “importance mass” (e.g., Fisher, QPolarGrad).
  * If a distribution is highly concentrated (Gini ≈ 1), then ranking by that metric should be very effective, because:
@@ -32,11 +37,13 @@ UNCERTAINTY_METRICS_DOC_LORENZ_PLOT = r"""
  * Even large groups may carry moderate amounts of mass.
 
 > This explains why QPolarGrad often outperforms QPolar:
+>
 >  * QPolarGrad has a much higher Gini (near 1), so it's more selective and concentrated.
 >  * QPolar is more distributed, suggesting that while it's informative, its effectiveness depends on broader statistical behaviors — e.g., it's capturing subtler structural aspects.
 
 #### 🤔 What does it mean if the gini is ~ 1.0
 Gini ≈ 0.9997–0.9998
+
 * Nearly all importance is concentrated in very few parameters.
 * Curve is flat until it jumps up at the very end — like 0% → 100% mass in just a few top-ranked parameters.
 * This means that bit-flipping most weights will have near-zero impact, while flipping a few is catastrophic.
@@ -56,10 +63,12 @@ The **Perce Curve** is a Lorenz-like plot, but **re-centered** around the 50% ma
 - **Y-axis**: Cumulative contribution (normalized sum of sorted values).
 
 #### 🔹 Interpretation:
+
 - A steep initial rise shows that **a small number of parameters dominate early**.
 - The **X=0** line indicates where **half the total mass** is concentrated.
 
 #### 🧠 Why it's useful:
+
 - Easier to see how many parameters are above/below the 50% mark.
 - Highlights **symmetry or skew** in importance distribution.
 - Useful when comparing models or metrics with different sharpness.
@@ -75,10 +84,12 @@ This plot shows **how quickly the total "mass" (e.g., importance or energy)** ac
 - **Y-axis**: Cumulative mass (sum of values, normalized).
 
 #### 🔹 Interpretation:
+
 - If the curve reaches 80% mass quickly, that means **few parameters dominate**.
 - A slower climb implies a **more evenly distributed** influence.
 
 #### 📊 Use Case:
+
 - Lets you **estimate how many parameters you need to cover** most of the distribution.
 - Great for **comparing distributions** to see which is more sparse or peaky.
 """
@@ -102,6 +113,7 @@ Each cell \((i, j)\) in this matrix quantifies **how linearly correlated** the a
 - **Value near -1** → Strong inverse linear relationship (rare in these metrics).
 
 **Why it matters**:
+
 - If values are highly correlated, the distributions might be **redundant** — they carry overlapping information.
 - Low or near-zero correlations mean the metrics are **orthogonal**, i.e., each captures a unique structural or probabilistic property.
 
@@ -125,6 +137,7 @@ This plot shows how similar the **summary descriptors** of distributions are —
 - **Lower correlation** values (especially with `min` or `max`) indicate that some statistics may respond differently across distributions — useful for identifying *diverse shape features*.
 
 **Why this is useful**:
+
 - Helps detect which statistics are **redundant** and could be **dropped** to simplify profiling.
 - A high-correlation block implies that you might compress dimensionality via PCA or clustering.
 - A low-correlation statistic (like `min`) may be **uniquely informative** and worth preserving.
@@ -150,7 +163,7 @@ The **Radar Plot** provides a compact, visual summary of various **statistical d
 
 ### 📐 Axes (Dimensions):
 Each axis corresponds to a different summary statistic:
-\[
+$$
  \mathcal{H} \text{(Entropy) → randomness or unpredictability in the distribution} \\
  \sigma^2 \text{(Variance) → overall spread} \\
  \gamma_1 \text{(Skewness) → asymmetry} \\
@@ -163,7 +176,7 @@ Each axis corresponds to a different summary statistic:
 Gini \text{→ inequality of distribution} \\
 \mathcal{L} \text{(Lorenz) → cumulative mass distribution} \\
 \mathcal{P} \text{(Perce) → cumulative mass distribution centered around 50% mass}
-\]
+$$
 
 Each value is **normalized** across all distributions being compared (min-max or z-score), so they are plotted on a common scale (typically [0,1]).
 
