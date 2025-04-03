@@ -1322,6 +1322,10 @@ def plot_model_profile(model, X= None, Y = None, show = True,  sharex = True, ve
     # and the bottom one is for the activations
     fig, axs = plt.subplots(2, 1, figsize=(8, 2*num_rows), sharex=sharex)
 
+    # turn grids on
+    axs[0].grid(True)
+    axs[0].grid(which='major', linestyle=':', linewidth='0.5', color='black', alpha=0.4)
+
     # Now let's plot the weights
     for i, (k, v) in enumerate(qvars.items()):
         count = v.size
@@ -1390,7 +1394,6 @@ def plot_model_profile(model, X= None, Y = None, show = True,  sharex = True, ve
         #             patch_artist=True, boxprops=dict(facecolor='none', alpha=1.0, linewidth=2, edgecolor='black'), 
         #             medianprops=dict(color='black'), showmeans=False, showfliers=False)
         
-
     # Set ticks first so it doesn't mess up with axvspan
     axs[0].set_yticks(range(num_rows))
     axs[0].set_yticklabels(list(qvars.keys()))
@@ -1410,19 +1413,20 @@ def plot_model_profile(model, X= None, Y = None, show = True,  sharex = True, ve
 
     max_num_ticks = 10 if (len(xticks)%2 == 0) else 11
     if len(xticklabels) > max_num_ticks:
-        step = int(np.floor(len(xticklabels) / max_num_ticks))
-        xticks = xticks[::step]
-        xticklabels = xticklabels[::step]
+        # Make sure to add the first and the last one always 
+        indexes = np.linspace(0, len(xticks)-1, max_num_ticks-2).astype(int)
+        indexes = np.concatenate(([0], indexes, [len(xticks)-1]))
+        xticks = xticks[indexes]
+        xticklabels = xticklabels[indexes]
+
+        #step = int(np.floor(len(xticklabels) / max_num_ticks))
+        #xticks = xticks[::step]
+        #xticklabels = xticklabels[::step]
 
     axs[0].set_xticks(xticks)
     axs[0].set_xticklabels(xticklabels, rotation=0, fontsize=8)
     # Flip yaxis
     axs[0].invert_yaxis()
-
-
-    # turn grids on
-    axs[0].grid(True)
-    axs[0].grid(which='minor', linestyle=':', linewidth='0.5', color='black')
 
     # For now, delete axs[1]
     axs[1].remove()

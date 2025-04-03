@@ -1,9 +1,9 @@
 """ This document just holds some markdown text for keeping track of the 
     documentation for some metrics and uncertainty quantification methods.
     We'll use these in our reports with pergamos
-    """
+"""
 
-UNCERTAINTY_METRICS_DOC_LORENZ_PLOT = """
+UNCERTAINTY_METRICS_DOC_LORENZ_PLOT = r"""
 ## 🔎 What the Lorenz Curve Shows
  * X-axis: Cumulative proportion of parameters (e.g. 0.8 means 80% of least influential parameters).
  * Y-axis: Cumulative proportion of total “importance mass” (e.g. Fisher, qpolar, etc.).
@@ -47,7 +47,7 @@ Gini ≈ 0.9997–0.9998
 
 """
 
-UNCERTAINTY_METRICS_DOC_PERCE_PLOT = """
+UNCERTAINTY_METRICS_DOC_PERCE_PLOT = r"""
 ## 🔀 Perce Curve
 
 The **Perce Curve** is a Lorenz-like plot, but **re-centered** around the 50% mass point.
@@ -66,7 +66,7 @@ The **Perce Curve** is a Lorenz-like plot, but **re-centered** around the 50% ma
 
 """
 
-UNCERTAINTY_METRICS_DOC_CUMULATIVE_MASS_PLOT = """
+UNCERTAINTY_METRICS_DOC_CUMULATIVE_MASS_PLOT = r"""
 ## 📈 Cumulative Mass Plot
 
 This plot shows **how quickly the total "mass" (e.g., importance or energy)** accumulates across sorted parameters.
@@ -87,7 +87,7 @@ This plot shows **how quickly the total "mass" (e.g., importance or energy)** ac
 
 
 
-UNCERTAINTY_METRICS_DOC_CORRELATION_PLOT = """### 🔍 Interpreting the Correlation Plots
+UNCERTAINTY_METRICS_DOC_CORRELATION_PLOT = r"""### 🔍 Interpreting the Correlation Plots
 
 These heatmaps visualize the **Pearson correlation coefficients** between either raw distribution values or summary statistics of uncertainty signatures.
 
@@ -141,7 +141,7 @@ This plot shows how similar the **summary descriptors** of distributions are —
 
 
 
-UNCERTAINTY_METRICS_DOC_RADAR_PLOT = """
+UNCERTAINTY_METRICS_DOC_RADAR_PLOT = r"""
 ## 🕸️ Radar Plot (Statistical Fingerprint)
 
 The **Radar Plot** provides a compact, visual summary of various **statistical descriptors** extracted from a distribution (e.g., Fisher, QPolar, etc.). It creates a “fingerprint” of the shape and spread of the data.
