@@ -5,4 +5,4 @@ from . import injection
 from . import ranking
 from . import quantization
 from . import uncertainty
-from .uncertainty import UncertaintyProfiler
+from .uncertainty import UncertaintyProfiler, ProfileDivergence

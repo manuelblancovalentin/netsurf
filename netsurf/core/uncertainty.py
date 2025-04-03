@@ -3,6 +3,7 @@ from typing import Optional, Tuple, Dict, Set
 
 import numpy as np
 import scipy.stats
+from scipy.stats import entropy as kl_divergence
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -20,6 +21,7 @@ DEFAULT_DISTRIBUTION_COLORS = {
     "fisher": "#FF8C42",       # Orange (strong highlight, conveys sensitivity)
     "aleatoric": "#4BA3C7",    # Sky Blue (clean, associated with variability)
     "msb": "#A463F2",          # Purple (represents discrete/bitwise influence)
+    "msb_impact_ratio": "#A463F2",  # Purple (represents discrete/bitwise influence)
     "delta": "#3FC380",        # Green (change/gradient – intuitive for deltas)
     "qpolar": "#FF5C8A",       # Pinkish Red (emphasizes custom nature)
     "qpolargrad": "#D7263D",   # Deep Red (gradient + qpolar fusion = intense)
@@ -98,6 +100,7 @@ DEFAULT_PLOT_FUNCTIONS = {
 # |   | Bit-flip degradation               | Accuracy @ BER              | After BER           |
 # |   | Ranking effectiveness              | Acc vs protected bits curve | After BER           |
 # +============================================================================================+
+
 
 @dataclass
 class DistributionSignature:
@@ -628,6 +631,51 @@ class DistributionSignature:
         return sig_ct
 
 
+
+@dataclass
+class RobustnessDivergence:
+    method: str
+    divergence_stats: Dict[str, float] = field(default_factory=dict)
+    cosine_similarity: float = 0.0
+    gini_shift: float = 0.0
+    radar_shift: np.ndarray = field(default_factory=lambda: np.array([]))
+    kl_divergence: float = 0.0
+    distribution_stats: Dict[str, np.ndarray] = field(default_factory=dict)
+    
+    @staticmethod
+    def from_signatures(pre: DistributionSignature, post: DistributionSignature) -> "RobustnessDivergence":
+        """
+        Computes divergence metrics between two DistributionSignatures.
+        Useful to assess how training changes robustness structure.
+        """
+        stats_names = ["entropy", "variance", "skewness", "kurtosis", "mean", "std", "l1_energy", "l2_energy", "gini"]
+        pre_vals = np.array([getattr(pre, k, 0.0) for k in stats_names])
+        post_vals = np.array([getattr(post, k, 0.0) for k in stats_names])
+
+        delta_stats = {k: post_v - pre_v for k, pre_v, post_v in zip(stats_names, pre_vals, post_vals)}
+
+        cosine_sim = np.dot(pre_vals, post_vals) / (np.linalg.norm(pre_vals) * np.linalg.norm(post_vals) + 1e-8)
+        gini_shift = (post.gini or 0.0) - (pre.gini or 0.0)
+        radar_shift = post_vals - pre_vals
+        # Compute symmetric KL divergence
+        pre_pdf = np.abs(pre_vals) / (np.sum(np.abs(pre_vals)) + 1e-8)
+        post_pdf = np.abs(post_vals) / (np.sum(np.abs(post_vals)) + 1e-8)
+        kl1 = kl_divergence(pre_pdf + 1e-8, post_pdf + 1e-8)
+        kl2 = kl_divergence(post_pdf + 1e-8, pre_pdf + 1e-8)
+        kl_div = 0.5 * (kl1 + kl2)
+
+        return RobustnessDivergence(
+            method=post.name,
+            divergence_stats=delta_stats,
+            cosine_similarity=cosine_sim,
+            gini_shift=gini_shift,
+            radar_shift=radar_shift,
+            distribution_stats={"pre": pre_vals, "post": post_vals},
+            kl_divergence=kl_div
+        )
+
+
+
 @dataclass
 class RobustnessSignature:
     _ICON = "🪖"
@@ -638,8 +686,8 @@ class RobustnessSignature:
     aleatoric_distribution: Optional[DistributionSignature] = None  # Norm stats of ∇_X L
 
     # Bit-level structural uncertainty
-    msb_impact_ratio: Optional[float] = None  # Fraction of bit-level impact attributed to MSBs
-    msb_impact_ratio_abs: Optional[float] = None  # Fraction of bit-level impact attributed to MSBs (absolute)
+    msb_impact_ratio: Optional[DistributionSignature] = None  # Fraction of bit-level impact attributed to MSBs
+    msb_impact_ratio_abs: Optional[DistributionSignature] = None  # Fraction of bit-level impact attributed to MSBs (absolute)
     msb_impact: Optional[DistributionSignature] = None  # Distribution of MSB impacts
     total_impact: Optional[DistributionSignature] = None  # Distribution of total impacts
     msb_impact_abs: Optional[DistributionSignature] = None  # Distribution of absolute MSB impacts
@@ -651,8 +699,8 @@ class RobustnessSignature:
     qpolargrad_distribution: Optional[DistributionSignature] = None
 
     # Empirical/Observed metrics (computed after BER)
-    empirical_ber_accuracy: Optional[float] = None  # Accuracy after bit flip
-    ranking_effectiveness: Optional[float] = None  # Ranking impact on protection
+    empirical_ber_accuracy: Optional[DistributionSignature] = None  # Accuracy after bit flip
+    ranking_effectiveness: Optional[DistributionSignature] = None  # Ranking impact on protection
 
     @property
     def fisher(self) -> DistributionSignature:
@@ -669,12 +717,13 @@ class RobustnessSignature:
         return self.aleatoric_distribution
     
     @property
-    def msb(self) -> float:
+    def msb(self) -> DistributionSignature:
         """
         Returns the MSB impact ratio.
         """
         return self.msb_impact_ratio, self.msb_impact_ratio_abs, self.msb_impact, self.total_impact, self.msb_impact_abs, self.total_impact_abs
     
+
     @property
     def delta(self) -> DistributionSignature:
         """
@@ -744,7 +793,7 @@ class RobustnessSignature:
             sample_size (int): Max number of points to sample from each distribution to compute correlations.
         """
         if methods is None:
-            methods = ["fisher", "aleatoric", "delta", "qpolar", "qpolargrad"]
+            methods = ["fisher", "aleatoric", 'msb_impact_ratio', "delta", "qpolar", "qpolargrad"]
  
         # if sample_size == -1, we need to find the minimum number of samples 
         if sample_size == -1:
@@ -777,7 +826,8 @@ class RobustnessSignature:
                         "min": sig.min,
                         "max": sig.max,
                         "l1_energy": sig.l1_energy,
-                        "l2_energy": sig.l2_energy
+                        "l2_energy": sig.l2_energy,
+                        "gini": sig.gini,
                     }
         
         if len(stats_data) < 2:
@@ -821,26 +871,27 @@ class RobustnessSignature:
         return fig, axs
 
 
-    def plot_radar_fingerprints(self, methods=None, figsize: Tuple[int, int] = (5, 5), axs = None, show = True):
+    def plot_radar_fingerprints(self, methods=None, figsize: Tuple[int, int] = (3, 3), axs = None, show = True):
         """
-        Plots individual radar (spider) charts for each distribution method,
-        visualizing the normalized summary statistics.
+        Plots three radar (spider) charts per distribution method:
+        - Min-max normalized stats
+        - Z-score standardized stats
+        - Log-scaled raw values
  
         Args:
             methods (list): List of method names (e.g., "fisher", "qpolar").
             figsize (tuple): Size of each radar figure.
-            sample_size (int): Max number of samples from each dist (unused here).
             axs: Optional list of matplotlib axes.
             show (bool): Whether to display the plots immediately.
         """
         if methods is None:
-            methods = ["fisher", "aleatoric", "delta", "qpolar", "qpolargrad"]
+            methods = ["fisher", "aleatoric", "msb_impact_ratio", "delta", "qpolar", "qpolargrad"]
  
         stats_names = ["entropy", "variance", "skewness", "kurtosis", "mean", "std", "l1_energy", "l2_energy", "gini"]
+        stats_symbol = ["\U0000210B", "\u03C3\u00B2", "\u03B3\u2081", "\u03B3\u2082", "\u03BC", "\u03C3", "\u2016x\u2016\u2081", "\u2016x\u2016\u2082", "Gini"]
         all_values = {method: [] for method in methods}
         available_methods = []
  
-        # Collect raw stats
         for method in methods:
             sig = getattr(self, method, None)
             if isinstance(sig, DistributionSignature):
@@ -852,37 +903,49 @@ class RobustnessSignature:
             print("No valid methods found.")
             return
  
-        # Normalize across methods
         df = pd.DataFrame(all_values, index=stats_names)
-        df_norm = (df - df.min(axis=1).values[:, None]) / (df.max(axis=1).values - df.min(axis=1).values + 1e-8)[:, None]
  
-        if axs is None:
-            n = len(available_methods)
-            ncols = 1
-            nrows = int(np.ceil(n / ncols))
-            fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=(figsize[0]*ncols, figsize[1]*nrows),
-                                    subplot_kw=dict(polar=True))
-            axs = axs.flatten()
-        else:
-            fig = axs[0].figure
+        df_minmax = (df - df.min(axis=1).values[:, None]) / (df.max(axis=1).values - df.min(axis=1).values + 1e-8)[:, None]
+        df_z = (df - df.mean(axis=1).values[:, None]) / (df.std(axis=1).values + 1e-8)[:, None]
+        df_log = np.log1p(df.clip(lower=1e-8))
+ 
+        n = len(available_methods)
+        fig, axs = plt.subplots(nrows=n, ncols=3, figsize=(figsize[0]*3*0.9, figsize[1]*n*1.05),
+                                subplot_kw=dict(polar=True))
+        column_titles = ['Min-Max Norm', 'Z-Score Norm', 'Log Scale']
+        for j, title in enumerate(column_titles):
+            fig.text(0.23 + j * 0.26, 0.95, title, ha='center', va='center', fontsize=10, weight='bold')
+        plt.subplots_adjust(hspace=0.4)
  
         for i, method in enumerate(available_methods):
-            values = df_norm[method].tolist()
-            values += values[:1]
-            angles = np.linspace(0, 2 * np.pi, len(stats_names), endpoint=False).tolist()
-            angles += angles[:1]
+            for j, df_plot in enumerate([df_minmax, df_z, df_log]):
+                values = df_plot[method].tolist()
+                values += values[:1]
+                angles = np.linspace(0, 2 * np.pi, len(stats_names), endpoint=False).tolist()
+                angles += angles[:1]
+
+                ax = axs[i, j] if n > 1 else axs[j]
+                ax.plot(angles, values, label=method, linewidth=2, color=DEFAULT_DISTRIBUTION_COLORS[method])
+                ax.fill(angles, values, alpha=0.2, color=DEFAULT_DISTRIBUTION_COLORS[method])
+                ax.set_xticks(angles[:-1])
+                ax.set_xticklabels(stats_symbol)
+                ax.set_yticklabels([])
  
-            ax = axs[i]
-            ax.plot(angles, values, label=method, linewidth=2)
-            ax.fill(angles, values, alpha=0.2)
-            ax.set_xticks(angles[:-1])
-            ax.set_xticklabels(stats_names)
-            ax.set_yticklabels([])
-            ax.set_title(f"Stats for {method}")
- 
-        for j in range(i + 1, len(axs)):
-            axs[j].axis('off')
- 
+            # Draw rounded rectangle around the entire row
+            row_axes = axs[i] if n > 1 else axs
+            fig.canvas.draw()
+            bbox_start = row_axes[0].get_position()
+            bbox_end = row_axes[-1].get_position()
+            x0 = bbox_start.x0 - 0.01
+            y0 = bbox_end.y0 - 0.015
+            width = bbox_end.x1 - bbox_start.x0 + 0.02
+            height = bbox_start.y1 - bbox_end.y0 + 0.03
+            rect = patches.FancyBboxPatch((x0, y0), width, height,
+                                          boxstyle="round,pad=0.01", linewidth=1,
+                                          edgecolor="black", facecolor="none", transform=fig.transFigure, zorder=10)
+            fig.patches.append(rect)
+            # Place the method title at the left edge of the row
+            fig.text(x0 - 0.02, y0 + height / 2, method, va="center", ha="right", fontsize=10, weight='bold')
         if show:
             plt.tight_layout()
             plt.show()
@@ -973,8 +1036,7 @@ class RobustnessSignature:
             # Add the explanation container to the correlation container
             radar_ct.append(radar_exp_ct)
         # Add radar plot
-        radar_fig, radar_axs = self.plot_radar_fingerprints(methods = ['fisher', 'aleatoric', 'delta', 'qpolar', 'qpolargrad'], 
-                                                            axs = None, 
+        radar_fig, radar_axs = self.plot_radar_fingerprints(axs = None, 
                                                             show = False)
         # Convert the plot to an image
         plt.rcParams['text.usetex'] = True
@@ -989,6 +1051,113 @@ class RobustnessSignature:
 
         return obj_ct
     
+
+
+@dataclass
+class ProfileDivergence:
+    divergences: Dict[str, RobustnessDivergence]
+
+    @staticmethod
+    def from_signatures(pre: RobustnessSignature, post: RobustnessSignature, methods=None) -> "ProfileDivergence":
+        """
+        Compares two RobustnessSignatures and returns divergence metrics per method.
+        """
+        if methods is None:
+            methods = ["fisher", "aleatoric", "delta", "qpolar", "qpolargrad"]
+
+        divergences = {}
+        for method in methods:
+            if hasattr(pre, method) and hasattr(post, method):
+                pre_sig = getattr(pre, method)
+                post_sig = getattr(post, method)
+                if isinstance(pre_sig, DistributionSignature) and isinstance(post_sig, DistributionSignature):
+                    divergences[method] = RobustnessDivergence.from_signatures(pre_sig, post_sig)
+
+        return ProfileDivergence(divergences=divergences)
+    
+    def plot_divergence_summary(self, figsize=(10, 5), show=True):
+        """
+        Visualizes robustness divergence between pre- and post-training distributions.
+        Includes:
+        - Cosine similarity (bar chart)
+        - Gini coefficient shift (line plot on secondary axis)
+ 
+        Args:
+            figsize (tuple): Size of the figure.
+            show (bool): Whether to display the plot immediately.
+        """
+ 
+        methods = list(self.divergences.keys())
+        cosine_sims = [self.divergences[m].cosine_similarity for m in methods]
+        gini_shifts = [self.divergences[m].gini_shift for m in methods]
+ 
+        fig, ax1 = plt.subplots(figsize=figsize)
+ 
+        color1 = 'tab:blue'
+        ax1.set_xlabel('Method')
+        ax1.set_ylabel('Cosine Similarity', color=color1)
+        bars = ax1.bar(methods, cosine_sims, color=color1, alpha=0.7, label='Cosine Similarity')
+        ax1.tick_params(axis='y', labelcolor=color1)
+        ax1.set_ylim(0, 1.05)
+ 
+        ax2 = ax1.twinx()
+        color2 = 'tab:red'
+        ax2.set_ylabel('Gini Coefficient Shift', color=color2)
+        ax2.plot(methods, gini_shifts, color=color2, marker='o', label='Gini Shift')
+        ax2.tick_params(axis='y', labelcolor=color2)
+ 
+        fig.tight_layout()
+        if show:
+            plt.show()
+ 
+        return fig, (ax1, ax2)
+
+    def plot_advanced_divergence_summary(self, figsize=(12, 6), show=True):
+        """
+        Visualizes additional divergence metrics between pre- and post-training profiles:
+        - Cosine Similarity
+        - Gini Shift
+        - KL Divergence (symmetrized)
+        """
+        methods = list(self.divergences.keys())
+        cosine_sims = []
+        gini_shifts = []
+        kl_divs = []
+
+        for m in methods:
+            div = self.divergences[m]
+            cosine_sims.append(div.cosine_similarity)
+            gini_shifts.append(div.gini_shift)
+
+            pre = div.distribution_stats.get("pre", None)
+            post = div.distribution_stats.get("post", None)
+            if pre is not None and post is not None:
+                pre_pdf = np.abs(pre) / (np.sum(np.abs(pre)) + 1e-8)
+                post_pdf = np.abs(post) / (np.sum(np.abs(post)) + 1e-8)
+                kl_1 = kl_divergence(pre_pdf + 1e-8, post_pdf + 1e-8)
+                kl_2 = kl_divergence(post_pdf + 1e-8, pre_pdf + 1e-8)
+                kl_divs.append(0.5 * (kl_1 + kl_2))  # symmetric KL
+            else:
+                kl_divs.append(0.0)
+
+        fig, ax1 = plt.subplots(figsize=figsize)
+
+        ax1.set_xlabel("Method")
+        ax1.set_ylabel("Cosine Similarity / Gini Shift", color='tab:blue')
+        ax1.bar(methods, cosine_sims, label='Cosine Similarity', color='tab:blue', alpha=0.6)
+        ax1.plot(methods, gini_shifts, label='Gini Shift', color='tab:orange', marker='o')
+        ax1.tick_params(axis='y', labelcolor='tab:blue')
+        ax1.set_ylim(0, 1.1)
+
+        ax2 = ax1.twinx()
+        ax2.set_ylabel("Symmetric KL Divergence", color='tab:red')
+        ax2.plot(methods, kl_divs, label='KL Divergence', color='tab:red', marker='x')
+        ax2.tick_params(axis='y', labelcolor='tab:red')
+
+        fig.tight_layout()
+        if show:
+            plt.show()
+        return fig, (ax1, ax2)
 
 
 class UncertaintyProfiler:

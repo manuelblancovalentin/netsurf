@@ -150,18 +150,20 @@ The **Radar Plot** provides a compact, visual summary of various **statistical d
 
 ### 📐 Axes (Dimensions):
 Each axis corresponds to a different summary statistic:
-- \[$\mathcal{H}$\] (Entropy) → randomness or unpredictability in the distribution
-- \[$\sigma^2$\] (Variance) → overall spread
-- \[$\gamma_1$\] (Skewness) → asymmetry
-- \[$\gamma_2$\] (Kurtosis) → tail-heaviness
-- \[$\mu$\] (Mean) → average value
-- \[$\sigma$\] (Standard Deviation) → dispersion
-- Min / Max → extreme values
-- \[$\|x\|_1$\] (L1 Energy) → total absolute mass
-- \[$\|x\|_2^2$\] (L2 Energy) → quadratic energy
-- \[$Gini$\] → inequality of distribution
-- \[$\mathcal{L}$\] (Lorenz) → cumulative mass distribution
-- \[$\mathcal{P}$\] (Perce) → cumulative mass distribution centered around 50% mass
+\[
+ \mathcal{H} \text{(Entropy) → randomness or unpredictability in the distribution} \\
+ \sigma^2 \text{(Variance) → overall spread} \\
+ \gamma_1 \text{(Skewness) → asymmetry} \\
+ \gamma_2 \text{(Kurtosis) → tail-heaviness} \\
+ \mu \text{(Mean) → average value} \\
+ \sigma \text{(Standard Deviation) → dispersion} \\
+ \text{Min / Max → extreme values} \\
+ \|x\|_1 \text{(L1 Energy) → total absolute mass} \\
+ \|x\|_2^2 \text{(L2 Energy) → quadratic energy} \\
+Gini \text{→ inequality of distribution} \\
+\mathcal{L} \text{(Lorenz) → cumulative mass distribution} \\
+\mathcal{P} \text{(Perce) → cumulative mass distribution centered around 50% mass}
+\]
 
 Each value is **normalized** across all distributions being compared (min-max or z-score), so they are plotted on a common scale (typically [0,1]).
 
