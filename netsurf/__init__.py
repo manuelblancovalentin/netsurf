@@ -116,7 +116,9 @@ from .dnn import losses
 from .dnn.losses import LOSSES
 from .dnn.models import QModel, load_model
 from .dnn.layers import QQLAYERS
-from .core import RankingComparator, Experiment, UncertaintyProfiler, ProfileDivergence
+from .core import WeightRanker, RankingComparator # Ranking
+from .core import Experiment # Expeirments
+from .core import UncertaintyProfiler, ProfileDivergence # Uncertainty and profilers
 
 # Import documentation
 from . import doc
