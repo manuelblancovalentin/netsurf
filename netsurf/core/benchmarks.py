@@ -241,6 +241,7 @@ class Benchmark:
         # Get model html
         model_ct = self.model.html()
         
+        
         # Add last weight overview plots (pruning, pie, etc.)
         # Plot weight dist 
         filename = os.path.join(self.models_dir, 'weights_pie.png')
@@ -271,11 +272,18 @@ class Benchmark:
         # Delete temp file
         os.remove(filename)
 
+        # Add model html to container
+        bmk_ct.extend(model_ct)
+
+        # Add to benchmark container
+        bmk_ct.append(self.dataset.html())
+
         ### Forward pass thru activations model. This will be a whole new container. 
         activations_ct = pg.CollapsibleContainer('🔥 Forward pass activations', layout='vertical')
+         # Add to benchmark container
+        bmk_ct.append(activations_ct)
 
         """ Add model container to doc report """
-
         # Build activation model to get the output at each single layer 
         activation_model = netsurf.QModel(self.quantization, self.model.in_shape, self.model.out_shape, 
                                         ip = self.model.input, out = self.model._activations)
@@ -295,14 +303,18 @@ class Benchmark:
         # Close figure
         plt.close(fig)
 
-        # Add model html to container
-        bmk_ct.extend(model_ct)
+        # Let's profile the model (similarly to what hls4ml does with the boxplot showing the limits)
+        profile_ct = pg.CollapsibleContainer('⧯ Profiling', layout='vertical')
+         # Add to benchmark container
+        bmk_ct.append(profile_ct)
 
-        # Add to benchmark container
-        bmk_ct.append(self.dataset.html())
+        fig_profile, ax_profile = netsurf.utils.plot.plot_model_profile(activation_model, X = xsample, show = False, sharex = False)
+        # Create an image for the plot
+        img_profile = pg.Image(fig_profile, embed=True)
+        # Add to profile_ct
+        profile_ct.append(img_profile)
 
-        # Add to benchmark container
-        bmk_ct.append(activations_ct)
+
 
         return bmk_ct
 

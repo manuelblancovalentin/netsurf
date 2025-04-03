@@ -17,6 +17,9 @@ from matplotlib.lines import Line2D
 from matplotlib.legend import Legend
 from matplotlib.patches import Arc
 import matplotlib.patches as mpatches
+from matplotlib import cm
+from matplotlib.colors import Normalize
+
 
 """ Sklearn """
 import sklearn
@@ -1238,6 +1241,199 @@ def plot_quantized_histogram(data: np.ndarray, quantizer: 'QuantizationScheme',
     else:
         return fig, ax
     
+
+""" 
+    Function to plot the profile similar to what hls4ml does, so we don't rely on them 
+"""
+def plot_model_profile(model, X= None, Y = None, show = True,  sharex = True, verbose = True):
+    # get  quantizer
+    Q = model.quantizer
+
+    if X is None:
+        # random Q sample
+        # Now create some random input data, do fwd pass and plot output
+        # Create random input using Q
+        batch_size = 256
+        X = Q.sample((batch_size, *model.in_shape))
+
+    else:
+        batch_size = X.shape[0]
+
+    # Do forward pass
+    if Y is None:
+        with tf.device("/CPU:0"):
+            if not isinstance(X, tf.Tensor):
+                Y = model(tf.convert_to_tensor(X))
+            else:
+                Y = model(X)
+    
+    if not isinstance(Y, list):
+        Y = [Y]
+    
+    # Get the weights/biases
+    vars = model.trainable_variables
+
+    # Make sure these weights are quantized
+    qvars = {v.name: Q(v).flatten() for v in vars}
+
+    # absolute global minimum and maximum
+    gmin = np.min([np.min(np.log2(np.abs(v[v!=0]))) if len(v[v!=0]) > 0 else 0 for v in qvars.values()])
+    gmax = np.max([np.max(np.log2(np.abs(v[v!=0]))) if len(v[v!=0]) > 0 else 0 for v in qvars.values()])
+
+    # Get the ticks from gmin gmax (only positive xticks)
+    xticks = np.arange(Q.m-Q.s)
+
+    # For each variable
+    counts = [v.size for v in qvars.values()]
+    norm = Normalize(vmin=min(counts), vmax=max(counts))
+    cmap = cm.Blues
+
+    # Get num bits 
+    num_bits = Q.m
+
+    # num rows:
+    num_rows = len(qvars)
+
+    q_min_value = Q.min_value
+    if q_min_value < 0:
+        q_min_value = -np.log2(abs(q_min_value)) + gmin - 1
+    else:
+        q_min_value = np.log2(q_min_value) - gmin + 1
+    q_max_value = Q.max_value
+    if q_max_value < 0:
+        q_max_value = -np.log2(abs(q_max_value)) + gmin - 1
+    else:
+        q_max_value = np.log2(q_max_value) - gmin + 1
+
+    # We have to remap because the order here goes according to the power of 2:
+    #  -2^n, -2^n-1, ..., 2^0, -2^-1, ..., -2^-f, 0, 2^-f, ..., 2^0, 2^1, ..., 2^n
+    # so you see, this is our map:
+    # for positive:
+    # 0 -> 0
+    # -f -> 1
+    # -f+1 -> 2
+    # -f+2 -> 3
+    # ...
+    # -f+n -> n
+
+    # just add +f + 1
+
+    # Two axis, the top one is for profiling the weights/biases
+    # and the bottom one is for the activations
+    fig, axs = plt.subplots(2, 1, figsize=(8, 2*num_rows), sharex=sharex)
+
+    # Now let's plot the weights
+    for i, (k, v) in enumerate(qvars.items()):
+        count = v.size
+        color = cmap(norm(count))  # RGB color mapped to parameter count
+
+        # Get the positive values 
+        vpos = v[v>0]
+        vneg = v[v<0]
+
+        # Get the np.log2
+        vpos = np.log2(vpos)
+        vneg = np.log2(-vneg)
+
+        # Add +f+1 to vpos
+        vpos = vpos -gmin + 1
+        vneg = -vneg +gmin - 1
+
+        # Find the log2 of the median
+        vmed = np.median(v)
+        vmed_sign = np.sign(vmed)
+        if vmed > 0:
+            vmed = np.log2(np.abs(vmed))
+            if vmed_sign < 0:
+                vmed = -vmed + gmin - 1
+            else:
+                vmed = vmed - gmin + 1
+        else:
+            vmed = 0.0
+
+        # Find the log2 of the std
+        vstd = np.std(v)
+        vstd_sign = np.sign(vstd)
+        vstd = np.log2(np.abs(vstd)) if vstd > 0  else 0
+        # add a minimum value for std so we can actually see the box
+        vstd = max(vstd, 0.3)
+
+        vmax_pos = np.max(vpos) if len(vpos) > 0 else 0.3
+        vmin_neg = np.max(vneg) if len(vneg) > 0 else -0.3
+
+        # Plot the allowed box
+        axs[0].fill_betweenx(y=[i + 0.4, i - 0.4], x1=q_min_value, x2=q_max_value,
+                        color='gray', alpha=0.2, zorder=0)
+
+        # Fill pos values
+        axs[0].fill_betweenx(y=[i + 0.25, i-0.25], x1=vmed-vstd, x2=vmed+vstd, color=color, edgecolor='black', alpha=0.5, zorder=2)
+        # Repeat with no facecolor just for the border to have alpha = 1.0
+        axs[0].fill_betweenx(y=[i + 0.25, i-0.25], x1=vmed-vstd, x2=vmed+vstd, color='none', edgecolor='black', alpha=1.0, lw=1.5, zorder=3)
+
+        # Now plot the whiskers for the positive part (from vmex+vstd -> vmax_pos)
+        axs[0].plot([vmed+vstd, vmax_pos], [i, i], color='black', lw=2, zorder=0)
+        # Now plot the whiskers for the negative part (from vmin_neg -> vmed-vstd)
+        axs[0].plot([vmin_neg, vmed-vstd], [i, i], color='black', lw=2, zorder=0)
+
+        # Now plot the median
+        axs[0].plot([vmed, vmed], [i + 0.23, i - 0.23], color='black', lw=1, zorder=0)
+
+        # And the vertical line of the whisker
+        axs[0].plot([vmax_pos, vmax_pos], [i + 0.25, i - 0.25], color='black', lw=1, zorder=0)
+        axs[0].plot([vmin_neg, vmin_neg], [i + 0.25, i - 0.25], color='black', lw=1, zorder=0)
+        
+        # #boxplot
+        # axs[0].boxplot(np.sign(v)*np.log2(np.abs(v)), positions=[i], widths=0.5, vert=False,
+        #             patch_artist=True, boxprops=dict(facecolor=color, alpha=0.5, linewidth=2, edgecolor='black'), 
+        #             medianprops=dict(color='black'), showmeans=False, showfliers=False)
+        # axs[0].boxplot(np.sign(v)*np.log2(np.abs(v)), positions=[i], widths=0.5, vert=False,
+        #             patch_artist=True, boxprops=dict(facecolor='none', alpha=1.0, linewidth=2, edgecolor='black'), 
+        #             medianprops=dict(color='black'), showmeans=False, showfliers=False)
+        
+
+    # Set ticks first so it doesn't mess up with axvspan
+    axs[0].set_yticks(range(num_rows))
+    axs[0].set_yticklabels(list(qvars.keys()))
+
+    # Set the xticklabels to the quantization levels
+    xticklabels = len(np.arange(gmin, gmax+1))
+    def format_value(x, neg = False):
+        if x == 0:
+            # skip
+            return ''
+        elif x < 0:
+            return r'$2^{' + str(int(x)) + r'}$' if not neg else r'$-2^{' + str(int(-x)) + r'}$'
+        else:
+            return f'${int(x)}$' if not neg else f'$-{int(x)}$'
+    xticklabels = [format_value(x, neg=True) for x in np.arange(gmax, gmin-1, -1) if x != 0] + [format_value(0)] + [format_value(x) for x in np.arange(gmin, gmax+1) if x != 0]
+    xticks = np.arange(gmin-gmax, -gmin+gmax+1)
+
+    max_num_ticks = 10 if (len(xticks)%2 == 0) else 11
+    if len(xticklabels) > max_num_ticks:
+        step = int(np.floor(len(xticklabels) / max_num_ticks))
+        xticks = xticks[::step]
+        xticklabels = xticklabels[::step]
+
+    axs[0].set_xticks(xticks)
+    axs[0].set_xticklabels(xticklabels, rotation=0, fontsize=8)
+    # Flip yaxis
+    axs[0].invert_yaxis()
+
+
+    # turn grids on
+    axs[0].grid(True)
+    axs[0].grid(which='minor', linestyle=':', linewidth='0.5', color='black')
+
+    # For now, delete axs[1]
+    axs[1].remove()
+
+    if show:
+        plt.show()
+    
+    return fig, axs[0]
+    
+
+
 
 """ Define a function to plot the histogram of the activations at the output of each 
     one of the layers 
