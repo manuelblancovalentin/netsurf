@@ -174,7 +174,7 @@ class Ranking:
         # Fields and titles
         items = [('bit','Bit number', lambda x: x, 'green'), 
                  ('value', 'Param Value', lambda x: x, 'orange'),
-                 ('binary', 'Num Ones (bin)', lambda x: [np.sum([int(i) for i in xx]) for xx in x] , 'blue'),
+                 #('binary', 'Num Ones (bin)', lambda x: [np.sum([int(i) for i in xx]) for xx in x] , 'blue'),
                  ('pruned', 'Pruned', lambda x: 1.0*x, 'red'),
                  ('variable_index', 'Variable Index (~Layer)', lambda x: x, 'black'),
                   ('susceptibility', 'Raw susceptibility', lambda x: x, 'purple'),
@@ -495,7 +495,7 @@ class WeightRanker:
         # Fields and titles
         items = [('bit','Bit number', lambda x: x, 'green'), 
                  ('value', 'Param Value', lambda x: x, 'orange'),
-                 ('binary', 'Num Ones (bin)', lambda x: [np.sum([int(i) for i in xx]) for xx in x] , 'blue'),
+                 #('binary', 'Num Ones (bin)', lambda x: [np.sum([int(i) for i in xx]) for xx in x] , 'blue'),
                  ('pruned', 'Pruned', lambda x: 1.0*x, 'red'),
                  ('variable_index', 'Variable Index (~Layer)', lambda x: x, 'black'),
                   ('susceptibility', 'Raw susceptibility', lambda x: x, 'purple'),
