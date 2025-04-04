@@ -254,13 +254,6 @@ def load_object(filename, custom_objects = {}, remove_log = False, verbose = Fal
 """
 
 import json
-import hashlib
-
-def generate_config_hash(config):
-    """ . """
-    # Ensure keys are sorted for consistent hashing
-    config_string = json.dumps(config, sort_keys=True)
-    return hashlib.md5(config_string.encode()).hexdigest()
 
 
 def get_metadata(path, filename = '.metadata.netsurf'):
