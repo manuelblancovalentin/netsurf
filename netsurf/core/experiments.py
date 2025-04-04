@@ -506,7 +506,8 @@ class Experiment:
         if os.path.isfile(filepath) and not overwrite:
             netsurf.utils.log._warn(f'Experiment file {filepath} already exists. Skipping. If you want to overwrite, set overwrite = True')
             return
-        msg = netsurf.utils.save_object(self, filepath, meta_attributes = {'class': 'netsurf.Experiment', 'hash': self._config_hash.encode()})
+        #msg = netsurf.utils.save_object(self, filepath, meta_attributes = {'class': 'netsurf.Experiment', 'hash': self._config_hash.encode()})
+        msg = netsurf.utils.save_object(self, filepath, meta_attributes = {'class': 'netsurf.Experiment'})
         netsurf.utils.log._custom('EXP',msg)
 
 
