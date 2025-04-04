@@ -168,6 +168,53 @@ class Ranking:
         # Save the ranking
         self.ranking.to_csv(filepath, index = False)
         netsurf.info(f"Ranking saved to {filepath} Internal filepath definition in object updated.")
+    
+    def plot_ranking(self, axs = None, w = 300, show = True):
+        
+        # Fields and titles
+        items = [('bit','Bit number', lambda x: x, 'green'), 
+                 ('value', 'Param Value', lambda x: x, 'orange'),
+                 ('binary', 'Num Ones (bin)', lambda x: [np.sum([int(i) for i in xx]) for xx in x] , 'blue'),
+                 ('pruned', 'Pruned', lambda x: 1.0*x, 'red'),
+                 ('variable_index', 'Variable Index (~Layer)', lambda x: x, 'black'),
+                  ('susceptibility', 'Raw susceptibility', lambda x: x, 'purple'),
+                  ('susceptibility', 'Absolute |Susceptibility|', lambda x: np.abs(x), 'purple')]
+        # if impact in ranking, add it too
+        if 'impact' in self.ranking.columns:
+            items.append(('impact', 'Impact', lambda x: x, 'brown'))
+        if 'gradient' in self.ranking.columns:
+            items.append(('gradient', 'Gradient', lambda x: x, 'brown'))
+        if 'hessian' in self.ranking.columns:
+            items.append(('hessian', 'Hessian', lambda x: x, 'brown'))
+
+        # available fields are
+        # df = {'param': [], 'global_param_num': [], 'variable_index': [], 'internal_param_num': [],
+        #       'coord': [], 'bit': [], 'value': [], 'rank': [], 'susceptibility': [], 
+        #     'binary': [], 'pruned': []}
+        
+        num_axs = len(items)
+        if axs is not None:
+            # Make sure it's the right length
+            if len(axs) != num_axs:
+                netsurf.error(f'Expected {num_axs} axes, got {len(axs)}. Falling back to default.')
+                axs = None
+
+        # Plot indexes in ranking
+        show_me = (axs is None) & show
+        if axs is None:
+            fig, axs = plt.subplots(num_axs, 1, figsize=(13, 13))
+        else:
+            fig = axs[0].figure
+
+        # Plot bit number first 
+        for i, (field, title, transform, color) in enumerate(items):
+            netsurf.utils.plot.plot_avg_and_std(transform(self[field]), w, axs[i], shadecolor=color, ylabel=title)
+
+        if show_me:
+            plt.tight_layout()
+            plt.show()
+        else:
+            return fig, axs
 
 
 ####################################################################################################################

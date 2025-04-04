@@ -1010,7 +1010,7 @@ class Experiment:
         # Create a collapsible container for this 
         # First, we want a summary table with all the config parameters for this method 
         if hasattr(self.ranking, '_ICON'):
-            cname = f'{self.ranker._ICON} {self.ranking.method}'
+            cname = f'{self.ranking._ICON} {self.ranking.method}'
         else:
             cname = f'🔬 {self.ranking.method}'
         if self.__class__.__name__ != 'Experiment':
@@ -1019,7 +1019,7 @@ class Experiment:
         g = pg.CollapsibleContainer(cname, layout = 'vertical')
 
         props = {"Experiment name": self.name,
-            "🏆 Ranker": f'{self.ranking.method} ({self.ranker.__class__.__name__})',
+            "🏆 Ranker": f'{self.ranking.method} ({self.ranking.__class__.__name__})',
             '🔗 Alias': self.alias,
             'Normalize': self.config['normalize']}
 
@@ -1047,7 +1047,7 @@ class Experiment:
 
         # Now let's add the ranking plot
         if self.ranking is not None:
-            fig, axs = self.ranker.plot_ranking(axs = None, w = 300, show = False)
+            fig, axs = self.ranking.plot_ranking(axs = None, w = 300, show = False)
             # Create a container for the plot
             ct = pg.CollapsibleContainer('🏆 Ranking', layout = 'vertical')
             # Create plot img
@@ -1131,7 +1131,7 @@ class Experiment:
             fig, ax = plt.subplots(1,1, figsize = (10,6))
 
             # Compute histogram
-            susceptibility = self.ranker.df['susceptibility']
+            susceptibility = self.ranking['susceptibility']
 
             # Get mu, std
             mu, std = susceptibility.mean(), susceptibility.std()
