@@ -17,8 +17,6 @@ import dill
 #import keras 
 #[@max]
 from tensorflow import keras 
-from qkeras.utils import _add_supported_quantized_objects
-from tensorflow_model_optimization.python.core.sparsity.keras import pruning_wrapper
 
 # Log utils
 from . import log

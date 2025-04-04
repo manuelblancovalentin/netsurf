@@ -9,11 +9,6 @@ import numpy as np
 from tensorflow import keras
 #from keras import backend as K # To get intermediate activations between layers
 
-""" Qkeras """
-#import qkeras 
-#from tensorflow_model_optimization.sparsity.keras import strip_pruning
-#from tensorflow_model_optimization.python.core.sparsity.keras import pruning_wrapper
-
 """ Pandas """
 import pandas as pd
 

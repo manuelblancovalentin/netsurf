@@ -718,7 +718,7 @@ def plot_ROC(y, yhat, labels = None, filepath = None, show = True,
     #print('Plotting ROC for labels {}'.format(labels))
 
     test_score = (yhat.argmax(axis = 1) == y.argmax(axis=1)).mean()
-    netsurf.utils.log._custom('PLOT', f'QKeras accuracy = {test_score:3.2%}')
+    netsurf.utils.log._custom('PLOT', f'Baseline validation accuracy = {test_score:3.2%}')
 
     df = pd.DataFrame()
     fpr = {}
@@ -732,15 +732,10 @@ def plot_ROC(y, yhat, labels = None, filepath = None, show = True,
         fpr[label], tpr[label], threshold = sklearn.metrics.roc_curve(df[label], df[label + '_pred'])
         auc1[label] = sklearn.metrics.auc(fpr[label], tpr[label])
 
-        # df_q[label] = Y_test[:, int(label)]
-        # df_q[label + '_pred'] = predict_qkeras[:, int(label)]
-        # fpr_q[label], tpr_q[label], threshold_q = metrics.roc_curve(df_q[label], df_q[label + '_pred'])
-        # auc1_q[label] = metrics.auc(fpr_q[label], tpr_q[label])
-
         plt.plot(
             fpr[label],
             tpr[label],
-            label=f'{label}, AUC QKeras = {auc1[label]:3.2%})',
+            label=f'{label}, AUC validation = {auc1[label]:3.2%})',
             linewidth=1.5,
             c=colors[i],
             linestyle='solid',
@@ -782,7 +777,7 @@ def plot_ROC(y, yhat, labels = None, filepath = None, show = True,
     plt.figtext(
         0.2,
         0.83,
-        f'Accuracy QKeras bit = {test_score:3.2%}',
+        f'Accuracy validation bit = {test_score:3.2%}',
         wrap=True,
         horizontalalignment='left',
         verticalalignment='center',
@@ -842,12 +837,12 @@ def plot_scatter(y, yhat, title = 'Predictions', xlabel = 'True', ylabel = 'Pred
 
         mae = np.mean(np.abs(subyhat-suby))
         mse = np.sqrt(np.mean((subyhat-suby)**2))
-        netsurf.utils.log._custom('PLOT', f'QKeras mae  = {mae} | mse = {mse}')
+        netsurf.utils.log._custom('PLOT', f'Validation mae  = {mae} | mse = {mse}')
 
         # Compute the r2 score and correlation 
         r2 = sklearn.metrics.r2_score(suby, subyhat)
         corr = np.corrcoef(suby, subyhat.flatten())[0,1]
-        netsurf.utils.log._custom('PLOT', f'QKeras r2 score = {r2} | corr = {corr}')
+        netsurf.utils.log._custom('PLOT', f'Validation r2 score = {r2} | corr = {corr}')
 
         # Plot scatter
         ax.scatter(suby, subyhat, color = col, alpha = 0.5, label = lbl)

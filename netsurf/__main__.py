@@ -7,9 +7,8 @@ netsurf_dir = os.path.dirname(os.path.dirname(netsurf_dir))
 sys.path.append(netsurf_dir)
 print(f'Adding {netsurf_dir} to sys.path')
 
-# Add fkeras and qkeras (expected to be ../)
+# Add  qkeras (expected to be ../)
 scripts_dir = os.path.dirname(os.path.dirname(netsurf_dir))
-sys.path.append(os.path.join(scripts_dir, "fkeras"))
 sys.path.append(os.path.join(scripts_dir, "qkeras"))
 sys.path.append(os.path.join(scripts_dir, "nodus"))
 

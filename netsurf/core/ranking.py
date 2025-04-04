@@ -30,8 +30,6 @@ import tensorflow as tf
 """ netsurf modules """
 import netsurf
 
-# Fkeras for Hessian ranking and all the dependencies
-import fkeras
 
 
 """
@@ -1659,7 +1657,6 @@ class HessianRanker(WeightRanker):
 
 
 # Hessian based weight ranker 
-# This was taken from: https://github.com/oliviaweng/CIFAR10/blob/fkeras/hls4ml/hessian_analysis.py
 @dataclass
 class HessianWeightRanker(HessianRanker):
     @property

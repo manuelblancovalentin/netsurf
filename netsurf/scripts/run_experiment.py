@@ -1,27 +1,12 @@
 #!/usr/bin/env python3
 import sys 
 sys.path.append('/home/manuelbv/WSBMR/workspace/dev')
-sys.path.append('/home/manuelbv/fkeras') #https://github.com/KastnerRG/fkeras
-
-""" Basic modules """
-import os 
-import time
-import yaml
 
 """ Data exploration & manipulation """
 import numpy as np
 
 """ Let's add our custom wsbmr code """
 import netsurf
-
-""" Custom fkeras for hessian ranker """
-import fkeras
-
-""" Qkeras """
-import qkeras
-
-""" Visual """
-from tqdm import tqdm
 
 """ Tensorflow """
 import tensorflow as tf

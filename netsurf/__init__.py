@@ -12,17 +12,17 @@ netsurf_dir = os.path.dirname(os.path.dirname(netsurf_dir))
 sys.path.append(netsurf_dir)
 print(f'Adding {netsurf_dir} to sys.path')
 
-# Add fkeras and qkeras (expected to be ../)
+# Add qkeras (expected to be ../)
 scripts_dir = os.path.dirname(os.path.dirname(netsurf_dir))
-# Check if fkeras exists as a submodule, and if it's valid. If not, check if we can import it directly from environment. 
+# Check if modules exists as a submodule, and if it's valid. If not, check if we can import it directly from environment. 
 def check_module(module_name, dir):
-    # Find __init__.py in fkeras
+    # Find __init__.py in module
     module_init = glob(os.path.join(dir, module_name, "**", "__init__.py"), recursive = True)
-    # Find the most top level __init__.py in fkeras_init list
+    # Find the most top level __init__.py in module_ninit list
     module_init = sorted(module_init, key=lambda x: len(x.replace(dir,'').split('/')))
     # Get the most top level __init__.py
     module_init = module_init[0] if len(module_init) > 0 else None
-    # Check if fkeras_init is not None and exists
+    # Check if module_init is not None and exists
     if module_init is not None:
         module_path = os.path.dirname(module_init)
         # Add to path 
@@ -30,24 +30,20 @@ def check_module(module_name, dir):
         print(f'[INFO] - Added {module_name} to sys.path from {module_path}')
         return module_path
     else:
-        # Check if fkeras is in the environment
+        # Check if module is in the environment
         try:
             my_module = importlib.import_module(module_name)
             module_path = os.path.dirname(my_module.__file__)
             return module_path
         except ImportError:
-            fkeras_path = None
-            raise ImportError('[ERROR] - fkeras not found as submodule or in environment')
+            raise ImportError(f'[ERROR] - {module_name} not found as submodule or in environment')
 
-check_module('fkeras', netsurf_dir)
-import fkeras 
 check_module('qkeras', netsurf_dir)
 import qkeras
 check_module('pergamos', netsurf_dir)
 import pergamos
 check_module('nodus', netsurf_dir)
 import nodus
-
 
 
 import tensorflow as tf
