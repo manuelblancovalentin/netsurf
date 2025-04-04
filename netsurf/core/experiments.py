@@ -1020,8 +1020,8 @@ class Experiment:
 
         props = {"Experiment name": self.name,
             "🏆 Ranker": f'{self.ranking.method} ({self.ranking.__class__.__name__})',
-            '🔗 Alias': self.alias,
-            'Normalize': self.config['normalize']}
+            '🔗 Alias': self.alias}
+            # 'Normalize': self.config['normalize']}
 
         if 'suffix' in self.config:
             props['Suffix'] = self.config['suffix']
@@ -1031,13 +1031,14 @@ class Experiment:
                 props[kw.replace('_',' ').capitalize()] = self.global_metrics[kw]
         
         # Add configs 
-        for kw, kv in [ss.split('=') for ss in self.config['method_kws'].split(' ')]:
-            if kw == 'ascending':
-                kw = '🔺 Ascending'
-            if kv in ['True', 'False']:
-                kv = eval(kv)
-                kv = '✅' if kv else '❌'
-            props[kw.capitalize()] = kv
+        if hasattr(self.ranking, 'config'):
+            for kw, kv in [ss.split('=') for ss in self.config['method_kws'].split(' ')]:
+                if kw == 'ascending':
+                    kw = '🔺 Ascending'
+                if kv in ['True', 'False']:
+                    kv = eval(kv)
+                    kv = '✅' if kv else '❌'
+                props[kw.capitalize()] = kv
 
         props = pd.DataFrame([props]).T
 
