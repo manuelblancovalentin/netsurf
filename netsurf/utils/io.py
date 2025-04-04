@@ -251,9 +251,50 @@ def load_object(filename, custom_objects = {}, remove_log = False, verbose = Fal
 
 """ 
     CREATE UNIQUE HASHS FOR CONFIGURATIONS
+    @manuelbv: Note on April/4th/2025 -> We shifted away from SHA256, because it's NOT possible to reverse-engineer the hash
+    into the serial configuration. So instead, we just use base64 url-safe (no special characters) to generate a unique hash
+    that CAN be reversed-engineer into the original configuration (dictionary) :)
 """
 
 import json
+import zlib
+import base64
+
+def config_to_compressed_id(config: dict) -> str:
+    """Serialize + compress + encode config into a compact folder-safe ID."""
+    # Serialize to deterministic string
+    config_str = json.dumps(config, sort_keys=True, separators=(",", ":"))
+    # Compress the string
+    compressed = zlib.compress(config_str.encode("utf-8"), level=9)
+    # Encode in base64 (URL-safe), strip padding
+    encoded = base64.urlsafe_b64encode(compressed).decode("utf-8")
+    return encoded.rstrip("=")
+
+def compressed_id_to_config(encoded_id: str) -> dict:
+    """Decode + decompress + deserialize the folder-safe ID back to config."""
+    # Add padding
+    padding = "=" * ((4 - len(encoded_id) % 4) % 4)
+    encoded_padded = encoded_id + padding
+    compressed = base64.urlsafe_b64decode(encoded_padded)
+    config_str = zlib.decompress(compressed).decode("utf-8")
+    return json.loads(config_str)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def get_metadata(path, filename = '.metadata.netsurf'):
