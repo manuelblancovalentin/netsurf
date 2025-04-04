@@ -71,8 +71,8 @@ config_per_method = {
     'hiresdelta_times_weights': {'method': 'hiresdelta', 'method_suffix': None, 'method_kws': 'times_weights=True ascending=False normalize_score=False batch_size=100'},
     'hiresdelta_times_weights_norm': {'method': 'hiresdelta', 'method_suffix': None, 'method_kws': 'times_weights=True ascending=False normalize_score=True batch_size=100'},
 
-    'hessian': {'method': 'hessian', 'method_suffix': None, 'method_kws': 'inner_ranking_method=msb batch_size=96'},
-    'hessiandelta': {'method': 'hessiandelta', 'method_suffix': None, 'method_kws': 'inner_ranking_method=msb batch_size=96'},
+    'hessian': {'method': 'hessian', 'method_suffix': None, 'method_kws': 'batch_size=96 eigen_k_top=3 max_iter=1000'},
+    'hessiandelta': {'method': 'hessiandelta', 'method_suffix': None, 'method_kws': 'batch_size=96 eigen_k_top=3 max_iter=1000'},
     
     'aiber': {'method': 'aiber', 'method_suffix': None, 'method_kws': 'ascending=False batch_size=96'},
 

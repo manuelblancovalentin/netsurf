@@ -211,7 +211,7 @@ class AttackContainer:
 
 # General error Injector definition
 class ErrorInjector:
-    def __init__(self, model, ranker: Type['WeightRanker'], quantization: 'QuantizationScheme', 
+    def __init__(self, model, ranking: Type['Ranking'], quantization: 'QuantizationScheme', 
                  ber_range = [1e-4, 1e-1], protection_range = [0.0, 0.2, 0.4, 0.6, 0.8], 
                  **kwargs):
         """."""
@@ -221,7 +221,7 @@ class ErrorInjector:
         self.model = model 
         self.protection_range = protection_range
         self.ber_range = ber_range
-        self.ranker = ranker
+        self.ranking = ranking
         self.quantization = quantization
 
         # Initialize masks 
@@ -317,14 +317,12 @@ class ErrorInjector:
             If num_reps = -1, we will compute the number of reps we need to do to fill all the space,
             that is, so all flips are flipped at least one. This is kinda like cross-validation
         """
-        # Get the ranking 
-        ranking = self.ranker.df
 
         # Get quantizer
         Q = self.quantization
 
         # Get all the parameters (param_num)
-        param_num = ranking['global_param_num'].to_numpy()
+        param_num = self.ranking['global_param_num'].to_numpy()
         # This is the order in which we will protect our bits. 
         # Now, for each case in comb, we know how many of the top bits we will protect
         # and thus, how many will be left unprotected for us to flip. 
@@ -336,7 +334,7 @@ class ErrorInjector:
         for ip, ((protection, ber), already_run_reps) in enumerate(combs.items()):
             # get the number of bits we will be protecting 
             # (remember that pruned weights are not considered)
-            non_pruned = ranking[ranking['pruned'] == False]
+            non_pruned = self.ranking[self.ranking['pruned'] == False]
             num_bits_protected = np.floor(len(non_pruned)*protection).astype(int)
             # Num bits susceptible
             num_bits_susceptible = len(non_pruned) - num_bits_protected

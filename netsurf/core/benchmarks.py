@@ -276,6 +276,7 @@ class Benchmark:
         bmk_ct.extend(model_ct)
 
         # Add to benchmark container
+        self.assert_dataset_is_loaded()
         bmk_ct.append(self.dataset.html())
 
         ### Forward pass thru activations model. This will be a whole new container. 

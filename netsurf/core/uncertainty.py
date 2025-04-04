@@ -17,7 +17,7 @@ import netsurf # For utils
 # import pergamos
 import pergamos as pg
 
-DEFAULT_METHODS = ["fisher", "aleatoric", "msb_impact_ratio", "delta", "qpolar", "qpolargrad", "weight_abs_value"]
+DEFAULT_METHODS = ["fisher", "aleatoric", "msb", "delta", "qpolar", "qpolargrad", "weight_abs_value"]
 
 DEFAULT_DISTRIBUTION_COLORS = {
     "fisher": "#FF8C42",       # Orange (strong highlight, conveys sensitivity)
@@ -160,14 +160,15 @@ class DistributionSignature:
             filepath = f"{self.name}_dist.netsurf.sgn"
         # Convert the dataclass to a dictionary
         data_dict = self.__dict__
-        netsurf.utils.io.save_object(data_dict, filepath, meta_attributes = {"type": self.__class__.__name__, "app": "netsurf"}, custom_objects = {})
+        netsurf.utils.io.save_object(data_dict, filepath, meta_attributes = {"type": self.__class__.__name__, "app": "netsurf"}, 
+                                     custom_objects = {}, verbose = True, remove_log = True)
 
     @staticmethod
     def load_from_file(filepath: str) -> "DistributionSignature":
         """
         Load a distribution signature from a file.
         """
-        data_dict = netsurf.utils.io.load_object(filepath)
+        data_dict = netsurf.utils.io.load_object(filepath, verbose = True, remove_log = True)
         # Convert the dictionary back to a dataclass
         return DistributionSignature(**data_dict)
 
@@ -712,11 +713,14 @@ class RobustnessSignature:
 
     # Bit-level structural uncertainty
     msb_impact_ratio: Optional[DistributionSignature] = None  # Fraction of bit-level impact attributed to MSBs
-    msb_impact_ratio_abs: Optional[DistributionSignature] = None  # Fraction of bit-level impact attributed to MSBs (absolute)
-    msb_impact: Optional[DistributionSignature] = None  # Distribution of MSB impacts
-    total_impact: Optional[DistributionSignature] = None  # Distribution of total impacts
-    msb_impact_abs: Optional[DistributionSignature] = None  # Distribution of absolute MSB impacts
-    total_impact_abs: Optional[DistributionSignature] = None  # Distribution of absolute total impacts
+    # msb_impact_ratio_abs: Optional[DistributionSignature] = None  # Fraction of bit-level impact attributed to MSBs (absolute)
+    # msb_impact: Optional[DistributionSignature] = None  # Distribution of MSB impacts
+    # total_impact: Optional[DistributionSignature] = None  # Distribution of total impacts
+    # msb_impact_abs: Optional[DistributionSignature] = None  # Distribution of absolute MSB impacts
+    # total_impact_abs: Optional[DistributionSignature] = None  # Distribution of absolute total impacts
+
+    # Weight abs value 
+    weight_abs_value_distribution: Optional[DistributionSignature] = None  # Distribution of absolute weight values
 
     # Structural uncertainty (bit-level deltas)
     delta_distribution: Optional[DistributionSignature] = None
@@ -735,14 +739,15 @@ class RobustnessSignature:
             filepath = f"{self.name}_robustness.netsurf.sgn"
         # Convert the dataclass to a dictionary
         data_dict = self.__dict__
-        netsurf.utils.io.save_object(data_dict, filepath, meta_attributes = {"type": self.__class__.__name__, "app": "netsurf"}, custom_objects = {})
+        netsurf.utils.io.save_object(data_dict, filepath, meta_attributes = {"type": self.__class__.__name__, "app": "netsurf"}, 
+                                     custom_objects = {}, verbose = True, remove_log = True)
 
     @staticmethod
     def load_from_file(filepath: str) -> "RobustnessSignature":
         """
         Load a distribution signature from a file.
         """
-        data_dict = netsurf.utils.io.load_object(filepath)
+        data_dict = netsurf.utils.io.load_object(filepath, verbose = True, remove_log = True)
         # Convert the dictionary back to a dataclass
         return RobustnessSignature(**data_dict)
 
@@ -1232,9 +1237,9 @@ class UncertaintyProfiler:
         abs_weights = tf.abs(all_weights)
         
         dis = DistributionSignature.from_array(abs_weights.numpy(), 
-                                                name="abs_weights", 
-                                                color = DEFAULT_DISTRIBUTION_COLORS['abs_weights'],
-                                                plot_functions = DEFAULT_PLOT_FUNCTIONS['abs_weights'],
+                                                name="weight_abs_value", 
+                                                color = DEFAULT_DISTRIBUTION_COLORS['weight_abs_value'],
+                                                plot_functions = DEFAULT_PLOT_FUNCTIONS['weight_abs_value'],
                                                 is_data_pdf = True)
 
         return dis
@@ -1398,12 +1403,14 @@ class UncertaintyProfiler:
         msb_over_total_ratios_abs = DistributionSignature.from_array(msb_over_total_ratios_abs.numpy(), name="msb_over_total_abs", plot_functions = DEFAULT_PLOT_FUNCTIONS['msb'], color = DEFAULT_DISTRIBUTION_COLORS['msb'])
 
         # Return as a dict
-        d = {'msb_impact_ratio': msb_over_total_ratios_signed,
-             'msb_impact_ratio_abs': msb_over_total_ratios_abs,
-             'msb_impact': msb_impact_signature,
-             'total_impact': total_impact_signature,
-             'msb_impact_abs': msb_impact_abs_signature,
-             'total_impact_abs': total_impact_abs_signature}
+        # d = {'msb_impact_ratio': msb_over_total_ratios_signed,
+        #      'msb_impact_ratio_abs': msb_over_total_ratios_abs,
+        #      'msb_impact': msb_impact_signature,
+        #      'total_impact': total_impact_signature,
+        #      'msb_impact_abs': msb_impact_abs_signature,
+        #      'total_impact_abs': total_impact_abs_signature}
+
+        d = {'msb_impact_ratio': msb_over_total_ratios_signed}
 
         return d
 
@@ -1571,15 +1578,6 @@ class UncertaintyProfiler:
         # Initialize 
         dists = {'empirical_ber_accuracy': None, 'ranking_effectiveness': None}
         
-        # if we are gonna get msb/qpolar/qpolargrad, we will need the impact computation for all of them
-        # so instead of computing it over and over again, we will just compute it once here.
-        if 'msb' in methods or 'qpolar' in methods or 'qpolargrad' in methods:
-            uncorrupted_impacts, corrupted_impacts = UncertaintyProfiler.compute_impacts(model, dataset, **kwargs)
-            # add to kwargs
-            kwargs['uncorrupted_impacts'] = uncorrupted_impacts
-            kwargs['corrupted_impacts'] = corrupted_impacts
-
-
         # Loop thru methods
         methods_caller = {'fisher': lambda m,d,l,**kws: UncertaintyProfiler.compute_fisher_distribution(m, d, l, **kws),
                           'aleatoric': lambda m,d,l,**kws: UncertaintyProfiler.compute_aleatoric_distribution(m, d, l, **kws),
@@ -1600,7 +1598,7 @@ class UncertaintyProfiler:
                         'hessian': 'hessian_distribution',
                         'weight_abs_value': 'weight_abs_value_distribution',
                       }
-        
+
         # Check if filepath exists. If it is, then we can try to load the file from there which will return the signatures already 
         reloaded = False # Internal flag for us to keep track of whether we reloaded the file or not
         if netsurf.utils.io.path_exists(filepath):
@@ -1608,7 +1606,7 @@ class UncertaintyProfiler:
                 signs = RobustnessSignature.load_from_file(filepath)
                 reloaded = True # Update
                 # Check which methods we have 
-                methods_left = []
+                methods_left = [m for m in methods]
                 for method in methods:
                     # lowercase
                     method = method.lower()
@@ -1616,7 +1614,7 @@ class UncertaintyProfiler:
                     if hasattr(signs, t):
                         dists[t] = getattr(signs, t)
                         # add to methods_left
-                        methods_left.append(method)
+                        methods_left.remove(method)
                     else:
                         netsurf.error(f"Method {method} not found in file {filepath}")
                 # Remove the methods that we already have
@@ -1624,6 +1622,16 @@ class UncertaintyProfiler:
             except Exception as e:
                 netsurf.error(f"Error loading file: {e}")
                 signs = None
+
+
+        # if we are gonna get msb/qpolar/qpolargrad, we will need the impact computation for all of them
+        # so instead of computing it over and over again, we will just compute it once here.
+        if (('msb' in methods) or ('qpolar' in methods) or ('qpolargrad' in methods)) and len(methods) > 0:
+            uncorrupted_impacts, corrupted_impacts = UncertaintyProfiler.compute_impacts(model, dataset, **kwargs)
+            # add to kwargs
+            kwargs['uncorrupted_impacts'] = uncorrupted_impacts
+            kwargs['corrupted_impacts'] = corrupted_impacts
+
 
         for method in methods:
             # lowercase
@@ -1639,7 +1647,7 @@ class UncertaintyProfiler:
                 # so if we already have it, we can just return it
                 if reloaded: 
                     # Print message to let user know that even though we loaded the file, we didn't find this particular method so we are computing it now 
-                    netsurf.warning(f"Method {method} not found in file {filepath}. Computing it now...")
+                    netsurf.warn(f"Method {method} not found in file {filepath}. Computing it now...")
                 res = methods_caller[method](model, dataset, loss_fn, **kwargs)
                 if isinstance(res, dict):
                     # Unpack the msb impact ratio
