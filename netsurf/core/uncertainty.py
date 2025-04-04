@@ -1013,7 +1013,7 @@ class RobustnessSignature:
         obj_ct.append(methods_ct)
 
         # Loop thru all methods and append their html
-        for method in ['fisher', 'aleatoric', 'msb', 'delta', 'qpolar', 'qpolargrad']:
+        for method in DEFAULT_METHODS:
             # Get the method name and html
             method = method.lower()
             if hasattr(self, method):
