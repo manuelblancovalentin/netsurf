@@ -176,12 +176,12 @@ def delete_directory(directory):
 
 
 """ Snippet to save custom objects to pkl file """
-def save_object(obj, filename, meta_attributes = {}, custom_objects = {}):
+def save_object(obj, filename, meta_attributes = {}, custom_objects = {}, remove_log = False, verbose = False):
     # Redirect output to a log file 
     original_stdout = sys.stdout
     log_filename = filename.replace('.' + filename.split('.')[-1],'.log') if '.' in filename else filename + '.log'
     os.makedirs(os.path.dirname(log_filename), exist_ok=True)
-    
+    errored = False
     with open(log_filename, 'w') as flog:
         # [@manuelbv]: THIS IS EXTREMELY IMPORTANT!!!!!! EARLIER, I WAS REASSIGNING sys.stdout 
         #   TO sys.__stdout__ WHICH WAS MESSING UP THE WHOLE IPYTHON ENVIRONMENT, AND I WOULDN'T
@@ -203,13 +203,23 @@ def save_object(obj, filename, meta_attributes = {}, custom_objects = {}):
         except Exception as e:
             log._error(f"Error saving object to {filename}: {e}")
             msg = f"Error saving object to {filename}: {e}"
+            errored = True
     # Reset the stdout
     sys.stdout = original_stdout
+    if verbose:
+        if errored:
+            log._error(msg)
+        else:
+            log._info(msg)
+    if remove_log:
+        # Remove the log file
+        if os.path.exists(log_filename):
+            os.remove(log_filename)
     return msg
 
 
 """ Snippet to load custom objects from pkl file """
-def load_object(filename, custom_objects = {}):
+def load_object(filename, custom_objects = {}, remove_log = False, verbose = False):
     # Redirect output to a log file 
     log_filename = filename.replace('.' + filename.split('.')[-1],'.log') if '.' in filename else filename + '.log'
     with open(log_filename, 'w') as flog:
@@ -229,11 +239,16 @@ def load_object(filename, custom_objects = {}):
                     obj = dill.load(f)
             # Reset the stdout
             sys.stdout = original_stdout
+            if verbose: log._info(f"Object loaded from {filename}")
         except Exception as e:
             # Reset the stdout
             sys.stdout = original_stdout
             log._error(f"Error loading object from {filename}: {e}")
-                
+        
+        if remove_log:
+            # Remove the log file
+            if os.path.exists(log_filename):
+                os.remove(log_filename)
         return obj
 
 """ 
