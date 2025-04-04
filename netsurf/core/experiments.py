@@ -1023,8 +1023,9 @@ class Experiment:
             '🔗 Alias': self.alias}
             # 'Normalize': self.config['normalize']}
 
-        if 'suffix' in self.config:
-            props['Suffix'] = self.config['suffix']
+        if hasattr(self.ranking, 'config'):
+            if 'suffix' in self.config:
+                props['Suffix'] = self.config['suffix']
         
         for kw in self.global_metrics:
             if self.global_metrics[kw] is not None and kw != 'elapsed_time':
