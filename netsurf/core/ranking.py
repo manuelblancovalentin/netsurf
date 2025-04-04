@@ -75,6 +75,7 @@ def timeranking(func):
 @dataclass
 class Ranking:
     ranking: pd.DataFrame
+    config: dict = field(default={})
     alias: str = None
     method: str = None
     filepath: Optional[str] = None
@@ -228,18 +229,21 @@ class Ranking:
 class WeightRanker:
     quantization: 'QuantizationScheme' = field(default=None, repr=False)
     ranking: Optional[pd.DataFrame] = field(default=None, repr=False)
+
+    # Configuration (needs to be passed to Ranking itself)
     ascending: Optional[bool] = False
-    times_weights: Optional[bool] = False
     normalize_score: Optional[bool] = False
     use_delta_as_weight: Optional[bool] = False
-    method_suffix: Optional[str] = None
-    method_kws: Optional[str] = ""
     batch_size: Optional[int] = 1000
-
+    suffix: Optional[str] = ""
+    
+    # Internal things just for the weight ranker state
     complete_ranking: Optional[bool] = True
     parent_path: Optional[str] = None
     ranking_time: Optional[float] = None
     reload_ranking: Optional[bool] = True
+    method_suffix: Optional[str] = None
+    method_kws: Optional[str] = ""
     config_hash: Optional[str] = None
     config_tag: Optional[str] = None
     
@@ -248,15 +252,16 @@ class WeightRanker:
     @property
     def config(self):
         d = {
-            'quantization': self.quantization._scheme_str,
-            'times_weights': self.times_weights,
-            'normalize_score': self.normalize_score,
-            'use_delta_as_weight': self.use_delta_as_weight,
             'alias': self.alias,
             'method': self.method,
+            'quantization': self.quantization._scheme_str,
             'ascending': self.ascending,
-            'method_suffix': self.method_suffix,
-            'method_kws': self.method_kws,
+            'normalize_score': self.normalize_score,
+            'use_delta_as_weight': self.use_delta_as_weight,
+            'suffix': self.suffix,
+            'batch_size': self.batch_size,
+            #'method_suffix': self.method_suffix,
+            #'method_kws': self.method_kws,
         }
         return d
 
@@ -291,7 +296,8 @@ class WeightRanker:
                     path = os.path.join(self.parent_path, self.config_tag)
                 
                 # Create 
-                self.ranking = Ranking.from_file(os.path.join(path, "ranking.csv"), *args, alias = self.alias, method = self.method, **kwargs)
+                self.ranking = Ranking.from_file(os.path.join(path, "ranking.csv"), *args, alias = self.alias, method = self.method, 
+                                                 config = self.config, **kwargs)
                 # Update path 
                 self.path = path
             else:
@@ -576,7 +582,7 @@ class RandomWeightRanker(WeightRanker):
         df['method'] = self.method
 
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, alias = self.alias, method = self.method, config = self.config, filepath = self.path, loaded_from_file = False)
 
         return self.ranking
     
@@ -611,7 +617,7 @@ class AbsoluteValueWeightRanker(WeightRanker):
         df['method'] = self.method
         
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, alias = self.alias, method = self.method, config = self.config, filepath = self.path, loaded_from_file = False)
 
         return self.ranking
     
@@ -646,7 +652,7 @@ class BitwiseWeightRanker(WeightRanker):
         df['method'] = self.method
         
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, alias = self.alias, method = self.method, config = self.config, filepath = self.path, loaded_from_file = False)
 
         return self.ranking
     
@@ -684,7 +690,7 @@ class LayerWeightRanker(WeightRanker):
         df['method'] = self.method
 
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, alias = self.alias, method = self.method, config = self.config, filepath = self.path, loaded_from_file = False)
         self.ascending = ascending
 
         return self.ranking
@@ -740,7 +746,7 @@ class DiffBitsPerWeightRanker(WeightRanker):
         df['method'] = self.method
 
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, alias = self.alias, method = self.method, config = self.config, filepath = self.path, loaded_from_file = False)
 
         return self.ranking
 
@@ -770,7 +776,7 @@ class RecursiveUnevenRanker(WeightRanker):
         df['method'] = self.method
 
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, alias = self.alias, method = self.method, config = self.config, filepath = self.path, loaded_from_file = False)
 
         return self.ranking
 
@@ -877,7 +883,7 @@ class GradRanker(WeightRanker):
         df['method'] = self.method
 
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, alias = self.alias, method = self.method, config = self.config, filepath = self.path, loaded_from_file = False)
 
         return self.ranking
     
@@ -886,7 +892,7 @@ class GradRanker(WeightRanker):
     """
     def extract_weight_table(self, model, X, Y,
                                 batch_size = 1000, verbose = True, 
-                                normalize_score = False, times_weights = False,
+                                normalize_score = False, 
                                 ascending = False, absolute_value = True, base_df = None,
                                 bit_value = None, out_dir = ".", **kwargs):
         
@@ -946,9 +952,9 @@ class GradRanker(WeightRanker):
             gradients = [tf.identity(g) for g in orig_gradients]
 
             # Apply transformations required
-            if times_weights:
-                # Multiply gradients times variables 
-                gradients = [g*v for g,v in zip(gradients, delta_model.trainable_variables)]
+            # if times_weights:
+            #     # Multiply gradients times variables 
+            #     gradients = [g*v for g,v in zip(gradients, delta_model.trainable_variables)]
 
             if absolute_value:
                 gradients = [tf.math.abs(g) for g in gradients]
@@ -969,7 +975,7 @@ class GradRanker(WeightRanker):
                 
                 # if not use_weight_as_delta, repeat this for all bits 
                 if not use_delta_as_weight:
-                    for i in np.arange(quantization.n + quantization.s - 1, -quantization.f-1, -1):
+                    for i in np.arange(Q.n + Q.s - 1, -Q.f-1, -1):
                         if i != bit:
                             idx = df[(df['param'] == vname) & (df['bit'] == i)].index
                             df.loc[idx,'susceptibility'] = g.numpy().flatten()
@@ -992,8 +998,6 @@ class HiResCamWeightRanker(GradRanker):
     @property
     def alias(self):
         alias = 'hirescam'
-        if self.times_weights:
-            alias += '_times_weights'
         if self.normalize_score:
             alias += '_norm'
         return alias
@@ -1013,8 +1017,6 @@ class HiResDeltaRanker(GradRanker):
     @property
     def alias(self):
         alias = 'hiresdelta'
-        if self.times_weights:
-            alias += '_times_weights'
         if self.normalize_score:
             alias += '_norm'
         return alias
@@ -1036,20 +1038,16 @@ class HessianRanker(WeightRanker):
 
     # override extract_weight_table
     def extract_weight_table(self, model, X, Y, 
-                             normalize_score = False,
-                             ascending = False, absolute_value = True, base_df = None, 
+                             normalize_score = False, absolute_value = True,
+                             base_df = None, 
                              verbose = True, 
                              **kwargs):
         
         # Get values 
-        times_weights = self.times_weights
         normalize_score = self.normalize_score
-        delta_ranking = False
 
         # Call super to get the basic df 
-        df = super().extract_weight_table(model, verbose = verbose, 
-                                          ascending = ascending,
-                                          **kwargs) if base_df is None else base_df
+        df = super().extract_weight_table(model, verbose = verbose, **kwargs) if base_df is None else base_df
 
         # get quantizer
         Q = self.quantization
@@ -2002,7 +2000,6 @@ class QPolarGradWeightRanker(QPolarWeightRanker, GradRanker):
         df_grad = GradRanker.extract_weight_table(self, model, X, Y, verbose = verbose,
                                                     ascending = ascending, batch_size = batch_size, 
                                                     normalize_score = False, 
-                                                    times_weights = False,
                                                     absolute_value = False, bit_value = None,
                                                     **kwargs)
         
