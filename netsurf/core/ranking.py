@@ -884,14 +884,17 @@ class GradRanker(WeightRanker):
     """ Extracting the table of weights and creating the pandas DF is the same 
         for all methods, so we can define it inside the generic weightRanker obj 
     """
-    def extract_weight_table(self, model, X, Y, quantization: 'QuantizationScheme', 
+    def extract_weight_table(self, model, X, Y,
                                 batch_size = 1000, verbose = True, 
                                 normalize_score = False, times_weights = False,
                                 ascending = False, absolute_value = True, base_df = None,
                                 bit_value = None, out_dir = ".", **kwargs):
         
+         # Get quantization
+        Q = self.quantization
+
         # Call super to get the basic df 
-        df = super().extract_weight_table(model, quantization, verbose = verbose, 
+        df = super().extract_weight_table(model, verbose = verbose, 
                                           ascending = ascending,
                                           **kwargs) if base_df is None else base_df
 
@@ -903,7 +906,7 @@ class GradRanker(WeightRanker):
 
         # Loop thru all bits (even if we are not using deltas as weights, this is so we can use the same loop
         # and code for both cases. If use_delta_as_weight is False we will break after the first loop iter)
-        for ibit, bit in enumerate(np.arange(quantization.n + quantization.s - 1, -quantization.f-1, -1)):
+        for ibit, bit in enumerate(np.arange(Q.n + Q.s - 1, -Q.f-1, -1)):
             
             # Clone our model so we don't mess with the original one
             delta_model = model.clone()
