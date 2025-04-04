@@ -1009,17 +1009,17 @@ class Experiment:
        
         # Create a collapsible container for this 
         # First, we want a summary table with all the config parameters for this method 
-        if self.ranker._ICON is not None:
-            cname = f'{self.ranker._ICON} {self.ranking_method}'
+        if hasattr(self.ranking, '_ICON'):
+            cname = f'{self.ranker._ICON} {self.ranking.method}'
         else:
-            cname = '🔬 Experiment'
+            cname = f'🔬 {self.ranking.method}'
         if self.__class__.__name__ != 'Experiment':
             cname = f'🔬 {self.__class__.__name__} (Experiment): {self.name}'
 
         g = pg.CollapsibleContainer(cname, layout = 'vertical')
 
         props = {"Experiment name": self.name,
-            "🏆 Ranker": f'{self.ranking_method} ({self.ranker.__class__.__name__})',
+            "🏆 Ranker": f'{self.ranking.method} ({self.ranker.__class__.__name__})',
             '🔗 Alias': self.alias,
             'Normalize': self.config['normalize']}
 
