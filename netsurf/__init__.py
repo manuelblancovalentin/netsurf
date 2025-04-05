@@ -89,10 +89,14 @@ if _print_initialization_tasks: utils.log._log("Importing submodule core")
 from . import core
 # Shortcuts
 from .core import explorer
-from .core.experiments import Experiment
+from .core.experiments import Experiment, ExperimentComparator
 from .core import injection
 from .core import ranking
 from .core.quantization import QuantizationScheme
+from .core import WeightRanker, RankingComparator # Ranking
+from .core import Experiment, ExperimentComparator # Experiments
+from .core import UncertaintyProfiler, ProfileDivergence # Uncertainty and profilers
+
 
 """ Import dnn for easy access """
 if _print_initialization_tasks: utils.log._log("Importing submodule dnn")
@@ -112,9 +116,6 @@ from .dnn import losses
 from .dnn.losses import LOSSES
 from .dnn.models import QModel, load_model
 from .dnn.layers import QQLAYERS
-from .core import WeightRanker, RankingComparator # Ranking
-from .core import Experiment # Expeirments
-from .core import UncertaintyProfiler, ProfileDivergence # Uncertainty and profilers
 
 # Import documentation
 from . import doc

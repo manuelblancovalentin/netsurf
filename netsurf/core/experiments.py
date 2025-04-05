@@ -3,12 +3,9 @@ import os
 import sys
 
 """ Typing """
-from typing import Iterable, Union
-
-
-""" Regex """
-import re 
-
+# Basic
+from dataclasses import dataclass, field
+from typing import Optional, List, Iterable, Union
 import datetime
 import json
 import time
@@ -25,6 +22,10 @@ import numpy as np
 
 """ Matplotlib """
 import matplotlib.pyplot as plt
+#from matplotlib import cm
+import matplotlib.ticker as mticker
+from sklearn.metrics import auc as sklearn_auc
+from scipy.interpolate import griddata
 
 """ Keras """
 #import keras
@@ -1196,3 +1197,621 @@ class Experiment:
         msg += f'+{"-"*num_chars}+\n'
 
         return msg
+    
+
+""" ###########################################################################################
+# 
+# EXPERIMENT COMPARISON, PROFILERS
+#
+### ###########################################################################################
+""" 
+@dataclass
+class ExperimentComparator:
+    """
+    Class to compare different ranking methods
+    """
+    experiments: List[Experiment] = field(default_factory=list)
+
+    # Init the metrics (AUC/VUS,etc.)
+    
+    comparison: pd.DataFrame = field(init=False, repr=False)
+
+    def __post_init__(self):
+        if not self.experiments:
+            netsurf.info("Initialized ExperimentComparator with no experiments.")
+
+    @property
+    def _keys(self):
+        if not self.experiments:
+            return []
+        else:
+            return [exp.name for exp in self.experiments]
+
+    """ Method to create a ranker """
+    def create(self, *args, **kwargs):
+        # Build the experiment
+        exp = Experiment(*args, **kwargs)
+        # Add the experiment to the list
+        self.experiments.append(exp)
+        # Return the experiment
+        return exp
+
+    """ Methods to attach rankers """
+    def append(self, experiment: Experiment):
+        if not isinstance(experiment, Experiment):
+            raise TypeError("Only Experiment instances can be added.")
+        self.experiments.append(experiment)
+        netsurf.info(f"Experiment {experiment.name} added.")
+    
+    def extend(self, experiments: List[Experiment]):
+        if not all(isinstance(r, Experiment) for r in experiments):
+            raise TypeError("Only Experiment instances can be added.")
+        self.experiments.extend(experiments)
+        netsurf.info(f"Experiments {', '.join([r.name for r in experiments])} added.")
+    
+        # Set the keys
+    """ Make sure we define iter so we can do stuff like 'if <str> in <RankingComparator>' """
+    def __iter__(self):
+        """ Iterate over rankers """
+        for experiment in self.experiments:
+            yield experiment.name
+
+    """ Length """
+    def __len__(self):
+        """ Get length """
+        return len(self.experiments)
+
+    """ Get item """
+    def __getitem__(self, item):
+        if isinstance(item, str):
+            # Get the ranker by alias
+            if item not in self._keys:
+                raise KeyError(f"Experiment '{item}' not found.")
+            idx = self._keys.index(item)
+            return self.experiments[idx]
+        elif isinstance(item, int):
+            # Get the ranker by index
+            if item < 0 or item >= len(self.experiments):
+                raise IndexError(f"Experiment index '{item}' out of range.")
+            return self.experiments[item]
+
+    @staticmethod
+    def _trapezoidal_auc(x, y):
+        if len(x) < 2:
+            return 0.0, 0.0
+        sorted_idx = np.argsort(x)
+        x_sorted = np.array(x)[sorted_idx]
+        y_sorted = np.array(y)[sorted_idx]
+        area = sklearn_auc(x_sorted, y_sorted)
+        max_area = (np.max(x_sorted) - np.min(x_sorted)) * (np.max(y_sorted) - 0)
+        return area, area / max_area if max_area > 0 else 0.0
+
+    @staticmethod
+    def compute_auc(curves):
+        aucs = []
+        for group_col, sweep_col in [('ber', 'protection'), ('protection', 'ber')]:
+            for val, group in curves.groupby(group_col):
+                for stat in ['mean', 'max', 'min', 'std']:
+                    x = group[sweep_col].values
+                    y = group[stat].values
+                    area, rel_area = ExperimentComparator._trapezoidal_auc(x, y)
+
+                    # Use true_ber if available
+                    if 'true_ber' in group.columns:
+                        x_true = group['true_ber'].values
+                        true_area, true_rel_area = ExperimentComparator._trapezoidal_auc(x_true, y)
+                    else:
+                        true_area = true_rel_area = 0.0
+
+                    aucs.append({
+                        group_col: val, sweep_col: 'all', 'auc': area, 'rel_auc': rel_area,
+                        'true_auc': true_area, 'true_rel_auc': true_rel_area,
+                        'x': sweep_col, 'y': stat
+                    })
+        return pd.DataFrame(aucs)
+
+    @staticmethod
+    def tetrahedron_volume(p):
+        if len(p) != 4:
+            return 0.0
+        a, b, c, d = map(np.array, p)
+        return np.abs(np.dot(a - d, np.cross(b - d, c - d))) / 6.0
+
+    @staticmethod
+    def compute_vus(curves):
+        protections = np.sort(curves['protection'].unique())
+        bers = np.sort(curves['ber'].unique())
+        true_bers = np.sort(curves['true_ber'].unique()) if 'true_ber' in curves.columns else bers
+
+        result = {}
+        for stat in ['mean', 'max', 'min', 'std']:
+            for use_true in [False, True]:
+                zn = 'true_' if use_true else ''
+                y_axis = true_bers if use_true else bers
+                vol = 0.0
+                for i in range(len(protections) - 1):
+                    for j in range(len(y_axis) - 1):
+                        grid_pts = []
+                        for dx, dy in [(0, 0), (0, 1), (1, 1), (1, 0)]:
+                            px = protections[i + dx]
+                            py = y_axis[j + dy]
+                            col_y = 'true_ber' if use_true else 'ber'
+                            match = (curves['protection'] == px) & (curves[col_y] == py)
+                            z = curves.loc[match, stat].values
+                            if len(z) > 0:
+                                grid_pts.append((px, py, z[0]))
+                        if len(grid_pts) == 4:
+                            b0 = (grid_pts[0][0], grid_pts[0][1], 0.0)
+                            b3 = (grid_pts[3][0], grid_pts[3][1], 0.0)
+                            vol += ExperimentComparator.tetrahedron_volume([grid_pts[0], grid_pts[1], grid_pts[2], b0])
+                            vol += ExperimentComparator.tetrahedron_volume([grid_pts[1], grid_pts[2], grid_pts[3], b3])
+
+                max_z = curves[stat].max()
+                dx = protections[-1] - protections[0]
+                dy = y_axis[-1] - y_axis[0]
+                norm_vol = vol / (dx * dy * max_z) if max_z > 0 else 0.0
+
+                if stat not in result:
+                    result[stat] = {}
+                result[stat][f'{zn}vus'] = vol
+                result[stat][f'{zn}vus_rel'] = norm_vol
+
+        return pd.DataFrame(result)
+    
+    """ Perform actual evaluation of the experiments """
+    def evaluate_experiments(self):
+        """
+        Evaluate all experiments in the comparator and compute AUC and VUS for each.
+        Returns a dictionary: 
+            {
+                experiment_name: {
+                    'loss': <loss_name>,
+                    'metrics': List[str],
+                    <loss_name>: {
+                        'auc': df_auc, 
+                        'vus': df_vus, 
+                    },
+                    <metric1>: {
+                        'auc': df_auc,
+                        'vus': df_vus,
+                    },
+                    <metric2>: { 
+                        'auc': df_auc,
+                        'vus': df_vus,
+                    }
+                }
+            }
+        """
+        results = {}
+        for exp in self.experiments:
+            if not hasattr(exp, 'results') or exp.results is None:
+                continue
+
+            df = exp.results
+            loss_name = getattr(df, '_loss', 'loss')
+            metric_names = getattr(df, '_metrics', [])
+
+            exp_result = {
+                'loss': loss_name,
+                'metrics': metric_names
+            }
+
+            # Compute for the loss
+            if loss_name in df.columns:
+                loss_curves = df.groupby(['protection', 'ber'])[loss_name].agg(['mean', 'max', 'min', 'std']).reset_index()
+                if 'true_ber' in df.columns:
+                    true_curves = df.groupby(['protection', 'true_ber'])[loss_name].agg(['mean', 'max', 'min', 'std']).reset_index()
+                    loss_curves['true_ber'] = true_curves['true_ber']
+                exp_result[loss_name] = {
+                    'auc': self.compute_auc(loss_curves),
+                    'vus': self.compute_vus(loss_curves)
+                }
+
+            # Compute for each metric
+            for metric in metric_names:
+                if metric not in df.columns:
+                    continue
+                metric_curves = df.groupby(['protection', 'ber'])[metric].agg(['mean', 'max', 'min', 'std']).reset_index()
+                if 'true_ber' in df.columns:
+                    true_curves = df.groupby(['protection', 'true_ber'])[metric].agg(['mean', 'max', 'min', 'std']).reset_index()
+                    metric_curves['true_ber'] = true_curves['true_ber']
+                exp_result[metric] = {
+                    'auc': self.compute_auc(metric_curves),
+                    'vus': self.compute_vus(metric_curves)
+                }
+
+            results[exp.ranking.method] = exp_result
+
+        return results
+    
+    @staticmethod
+    def plot_2d_curves(experiments: List[Experiment], metric='loss', stat='mean', xlog = True, axs = None, sharex = True, show = True):
+        """
+        Plot 2D BER vs <metric> curves for each experiment.
+        
+        Args:
+            metric (str): Name of the metric/loss to plot (e.g. 'loss', 'mse', 'accuracy').
+            stat (str): Statistic to show ('mean', 'max', 'min', 'std').
+        """
+        if axs is not None:
+            if len(axs) != len(experiments):
+                netsurf.error(f'Number of axes ({len(axs)}) does not match number of experiments ({len(experiments)}).')
+                axs = None
+        
+        show &= (axs is None)
+        if axs is None:
+            fig, axs = plt.subplots(len(experiments), 1, figsize=(8, 5 * len(experiments)), sharex=sharex)
+            axs = axs.flatten()
+        else:
+            fig = axs[0].figure
+
+
+        for i, exp in enumerate(experiments):
+            df = exp.results
+            if metric == 'loss':
+                # Pick actual column
+                metric = df._loss
+            if metric not in df.columns:
+                print(f"Metric '{metric}' not found in {exp.ranking.method}, skipping.")
+                continue
+            
+            # Aggregate per (protection, ber) pair
+            curves = df.groupby(['protection', 'ber'])[metric].agg(['mean', 'max', 'min', 'std']).reset_index()
+
+            protections = sorted(curves['protection'].unique())
+            for p in protections:
+                subset = curves[curves['protection'] == p]
+                label = f'Protection {int(p * 100)}%'
+                x = subset['ber'].values
+                y = subset[stat].values
+                yerr = subset['std'].values if 'std' in subset.columns else None
+
+                axs[i].plot(x, y, marker='o', label=label)
+                if yerr is not None and stat == 'mean':
+                    axs[i].fill_between(x, y - yerr, y + yerr, alpha=0.2)
+
+            axs[i].set_title(f'{exp.ranking.method}: BER vs {metric} ({stat})')
+            if i == (len(axs)-1): axs[i].set_xlabel('Bit Error Rate (BER)')
+            axs[i].set_ylabel(f'{metric.capitalize()} ({stat})')
+            axs[i].grid(True, linestyle='--', alpha=0.5)
+            if xlog: axs[i].set_xscale('log')
+            axs[i].legend()
+
+        plt.tight_layout()
+        if show:
+            plt.show()
+        return fig, axs
+
+    @staticmethod
+    def plot_3d_surface(experiments: List[Experiment], stat: str = "mean", metric: str = "loss", 
+                        x='ber', y='protection', axs = None, 
+                        title=None, xlabel=None, ylabel=None, zlabel=None,
+                        xlims=None, ylims=None, zlims=None,
+                        show: bool = True, xlog = True, ylog = False):
+        """
+        Plot a 3D surface for each experiment showing BER vs Protection vs Metric.
+
+        Args:
+            stat (str): Which statistic to plot ('mean', 'std', 'max', 'min', etc.).
+            metric (str): Name of the metric to visualize (must match column in result).
+            save_path (str): If provided, save figure to this path instead of displaying it.
+        """
+        if axs is not None:
+            if len(axs) != len(experiments):
+                netsurf.error(f'Number of axes ({len(axs)}) does not match number of experiments ({len(experiments)}).')
+                axs = None
+        
+        show &= (axs is None)
+        if axs is None:
+            fig, axs = plt.subplots(len(experiments), 1, figsize=(8, 5 * len(experiments)), subplot_kw={'projection': '3d'})
+            axs = axs.flatten()
+        else:
+            fig = axs[0].figure
+        
+        # Loop through each experiment
+        for i, exp in enumerate(experiments):
+            
+            curves = exp.results
+            if metric == 'loss':
+                # Pick actual column
+                metric = curves._loss
+            if metric not in curves.columns:
+                netsurf.warn(f"[!] Metric '{metric}' not found in experiment '{exp.ranking.method}'. Skipping.")
+                continue
+
+            df_grouped = curves.groupby([x, y])[metric].agg(['mean', 'max', 'min', 'std']).reset_index()
+            X_, Y_, Z_ = df_grouped[x], df_grouped[y], df_grouped[stat]
+
+            x_vals = np.log10(X_) if xlog else X_
+            y_vals = np.log10(Y_) if ylog else Y_
+
+            xi = np.linspace(x_vals.min(), x_vals.max(), 50)
+            yi = np.linspace(y_vals.min(), y_vals.max(), 50)
+            Xi, Yi = np.meshgrid(xi, yi)
+            Zi = griddata((x_vals, y_vals), Z_, (Xi, Yi), method='cubic')
+
+            surf = axs[i].plot_surface(Xi, Yi, Zi, cmap='bwr', edgecolor='#0000000f', alpha = 0.8, lw=0.8)
+            axs[i].contourf(Xi, Yi, Zi, zdir='z', offset=0, cmap='coolwarm', alpha=0.5)
+            axs[i].contourf(Xi, Yi, Zi, zdir='x', offset=xi.min(), cmap='coolwarm', alpha=0.5)
+            axs[i].contourf(Xi, Yi, Zi, zdir='y', offset=yi.max(), cmap='coolwarm', alpha=0.5)
+
+            if xlog:
+                axs[i].set_xlim(xi.min(), xi.max()) if xlims is None else axs[i].set_xlim(*xlims)
+                axs[i].xaxis.set_major_formatter(mticker.FuncFormatter(lambda val, _: f"$10^{{{int(val)}}}$"))
+            if ylog:
+                axs[i].set_ylim(yi.min(), yi.max()) if ylims is None else axs[i].set_ylim(*ylims)
+                axs[i].yaxis.set_major_formatter(mticker.FuncFormatter(lambda val, _: f"$10^{{{int(val)}}}$"))
+
+            axs[i].set_zlim(*zlims) if zlims else None
+            axs[i].set_xlabel(xlabel or 'BER')
+            axs[i].set_ylabel(ylabel or 'Protection')
+            axs[i].set_zlabel(zlabel or f'{metric.capitalize()} ({stat})')
+            axs[i].set_title(title or f'{exp.ranking.method} - VUS')
+            axs[i].set_box_aspect([1, 1, 0.5])
+            
+        plt.tight_layout()
+
+        if show:
+            plt.show()
+        return fig, axs
+
+    @staticmethod
+    def plot_barplot(evaluation_results: pd.DataFrame, metric='loss', kind = 'vus', stat: str = 'mean',
+                        ax=None, standalone=True, xlog=False, ylog=False, ylims=None, cmap='viridis',
+                        remove_baseline=False, baseline=None, single_out='random',
+                        title=None, ylabel=None, filename=None, show=True):
+
+
+        if metric == 'loss':
+            metric = evaluation_results['loss']
+        
+        subdata = 'vus' if 'vus' in kind else 'auc'
+
+        # Collect data
+        data = []
+        for method, res in evaluation_results.items():
+            if metric not in res:
+                raise ValueError(f'Metric {metric} not found in results keys. Valid values are: {res.keys()}')
+            subdf = res[metric].get(subdata, None)
+            if subdf is None:
+                continue
+            if kind not in subdf.index:
+                raise ValueError(f'Kind {kind} not in index, valid values are: {", ".join(subdf.index)}')
+            row = subdf.loc[kind]
+            data.append({'method': method, subdata: row['mean'], 'min': row['min'], 'max': row['max'], 'std': row['std']})
+
+        df = pd.DataFrame(data)
+
+        # If df is empty, pass
+        if df.empty:
+            return None, None
+
+        ascending = True
+        if metric:
+            ascending = metric.lower() not in ['accuracy', 'acc']
+        df = df.sort_values(subdata, ascending=ascending)
+
+        if remove_baseline and baseline in df['method'].values:
+            base_val = df[df['method'] == baseline][subdata].values[0]
+            df[subdata] -= base_val
+
+        if ax is None or standalone:
+            fig, ax = plt.subplots(figsize=(10, 6))
+        else:
+            fig = ax.figure
+
+        ylims = ylims if ylims is not None else (0.95 * min(df.min().values[1:]), 1.05 * max(df.max().values[1:])) 
+        yrange = np.maximum(ylims[1] - ylims[0],0.01)
+
+        # Setup color mapping
+        cmap = plt.get_cmap(cmap)
+        norm = plt.Normalize(df[subdata].min(), df[subdata].max())
+        color_mapper = lambda v: cmap(norm(v))
+
+        bar_w = 0.4
+        bar_space = 0.1
+        xticks, xticklabels = [], []
+
+        old_hatch_lw = plt.rcParams['hatch.linewidth']
+        plt.rcParams['hatch.linewidth'] = 0.3
+        plt.rcParams['grid.color'] = (0.5, 0.5, 0.5, 0.3)
+
+        for i, (_, row) in enumerate(df.iterrows()):
+            x = i * (bar_w + bar_space)
+            vus, min_, max_, std_ = row['vus'], row['min'], row['max'], row['std']
+            color = color_mapper(vus)
+            hatch = '//' if row['method'] != single_out else 'oo'
+
+            ptop = ax.fill_between([x, x + bar_w], vus, max_, color=color[:-1] + (0.3,), edgecolor='k', linewidth=0.5)
+            ptop.set_hatch(hatch)
+
+            pbot = ax.fill_between([x, x + bar_w], min_, vus, color=color[:-1] + (0.7,), edgecolor='k', linewidth=0.5)
+            pbot.set_hatch(hatch)
+
+            ax.plot([x, x + bar_w], [vus, vus], color='k', linewidth=1.4)
+            ax.text(x + bar_w / 2, max_ + 0.01*yrange, f'{max_:.3f}', ha='center', va='bottom', fontsize=9)
+            ax.text(x + bar_w / 2, min_ - 0.01*yrange, f'{min_:.3f}', ha='center', va='top', fontsize=9)
+
+            xticks.append(x + bar_w / 2)
+            if row['method'] == 'weight_abs_value':
+                label = r'$|\theta|$'
+            else:
+                label = row['method']
+                if 'delta' in label:
+                    label = '(' + label.replace('delta','') + ')' + r'$\Delta$'
+                label = label.replace('_', '\n')
+                label = label.replace('fisher', 'Fisher\n' + r'$\|\nabla\|^2$')
+                label = label.replace('grad',r'$\nabla\theta$')
+                label = label.replace('hessian', 'Hessian\n' + r'$\mathcal{{H}}\theta$')
+
+        #     rf"$\mathcal{{H}}$ (entropy): {format_value(self.entropy)}",
+        #     rf"$\sigma^2$ (variance): {format_value(self.variance)}",
+        #     rf"$\gamma_1$ (skew): {format_value(self.skewness)}",
+        #     rf"$\gamma_2$ (kurtosis): {format_value(self.kurtosis)}",
+        #     rf"$\mu$ (mean): {format_value(self.mean)}",
+        #     rf"$\sigma$ (std): {format_value(self.std)}",
+        #     rf"$min$: {format_value(self.min)}",
+        #     rf"$max$: {format_value(self.max)}",
+        #     rf"$\|x\|_1$ (L1 energy): {format_value(self.l1_energy)}",
+        #     rf"$\|x\|_2^2$ (L2 energy): {format_value(self.l2_energy)}",
+        #     rf"$\mathcal{{G}}$ (gini): {format_value(self.gini)}",
+        # ]
+
+            xticklabels.append(label)
+
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticklabels, rotation=0, ha='center')
+        ax.set_ylabel(ylabel or stat)
+        ax.set_ylim(ylims)
+        if title is None:
+            title = f'{kind.upper()} ({metric}) - {stat}' if metric else f'{kind.upper()} - {stat}'
+        if title:
+            ax.set_title(title)
+        if xlog:
+            ax.set_xscale('log')
+        if ylog:
+            ax.set_yscale('log')
+
+        ax.grid(True, which='major', linestyle='--')
+        ax.minorticks_on()
+        ax.grid(True, which='minor', linestyle=':')
+
+
+        if filename:
+            plt.savefig(filename, bbox_inches='tight')
+        if show and standalone:
+            plt.show()
+
+        plt.rcParams['hatch.linewidth'] = old_hatch_lw
+
+        return fig, ax
+
+    @staticmethod
+    def plot_radar_comparison(results_dict, stat='mean', normalized=False, show=True):
+        """
+        Plot radar chart comparing AUC and VUS stats for all methods for each metric.
+        
+        Args:
+            results_dict (dict): Output of evaluate_experiments().
+            stat (str): Statistic to use ('mean', 'max', 'min', 'std').
+            normalized (bool): Whether to normalize each stat across methods.
+            show (bool): Whether to display the figure.
+        """
+        raise NotImplementedError('Not Implemented Yet')
+
+
+    @staticmethod
+    def compute_ranking_distribution(results, metric='loss', stat='mean', n_samples=1000, seed=42):
+        """
+        Compute ranking distributions via resampling from experiment evaluation results.
+
+        Args:
+            results (dict): Output from `evaluate_experiments()`.
+            metric (str): Metric to analyze.
+            stat (str): Statistic to use (e.g., 'mean', 'std', 'max', ...).
+            n_samples (int): Number of resampling iterations.
+            seed (int): Random seed.
+
+        Returns:
+            DataFrame: Multi-indexed DataFrame with (protection, ber, sample) -> method -> rank.
+        """
+        rng = np.random.default_rng(seed)
+        all_records = []
+
+        for method, data in results.items():
+            if metric == 'loss':
+                metric = data[metric]
+
+            if metric not in data:
+                continue
+            auc_df = data[metric]['auc']
+            for _, row in auc_df.iterrows():
+                x = row['x']  # 'protection' or 'ber'
+                y = row['y']  # e.g. 'mean'
+                key = row[x]  # the value of protection or ber
+                val = row[stat]  # the stat value
+                all_records.append({
+                    'method': method,
+                    'sweep': x,
+                    'value': key,
+                    'stat': y,
+                    'score': val
+                })
+        df = pd.DataFrame(all_records)
+
+        # Focus on only one sweep (e.g., protection)
+        sweep = df['sweep'].iloc[0]
+        values = sorted(df['value'].unique())
+        methods = sorted(df['method'].unique())
+
+        result = []
+
+        for v in values:
+            df_sub = df[(df['value'] == v) & (df['stat'] == stat)]
+            method_scores = {row['method']: row['score'] for _, row in df_sub.iterrows()}
+
+            scores_matrix = []
+            for method in methods:
+                mu = method_scores.get(method, 0)
+                scores_matrix.append(rng.normal(loc=mu, scale=1e-6, size=n_samples))
+            scores_matrix = np.array(scores_matrix)  # shape (n_methods, n_samples)
+
+            ranks = np.argsort(np.argsort(-scores_matrix, axis=0), axis=0) + 1  # lower is better
+
+            for m_idx, method in enumerate(methods):
+                for sample_idx in range(n_samples):
+                    result.append({
+                        sweep: v,
+                        'method': method,
+                        'sample': sample_idx,
+                        'rank': ranks[m_idx, sample_idx]
+                    })
+
+        return pd.DataFrame(result)
+    
+    def html(self):
+
+        # Compute metrics
+        res = self.evaluate_experiments()
+        
+        # Build main container
+        ct = pg.CollapsibleContainer("🏅 Performance", layout='vertical')
+
+        # Plot barplot
+        if len(res) > 0:
+            
+            metrics = list(res.items())[0]['metrics']
+            ct_bar = pg.CollapsibleContainer("📊 Barplots", layout='vertical')
+            # Add it to ct 
+            ct.append(ct_bar)
+
+            metrics = ['loss'] + metrics
+            for m in metrics:
+                fig, ax = ExperimentComparator.plot_barplot(res, kind = 'vus', metric = m, stat = 'mean')
+
+                # Create container just for this 
+                ct_bar_m = pg.CollapsibleContainer(f"Metric: {m}", layout='vertical')
+                # Make fig
+                p = pg.Image(fig, embed = True)
+                ct_bar_m.append(p)
+                # Add to ct_bar
+                ct_bar.append(ct_bar_m)
+                # close fig
+                plt.close(fig)
+            
+            # That's it for now
+        else:
+            # Add text
+            ct.append(pg.Text('No results to display'))
+        
+        return ct
+        
+
+
+        #ExperimentComparator.plot_2d_curves(exp_comp.experiments, metric='categorical_accuracy')
+        #ExperimentComparator.plot_2d_curves(exp_comp.experiments, metric='loss')
+        #ExperimentComparator.plot_3d_surface(exp_comp.experiments, metric='categorical_accuracy', zlims = (0,1))
+        #ExperimentComparator.plot_3d_surface(exp_comp.experiments, metric='loss')
+        #ExperimentComparator.plot_barplot(res, kind = 'vus', metric = 'categorical_accuracy', stat = 'mean')
+        #ExperimentComparator.plot_barplot(res, kind = 'vus_rel', metric = 'categorical_accuracy', stat = 'mean')
+        #ExperimentComparator.plot_radar_comparison(res)

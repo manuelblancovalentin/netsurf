@@ -34,6 +34,22 @@ import netsurf
 import pergamos as pg
 
 
+# Define emojis per method 
+_EMOJIS = {'random': '🎲',
+            'bitwise': '💡',
+            'layerwise': '📚',
+            'weight_abs_value': '🗿',
+            'grad': '💈',
+            'graddelta': '',
+            'recursive_uneven': '🔄',
+            'diffbitperweight': '🔢',
+            'hessian': '👴🏻',
+            'hessiandelta': '👵🏻',
+            'qpolar': '🧲',
+            'qpolargrad': '🔥',
+            'fisher': '🐟',
+            'aiber': "🤖"}
+
 """
     Decorator to print the time it takes to run a function
 """
@@ -232,7 +248,7 @@ class Ranking:
     # Internal props
     filepath: Optional[str] = None
     loaded_from_file: Optional[bool] = False
-    
+    _ICON = "🏆"
 
     # Class-level default values for all rankings
     DEFAULTS = {"ranking_time": "undefined"}
@@ -241,6 +257,8 @@ class Ranking:
         # Inject default values if not present
         for key, default_value in self.DEFAULTS.items():
             self.metrics.setdefault(key, default_value)
+        # Try to infer the _ICON from the method (in config)
+        self._ICON = _EMOJIS.get(self.config.method.lower(), "🏆")
 
     @property
     def empty(self):
@@ -2324,7 +2342,6 @@ class RankingComparator:
             self.comparison.to_csv(filepath, index=False)
         else:
             raise ValueError("Comparison not found. Run compare() first.")
-
 
     @staticmethod
     def load_from_csv(filepath: str) -> 'RankingComparator':
