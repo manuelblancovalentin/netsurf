@@ -2,7 +2,7 @@
 
 # Basic
 from dataclasses import dataclass, field
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 """ Local imports """
 
@@ -30,6 +30,8 @@ import tensorflow as tf
 """ netsurf modules """
 import netsurf
 
+""" pergamos"""
+import pergamos as pg
 
 
 """
@@ -40,7 +42,7 @@ def timeranking(func):
         # Start timer
         start_time = time.time()
 
-        if self.ranking.is_empty:
+        if self.ranking.empty:
             # Rank weights and get table back
             # Keep track of how long it takes for this ranker to rank the weights
             if verbose: netsurf.info(f'Ranking weights with method {self.method}... ', end = '')
@@ -52,19 +54,168 @@ def timeranking(func):
             else:
                 self.ranking = result
             
-        # Calculate elapsed time
-        elapsed_time = time.time() - start_time
+            # Calculate elapsed time
+            elapsed_time = time.time() - start_time
+            # Store in global_metrics
+            self.ranking.metrics['ranking_time'] = elapsed_time
 
-        if verbose: netsurf.info(f'Ranking done in {elapsed_time:3.2f} seconds')
+            if verbose: netsurf.info(f'Ranking done in {elapsed_time:3.2f} seconds')
+        else:
+            if verbose: netsurf.info(f'Ranking already done. Skipping...')
 
-        # Store in global_metrics
-        self.ranking_time = elapsed_time
+        
         return self.ranking
     return wrapper
 
 
 
+####################################################################################################################
+#
+# RANKING CONFIG OBJECT FOR EASY COMPARISON BETWEEN EXPS/RANKINGS
+#
+####################################################################################################################
+@dataclass
+class RankingConfig:
+    config: dict = field(default_factory=dict)
+    # Note that hash is a dynamic property that gets computed everytime we call it. This ensures we are always up-to-date
 
+    # Class-level default values for all rankings
+    DEFAULTS = {"method": "undefined",
+                "quantization": "undefined",
+                "suffix": "",
+                "ascending": False,
+                "normalize_score": False,
+                "use_delta_as_weight": False,
+                "batch_size": 1000,
+                "absolute_value": True}
+    
+    def __post_init__(self):
+        # Inject default values if not present
+        for key, default_value in self.DEFAULTS.items():
+            self.config.setdefault(key, default_value)
+        # Make sure that alias is never in our config 
+        # This is because we want to use it as a tag for the ranking
+        self.config.pop("alias", None)
+
+    @staticmethod
+    def from_hash(hash_id: str):
+        # Revese-engineer the hash to get the config and initialize a new object
+        return RankingConfig(netsurf.utils.compressed_id_to_config(hash_id))
+
+    def __getattr__(self, name):
+        if name in self.config:
+            return self.config[name]
+        raise AttributeError(f"'RankingConfig' object has no attribute '{name}'")
+
+    @property
+    def alias(self):
+        s = f"{self.method}_{self.quantization}"
+        # Method specific translation
+        if self.method == 'bitwise':
+            s += "_msb" if not self.ascending else "_lsb"
+        elif self.method == 'layerwise':
+            s += '_first' if self.ascending else "_last"
+        else:
+            s += "_ascending" if self.ascending else "_descending"
+
+        # Now the common terms that only matter if they are true 
+        if self.normalize_score:
+            s += "_norm"
+        if self.use_delta_as_weight:
+            s += "_deltaweight"
+        
+        # If there are any other config options, add them to the alias
+        for k, v in self.config.items():
+            # Skip the ones we already added
+            if k in ["method", "quantization", "suffix", "alias", "ascending", "normalize_score", "use_delta_as_weight", "batch_size"]:
+                if self.method in ['layerwise', 'random', 'bitwise', 'weight_abs_value', 'fisher', 'aiber']:
+                    # Skip the absolute value flag
+                    if k == "absolute_value":
+                        continue
+                continue
+            # Add them to the alias
+            s += f"_{k}_{v}"
+        
+        # Add suffix if any
+        s += self.suffix
+
+        return s
+        
+    @property 
+    def hash_id(self) -> str:
+        """ Dynamically compute hash based on current config """
+        return netsurf.utils.config_to_compressed_id(self.config)
+        
+    def __eq__(self, other):
+        if not isinstance(other, RankingConfig):
+            return False
+        return self.core_config == other.core_config
+
+    def __hash__(self):
+        return hash(self.hash_id)
+    
+    def to_dict(self):
+        return {
+            "config": {**self.config, "alias": self.alias},
+            "hash_id": self.hash_id,
+
+        }
+    
+    @classmethod
+    def from_dict(cls, d):
+        cfg = d["config"]
+        # pop alias
+        cfg.pop("alias", None)
+        return cls(cfg)
+
+    def matches(self, other_dict):
+        other_dict = {k: v for k,v in other_dict.items() if k != "alias"}
+        normalized = {**self.DEFAULTS, **other_dict}
+        return self.config == normalized
+
+    def save_json(self, path):
+        # Make sure dir exists
+        if not os.path.exists(os.path.dirname(path)):
+            netsurf.info(f"Creating directory {os.path.dirname(path)} for config file")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            json.dump(self.to_dict(), f, indent=2)
+        # Let user know
+        netsurf.info(f"Config {self} saved to {path}")
+
+    @staticmethod
+    def load_json(path):
+        with open(path, "r") as f:
+            return RankingConfig.from_dict(json.load(f))
+
+    def __repr__(self):
+        return (f"<RankingConfig hash={self.hash_id}, "
+                f"config={json.dumps(self.config, sort_keys=True)}>")
+
+    def short_repr(self):
+        return self.alias
+    
+    """
+        Defining __iter__, items, keys, values and __getitem__ makes it possible for us to pass config objects like so:
+                func(**<RankingConfig>)
+            without explicitly doing:
+                func(**<RankingConfig>.config)
+    """
+    def __iter__(self):
+        return iter(self.config)
+
+    def items(self):
+        return self.config.items()
+
+    def keys(self):
+        return self.config.keys()
+
+    def values(self):
+        return self.config.values()
+
+    def __getitem__(self, key):
+        return self.config[key]
+    
 
 
 ####################################################################################################################
@@ -75,17 +226,41 @@ def timeranking(func):
 @dataclass
 class Ranking:
     ranking: pd.DataFrame
-    config: dict = field(default={})
-    alias: str = None
-    method: str = None
+    config: RankingConfig
+    metrics: Dict[str, float] = field(default_factory=dict)
+    
+    # Internal props
     filepath: Optional[str] = None
     loaded_from_file: Optional[bool] = False
+    
+
+    # Class-level default values for all rankings
+    DEFAULTS = {"ranking_time": "undefined"}
+    
+    def __post_init__(self):
+        # Inject default values if not present
+        for key, default_value in self.DEFAULTS.items():
+            self.metrics.setdefault(key, default_value)
 
     @property
-    def is_empty(self):
+    def empty(self):
         if self.ranking is None:
             return True
         return self.ranking.empty
+
+    @property
+    def hash(self):
+        """Human-friendly config hash alias (e.g., for filenames or logs)
+            This doesn't collide with __hash__().
+        """
+        return self.config.hash_id
+
+    # Get attributes directly from config
+    def __getattr__(self, name):
+        # Only called if the attribute wasn't found the usual way
+        if hasattr(self.config, name):
+            return getattr(self.config, name)
+        raise AttributeError(f"'Ranking' object has no attribute '{name}'")
 
     """
         Extend properties and methods so it looks like this object is just a dataframe
@@ -116,37 +291,63 @@ class Ranking:
         return self.ranking.values()
 
     @staticmethod 
-    def from_file(filepath, alias = None, method = None):
+    def read_csv(file, comment_char="#", metadata_required_keys=None):
+        """
+        Reads a CSV file with JSON metadata embedded in comment lines at the top.
+
+        Parameters:
+            file (str): Path to the CSV file.
+            comment_char (str): Character used to mark comment lines (default: "#").
+            metadata_required_keys (list[str], optional): If provided, checks that these keys exist in metadata.
+
+        Returns:
+            metadata (dict): Parsed metadata dictionary.
+            df (pandas.DataFrame): DataFrame with CSV contents.
+        """
+        with open(file, "r") as f:
+            lines = f.readlines()
+
+        # Separate metadata lines and data lines
+        meta_lines = []
+        data_start_idx = 0
+        for i, line in enumerate(lines):
+            if line.startswith(comment_char):
+                meta_lines.append(line[len(comment_char):].strip())
+            else:
+                data_start_idx = i
+                break
+
+        # Parse metadata
+        comments = json.loads("\n".join(meta_lines)) if meta_lines else {}
+
+        # Optional metadata validation
+        if metadata_required_keys:
+            for key in metadata_required_keys:
+                if key not in comments:
+                    raise ValueError(f"Missing required metadata key: {key}")
+
+        # Read CSV data (ignore comment lines automatically)
+        df = pd.read_csv(file, comment=comment_char)
+
+        return comments.get("config", {}), df, comments.get("metrics", {})
+
+    @staticmethod 
+    def from_file(filepath, config = None):
         # check file 
         if not netsurf.utils.path_exists(filepath):
             # Warn the user that the file doesn't exist and initialize and empty ranking
             netsurf.error(f"File {filepath} not found. Initializing empty ranking.")
             # Create an empty ranking
-            return Ranking(pd.DataFrame(), alias = alias, method = method, filepath = filepath, loaded_from_file = False)
+            return Ranking(pd.DataFrame(), config = RankingConfig(), metrics = {}, filepath = filepath, loaded_from_file = False)
         
         # Load the ranking
-        df = pd.read_csv(filepath)
-        # If we can find a metadata object in the parent directory (where the folder "config1" sits), we can get the alias from there
-        metadata = netsurf.utils.get_metadata(os.path.dirname(filepath))
-        if metadata is not None:
-            if 'alias' in metadata:
-                alias = metadata['alias']
-        # if alias is still None, we can try to infer it from df 
-        if alias is None:
-            if 'ranker' in df.columns:
-                # get rows that are not nan, only strings
-                alias = df.loc[df['ranker'].notna(), 'ranker'].astype(str).mode()[0]
-                netsurf.info(f'Alias inferred from ranking data itself: {alias}')
-        # Same for method
-        if method is None:
-            if 'method' in df.columns:
-                # get rows that are not nan, only strings
-                method = df.loc[df['method'].notna(), 'method'].astype(str).mode()[0]
-                netsurf.info(f'Method inferred from ranking data itself: {method}')
+        config, df, metrics = Ranking.read_csv(filepath, comment_char="#")
+        # Initialize Config object 
+        config = RankingConfig(config)
 
         # Initialize 
         netsurf.info(f"Loading ranking from {filepath}")
-        return Ranking(df, alias = alias, method = method, filepath = filepath, loaded_from_file = True)
+        return Ranking(df, config = config, metrics = metrics, filepath = filepath, loaded_from_file = True)
 
     def save(self, filepath = None, overwrite = False):
         # We have to check if the filepath is a file or a folder. If it's a folder, we need to add the filename
@@ -157,19 +358,55 @@ class Ranking:
             filepath = self.filepath
         # Check if the filepath is a file or a folder
         if not filepath.endswith('.csv'):
-            if os.path.isdir(filepath):
+            if os.path.exists(filepath):
+                if os.path.isdir(filepath):
+                    filepath = os.path.join(filepath, "ranking.csv")
+            else:
+                # This is just a directory name
                 filepath = os.path.join(filepath, "ranking.csv")
         # if filepath is None, replace with this now
-        if self.filepath is None:
-            self.filepath = filepath
         if os.path.exists(filepath) and not overwrite:
+            # Update filepath
+            self.filepath = filepath
             # Warn the user that the file already exists and ask if they want to overwrite it
             netsurf.warn(f"File {filepath} already exists. Use overwrite=True to overwrite it.")
             return 
+        
+        # Save the config as well
+        config_file = os.path.join(os.path.dirname(filepath), "config.json")
+        self.config.save_json(config_file)
         # Save the ranking
-        self.ranking.to_csv(filepath, index = False)
-        netsurf.info(f"Ranking saved to {filepath} Internal filepath definition in object updated.")
+        Ranking.to_csv(self, filepath, index = False)
+        netsurf.info(f"Ranking saved to {filepath} ... Internal filepath definition in object updated.")
     
+
+    @staticmethod 
+    def to_csv(ranking: 'Ranking', filepath, index=False, comment_char="#"):
+        """
+        Saves a Ranking to a CSV file with metadata (as JSON) prepended in comment lines.
+        """
+        if not isinstance(ranking, Ranking):
+            raise ValueError("ranking must be a Ranking object")
+        # Check if the directory exists
+        if not os.path.exists(os.path.dirname(filepath)):
+            # Create the directory
+            netsurf.info(f"Creating directory {os.path.dirname(filepath)} for ranking file")
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            
+        with open(filepath, "w", newline="") as f:
+            # ✅ Fix: serialize config dict, not the object
+            metadata = {
+                "config": ranking.config.to_dict()["config"],
+                "metrics": ranking.metrics
+            }
+            json_str = json.dumps(metadata, indent=2)
+            for line in json_str.splitlines():
+                f.write(f"{comment_char} {line}\n")
+
+            # Save DataFrame
+            ranking.ranking.to_csv(f, index=index)
+
+
     def plot_ranking(self, axs = None, w = 300, show = True):
         
         # Fields and titles
@@ -228,158 +465,82 @@ class Ranking:
 @dataclass
 class WeightRanker:
     quantization: 'QuantizationScheme' = field(default=None, repr=False)
-    ranking: Optional[pd.DataFrame] = field(default=None, repr=False)
+    config: RankingConfig = field(default_factory=RankingConfig, repr=False)
+    ranking: Optional[pd.DataFrame] = pd.DataFrame()
 
-    # Configuration (needs to be passed to Ranking itself)
-    ascending: Optional[bool] = False
-    normalize_score: Optional[bool] = False
-    use_delta_as_weight: Optional[bool] = False
-    batch_size: Optional[int] = 1000
-    suffix: Optional[str] = ""
-    
     # Internal things just for the weight ranker state
     complete_ranking: Optional[bool] = True
-    parent_path: Optional[str] = None
+    path: Optional[str] = "."
     ranking_time: Optional[float] = None
     reload_ranking: Optional[bool] = True
-    method_suffix: Optional[str] = None
-    method_kws: Optional[str] = ""
-    config_hash: Optional[str] = None
-    config_tag: Optional[str] = None
     
     _ICON = "🏆"
 
-    @property
-    def config(self):
-        d = {
-            'alias': self.alias,
-            'method': self.method,
-            'quantization': self.quantization._scheme_str,
-            'ascending': self.ascending,
-            'normalize_score': self.normalize_score,
-            'use_delta_as_weight': self.use_delta_as_weight,
-            'suffix': self.suffix,
-            'batch_size': self.batch_size,
-            #'method_suffix': self.method_suffix,
-            #'method_kws': self.method_kws,
-        }
-        return d
 
-    @property
-    def method(self):
-        return self.alias
-    
     def __post_init__(self, *args, **kwargs):
         # Initialize the dataframe
-        self.ranking = None
-        # Initialize the path
-        self.path = None
-
-        # If parent_path is not None, try to get the "config" hash and tag for this ranker
-        if self.parent_path is not None:
-            self.config_hash, self.config_tag = self.get_config_hash(self.parent_path, self.config)
-
-        # Now, if parent_path is not None and "reload_ranking" is True, we have to check if it exists and reload ranking
-        if self.reload_ranking:
-            if netsurf.utils.path_exists(self.parent_path):
-                # First, we need to scout the path for all folders (they will look like <config1>, <config2>, etc.)
-                if self.config_tag is None:
-                    configs = self.matched_dirs(self.parent_path)
-                    if len(configs) > 0:
-                        # Pick latest (0)
-                        path = configs[0]
-                    else:
-                        # inform the user there are no config folders
-                        netsurf.warn(f"No config folders found in {self.parent_path} for ranker {self.alias}. Cannot reload ranking.")
-                        return None
-                else:
-                    path = os.path.join(self.parent_path, self.config_tag)
-                
-                # Create 
-                self.ranking = Ranking.from_file(os.path.join(path, "ranking.csv"), *args, alias = self.alias, method = self.method, 
-                                                 config = self.config, **kwargs)
-                # Update path 
-                self.path = path
-            else:
-                # inform the user the directory doesn't exist
-                netsurf.warn(f"Path {self.parent_path} does not exist for ranker {self.alias}. Cannot reload ranking.")
-
-    @staticmethod
-    def get_config_hash(path, config):
-        config_hash = netsurf.utils.generate_config_hash(config)
-
-        # Check if path exists. If it does, check if there are any config folders in there with files (.hash) that
-        # have the same hash 
-        config_dirs = WeightRanker.find_config_dirs(path)
-
-        if len(config_dirs) > 0:
-            # Check if the hash exists in any of the config folders
-            for config_dir in config_dirs:
-                # Check if the hash file exists
-                hash_file = os.path.join(config_dir, ".hash")
-                if netsurf.utils.path_exists(hash_file):
-                    if os.path.isfile(hash_file):
-                        # read it and check if it matches our "config_hash" variable
-                        with open(hash_file, 'r') as f:
-                            hash_value = f.read().strip()
-                            if hash_value == config_hash:
-                                # If it matches, we can use this folder as our parent path
-                                netsurf.info(f"Found config hash {config_hash} in {config_dir}. Using this as parent path.")
-                                return config_hash, os.path.basename(config_dir)
-            else:
-                # There are config dirs, but none of them match our hash, meaning we need to get the latest one and 
-                # increase +1 in the name
-                # Extract numbers that match the pattern "config(\d+)"
-                numbers = []
-                for name in config_dirs:
-                    match = re.fullmatch(r'config(\d+)', name)
-                    if match:
-                        numbers.append(int(match.group(1)))
-                
-                tag = max(numbers) + 1 if numbers else 1
-                tag = f'config{tag}'
-        else:
-            # No config dirs, so we can create a new one
-            tag = 'config1'
-        # Log 
-        netsurf.info(f'Initializing new experiment config directory with hash {config_hash} @ {tag}')      
-        # Create directory and print hash 
-        config_dir = os.path.join(path, tag)
-        os.makedirs(config_dir, exist_ok=True)
-        # Write hash to file
-        hash_file = os.path.join(config_dir, ".hash")
-        with open(hash_file, 'w') as f:
-            f.write(config_hash)
-        # Save the config as well
-        config_file = os.path.join(config_dir, "config.json")
-        with open(config_file, 'w') as f:
-            json.dump(config, f, indent=4)
-        return config_hash, tag
+        self.ranking = pd.DataFrame()
         
+        if self.path is None:
+            self.path = "."
 
-    @staticmethod 
-    def find_config_dirs(path):
-        if not netsurf.utils.path_exists(path):
-            return []
-        all_dirs = glob(os.path.join(path, "config*"))
+        # If the path is not None, make sure it contains the hash at the end.
+        hash = self.config.hash_id
+        if not self.path.endswith(hash):
+            # Check if the path already contains the hash
+            if hash not in self.path:
+                # Add the hash to the path
+                self.path = os.path.join(self.path, hash)
+        
+        # If not reload, leave
+        if not self.reload_ranking:
+            # Nothing else to do here
+            netsurf.info(f"Ranker {self.method} initialized and linked @ {self.path}")
+            return
+
+        # Check path is a folder 
+        if not netsurf.utils.is_valid_directory(self.path):
+            # Directory doesn't exist, so there's nothing to load 
+            netsurf.warn(f"Path {self.path} is not a valid directory. Cannot load ranking. Skipping.")
+            return
+        
+        # IF self.reload_ranking, we can try to check if the file exists and if we can reload it. 
+        # Check if the ranking file exists
+        ranking_path = self.path
+        if not self.path.endswith('.csv'):
+            ranking_path = os.path.join(self.path, "ranking.csv")
+        r = Ranking.from_file(ranking_path, config = {k: v for k,v in self.config.items() if k!='hash_id' and k != 'alias'})
+        # Hash will not coincide because we initialized our config to something random. Now we are loading it from file.
+        # It only has to coincide if pd.Dataframe is not empty. 
+        if not self.ranking.empty and not r.empty:
+            # make sure hash matches 
+            if r.hash != self.config.hash_id:
+                # Hashes don't match, ignore file
+                netsurf.error(f"Hash {r.hash} from loaded file does not match current config hash {self.config.hash_id}. Ignoring file. This probably indicates a possible corrupted file!")
+                return 
+        
+        # Else, set the ranking to the loaded one
+        self.ranking = r
+        netsurf.info(f"Ranker {self.method} initialized and linked @ {self.path} with loaded ranking from file.")
+
+
+    # Get attributes directly from config
+    def __getattr__(self, name):
+        # Only called if the attribute wasn't found the usual way
+        if hasattr(self.config, name):
+            return getattr(self.config, name)
+        raise AttributeError(f"'Ranker' object has no attribute '{name}'")
+
     
-        # Filter using regex: must match exactly 'config' followed by digits
-        pattern = re.compile(r"config\d+$")
-        matched_dirs = [d for d in all_dirs if os.path.isdir(d) and pattern.fullmatch(os.path.basename(d))]
-        # Sort by most recent first 
-        if len(matched_dirs) > 0:
-            matched_dirs.sort(key=os.path.getmtime, reverse=True)
-        return matched_dirs
-
     @staticmethod
     # Function to create a weight ranker given a couple of flags 
-    def build(method: str, *args, **kwargs):
+    def build(method: str, quantization: 'QuantizationScheme', *args, config = {}, **kwargs):
         options = {'random': RandomWeightRanker, 
                     'weight_abs_value': AbsoluteValueWeightRanker,
                     'layerwise': LayerWeightRanker,
                     'bitwise': BitwiseWeightRanker,
-                    'hirescam': HiResCamWeightRanker,
-                    'hiresdelta': HiResDeltaRanker,
+                    'grad': GradWeightRanker,
+                    'graddelta': GradDeltaWeightRanker,
                     'recursive_uneven': RecursiveUnevenRanker,
                     'diffbitperweight': DiffBitsPerWeightRanker,
                     'hessian': HessianWeightRanker,
@@ -388,15 +549,57 @@ class WeightRanker:
                     'qpolargrad': QPolarGradWeightRanker,
                     'fisher': FisherWeightRanker,
                     'aiber': AIBerWeightRanker}
-                    
-        return options.get(method.lower(), WeightRanker)(*args, **kwargs)
+        
+        # Parse config
+        if 'method_kws' in config:
+            # This has the form method_kws = "argument_a=value_a argument_b=value_b"
+            groups = config['method_kws'].split(' ')
+            for k,v in [g.split('=') for g in groups]:
+                # try to eval
+                try:
+                    v = eval(v)
+                except:
+                    pass
+                # Add to config
+                config[k] = v
+            del config['method_kws']
+        
+        # Same for method_suffix:
+        if 'method_suffix' in config:
+            config['suffix'] = config['method_suffix'] if config['method_suffix'] is not None else ""
+            del config['method_suffix']
+            
+        # Make sure to add the quantization scheme string to the config
+        config['quantization'] = quantization._scheme_str
+
+        # Create ranking config
+        ranker_config = RankingConfig(config)
+
+        # if method in options, this is the actual name (e.g. bitwise) we need to use to pick the right class, not "method" (which is the alias, e.g. bitwise_msb)
+        if 'method' in config:
+            method = config['method']
+        return options.get(method.lower(), WeightRanker)(quantization, *args, config = ranker_config, **kwargs)
     
+    """
+        Save rankng into csv file (with config as header comments and also save config.json)
+    """
     def save_ranking(self, filepath: str = None):
         # Save the ranking to file
         if self.ranking is not None:
             if filepath is None:
-                if self.ranking.filepath is not None:
-                    filepath = self.ranking.filepath
+                if self.ranking.filepath is None:
+                    # Nothing to do here, return 
+                    raise ValueError("No filepath provided and no internal filepath defined. Cannot save ranking.")
+                
+                filepath = self.ranking.filepath
+            # Update the internal filepath to make sure it's always up to date
+            self.ranking.filepath = filepath
+            # make sure directory exists
+            if not os.path.exists(os.path.dirname(filepath)):
+                # Create the directory
+                netsurf.info(f"Creating directory {os.path.dirname(filepath)}")
+                os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            # Finally save
             self.ranking.save(filepath)
         else:
             raise ValueError("Ranking is None. Cannot save ranking.")
@@ -490,6 +693,19 @@ class WeightRanker:
         # re-sort and reindex by mistake or not later)
         df['param_num'] = df.index
 
+        # NOTE: VERY IMPORTANT!!! Our global_param_num does NOT take into consideration the bits. That is, it's just the
+        # number of the parameter (for all bits). This will be an issue later, when we compare the rankings. 
+        # So this is what we will do: We will use fractional numbers as a global_param_num_bit. Say we have 4 bits. 
+        # Say a weight has a global_param_num of 13200. Then:
+        #  - bit 0 -> global_param_num_bit = 13200 + (1/4)*0 
+        #  - bit 1 -> global_param_num_bit = 13200 + (1/4)*1
+        #  - bit 2 -> global_param_num_bit = 13200 + (1/4)*2
+        #  - bit 3 -> global_param_num_bit = 13200 + (1/4)*3
+        # You see this does not alter the global structure because there are no more bits  for this weight.
+        # Also, you can retrieve the original ones by just doing np.floor(global_param_num_bit)
+        # Because our bits go from Q.n + Q.s - 1 to -Q.f - 1, we need to subtract -Q.n + Q.s - 1 to the bit number
+        df['global_param_num_bit'] = df['global_param_num'] + (df['bit'] - Q.n - Q.s + 1)/Q.m
+
         # Let's randomize before ranking so we get rid of locality 
         df = df.sample(frac=1)
 
@@ -549,10 +765,6 @@ class WeightRanker:
             plt.show()
         else:
             return fig, axs
-    
-    @property
-    def alias(self):
-        return 'generic'
 
 
 ####################################################################################################################
@@ -570,25 +782,21 @@ class RandomWeightRanker(WeightRanker):
     @timeranking
     def rank(self, model, *args, base_df = None, **kwargs):
         # Call super method to obtain DF 
-        df = self.extract_weight_table(model, *args, **kwargs) if base_df is None else base_df
+        df = self.extract_weight_table(model, *args, **self.config) if base_df is None else base_df
 
         # Susceptibility here is considered uniform (hence the randomness assigning TMR)
         df['susceptibility'] = [1/(len(df))]*len(df)
         df['rank'] = np.random.permutation(np.arange(len(df)))
         # Sort by rank
-        df = df.sort_values(by='rank')
+        df = df.sort_values(by='rank').reset_index(drop=True)
         # Add column with the alias 
         df['alias'] = self.alias
         df['method'] = self.method
 
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, config = self.config, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, config = self.config, filepath = self.path, loaded_from_file = False)
 
         return self.ranking
-    
-    @property
-    def alias(self):
-        return 'random'
 
 
 ####################################################################################################################
@@ -603,27 +811,24 @@ class AbsoluteValueWeightRanker(WeightRanker):
 
     # Method to actually rank the weights
     @timeranking
-    def rank(self, model, *args, ascending = False, base_df = None, **kwargs):
+    def rank(self, model, *args,  base_df = None, **kwargs):
         # Call super method to obtain DF 
-        df = self.extract_weight_table(model, *args, **kwargs) if base_df is None else base_df
+        df = self.extract_weight_table(model, *args, **self.config) if base_df is None else base_df
 
         # Susceptibility here is considered uniform (hence the randomness assigning TMR)
-        #df = df.sort_values(by='value', key=abs, ascending=ascending)
         df['susceptibility'] = np.abs(df['value'].values)
-        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, ascending])
+        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, self.ascending])
         df['rank'] = np.arange(len(df))
         # Add column with the alias 
         df['alias'] = self.alias
         df['method'] = self.method
+        # reset index
+        df = df.reset_index(drop=True)
         
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, config = self.config, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, config = self.config, filepath = self.path, loaded_from_file = False)
 
         return self.ranking
-    
-    @property
-    def alias(self):
-        return 'weight_abs_value'
 
 
 ####################################################################################################################
@@ -639,30 +844,24 @@ class BitwiseWeightRanker(WeightRanker):
     
     # Method to actually rank the weights
     @timeranking
-    def rank(self, model, *args, ascending = False, base_df = None, **kwargs):
+    def rank(self, model, *args, base_df = None, **kwargs):
         # Call super method to obtain DF 
-        df = self.extract_weight_table(model, *args, **kwargs) if base_df is None else base_df
+        df = self.extract_weight_table(model, *args, **self.config) if base_df is None else base_df
 
         # Susceptibility here is considered uniform (hence the randomness assigning TMR)
         df['susceptibility'] = 2.0**df['bit']
-        df = df.sort_values(by=['pruned','bit'], ascending = [True, ascending])
+        df = df.sort_values(by=['pruned','bit'], ascending = [True, self.ascending])
         df['rank'] = np.arange(len(df))
         # Add column with the alias 
         df['alias'] = self.alias
         df['method'] = self.method
+        # reset index
+        df = df.reset_index(drop=True)
         
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, config = self.config, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, config = self.config, filepath = self.path, loaded_from_file = False)
 
         return self.ranking
-    
-    @property
-    def method(self):
-        return 'bitwise'
-    
-    @property
-    def alias(self):
-        return f'bitwise_{"lsb" if self.ascending else "msb"}'
 
 
 """ Rank weights by layer (top to bottom, bottom to top or custom order) """
@@ -672,9 +871,9 @@ class LayerWeightRanker(WeightRanker):
 
     # Method to actually rank the weights
     @timeranking
-    def rank(self, model, *args, ascending = True, **kwargs):
+    def rank(self, model, *args, **kwargs):
         # Call super method to obtain DF 
-        df = self.extract_weight_table(model, *args, **kwargs)
+        df = self.extract_weight_table(model, *args, **self.config)
 
         # Susceptibility here is considered uniform (hence the randomness assigning TMR)
         # (variable_index is almost like layer index, although there is a preference of kernel vs bias, cause 
@@ -682,27 +881,19 @@ class LayerWeightRanker(WeightRanker):
         # If required, we could actually enforce layer index computation by grouping variables by their name 
         # (removing the "/..." part of the name) and then sorting by the order of appearance in the model, 
         # but I don't really think this is required right now. 
-        df = df.sort_values(by=['pruned', 'bit', 'variable_index'], ascending = [True, False, ascending])
+        df = df.sort_values(by=['pruned', 'bit', 'variable_index'], ascending = [True, False, self.ascending])
         df['rank'] = np.arange(len(df))
         df['susceptibility'] = 2.0**df['bit'] * (self.quantization.m - df['variable_index'] + 1)
         # Add column with the alias 
         df['alias'] = self.alias
         df['method'] = self.method
+        df = df.reset_index(drop=True)
 
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, config = self.config, filepath = self.path, loaded_from_file = False)
-        self.ascending = ascending
+        self.ranking = Ranking(df, config = self.config, filepath = self.path, loaded_from_file = False)
 
         return self.ranking
     
-    @property
-    def method(self):
-        return 'layerwise'
-    
-    @property
-    def alias(self):
-        return f'layerwise_{"first" if self.ascending else "last"}'
-
 
 
 ####################################################################################################################
@@ -735,7 +926,7 @@ class DiffBitsPerWeightRanker(WeightRanker):
             diff_sum = self.calculate_bit_differences(b)
             return diff_sum
 
-        df = self.extract_weight_table(model, self.quantization.m) if base_df is None else base_df
+        df = self.extract_weight_table(model, **self.config) if base_df is None else base_df
 
         differences = np.vectorize(process_value)(df['value'].values)
         df['susceptibility'] = differences
@@ -744,16 +935,12 @@ class DiffBitsPerWeightRanker(WeightRanker):
         # Add column with the alias 
         df['alias'] = self.alias
         df['method'] = self.method
+        df = df.reset_index(drop=True)
 
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, config = self.config, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, config = self.config, filepath = self.path, loaded_from_file = False)
 
         return self.ranking
-
-    
-    @property
-    def alias(self):
-        return f'diff_bits_per_weight'
 
 
 """ Rank weights by using proportion Recursively """
@@ -765,7 +952,7 @@ class RecursiveUnevenRanker(WeightRanker):
     @timeranking
     def rank(self, model, *args, base_df = None, **kwargs):
         # Call super method to obtain DF 
-        df = self.extract_weight_table(model, **kwargs) if base_df is None else base_df
+        df = self.extract_weight_table(model, **self.config) if base_df is None else base_df
 
         last_level = self.quantization.m - 1
         input_df = df[df['bit']==0]
@@ -774,9 +961,10 @@ class RecursiveUnevenRanker(WeightRanker):
         # Add column with the alias 
         df['alias'] = self.alias
         df['method'] = self.method
+        df = df.reset_index(drop=True)
 
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, config = self.config, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, config = self.config, filepath = self.path, loaded_from_file = False)
 
         return self.ranking
 
@@ -850,59 +1038,55 @@ class RecursiveUnevenRanker(WeightRanker):
         
         #rank = pd.concat([rank, sub], axis = 0)
         return rank
-    
-    @property
-    def alias(self):
-        return f'recursive_uneven'
-
 
 
 ####################################################################################################################
 #
-# FIRST ORDER GRADIENT RANKERS (GRADCAM++)
+# FIRST ORDER GRADIENT RANKERS 
 #
 ####################################################################################################################
 
-""" Rank weights by using HiRes (gradcam++) (we don't really use this class directly, this is just a parent 
-    for HiResCamRanker and HiResDeltaRanker) 
+""" Rank weights by first order gradient 
 """
 @dataclass
-class GradRanker(WeightRanker):
+class GradWeightRanker(WeightRanker):
     _ICON = "💈"
+    use_delta_as_weight: Optional[bool] = False
 
     # Method to actually rank the weights
     @timeranking
-    def rank(self, model, X, Y, ascending = False,  **kwargs):
+    def rank(self, model, X, Y, **kwargs):
+
         # Call super method to obtain DF 
-        df = self.extract_weight_table(model, X, Y, **kwargs)
+        df = self.extract_weight_table(model, X, Y, **self.config)
 
         # Finally, sort by susceptibility 
-        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, ascending])
+        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, self.ascending])
+        # set rank
+        df['rank'] = np.arange(len(df))
         # Add column with the alias 
         df['alias'] = self.alias
         df['method'] = self.method
+        df = df.reset_index(drop=True)
 
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, config = self.config, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, config = self.config, filepath = self.path, loaded_from_file = False)
 
         return self.ranking
     
     """ Extracting the table of weights and creating the pandas DF is the same 
         for all methods, so we can define it inside the generic weightRanker obj 
     """
-    def extract_weight_table(self, model, X, Y,
-                                batch_size = 1000, verbose = True, 
+    def extract_weight_table(self, model, X, Y, verbose = True, 
                                 normalize_score = False, 
-                                ascending = False, absolute_value = True, base_df = None,
+                                absolute_value = True, base_df = None,
                                 bit_value = None, out_dir = ".", **kwargs):
         
          # Get quantization
         Q = self.quantization
 
         # Call super to get the basic df 
-        df = super().extract_weight_table(model, verbose = verbose, 
-                                          ascending = ascending,
-                                          **kwargs) if base_df is None else base_df
+        df = WeightRanker.extract_weight_table(self, model, verbose = verbose, **self.config) if base_df is None else base_df
 
         # Make sure susceptibility is float
         df['susceptibility'] = df['susceptibility'].astype(float)
@@ -987,39 +1171,16 @@ class GradRanker(WeightRanker):
         return df
 
 
-""" Rank weights by using HiRes (gradcam++) as a weight to compute, on average, how important each weight is """
-@dataclass
-class HiResCamWeightRanker(GradRanker):
-    
-    @property
-    def method(self):
-        return 'hirescam'
-
-    @property
-    def alias(self):
-        alias = 'hirescam'
-        if self.normalize_score:
-            alias += '_norm'
-        return alias
 
 """ Rank weights by using HiRes (gradcam++) but instead of using the weights of the model, we use the DELTAS as weights """
 @dataclass
-class HiResDeltaRanker(GradRanker):
+class GradDeltaWeightRanker(GradWeightRanker):
     _ICON="🔮"
-    def __init__(self, *args, use_delta_as_weight = True, **kwargs):
-        """."""
-        super().__init__(*args, use_delta_as_weight = True, **kwargs)
-    
-    @property
-    def method(self):
-        return 'hiresdelta'
+    def __post_init__(self, *args, **kwargs):
+        super().__post_init__(*args, **kwargs)
+        # Make sure to set use_delta_as_weight to True
+        self.use_delta_as_weight = True
 
-    @property
-    def alias(self):
-        alias = 'hiresdelta'
-        if self.normalize_score:
-            alias += '_norm'
-        return alias
 
 
 ####################################################################################################################
@@ -1030,33 +1191,28 @@ class HiResDeltaRanker(GradRanker):
 
 """ This is the parent class for all Hessian-based rankers """
 @dataclass
-class HessianRanker(WeightRanker):
+class HessianWeightRanker(WeightRanker):
     eigen_k_top: Optional[float] = 4
     max_iter: Optional[float] = 1000
+    use_delta_as_weight: Optional[bool] = False
     
     _ICON = "👴🏻"
 
     # override extract_weight_table
     def extract_weight_table(self, model, X, Y, 
                              normalize_score = False, absolute_value = True,
-                             base_df = None, 
+                             base_df = None, eigen_k_top = 8, max_iter = 1000,
                              verbose = True, 
                              **kwargs):
         
-        # Get values 
-        normalize_score = self.normalize_score
-
         # Call super to get the basic df 
-        df = super().extract_weight_table(model, verbose = verbose, **kwargs) if base_df is None else base_df
+        df = WeightRanker.extract_weight_table(self, model, verbose = verbose, **self.config) if base_df is None else base_df
 
         # get quantizer
         Q = self.quantization
 
         # Make sure susceptibility is float
         df['susceptibility'] = df['susceptibility'].astype(float)
-
-        # If use_delta as weight, clone the model and replace the weights with the deltas for each bit
-        use_delta_as_weight = self.use_delta_as_weight
 
         # Store the original variable values first
         original_vars = [v.numpy() for v in model.trainable_variables]
@@ -1072,7 +1228,7 @@ class HessianRanker(WeightRanker):
             #delta_model.compile(loss = delta_model.loss, optimizer = delta_model.optimizer, metrics = delta_model.metrics)
 
             # If use_delta_as_weight, then replace the weights with the deltas for the current bit
-            if use_delta_as_weight:    
+            if self.use_delta_as_weight:    
                 deltas = model.deltas
 
                 # Replace 
@@ -1084,7 +1240,7 @@ class HessianRanker(WeightRanker):
                     v.assign(deltas[iv][...,ibit])
 
             # Compute top eigenvalues/vectors
-            eigenvalues, eigenvectors = self.top_eigenvalues(model, X, Y, k=self.eigen_k_top, max_iter = self.max_iter)
+            eigenvalues, eigenvectors = self.top_eigenvalues(model, X, Y, k=eigen_k_top, max_iter = max_iter)
 
             # Get parameter sensitivity ranking
             sensitivity = self.parameter_sensitivity(model, eigenvalues, eigenvectors)
@@ -1107,18 +1263,18 @@ class HessianRanker(WeightRanker):
                 df.loc[idx,'susceptibility'] = g.numpy().flatten()
                 
                 # if not use_weight_as_delta, repeat this for all bits 
-                if not use_delta_as_weight:
+                if not self.use_delta_as_weight:
                     for i in np.arange(Q.n + Q.s - 1, -Q.f-1, -1):
                         if i != bit:
                             idx = df[(df['param'] == vname) & (df['bit'] == i)].index
                             df.loc[idx,'susceptibility'] = g.numpy().flatten()
             
             # And finally, break if we are not using deltas as weights
-            if not use_delta_as_weight:
+            if not self.use_delta_as_weight:
                 break
         
         # if use_delta_as_weight make sure to set the original values back 
-        if use_delta_as_weight:
+        if self.use_delta_as_weight:
             for iv, v in enumerate(model.trainable_variables):
                 v.assign(original_vars[iv])
 
@@ -1687,55 +1843,33 @@ class HessianRanker(WeightRanker):
 
     # Method to actually rank the weights
     @timeranking
-    def rank(self, model, X, Y, ascending = False, **kwargs):
+    def rank(self, model, X, Y, **kwargs):
         # Call super method to obtain DF 
-        df = self.extract_weight_table(model, X, Y, ascending = ascending, **kwargs)
+        df = self.extract_weight_table(model, X, Y, **self.config)
 
         # Finally, sort by susceptibility 
-        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, ascending])
+        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, self.ascending])
+        # Set rank
+        df['rank'] = np.arange(len(df))
         # Add column with the alias 
         df['alias'] = self.alias
         df['method'] = self.method
+        df = df.reset_index(drop=True)
 
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, config = self.config, filepath = self.path, loaded_from_file = False)
         return self.ranking
     
 
 
-
-# Hessian based weight ranker 
-@dataclass
-class HessianWeightRanker(HessianRanker):
-    @property
-    def method(self):
-        return 'hessian'
-    
-    @property
-    def alias(self):
-        alias = 'hessian'
-        if self.normalize_score:
-            alias += '_norm'
-        return alias
-
 """ Same, but using deltas as weights """
 @dataclass
-class HessianDeltaWeightRanker(HessianRanker):
-    def __init__(self,*args, use_delta_as_weight = None, **kwargs):
-        """."""
-        super().__init__(*args, use_delta_as_weight = True, **kwargs)
-    
-    @property
-    def method(self):
-        return 'hessiandelta'
-
-    @property
-    def alias(self):
-        alias = 'hessiandelta'
-        if self.normalize_score:
-            alias += '_norm'
-        return alias
-    
+class HessianDeltaWeightRanker(HessianWeightRanker):
+    _ICON = "👵🏻"
+    def __post_init__(self, *args, **kwargs):
+        super().__post_init__(*args, **kwargs)
+        # Make sure to set use_delta_as_weight to True
+        self.use_delta_as_weight = True
 
 ####################################################################################################################
 #
@@ -1745,11 +1879,11 @@ class HessianDeltaWeightRanker(HessianRanker):
 @dataclass
 class AIBerWeightRanker(WeightRanker):
     _ICON = "🤖"
-    def extract_weight_table(self, model, X, Y, ascending = False, verbose=False, base_df = None, **kwargs):
+    def extract_weight_table(self, model, X, Y,  verbose=False, base_df = None, **kwargs):
         Q = self.quantization
         
         # Call super to get the basic df 
-        df = super().extract_weight_table(model, verbose = verbose, ascending = ascending, **kwargs) if base_df is None else base_df
+        df = WeightRanker.extract_weight_table(self, model, verbose = verbose, **self.config) if base_df is None else base_df
         
         # Make sure susceptibility is float
         df['susceptibility'] = df['susceptibility'].astype(float)
@@ -1779,23 +1913,22 @@ class AIBerWeightRanker(WeightRanker):
 
     # Method to actually rank the weights
     @timeranking
-    def rank(self, model, X, Y, ascending = False, **kwargs):
+    def rank(self, model, X, Y, **kwargs):
         # Call super method to obtain DF 
-        df = self.extract_weight_table(model, X, Y, ascending = ascending, **kwargs)
+        df = self.extract_weight_table(model, X, Y, **self.config)
 
         # Finally, sort by susceptibility 
-        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, ascending])
+        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, self.ascending])
+        # set rank
+        df['rank'] = np.arange(len(df))
         # Add column with the alias 
         df['alias'] = self.alias
         df['method'] = self.method
+        df = df.reset_index(drop=True)
 
         # assign to self 
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, config = self.config, filepath = self.path, loaded_from_file = False)
         return self.ranking
-    
-    @property
-    def alias(self):
-        return 'aiber'
 
 
 
@@ -1810,10 +1943,10 @@ class AIBerWeightRanker(WeightRanker):
 class QPolarWeightRanker(WeightRanker):
     _ICON = "🧲"
 
-    def extract_weight_table(self, model, X, Y, ascending = False, verbose=False, batch_size = 1000, base_df = None, **kwargs):
+    def extract_weight_table(self, model, X, Y, verbose=False, batch_size = 1000, base_df = None, **kwargs):
         
         # Call super to get the basic df 
-        df = WeightRanker.extract_weight_table(self, model, verbose = verbose,**kwargs) if base_df is None else base_df
+        df = WeightRanker.extract_weight_table(self, model, verbose = verbose, **self.config) if base_df is None else base_df
         # Make sure susceptibility is float
         df['susceptibility'] = df['susceptibility'].astype(float)
 
@@ -1948,48 +2081,45 @@ class QPolarWeightRanker(WeightRanker):
 
         """ For now, just sort by abs value """
         df['susceptibility'] = np.abs(df['impact'])
-        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, ascending])
+        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, self.ascending])
 
         return df
     # Method to actually rank the weights
     @timeranking
-    def rank(self, model, X, Y, ascending = False, **kwargs):
+    def rank(self, model, X, Y, **kwargs):
         # Make sure the model has extracted the deltas 
         model.compute_deltas()
         
         # Call super method to obtain DF 
-        df = self.extract_weight_table(model, X, Y, ascending = ascending, **kwargs)
+        df = self.extract_weight_table(model, X, Y, **self.config, **kwargs)
 
         # Finally, sort by susceptibility 
-        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, ascending])
+        df = df.sort_values(by=['pruned','bit','susceptibility'], ascending = [True, False, self.ascending])
+        # Set rank
+        df['rank'] = np.arange(len(df))
         # Add column with the alias 
         df['alias'] = self.alias
         df['method'] = self.method
+        df = df.reset_index(drop=True)
 
         # Create ranking object
-        self.ranking = Ranking(df, alias = self.alias, method = self.method, filepath = self.path, loaded_from_file = False)
+        self.ranking = Ranking(df, config = self.config, filepath = self.path, loaded_from_file = False)
 
         return self.ranking
 
-    @property
-    def alias(self):
-        return 'qpolar'
 
 
 @dataclass
-class QPolarGradWeightRanker(QPolarWeightRanker, GradRanker):
+class QPolarGradWeightRanker(QPolarWeightRanker, GradWeightRanker):
     _ICON = "🧲"
     def __init__(self, *args, **kwargs):
-        super(GradRanker, self).__init__(*args, **kwargs)
+        super(GradWeightRanker, self).__init__(*args, **kwargs)
         super(QPolarGradWeightRanker, self).__init__(*args, **kwargs)
         
 
-    def extract_weight_table(self, model, X, Y, ascending = False, verbose=False, 
-                             batch_size = 1000, **kwargs):
+    def extract_weight_table(self, model, X, Y, verbose=False, **kwargs):
         # At this point we will have the susceptibility in terms of qpolar impact.
-        df = QPolarWeightRanker.extract_weight_table(self, model, X, Y, verbose = verbose, 
-                                                    ascending = ascending, batch_size = batch_size,
-                                                    **kwargs)
+        df = QPolarWeightRanker.extract_weight_table(self, model, X, Y, verbose = verbose, **self.config)
         
         
         # Make sure we create a DEEP copy of df, cause this is pointing to self.df and it will be modified in the 
@@ -1997,17 +2127,11 @@ class QPolarGradWeightRanker(QPolarWeightRanker, GradRanker):
         df_polar = df.copy()
         
         # Now let's get the gradients for all trainable variables
-        df_grad = GradRanker.extract_weight_table(self, model, X, Y, verbose = verbose,
-                                                    ascending = ascending, batch_size = batch_size, 
-                                                    normalize_score = False, 
-                                                    absolute_value = False, bit_value = None,
-                                                    **kwargs)
+        df_grad = GradWeightRanker.extract_weight_table(self, model, X, Y, verbose = verbose, **self.config)
         
         # Copy 
         df_grad = df_grad.copy()
         
-        # Make sure self.df is None at this point (sanity check)
-        self.ranking = None 
 
         # Now we will multiply the impact by the gradient (element-wise)
         # This will give us the final ranking
@@ -2041,12 +2165,8 @@ class QPolarGradWeightRanker(QPolarWeightRanker, GradRanker):
 
         return df_polar
 
-    def rank(self, model, X, Y, ascending=False, **kwargs):
-        return QPolarWeightRanker.rank(self, model, X, Y, ascending = ascending, **kwargs)
-
-    @property
-    def alias(self):
-        return 'qpolargrad'
+    def rank(self, model, X, Y, **kwargs):
+        return QPolarWeightRanker.rank(self, model, X, Y, **kwargs)
 
 
 """
@@ -2056,18 +2176,17 @@ Fisher weight ranker
 class FisherWeightRanker(WeightRanker):
     _ICON = "🐟"
 
-
-    def extract_weight_table(self, model, X, Y, ascending = False, verbose=False, batch_size = 1000, base_df = None, **kwargs):
+    def extract_weight_table(self, model, X, Y, verbose=False, base_df = None, **kwargs):
         
         
         # Call super to get the basic df 
-        df = WeightRanker.extract_weight_table(self, model, verbose = verbose, ascending = ascending, **kwargs) if base_df is None else base_df
+        df = WeightRanker.extract_weight_table(self, model, verbose = verbose, **self.config) if base_df is None else base_df
 
         # Make sure susceptibility is float
         df['susceptibility'] = df['susceptibility'].astype(float)
 
         # MAKE SURE YOU ARE SORTED BY BIT AND INTERNAL PARAM NUM
-        df = df.sort_values(by=['param','bit', 'internal_param_num'], ascending=[False,False, True])
+        df = df.sort_values(by=['param','bit', 'internal_param_num'], ascending=[False, False, self.ascending])
 
         # Step 2: Compute Fisher diagonal (gradient^2 per parameter)
         with tf.GradientTape() as tape:
@@ -2097,18 +2216,17 @@ class FisherWeightRanker(WeightRanker):
     """ Rank """
     @timeranking
     def rank(self, model, X, Y, ascending=False, **kwargs):
-        df = self.extract_weight_table(model, X, Y, ascending=ascending, **kwargs)
-        df = df.sort_values(by=['pruned', 'bit', 'susceptibility'], ascending=[True, False, ascending])
+        df = self.extract_weight_table(model, X, Y, **self.config, **kwargs)
+        df = df.sort_values(by=['pruned', 'bit', 'susceptibility'], ascending=[True, False, self.ascending])
+        # Set rank
+        df['rank'] = np.arange(len(df))
         # Add column with the alias 
         df['alias'] = self.alias
         df['method'] = self.method
+        df = df.reset_index(drop=True)
 
-        self.ranking = self.ranking = Ranking(df, alias = self.alias, method = self.method, filepath = self.path, loaded_from_file = False)
+        self.ranking = self.ranking = Ranking(df, config = self.config, filepath = self.path, loaded_from_file = False)
         return self.ranking
-
-    @property
-    def alias(self):
-        return 'fisher'
 
 
 
@@ -2124,20 +2242,42 @@ class RankingComparator:
     """
     Class to compare different ranking methods
     """
-    baseline: str = None
-    granularity: float = 0.1
+    baseline: Optional[str] = None
+    granularity: Optional[float] = 0.01
     rankers: List[WeightRanker] = field(default_factory=list)
     comparison: pd.DataFrame = field(init=False)
 
     def __post_init__(self):
         if not self.rankers:
-            raise ValueError("No rankers provided.")
-        # Check if baseline is in rankers
-        if self.baseline and not any(r.alias == self.baseline for r in self.rankers):
-            raise ValueError(f"Baseline '{self.baseline}' not found in rankers.")
-        # Store _keys with aliases names 
-        self._keys = [ranker.alias for ranker in self.rankers]
+            netsurf.info("Initialized RankingComparator with no rankers.")
 
+    @property
+    def _keys(self):
+        if not self.rankers:
+            return []
+        else:
+            return [ranker.alias for ranker in self.rankers]
+
+    """ Method to create a ranker """
+    def create(self, ranker: str, **kwargs):
+        """ Create a ranker """
+        if ranker not in self._keys:
+            raise KeyError(f"Ranker '{ranker}' not found.")
+        ranker = self[ranker]
+        return ranker.create(**kwargs)
+
+    """ Methods to attach rankers """
+    def append(self, ranker: WeightRanker):
+        if not isinstance(ranker, WeightRanker):
+            raise TypeError("Only WeightRanker instances can be added.")
+        self.rankers.append(ranker)
+        netsurf.info(f"Ranker {ranker.alias} added.")
+    
+    def extend(self, rankers: List[WeightRanker]):
+        if not all(isinstance(r, WeightRanker) for r in rankers):
+            raise TypeError("Only WeightRanker instances can be added.")
+        self.rankers.extend(rankers)
+        netsurf.info(f"Rankers {', '.join([r.alias for r in rankers])} added.")
 
     """ Make sure we define iter so we can do stuff like 'if <str> in <RankingComparator>' """
     def __iter__(self):
@@ -2173,13 +2313,42 @@ class RankingComparator:
         for ranker in self.rankers:
             ranker.save_ranking(os.path.join(dir, ranker.alias))
 
+    def save_to_csv(self, filepath):
+        """
+        Save the RankingComparator to a file.
+        """
+        # if ranking is not None
+        if isinstance(self.comparison, pd.DataFrame):
+            # Save the comparison
+            netsurf.info(f"Saving comparison to {filepath}")
+            self.comparison.to_csv(filepath, index=False)
+        else:
+            raise ValueError("Comparison not found. Run compare() first.")
+
+
+    @staticmethod
+    def load_from_csv(filepath: str) -> 'RankingComparator':
+        """
+        Load a RankingComparator from a file.
+        """
+        # Load csv, if it exists 
+        if not netsurf.utils.file_exists(filepath):
+            raise FileNotFoundError(f"File {filepath} not found.")
+        df = pd.read_csv(filepath)
+        
+        # Create an empty comparator
+        comparator = RankingComparator()
+        # Add this as comparison
+        comparator.comparison = df
+        return comparator
+
     @staticmethod
     def from_directory(path: str, rankers: List[str] = None, granularity: float = 0.1, baseline: str = None, 
                        config_per_methods = {}, **kwargs) -> 'RankingComparator':
         # First check if the path exists. This should be the "experiments" inside the hierarchy benchmarks/<benchmark>/q<m>_<n>_<s>/<model_alias>/experiments
         # then we will pass this path when building the rankers 
         if rankers is None:
-            rankers = ['random', 'hessian', 'hessiandelta', 'fisher', 'qpolar', 'qpolargrad', 'hirescam', 'hiresdelta', 'bitwise_msb', 'weight_abs_value']
+            rankers = ['random', 'hessian', 'hessiandelta', 'fisher', 'qpolar', 'qpolargrad', 'grad', 'hiresdelta', 'bitwise', 'weight_abs_value']
         # We can now pass this path to the rankers and they will handle the reloading
         # Create rankers
         # Make sure we have an entry for all rankers in config_per_methods, even if it's empty
@@ -2205,16 +2374,29 @@ class RankingComparator:
         # Create the comparator
         return RankingComparator(rankers=rankers, granularity = granularity, baseline=baseline)
 
-    @staticmethod 
-    def from_object(rankers: List[str] = None, granularity: float = 0.1, baseline: str = None, **kwargs) -> 'RankingComparator':
+
+    """
+        Build a ranker and automatically append it to the list of rankers
+    """
+    def build_ranker(self, ranker: str, *args, is_baseline = False, overwrite = False, **kwargs) -> 'RankingComparator':
         """
         Create a RankingComparator from a model and data.
         """
-        if rankers is None:
-            rankers = ['random', 'hessian', 'hessiandelta', 'fisher', 'qpolar', 'qpolargrad', 'hirescam', 'hiresdelta', 'bitwise_msb', 'weight_abs_value']
+        
+        # Check if ranker already exists in structure 
+        if (ranker in self._keys) and not overwrite:
+            raise KeyError(f"Ranker '{ranker}' already exists in the comparator. Use overwrite=True to replace it and get rid of this error.")
+        
         # Create rankers
-        rankers = [WeightRanker.build(ranker, **kwargs) for ranker in rankers]
-        return RankingComparator(rankers=rankers, granularity=granularity, baseline=baseline)
+        r = WeightRanker.build(ranker, *args, **kwargs)
+
+        # Append to the list of rankers
+        self.rankers.append(r)
+        # If this is a baseline, set it
+        if is_baseline:
+            self.baseline = r.alias
+            netsurf.info(f"Ranker '{ranker}' set as baseline.")
+        return r
 
     @staticmethod
     def from_rankers(rankers: List[WeightRanker], granularity: float = 0.1, baseline: str = None) -> 'RankingComparator':
@@ -2242,7 +2424,7 @@ class RankingComparator:
         return low, high
 
     """ Extract weight table (for specified ranker methods or for all) """
-    def rank(self, ranker: str, model, X, Y, ascending=False, **kwargs):
+    def rank(self, ranker: str, model, X, Y, **kwargs):
         # Make sure ranker is in self
         if ranker not in self._keys:
             raise KeyError(f"Ranker '{ranker}' not found.")
@@ -2253,11 +2435,30 @@ class RankingComparator:
                 return self[ranker].ranking
         
         # Rank
-        base_df = WeightRanker.extract_weight_table(self[0], model, X, Y, ascending=ascending, **kwargs)
-        return self[ranker].rank(model, X, Y, ascending=ascending, base_df = base_df, **kwargs)
+        base_df = WeightRanker.extract_weight_table(self[0], model, X, Y, **self.config)
+        return self[ranker].rank(model, X, Y, base_df = base_df, **kwargs)
  
+    """ Set baseline """
+    def set_baseline(self, ranker):
+        # If ranker is string, check it exists 
+        if isinstance(ranker, str):
+            if ranker not in self._keys:
+                # check if they match any alias 
+                if ranker in [r.alias for r in self.rankers]:
+                    ranker = next(r for r in self.rankers if r.alias == ranker)
+                raise KeyError(f"Ranker '{ranker}' not found.")
+            self.baseline = ranker
+        elif isinstance(ranker, WeightRanker):
+            # Check if ranker is in self
+            if ranker.alias not in self._keys:
+                raise KeyError(f"Ranker '{ranker.alias}' not found.")
+            self.baseline = ranker.alias
+        else:
+            raise TypeError(f"Ranker '{ranker}' is not a string or WeightRanker instance.")
+
+
     """ Perform the actual comparison of rankers against the baseline """
-    def compare_rankers(self, granularity: float = 0.1) -> pd.DataFrame:
+    def compare_rankers(self, granularity: float = 0.1, bootstrap = False) -> pd.DataFrame:
 
         """
         Computes a dataframe with Kendall, Spearman and Jaccard overlaps between rankers
@@ -2275,12 +2476,12 @@ class RankingComparator:
                 netsurf.info(f"Using 'random' as baseline, since no baseline was provided.")
 
         # Make sure that the rankers have ranked the weights
-        not_yet_ranked = [ranker.alias for ranker in self.rankers if ranker.df is None]
+        not_yet_ranked = [ranker.alias for ranker in self.rankers if ranker.ranking is None]
         if len(not_yet_ranked) > 0:
             raise ValueError(f"Rankers {', '.join(not_yet_ranked)} have not been ranked yet.")
 
         baseline_ranker = next(r for r in self.rankers if r.alias == self.baseline)
-        n_total = len(baseline_ranker.df)
+        n_total = len(baseline_ranker.ranking)
         min_granularity = 1.0 / n_total
         if granularity < min_granularity:
             raise ValueError(f"Granularity too small. Minimum granularity is {min_granularity:.6f}.")
@@ -2288,56 +2489,94 @@ class RankingComparator:
         rows = []
 
         protection_levels = np.arange(granularity, 1 + granularity, granularity)
-        baseline_ranks = baseline_ranker.df.sort_values(by="rank").index.to_list()
+        baseline_params_ids = baseline_ranker.ranking['global_param_num_bit'].to_list()
 
-        for method in self.rankers:
-            if method.alias == self.baseline:
-                continue
+        # Build lookup dictionaries: param ID → rank index
+        baseline_rank_dict = {pid: i for i, pid in enumerate(baseline_params_ids)}
+        
+        #Q = baseline_ranker.quantization
+        #baseline_ranks = baseline_ranks + abs(baseline_ranker.ranking['bit'] - Q.n - Q.s + 1)/Q.m
 
-            method_ranks = method.df.sort_values(by="rank").index.to_list()
-
-            for p in protection_levels:
-                k = int(p * n_total)
-                if k == 0 or k > n_total:
+        with netsurf.utils.ProgressBar(total = (len(self.rankers)-1)*len(protection_levels), prefix = 'Computing ranking overlaps') as pbar:
+            for method in self.rankers:
+                if method.alias == self.baseline:
                     continue
 
-                top_baseline = set(baseline_ranks[:k])
-                top_method = set(method_ranks[:k])
+                # Get full ordered parameter ID lists from each ranking
+                method_param_ids   = method.ranking['global_param_num_bit'].to_list()
 
-                # Jaccard similarity
-                intersection = len(top_baseline & top_method)
-                union = len(top_baseline | top_method)
-                jaccard = intersection / union if union > 0 else 0.0
-                jaccard_sym = intersection / ((len(top_baseline) + len(top_method)) / 2)
+                # Build lookup dictionaries: param ID → rank index
+                method_rank_dict   = {pid: i for i, pid in enumerate(method_param_ids)}
 
-                # Get full rank list for metrics that need order
-                full_baseline_ranks = np.argsort(np.argsort(baseline_ranks))
-                full_method_ranks = np.argsort(np.argsort(method_ranks))
-                kendall_corr, _ = kendalltau(full_baseline_ranks, full_method_ranks)
-                spearman_corr, _ = spearmanr(full_baseline_ranks, full_method_ranks)
-                kendall_low, kendall_high = self._bootstrap_corr_ci(full_baseline_ranks, full_method_ranks, "kendall")
-                spearman_low, spearman_high = self._bootstrap_corr_ci(full_baseline_ranks, full_method_ranks, "spearman")
+                for p in protection_levels:
 
-                rows.append({
-                    "protection": p,
-                    "method1": method.alias,
-                    "method2": self.baseline,
-                    "baseline": self.baseline,
-                    "kendall": kendall_corr,
-                    "kendall_ci_low": kendall_low,
-                    "kendall_ci_high": kendall_high,
-                    "spearman": spearman_corr,
-                    "spearman_ci_low": spearman_low,
-                    "spearman_ci_high": spearman_high,
-                    "jaccard": jaccard,
-                    "jaccard_sym": jaccard_sym,
-                })
+                    k = int(p * n_total)
+                    if k == 0 or k > n_total:
+                        continue
+                    
+                    top_baseline = set(baseline_params_ids[:k])
+                    top_method   = set(method_param_ids[:k])
+                    top_common   = top_baseline & top_method  # only the ones in both
 
-        df = pd.DataFrame(rows)
+                    # --- Jaccard ---
+                    intersection = len(top_common)
+                    union = len(top_baseline | top_method)
+                    jaccard = intersection / union if union > 0 else 0.0
+                    jaccard_sym = intersection / ((len(top_baseline) + len(top_method)) / 2)
+
+                    # --- Rank Vectors (aligned) ---
+                    aligned_ids = sorted(top_common)  # any order is fine as long as it's the same
+                    baseline_vec = [baseline_rank_dict[pid] for pid in aligned_ids]
+                    method_vec   = [method_rank_dict[pid] for pid in aligned_ids]
+
+                    # --- Correlations ---
+                    if len(aligned_ids) < 2:
+                        kendall_corr, spearman_corr = np.nan, np.nan
+                        kendall_low, kendall_high = None, None
+                        spearman_low, spearman_high = None, None
+                    else:
+                        kendall_corr, _ = kendalltau(baseline_vec, method_vec)
+                        spearman_corr, _ = spearmanr(baseline_vec, method_vec)
+
+                    if bootstrap:
+                        # Bootstrap confidence intervals
+                        # Note: This is a simplified version, you might want to improve it
+                        # by using a more robust bootstrap method.
+                        kendall_low, kendall_high = self._bootstrap_corr_ci(baseline_vec, method_vec, "kendall")
+                        spearman_low, spearman_high = self._bootstrap_corr_ci(baseline_vec, method_vec, "spearman")
+                    else:
+                        kendall_low, kendall_high = None, None
+                        spearman_low, spearman_high = None, None
+
+                    rows.append({
+                        "protection": p,
+                        "method1": method.alias.split('_q')[0],
+                        "method2": self.baseline.split('_q')[0],
+                        "baseline": self.baseline.split('_q')[0],
+                        "kendall": kendall_corr,
+                        "kendall_ci_low": kendall_low,
+                        "kendall_ci_high": kendall_high,
+                        "spearman": spearman_corr,
+                        "spearman_ci_low": spearman_low,
+                        "spearman_ci_high": spearman_high,
+                        "jaccard": jaccard,
+                        "jaccard_sym": jaccard_sym,
+                    })
+
+                    # Pbar
+                    pbar.update()
+
+            df = pd.DataFrame(rows)
+
+        # Update structure 
+        self.comparison = df
+
         return df
     
     def plot_radar_overlap(self, protection_levels=[0.2, 0.4, 0.8, 1.0], axs = None, show = True):
         
+        metrics = ['kendall', 'spearman', 'jaccard', 'jaccard_sym']
+
         # Check if axs has the right length
         if axs is not None:
             if len(axs) != len(metrics):
@@ -2355,12 +2594,11 @@ class RankingComparator:
             fig.suptitle("Ranking Overlap", fontsize=16)
 
         methods = self.comparison['method1'].unique()
-        metrics = ['kendall', 'spearman', 'jaccard', 'jaccard_sym']
 
-        for p in protection_levels:
+        fig.suptitle(f"Ranking Overlap", fontsize=16)
+
+        for ip, p in enumerate(protection_levels):
             dfp = self.comparison[self.comparison['protection'].round(2) == round(p, 2)]
-
-            fig.suptitle(f"Ranking Overlap @ Protection {int(p):3.2%}", fontsize=16)
 
             for i, metric in enumerate(metrics):
                 values = []
@@ -2374,23 +2612,27 @@ class RankingComparator:
                 angles += angles[:1]
 
                 axs[i].plot(angles, values, marker='o')
-                axs[i].fill(angles, values, alpha=0.25)
+                axs[i].fill(angles, values, alpha=0.25, label = f'{p:3.2%}')
                 axs[i].set_title(metric.upper(), size=13)
                 axs[i].set_xticks(angles[:-1])
                 axs[i].set_xticklabels(labels)
                 axs[i].set_yticks([0.25, 0.5, 0.75, 1.0])
+                if i == 0:
+                    axs[i].legend(loc='best', bbox_to_anchor=(0.1, 0.1), fontsize=8)
 
-            if show:
-                plt.tight_layout()
-                plt.show()
+        plt.tight_layout()
+        if show:
+            plt.show()
             
-            return fig, axs
+        return fig, axs
     
-    def plot_overlap_curves(self, axs = None):
+    def plot_overlap_curves(self, axs = None, show = True):
+
+        metrics = ['kendall', 'spearman', 'jaccard', 'jaccard_sym']
 
         # Check if axs has the right length
         if axs is not None:
-            if len(axs) != 3:
+            if len(axs) != len(metrics):
                 # set back to None
                 print('axs has wrong length, creating new ones')
                 axs = None
@@ -2398,26 +2640,29 @@ class RankingComparator:
         # Check if we need to create figure
         show &= (axs is None)
         if axs is None:
-            fig, axs = plt.subplots(len(metrics), 1, figsize=(10, 12))
+            fig, axs = plt.subplots(len(metrics), 1, figsize=(10, 12), sharex = True)
             fig.suptitle("Ranking Overlap", fontsize=16)
         else:
             fig = axs[0].figure
             fig.suptitle("Ranking Overlap", fontsize=16)
         
-        metrics = ['kendall', 'spearman', 'jaccard', 'jaccard_sym']
-        
         for i, metric in enumerate(metrics):
             sns.lineplot(data=self.comparison, x='protection', y=metric, hue='method1', ax=axs[i])
-            axs[i].set_title(f'{metric.upper()} vs Protection')
-            axs[i].set_ylim(0, 1)
-
+            #axs[i].set_title(f'{metric.upper()} vs Protection')
+            #axs[i].set_ylim(0, 1)
+            # Place legend outside with title inside legend
+            axs[i].legend(loc='upper left', bbox_to_anchor=(1, 1), title=f'{metric.upper()}')
+            # Remove xlabel unless this is the last one 
+            if i != len(metrics) - 1:
+                axs[i].set_xlabel('')
+        
+        plt.tight_layout()
         if show:
-            plt.tight_layout()
             plt.show()
         
         return fig, axs
     
-    def plot_cumulative_overlap(self, ax = None):
+    def plot_cumulative_overlap(self, ax = None, show = True):
         
         # Check if we need to create figure
         show &= (ax is None)
@@ -2429,15 +2674,100 @@ class RankingComparator:
             fig.suptitle("Ranking Overlap", fontsize=16)
         
         avg_df = self.comparison.groupby('method1')[['kendall', 'spearman', 'jaccard', 'jaccard_sym']].mean().reset_index()
+        # Add row with the baseline for reference 
+        avg_df.loc[len(avg_df)] = [self.comparison['baseline'][0], 1, 1, 1, 1]
+
         melted = avg_df.melt(id_vars='method1', var_name='metric', value_name='value')
 
         sns.barplot(data=melted, x='method1', y='value', hue='metric', ax = ax)
         plt.title('Average Overlap Across Protection Levels')
         plt.xticks(rotation=45)
+        # Place legend on the outside
+        ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
+        plt.tight_layout()
         if show:
-            plt.tight_layout()
             plt.show()
         
         return fig, ax
+
+    # HTML
+    def html(self):
+        # Add a container to hold this whole comparison 
+        ct = pg.CollapsibleContainer('⚖️ Ranking Comparison', layout = 'vertical')
+
+        # Create container for table data 
+        c1 = pg.CollapsibleContainer('Comparison Data', layout='vertical')
+        # Now add the comparison table 
+        t = pg.Table.from_data(self.comparison)
+        c1.append(t)
+        # Add to container
+        ct.append(c1)
+
+        # Now add the plots
+        c2 = pg.CollapsibleContainer('〰️ Overlap curves', layout='vertical')
+        # First the overlap_curves altogether
+        fig, axs = self.plot_overlap_curves(show = False)
+        for ax in axs:
+            netsurf.utils.plot.turn_grids_on(ax)
+        # Add to container
+        p2 = pg.Image(fig, embed = True)
+        c2.append(p2)
+        ct.append(c2)
+        # Close fig
+        plt.close(fig)
+
+        # Now add the radar plot
+        c3 = pg.CollapsibleContainer('🕷️ Radar plot', layout='vertical')
+        # First the radar plot
+        fig, axs = self.plot_radar_overlap(show = False)
+        # Add to container
+        p3 = pg.Image(fig, embed = True)
+        c3.append(p3)
+        ct.append(c3)
+        # close fig
+        plt.close(fig)
+
+        # Now add the cumulative plot
+        c4 = pg.CollapsibleContainer('📊 Cumulative plot', layout='vertical')
+        # First the cumulative plot
+        fig, ax = self.plot_cumulative_overlap(show = False)
+        # Add to container
+        p4 = pg.Image(fig, embed = True)
+        c4.append(p4)
+        ct.append(c4)
+        # close fig
+        plt.close(fig)
+
+        # Also, add the individual plots for avg/std for the overlap, which look very cool. 
+        c5 = pg.CollapsibleContainer('🎨 Individual dispersion', layout='vertical')
+        # Loop thru methods 
+        g = self.comparison.groupby('method1')
+        w = np.maximum(3,int(len(self.comparison)*0.15))
+        for i,(name, group) in enumerate(g):
+            # Create a container 
+            _c = pg.CollapsibleContainer(name, layout='vertical')
+            # Create a plot
+            fig, ax = plt.subplots(figsize=(10, 5))
+            netsurf.utils.plot.plot_avg_and_std(group['kendall'], w, shadecolor = f'C{4*i}', ax = ax)
+            netsurf.utils.plot.plot_avg_and_std(group['spearman'], w, shadecolor = f'C{4*i+1}', ax = ax, show_legend = False)
+            netsurf.utils.plot.plot_avg_and_std(group['jaccard'], w, shadecolor = f'C{4*i+2}', ax = ax, show_legend=False)
+            netsurf.utils.plot.plot_avg_and_std(group['jaccard_sym'], w, shadecolor = f'C{4*i+3}', ax = ax, show_legend=False)
+            # Keep only first legend
+            handles, labels = ax.get_legend_handles_labels()
+            handles = handles[:4]
+            labels = labels[:4]
+            ax.legend(handles, labels)
+            ax.set_title(name)
+            # Embed picture 
+            _p = pg.Image(fig, embed = True)
+            _c.append(_p)
+            c5.append(_c)
+            # close fig
+            plt.close(fig)
+        
+        # Add to container
+        ct.append(c5)
+        # Return container
+        return ct
 

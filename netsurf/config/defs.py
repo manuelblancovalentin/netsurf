@@ -12,13 +12,13 @@ DEFAULT_PRUNINGS = (0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875)
 DEFAULT_QUANTIZATIONS = ['q<6,0,1>']
 DEFAULT_BENCHMARKS = ['mnist_hls4ml', 'ECONT_AE']
 DEFAULT_METHODS = ['bitwise_msb', 'random', 'layerwise_first', 'layerwise_last', 'weight_abs_value', 
-                   'hirescam_norm', 'hiresdelta', 'hessian', 'hessiandelta',
+                   'grad_norm', 'graddelta', 'hessian', 'hessiandelta',
                    'qpolar', 'qpolargrad', 'aiber','fisher']
 # Default simulation config values
 DEFAULT_NUM_REPS = 10
 
 AVAILABLE_METHODS = ['bitwise_msb', 'bitwise_lsb', 'random', 'layerwise_first', 'layerwise_last', 'weight_abs_value', 
-                    'hirescam', 'hirescam_norm',  'hiresdelta', 'hiresdelta_norm', 
+                    'grad', 'grad_norm',  'graddelta', 'graddelta_norm', 
                     'hessian', 'hessiandelta', 'aiber', 'qpolar', 'qpolargrad','fisher']
 
 METHODS_NAMES = {'bitwise': 'bitwise', 
@@ -29,10 +29,10 @@ METHODS_NAMES = {'bitwise': 'bitwise',
                  'layerwise_first': 'layerwise',
                  'layerwise_last': 'layerwise', 
                  'weight_abs_value': 'weight_abs_value', 
-                 'hirescam': 'hirescam', 
-                 'hirescam_norm': 'hirescam',
-                 'hiresdelta': 'hiresdelta', 
-                 'hiresdelta_norm': 'hiresdelta', 
+                 'grad': 'grad', 
+                 'grad_norm': 'grad',
+                 'graddelta': 'graddelta', 
+                 'graddelta_norm': 'graddelta', 
                  'hessian': 'hessian', 
                  'hessiandelta': 'hessiandelta',
                  'qpolar': 'qpolar',
@@ -51,16 +51,16 @@ config_per_method = {
     'layerwise_first': {'method': 'layerwise', 'method_suffix': 'first_to_last', 'method_kws': 'ascending=True'},
     
     'bitwise': {'method': 'bitwise', 'method_suffix': 'msb_to_lsb', 'method_kws': 'ascending=True'},
-    'bitwise_msb': {'method': 'bitwise', 'method_suffix': 'msb_to_lsb', 'method_kws': 'ascending=False'},
-    'bitwise_lsb': {'method': 'bitwise', 'method_suffix': 'lsb_to_msb', 'method_kws': 'ascending=True'},
+    'bitwise_msb': {'method': 'bitwise', 'method_suffix': 'msb_to_lsb', 'method_kws': 'ascending=True'},
+    'bitwise_lsb': {'method': 'bitwise', 'method_suffix': 'lsb_to_msb', 'method_kws': 'ascending=False'},
 
     'weight_abs_value': {'method': 'weight_abs_value', 'method_suffix': None, 'method_kws': 'ascending=False'},
 
-    'hirescam': {'method': 'hirescam', 'method_suffix': None, 'method_kws': 'ascending=False normalize_score=False batch_size=100'},
-    'hirescam_norm': {'method': 'hirescam', 'method_suffix': None, 'method_kws': 'ascending=False normalize_score=True batch_size=100'},
+    'grad': {'method': 'grad', 'method_suffix': None, 'method_kws': 'ascending=False normalize_score=False batch_size=100'},
+    'grad_norm': {'method': 'grad', 'method_suffix': None, 'method_kws': 'ascending=False normalize_score=True batch_size=100'},
 
-    'hiresdelta': {'method': 'hiresdelta', 'method_suffix': None, 'method_kws': 'ascending=False normalize_score=False batch_size=100'},
-    'hiresdelta_norm': {'method': 'hiresdelta', 'method_suffix': None, 'method_kws': 'ascending=False normalize_score=True batch_size=100'},
+    'graddelta': {'method': 'graddelta', 'method_suffix': None, 'method_kws': 'ascending=False normalize_score=False batch_size=100'},
+    'graddelta_norm': {'method': 'graddelta', 'method_suffix': None, 'method_kws': 'ascending=False normalize_score=True batch_size=100'},
 
     'hessian': {'method': 'hessian', 'method_suffix': None, 'method_kws': 'batch_size=96 eigen_k_top=3 max_iter=1000'},
     'hessiandelta': {'method': 'hessiandelta', 'method_suffix': None, 'method_kws': 'batch_size=96 eigen_k_top=3 max_iter=1000'},
@@ -82,8 +82,8 @@ DEFAULT_LEVEL_MAP = {0: 'Root', 1: 'Benchmark', 2: 'Quantization', 3: 'Model', 4
 DEFAULT_CHILDREN_PROP = {'Root': 'benchmark', 'Benchmark': 'quantization', 'Quantization': 'pruning', 'Pruning': 'method', 'Model': 'method', 'Method': None, 'Experiment': None} #'Run': None}
 
 """ Define some parameters """
-key_map = {'hiresdelta_None': 'HiResDelta', 'hiresdelta': 'HiResDelta', 
-            'hirescam_None': 'HiResCam', 'hirescam': 'HiResCam', 
+key_map = {'graddelta_None': 'GradDelta', 'graddelta': 'GradDelta', 
+            'grad_None': 'Grad', 'grad': 'Grad', 
             
             'qpolar_None': 'QPolar', 'qpolar': 'QPolar',
             'qpolargrad_None': 'QPolarGrad', 'qpolargrad': 'QPolarGrad',

@@ -420,7 +420,7 @@ class Experiment:
 
         # Now let's compare this configuration hash with the existing ones (if any), and get the next 
         # available name for this experiment config dir (e.g., config1, config2, etc)
-        self.name, self.alias, self.path = self.get_experiment_name(benchmark, name, path)
+        self.name, self.path = self.get_experiment_name(benchmark, name, path)
 
         # Get the loss and metrics
         (loss_name, formatted_loss_name, fmt_loss_name), (metric_names, metrics, fmt_metrics, _) = self.get_loss_and_metrics(benchmark)
@@ -433,6 +433,60 @@ class Experiment:
 
         # Init progress table to None
         self.progress_table = None
+
+
+    def get_experiment_name(self, benchmark, name, parent_dir):
+        
+        # Exp alias
+        if name is None:
+            name = f'{benchmark.name}_{self.ranking.alias}'
+        
+        # Start creating metadatas
+        if not netsurf.utils.is_valid_directory(parent_dir):
+            netsurf.utils.log._info(f'Creating new experiment directory @ {parent_dir}')
+            # Create the directory
+            os.makedirs(parent_dir, exist_ok = True)
+
+        # top dir:
+        top_dir = benchmark.experiments_dir
+        method_dir = os.path.join(top_dir, self.ranking.method)
+
+        # We need to create the metadata now 
+        metadata = {'level': 'method', 
+                    'name': self.ranking.alias, 
+                    'group': self.ranking.method,
+                    'creation_date': datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+                    'creation_user': os.getlogin(),
+                    'creation_host': os.uname().nodename,
+                    'config': {}}
+
+        # metadata filepath 
+        metadata_filepath = os.path.join(method_dir, '.metadata.netsurf')
+        if not os.path.isfile(metadata_filepath):
+            # Save metadata
+            netsurf.utils.log._info(f'Saving method metadata to file {metadata_filepath}')
+            with open(metadata_filepath, 'w') as f:
+                json.dump(metadata, f, indent=2)
+        
+        # Now, we need to do the same with the experiment metadata 
+        metadata_exp = {'level': 'experiment',
+                        'name': name,
+                        'creation_date': datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+                        'creation_user': os.getlogin(),
+                        'creation_host': os.uname().nodename,
+                        'config': self.ranking.config.to_dict()}
+
+        # metadata filepath
+        metadata_exp_filepath = os.path.join(parent_dir, '.metadata.netsurf')
+        if not os.path.isfile(metadata_exp_filepath):
+            # Save metadata
+            netsurf.utils.log._info(f'Saving experiment metadata to file {metadata_exp_filepath}')
+            with open(metadata_exp_filepath, 'w') as f:
+                json.dump(metadata_exp, f, indent=2)
+
+        return name, parent_dir
+
+
 
     # Translation table from loss/metric to column name
     def _translate(self, name):
@@ -511,72 +565,6 @@ class Experiment:
         netsurf.utils.log._custom('EXP',msg)
 
 
-    def get_experiment_name(self, benchmark, name, parent_dir):
-        # Get all directories in parent_dir
-        dirs = []
-        config_tag = 'config1'
-        if netsurf.utils.is_valid_directory(parent_dir):
-            if name is None:
-                dirs = netsurf.WeightRanker.find_config_dirs(parent_dir)
-                if len(dirs) > 0:
-                    # Get the last config dir
-                    config_tag = dirs[0]
-            else:
-                dirs = [name]
-        else:
-            # Create parent's path for this experiment
-            # Config dir can be obtained from ranking 
-            if self.ranking.filepath is not None:
-                parent_dir = os.path.dirname(self.ranking.filepath)
-                config_tag = os.path.basename(os.path.dirname(self.ranking.filepath))
-            else:
-                parent_dir = os.path.join(benchmark.experiments_dir, self.ranking.method, config_tag)
-
-        # Set test name 
-        exp_alias = f'{self.ranking.alias}_{benchmark.quantization._scheme_str}_{config_tag}'
-
-        exp_name = config_tag
-        exp_path = parent_dir
-        # Log 
-        netsurf.utils.log._info(f'Creating new experiment directory with hash {exp_path}')
-
-        # Create the directory
-        os.makedirs(exp_path, exist_ok = True)
-
-        # We need to create the metadata now 
-        metadata = {'level': 'method', 
-                    'name': self.ranking.alias, 
-                    'group': self.ranking.method,
-                    'creation_date': datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
-                    'creation_user': os.getlogin(),
-                    'creation_host': os.uname().nodename,
-                    'config': {}}
-
-        # metadata filepath 
-        metadata_filepath = os.path.join(parent_dir, '.metadata.netsurf')
-        if not os.path.isfile(metadata_filepath):
-            # Save metadata
-            netsurf.utils.log._info(f'Saving method metadata to file {metadata_filepath}')
-            with open(metadata_filepath, 'w') as f:
-                json.dump(metadata, f, indent=2)
-        
-        # Now, we need to do the same with the experiment metadata 
-        metadata_exp = {'level': 'experiment',
-                        'name': exp_name,
-                        'creation_date': datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
-                        'creation_user': os.getlogin(),
-                        'creation_host': os.uname().nodename,
-                        'config': {}} #self.ranker.config}
-
-        # metadata filepath
-        metadata_exp_filepath = os.path.join(exp_path, '.metadata.netsurf')
-        if not os.path.isfile(metadata_exp_filepath):
-            # Save metadata
-            netsurf.utils.log._info(f'Saving experiment metadata to file {metadata_exp_filepath}')
-            with open(metadata_exp_filepath, 'w') as f:
-                json.dump(metadata_exp, f, indent=2)
-
-        return exp_name, exp_alias, exp_path
 
     def _reload_data(self, loss_name, metric_names, exp_name, exp_path, total_num_params, reload_ranking = True):
         # There are 4 things we keep in an experiment folder:
@@ -760,8 +748,7 @@ class Experiment:
         dataset_name = benchmark.dataset.__class__.__name__
         model_name = benchmark.model_name
         ranking_method = self.ranking.method
-        #experiment_hash = self.ranker.config_hash
-        experiment_hash = "null"
+        experiment_hash = self.ranking.hash
 
         common_args = [dataset_name, model_name, ranking_method, experiment_hash]
 
@@ -1021,12 +1008,13 @@ class Experiment:
 
         props = {"Experiment name": self.name,
             "🏆 Ranker": f'{self.ranking.method} ({self.ranking.__class__.__name__})',
-            '🔗 Alias': self.alias}
+            '🔗 Alias': self.ranking.alias}
             # 'Normalize': self.config['normalize']}
 
         if hasattr(self.ranking, 'config'):
-            if 'suffix' in self.config:
-                props['Suffix'] = self.config['suffix']
+            if 'suffix' in self.ranking.config:
+                if self.ranking.config['suffix'] != '':
+                    props['Suffix'] = self.ranking.config['suffix']
         
         for kw in self.global_metrics:
             if self.global_metrics[kw] is not None and kw != 'elapsed_time':
@@ -1034,9 +1022,11 @@ class Experiment:
         
         # Add configs 
         if hasattr(self.ranking, 'config'):
-            for kw, kv in [ss.split('=') for ss in self.config['method_kws'].split(' ')]:
+            for kw, kv in self.ranking.config.items():
                 if kw == 'ascending':
                     kw = '🔺 Ascending'
+                if kw == 'normalize':
+                    kw = ' Normalize'
                 if kv in ['True', 'False']:
                     kv = eval(kv)
                     kv = '✅' if kv else '❌'
@@ -1177,30 +1167,32 @@ class Experiment:
 
     """ Implement repr method """
     def __repr__(self):
-        msg = '\n'
-        msg += f'+{"-"*80}+\n'
-        msg += f'| METHOD: {self.ranking.method:70s} |\n'
-        msg += f'| Experiment: {self.name:66s} |\n'
-        msg += f'+{"-"*80}+\n'
+        # Get the number of characters the 
+        exp_name_entry = f' Experiment: {self.name} '
+        method_name_entry = f' Method: {self.ranking.method} '
+        num_chars = len(exp_name_entry)
+        msg = f'+{"-"*num_chars}+\n'
+        msg += f'|{method_name_entry:{num_chars}}|\n'
+        msg += f'|{exp_name_entry}|\n'
+        msg += f'+{"-"*num_chars}+\n'
 
         # Add config to msg
-        # msg += f'| {"Config:":79s}|\n'
-        # msg += f'+{"-"*80}+\n'
-        # def print_dict(d, indent = 1):
-        #     msg = ''
-        #     for kw in d:
-        #         if isinstance(d[kw], dict):
-        #             msg += f'| {"    "*indent}{"-"*(79-indent*4)}+\n'
-        #             N = 79 - len(kw) - 4*indent - 1
-        #             msg += f'| {"    "*indent}{kw:s} {" "*N}|\n'
-        #             msg += print_dict(d[kw], indent = indent + 1)
-        #             msg += f'| {"    "*indent}{"-"*(79-indent*4)}+\n'
-        #         else:
-        #             N = 79 - (len(kw) + np.maximum(len(str(d[kw])),50) + 2) - 4*indent - 1
-        #             msg += f'| {"    "*indent}{kw:s}: {str(d[kw]):50s} {" "*N}|\n'
-        #     return msg
-        # msg += print_dict(self.ranker.config)
-        # msg += f'+{"-"*80}+\n'
-        msg += '\n'
+        msg += f'|{" Ranking Config:":{num_chars}}|\n'
+        msg += f'+{"-"*num_chars}+\n'
+        def print_dict(d, indent = 1):
+            msg = ''
+            for kw in d:
+                if isinstance(d[kw], dict):
+                    msg += f'|{"    "*indent}{"-"*((num_chars-1)-indent*4)}+\n'
+                    N = num_chars - len(kw) - 4*indent - 1
+                    msg += f'|{"    "*indent}{kw:s} {" "*N}|\n'
+                    msg += print_dict(d[kw], indent = indent + 1)
+                    msg += f'|{"    "*indent}{"-"*((num_chars-1)-indent*4)}+\n'
+                else:
+                    N = num_chars - (len(kw) + np.maximum(len(str(d[kw])),50) + 2) - 4*indent - 1
+                    msg += f'|{"    "*indent}{kw:s}: {str(d[kw]):50s} {" "*N}|\n'
+            return msg
+        msg += print_dict(self.ranking.config)
+        msg += f'+{"-"*num_chars}+\n'
 
         return msg

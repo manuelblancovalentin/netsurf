@@ -1557,7 +1557,7 @@ def run_avg_and_std(values, window):
     running_std = np.sqrt(ndimage.convolve(std, np.ones(window)/window, mode='reflect', cval=0.0))
     return running_avg, running_std
 
-def plot_avg_and_std(values, window, ax, shadecolor = 'red', alpha = 0.5, ylabel = None):
+def plot_avg_and_std(values, window, ax, shadecolor = 'red', alpha = 0.5, ylabel = None, show_legend = True):
     running_avg, running_std = run_avg_and_std(values, window)
     ax.plot(running_avg, color = 'black', label='Running Average', lw=.5)
     for i in [1,3,5]:
@@ -1569,6 +1569,6 @@ def plot_avg_and_std(values, window, ax, shadecolor = 'red', alpha = 0.5, ylabel
         ax.set_yscale('log')
         ylabel += ' (log scale)'
     # legend outside the plot 
-    ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+    if show_legend: ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
     turn_grids_on(ax)
     if ylabel: ax.set_ylabel(ylabel)
