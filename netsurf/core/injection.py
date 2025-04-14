@@ -7,6 +7,7 @@ import numpy as np
 #import copy
 
 from tensorflow import keras
+import tensorflow as tf
 #from keras import backend as K # To get intermediate activations between layers
 
 """ Pandas """
@@ -468,6 +469,177 @@ class ErrorInjector:
                 y = self.model.attack(X, N = attack, clamp = True, **kwargs)
         
         return y
+    
+
+class BitFlipInjector:
+    def __init__(self, model, ranking: Type['Ranking'], num_samples = 100,
+                 ber_range = [1e-4, 1e-1], protection_range = [0.0, 0.8], **kwargs):
+
+        # Save elements into structure
+        self.protection_range = protection_range
+        self.ber_range = ber_range
+        self.ranking = ranking
+        self.model = model
+
+        lb = (np.min(ber_range), np.min(protection_range))
+        ub = (np.max(ber_range), np.max(protection_range))
+
+        self.lhc_sampler = netsurf.utils.LatinHypercubeSampler(num_samples = num_samples, lower_bounds=lb, upper_bounds=ub)
+
+        # Now we can apply the ranking to the model 
+        self.apply_ranking(self.model, ranking)
+
+    def sample(self, num_samples = 100):
+        """ Sample the space of protection and ber """
+        # Get the samples
+        samples = self.lhc_sampler.sample(num_samples)
+        # Get the protection and ber
+        protection = samples[:, 1]
+        ber = samples[:, 0]
+        # Return as a tuple
+        return list(zip(protection, ber))
+    
+    @staticmethod
+    def reset_bit_flip_variables(model):
+        """ Reset the bit flip variables to the reset state. 
+            This is done by creating a new model with the same architecture
+            but with the weights of the original model. 
+            The weights are then sorted according to the ranking.
+        """
+        # Loop thru variables 
+        for i, v in enumerate(model.variables):
+            # Get the variable name
+            vname = v.name
+            # Get the variable shape
+            vshape = v.shape   
+            if "_N:" in vname or '_ranking:' in vname:
+                # Assign to zero        
+                model.variables[i].assign(tf.zeros(vshape, dtype = tf.float32))
+                netsurf.info(f'Bit flip variable {vname} reset to zero')
+        
+        # Now reset the bit_flip counters
+        if hasattr(model, 'reset_bit_flip_counter'):
+            model.reset_bit_flip_counter()
+            netsurf.info(f'Bit flip counters reset to zero using the method method "reset_bit_flip_counter"')
+        else:
+            # Loop thru layers and try to find methods
+            for layer in model.layers:
+                if hasattr(layer, 'bit_flip_counter'):
+                    layer.bit_flip_counter.assign(0)
+                    netsurf.info(f'Bit flip counter for layer {layer.name} reset to zero')
+
+
+    @staticmethod
+    def apply_ranking(model, ranking):
+        """ Apply the ranking to the model. 
+            This is done by creating a new model with the same architecture
+            but with the weights of the original model. 
+            The weights are then sorted according to the ranking.
+        """
+        # Before applying the ranking, we need to set the noise bit-flip variables to the reset state
+        # kernel_N/bias_N/alpha_N/beta_N/gamma_N/beta_N --> 0
+        # kernel_ranking/... -> 1 (means unprotected, last in the ranking)
+        # bit_flip counters -> 0
+        # prune masks -> 0 (# NO, CAUSE WE MIGHT HAVE PRUNED WEIGHTS)!!!!!
+        BitFlipInjector.reset_bit_flip_variables(model)
+
+        # Get the bits
+        bits = sorted(ranking['bit'].unique())[::-1]
+        
+        Q = model.quantizer
+        total_num_params = len(ranking)
+        
+        # Initialize a dict of variables per name 
+        var_dict = {v.name: i for i, v in enumerate(model.variables)}
+
+        # Loop thru variables 
+        for i, v in enumerate(model.trainable_variables):
+            # Get the variable name
+            vname = v.name
+            # Get the variable shape
+            vshape = v.shape            
+            # Loop thru bits 
+            w_bits = []
+            for b in bits:
+                # Get the subdf that has this vname 
+                subdf = ranking[(ranking['param'] == vname) & (ranking['bit'] == b)]
+                # Sort by internal_param_num
+                subdf = subdf.sort_values(by = 'internal_param_num')
+                # Rank is subdf['rank'] + (b-Q.n-Q.s+1)/Q.m
+                subrank = subdf['rank'].to_numpy() + (b - Q.n - Q.s + 1)/Q.m
+                # Reshape to variable shape
+                subrank = subrank.reshape(vshape)
+                # Normalize by total number of vars 
+                subrank = subrank/(total_num_params + (Q.m-1)/Q.m)
+                w_bits.append(tf.cast(subrank, v.dtype))
+                
+            # Concat over the bits axis 
+            subrank = tf.stack(w_bits, axis = len(vshape))
+            # Now we need to find the variable with name "vname_ranking"
+            rname = vname.replace(':', '_ranking:')
+            # Check if it exists in var_dict
+            if rname in var_dict:
+                # Get the variable
+                ridx = var_dict[rname]
+                rvar = model.variables[ridx]
+                # Check if the shape is correct
+                if rvar.shape != subrank.shape:
+                    raise ValueError(f'Variable {rname} has shape {rvar.shape} but subrank has shape {subrank.shape}')
+                # Set the value
+                model.variables[ridx].assign(subrank)
+                # Print info
+                netsurf.info(f'Applying ranking to {vname} with shape {vshape} and rank {subrank.shape}')
+            else:
+                netsurf.error(f'Variable {rname} not found in model variables. This is probably because the model was not built with the ranking in mind. Please check the model architecture and make sure it has a variable with name {rname}')
+        # Done 
+        netsurf.info(f'Applied ranking to model {model.name} with {len(model.trainable_variables)} variables')
+
+    def __call__(self, X, BER: float = 0.0, protection: float = 0.0, batch_size = None, verbose = False, **kwargs):
+        """ if attack is not None, get the delta for this model and apply the attack matrix N """
+        if isinstance(X, keras.preprocessing.image.DirectoryIterator):
+            num_samples = np.minimum(2,len(X))
+            # Loop thru batches
+            y = []
+            for i in range(num_samples):
+                Xb, Yb = X.next()
+                yb = self.model.inject(Xb, BER = BER, protection = protection, clamp = True, **kwargs) # Clamp here makes sure the values at the output of the applyalpha layer are clamped within quantization range
+                y.append(yb)
+            # Turn into numpy array
+            y = np.concatenate(y, axis = 0)
+        else:
+            if batch_size:
+                num_batches = np.ceil(len(X)/batch_size).astype(int)
+                y = []
+                for i in range(num_batches):
+                    if verbose and i%10 == 0: print(f'[INFO] - Processing batch {i}/{num_batches}')
+                    Xb = X[i*batch_size:(i+1)*batch_size]
+                    yb = self.model.inject(Xb, BER = BER, protection = protection, clamp = True, **kwargs) # Clamp here makes sure the values at the output of the applyalpha layer are clamped within quantization range
+                    y.append(yb)
+                y = np.concatenate(y, axis = 0)
+            else:
+                y = self.model.inject(X, BER = BER, protection = protection, clamp = True, **kwargs)
+        
+        return y
+        
+    """ Evaluate metrics """
+    def evaluate(self, ytrue, ypred, metric_fcns = {}, **kwargs):
+        # Get the loss 
+        # broadcast 
+        # Check if y_true is 1D and y_pred is 2D with a last dimension of 1
+        if ytrue.ndim == 1 and ypred.ndim == 2 and ypred.shape[-1] == 1:
+            ypred = np.squeeze(ypred, axis=-1)
+        loss = self.model.loss(ytrue, ypred).numpy()
+        if np.ndim(loss) > 0:
+            if loss.shape[0] == ytrue.shape[0]:
+                loss = np.mean(loss)
+        # Evaluate metrics
+        vals = {'loss': loss}
+        for mname, mfcn in metric_fcns.items():
+            mval = mfcn(ytrue, ypred).numpy()
+            vals[mname] = mval
+            mfcn.reset_states()
+        return vals
+    
             
 
 

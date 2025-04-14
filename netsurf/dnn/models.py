@@ -71,6 +71,7 @@ class QModel(tf.keras.Model):
 
         # Set pruned masks
         self.pruned_masks = None
+        self.bit_flip_registry = None
 
     def count_trainable_parameters(self):
         return np.sum([np.prod(v.shape) for v in self.trainable_variables])
@@ -372,6 +373,65 @@ class QModel(tf.keras.Model):
             # Apply attack if the layer supports it, otherwise just do the forward pass
             if hasattr(layer, "attack"):
                 layer_activations[layer.name] = layer.attack(x, N = N, clamp=clamp)
+            else:
+                layer_activations[layer.name] = layer(x)
+
+        # Get the activation at the output of the model 
+        # Extract layer names from output tensors
+        output_layer_names = [tensor._keras_history[0].name for tensor in self.outputs]  # ✅ Gets layer names
+        # Retrieve the activation at the output of the model
+        
+        if return_dict:
+            output_activations = {name: layer_activations[name] for name in output_layer_names if name in layer_activations}
+        else:
+            output_activations = [layer_activations[name] for name in output_layer_names if name in layer_activations]
+            output_activations = output_activations if len(output_activations) > 1 else output_activations[0]
+
+        if return_activations:
+            return output_activations, layer_activations
+
+        return output_activations
+    
+    @property
+    def bit_flip_counter(self):
+        total_bit_flips = 0
+        for layer in self.layers:
+            if hasattr(layer, 'bit_flip_counter'):
+                total_bit_flips += int(layer.bit_flip_counter.numpy())
+        return total_bit_flips
+
+    def reset_bit_flip_counter(self):
+        for layer in self.layers:
+            if hasattr(layer, 'bit_flip_counter'):
+                layer.bit_flip_counter.assign(0)
+
+    """ Inject is like attack, but instead of passing a pre-defined N, just passing the BER ratio and the protection ratio """
+    def inject(self, inputs, BER = 0.0, protection = 0.0, return_activations = False, return_dict = False,  clamp = False):
+        layer_activations = {}  # Store activations per layer
+
+        # Go through layers following the original computational graph
+        for layer in self.layers:
+            # Get input tensor(s) for the current layer
+            inbound_layers = []
+            for node in layer._inbound_nodes:
+                if isinstance(node.inbound_layers, list):
+                    inbound_layers.extend(node.inbound_layers)  # Extend if list of layers
+                else:
+                    inbound_layers.append(node.inbound_layers)  # Append if single layer
+
+            # Now safely extract activations
+            inbound_tensors = [layer_activations[l.name] for l in inbound_layers if l.name in layer_activations]
+
+            if len(inbound_tensors) == 1:
+                x = inbound_tensors[0]  # Single input
+            elif len(inbound_tensors) > 1:
+                x = inbound_tensors  # Multiple inputs (residual connections, etc.)
+            else:
+                x = inputs  # First layer
+
+            # Apply inject if the layer supports it, otherwise just do the forward pass
+            if hasattr(layer, "inject"):
+                layer_activations[layer.name] = layer.inject(x, BER = BER, protection = protection, clamp=clamp)
             else:
                 layer_activations[layer.name] = layer(x)
 

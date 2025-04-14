@@ -26,6 +26,15 @@ import numpy as np
 """ Matplotlib """
 import matplotlib.pyplot as plt
 
+# Dummy class just to register the bit flips
+class BitFlipTrackingLayer:
+    def __init__(self, **kwargs):
+        # Create a bit flip counter that won't be tracked as a weight.
+        self.bit_flip_counter = tf.Variable(0, trainable=False, dtype=tf.int32)
+    
+    def reset_bit_flip_counter(self):
+        self.bit_flip_counter.assign(0)
+
 
 class QConstraint(tf.keras.constraints.Constraint):
     _ICON = "🔗"
@@ -71,7 +80,7 @@ class QConstraint(tf.keras.constraints.Constraint):
 
 """
 # This class is only supposed to be used internally
-class _QQLayer:
+class _QQLayer(BitFlipTrackingLayer):
     _QPROPS = []
     _ICON = "📓"
     def __init__(self, quantizer: 'QuantizationScheme', use_constraint: bool = True, **kwargs):
@@ -353,7 +362,7 @@ class PrunableLayer:
         output = input * alpha + beta
     where alpha and beta are learned parameters.
 """
-class QQApplyAlpha(tf.keras.layers.Layer):
+class QQApplyAlpha(tf.keras.layers.Layer, BitFlipTrackingLayer):
     _QPROPS = ['alpha', 'beta']
     _ICON = "🧿"
     def __init__(self, quantizer: 'QuantizationScheme', alpha=1.0, beta=0.0, reg_factor=1.0, axis=-1, **kwargs):
@@ -367,6 +376,7 @@ class QQApplyAlpha(tf.keras.layers.Layer):
                         Typically -1 for 'channels last'.
             **kwargs: Additional keyword arguments passed to tf.keras.layers.Layer.
         """
+        # Proper call using super() will chain the initializers in MRO order.
         super().__init__(**kwargs)
         self.initial_alpha = alpha
         self.initial_beta = beta
@@ -375,6 +385,12 @@ class QQApplyAlpha(tf.keras.layers.Layer):
         self.target_range = (self.quantizer.min_value, self.quantizer.max_value)
         self.reg_factor = reg_factor
         self.has_delta = True
+
+        # Create a bit flip counter that won't be tracked as a weight.
+        self.bit_flip_counter = tf.Variable(0, trainable=False, dtype=tf.int32)
+    
+    def reset_bit_flip_counter(self):
+        self.bit_flip_counter.assign(0)
 
     def build(self, input_shape):
         """
@@ -415,6 +431,11 @@ class QQApplyAlpha(tf.keras.layers.Layer):
             initializer = 'zeros',
             trainable = False)
         
+        self.alpha_ranking = self.add_weight('alpha_ranking',
+            shape = self.alpha.shape + (self.quantizer.m,),
+            initializer = 'ones',
+            trainable = False)
+        
         # Same for bias 
         self.beta_delta = self.add_weight('beta_delta',
             shape = self.beta.shape + (self.quantizer.m,),
@@ -424,6 +445,11 @@ class QQApplyAlpha(tf.keras.layers.Layer):
         self.beta_N = self.add_weight('beta_N',
             shape = self.beta.shape + (self.quantizer.m,),
             initializer = 'zeros',
+            trainable = False)
+        
+        self.beta_ranking = self.add_weight('beta_ranking',
+            shape = self.beta.shape + (self.quantizer.m,),
+            initializer = 'ones',
             trainable = False)
         
         # 🔹 Add a non-trainable variable to store the loss per batch
@@ -448,24 +474,54 @@ class QQApplyAlpha(tf.keras.layers.Layer):
         beta_delta = self.quantizer.compute_delta_matrix(beta_q)
         self.beta_delta.assign(beta_delta)
 
-    def attack(self, X, N = None, clamp = False):
+    def attack(self, X, N = None, **kwargs):
         # If N is not an attack object, turn it into one 
         if isinstance(N, Attack):
             # Apply the "N" values to the variables 
+            alpha_N = self.alpha_N
             if hasattr(N, 'alpha'):
-                self.alpha_N.assign(N.alpha)
+                alpha_N = N.alpha
+                self.alpha_N.assign_add(alpha_N)
+            beta_N = self.beta_N
             if hasattr(N, 'beta'):
-                self.beta_N.assign(N.beta)
+                beta_N = N.beta
+                self.beta_N.assign(beta_N)
             # Now apply the deltas 
-            alpha_d = self.alpha + tf.reduce_sum(self.alpha_delta * self.alpha_N, axis = -1)
-            beta_d = self.beta + tf.reduce_sum(self.beta_delta * self.beta_N, axis = -1)
-            return self(X, training = False, alpha = alpha_d, beta = beta_d, clamp = clamp)
+            alpha_d = self.alpha + tf.reduce_sum(self.alpha_delta * tf.cast(alpha_N > 0, tf.float32), axis = -1)
+            beta_d = self.beta + tf.reduce_sum(self.beta_delta * tf.cast(beta_N > 0, tf.float32), axis = -1)
+            return self(X, training = False, alpha = alpha_d, beta = beta_d, **kwargs)
         elif isinstance(N, dict) or isinstance(N, int) or isinstance(N, float):
             # Turn into Attack object 
             N = Attack(N = N, variables = {'alpha': self.alpha_delta, 'beta': self.beta_delta})
-            return self.attack(X, N, clamp = clamp)
+            return self.attack(X, N, **kwargs)
         else:
             return self(X)
+    
+    def inject(self, X, BER = 0.0, protection = 0.0, **kwargs):
+        # Get the noise for alpha 
+        alpha_N = tf.cast(tf.random.uniform(tf.shape(self.alpha_delta), minval=0, maxval=1) < BER, self.alpha_delta.dtype)
+        # Get the noise for beta
+        beta_N = tf.cast(tf.random.uniform(tf.shape(self.beta_delta), minval=0, maxval=1) < BER, self.beta_delta.dtype)
+        # Now mask the noise with the protection (basically multiply by (self.kernel_ranking > protection)
+        alpha_mask = tf.cast(self.alpha_ranking > protection, alpha_N.dtype)
+        alpha_N = alpha_N * alpha_mask
+        self.alpha_N.assign_add(alpha_N)
+        # Same for beta
+        beta_mask = tf.cast(self.beta_ranking > protection, beta_N.dtype)
+        beta_N = beta_N * beta_mask
+        self.beta_N.assign_add(beta_N)
+
+        # Update the counter of bit flips
+        self.bit_flip_counter.assign_add(
+            tf.cast(tf.reduce_sum(alpha_N) + tf.reduce_sum(beta_N), tf.int32)
+        )
+        
+        # Now apply the deltas
+        alpha_d = self.alpha + tf.reduce_sum(self.alpha_delta * tf.cast(alpha_N > 0, tf.float32), axis = -1)
+        beta_d = self.beta + tf.reduce_sum(self.beta_delta * tf.cast(beta_N > 0, tf.float32), axis = -1)
+
+        # Finally call
+        return self(X, training = False, alpha = alpha_d, beta = beta_d, **kwargs)
 
     def call(self, inputs, alpha = None, beta = None, clamp = False):
         """
@@ -655,17 +711,14 @@ class WeightLayer:
                 prop_val = getattr(self, prop)
                 prop_shape = prop_val.shape
                 # Deltas and N
-                for suffix in ['delta', 'N']:
+                for suffix in ['delta', 'N', 'ranking']:
                     attr_name = f'{prop}_{suffix}'
                     
                     # Set the attribute
                     setattr(self, attr_name, self.add_weight(attr_name,
                         shape = prop_shape + (self.quantizer.m,),
-                        initializer = 'zeros',
+                        initializer = 'zeros' if suffix != 'ranking' else 'ones',
                         trainable = False))
-                    
-            # Now the N variables
-            attr_name = f'{prop}_N'
 
     """ Method to compute the deltas """
     def compute_deltas(self):
@@ -678,7 +731,7 @@ class WeightLayer:
                 prop_delta = self.quantizer.compute_delta_matrix(prop_q)
                 getattr(self, f'{prop}_delta').assign(prop_delta)
 
-    def _dense_call(self, X, training = False, W = None, b = None):
+    def _dense_call(self, X, training = False, W = None, b = None, **kwargs):
         if self.prune: self.apply_pruning() # Apply pruning masks before computation
         if W is None:
             W = self.kernel
@@ -721,13 +774,17 @@ class WeightLayer:
         # If N is not an attack object, turn it into one 
         if isinstance(N, Attack):
             # Apply the "N" values to the variables 
+            kernel_N = self.kernel_N
             if self.kernel.name in N:
-                self.kernel_N.assign(N[self.kernel.name])
+                kernel_N = N[self.kernel.name]
+                self.kernel_N.assign_add(kernel_N)
+            bias_N = self.bias_N
             if self.bias.name in N:
-                self.bias_N.assign(N[self.bias.name])
+                bias_N = N[self.bias.name]
+                self.bias_N.assign_add(bias_N)
             # Now apply the deltas 
-            W_d = self.kernel + tf.reduce_sum(self.kernel_delta * self.kernel_N, axis = -1)
-            b_d = self.bias + tf.reduce_sum(self.bias_delta * self.bias_N, axis = -1)
+            W_d = self.kernel + tf.reduce_sum(self.kernel_delta * tf.cast(kernel_N > 0, tf.float32), axis = -1)
+            b_d = self.bias + tf.reduce_sum(self.bias_delta * tf.cast(bias_N > 0, tf.float32), axis = -1)
             return self(X, training = False, W = W_d, b = b_d)
         elif isinstance(N, dict) or isinstance(N, int) or isinstance(N, float):
             # Turn into Attack object 
@@ -735,6 +792,31 @@ class WeightLayer:
             return self.attack(X, N, **kwargs)
         else:
             return self(X)
+    
+    """ instead of passing the noise N, pass the BER and the protection """
+    def _inject(self, X, BER = 0.0, protection = 0.0, **kwargs):
+        # Get the noise for kernel 
+        kernel_N = tf.cast(tf.random.uniform(tf.shape(self.kernel_delta), minval=0, maxval=1) < BER, self.kernel_delta.dtype)
+        # Get the noise for bias
+        bias_N = tf.cast(tf.random.uniform(tf.shape(self.bias_delta), minval=0, maxval=1) < BER, self.bias_delta.dtype)
+        # Now mask the noise with the protection (basically multiply by (self.kernel_ranking > protection)
+        kernel_mask = tf.cast(self.kernel_ranking > protection, kernel_N.dtype)
+        kernel_N = kernel_N * kernel_mask
+        self.kernel_N.assign_add(kernel_N)
+        # Same for bias
+        bias_mask = tf.cast(self.bias_ranking > protection, bias_N.dtype)
+        bias_N = bias_N * bias_mask
+        self.bias_N.assign_add(bias_N)
+        # Update the counter of bit flips
+        self.bit_flip_counter.assign_add(
+            tf.cast(tf.reduce_sum(kernel_N) + tf.reduce_sum(bias_N), tf.int32)
+        )
+
+        # Now apply the deltas
+        W_d = self.kernel + tf.reduce_sum(self.kernel_delta * tf.cast(kernel_N > 0, tf.float32), axis = -1)
+        b_d = self.bias + tf.reduce_sum(self.bias_delta * tf.cast(bias_N > 0, tf.float32), axis = -1)
+        # Finally call
+        return self(X, training = False, W = W_d, b = b_d, **kwargs)
     
     """ Base method to compute the impact (this has to be implemented by child) """
     def compute_impact(self, X, N = None, batch_size = None, **kwargs):
@@ -842,6 +924,8 @@ class QQDense(qkeras.QDense, _QQLayer, PrunableLayer, WeightLayer):
         # Set self.has_delta = True
         self.has_delta = True
 
+
+
     # Modify self.build to include bit-flip vars 
     def build(self, input_shape):
         """Add bit-flip attack variables for kernel and bias."""
@@ -862,6 +946,9 @@ class QQDense(qkeras.QDense, _QQLayer, PrunableLayer, WeightLayer):
     # Attack method
     def attack(self, X, N = None, **kwargs):
         return WeightLayer._attack(self, X, N = N, **kwargs)
+    
+    def inject(self, X, BER = 0.0, protection = 0.0, **kwargs):
+        return WeightLayer._inject(self, X, BER = BER, protection = protection, **kwargs)
     
     # Compute the impact of the attack
     def compute_impact(self, X, N = None, batch_size = None, **kwargs):
@@ -949,7 +1036,8 @@ class QQConv1D(qkeras.QConv1D, _QQLayer, PrunableLayer, WeightLayer):
 
         # 🔹 Enable bit-flip perturbation support
         self.has_delta = True
-    
+
+
     def build(self, input_shape):
         """Add bit-flip attack variables for kernel and bias."""
         super().build(input_shape)  # Call QKeras build method
@@ -968,6 +1056,10 @@ class QQConv1D(qkeras.QConv1D, _QQLayer, PrunableLayer, WeightLayer):
     # Attack method
     def attack(self, X, N = None, **kwargs):
         return WeightLayer._attack(self, X, N = N, **kwargs)
+    
+    # Inject 
+    def inject(self, X, BER = 0.0, protection = 0.0, **kwargs):
+        return WeightLayer._inject(self, X, BER = BER, protection = protection, **kwargs)
 
     # Serialize
     def serialize(self, **kwargs):
@@ -997,7 +1089,7 @@ class QQConv2D(qkeras.QConv2D, _QQLayer, PrunableLayer, WeightLayer):
 
         # 🔹 Enable bit-flip perturbation support
         self.has_delta = True
-    
+
     # Modify self.build to include bit-flip vars 
     def build(self, input_shape):
         """Add bit-flip attack variables for kernel and bias."""
@@ -1020,6 +1112,10 @@ class QQConv2D(qkeras.QConv2D, _QQLayer, PrunableLayer, WeightLayer):
     # Attack method
     def attack(self, X, N = None, **kwargs):
         return WeightLayer._attack(self, X, N = N, **kwargs)
+    
+    # Inject
+    def inject(self, X, BER = 0.0, protection = 0.0, **kwargs):
+        return WeightLayer._inject(self, X, BER = BER, protection = protection, **kwargs)
 
     def compute_conv2d_bitwise_impact(self, X, batch_size, delta_kernel, N_kernel, 
                                    strides, padding, dilation_rate=(1, 1), 
@@ -1135,6 +1231,7 @@ class QQConv3D(tf.keras.layers.Conv3D, _QQLayer, PrunableLayer, WeightLayer):
 
         # 🔹 Enable bit-flip perturbation support
         self.has_delta = True
+
     
     def build(self, input_shape):
         """Add bit-flip attack variables for kernel and bias."""
@@ -1157,6 +1254,10 @@ class QQConv3D(tf.keras.layers.Conv3D, _QQLayer, PrunableLayer, WeightLayer):
     # Attack method
     def attack(self, X, N = None, **kwargs):
         return WeightLayer._attack(self, X, N = N, **kwargs)
+    
+    # Inject
+    def inject(self, X, BER = 0.0, protection = 0.0, **kwargs):
+        return WeightLayer._inject(self, X, BER = BER, protection = protection, **kwargs)
 
     # Serialize
     def serialize(self, **kwargs):
@@ -1187,7 +1288,8 @@ class QQConv1DTranspose(tf.keras.layers.Conv1DTranspose, _QQLayer, PrunableLayer
 
         # 🔹 Enable bit-flip perturbation support
         self.has_delta = True
-    
+
+
     def build(self, input_shape):
         """Add bit-flip attack variables for kernel and bias."""
         super().build(input_shape)  # Call QKeras build method
@@ -1204,6 +1306,10 @@ class QQConv1DTranspose(tf.keras.layers.Conv1DTranspose, _QQLayer, PrunableLayer
     # Attack method
     def attack(self, X, N = None, **kwargs):
         return WeightLayer._attack(self, X, N = N, **kwargs)
+    
+    # Inject
+    def inject(self, X, BER = 0.0, protection = 0.0, **kwargs):
+        return WeightLayer._inject(self, X, BER = BER, protection = protection, **kwargs)
 
     def serialize(self, **kwargs):
         return WeightLayer._serialize_conv(self, **kwargs)
@@ -1232,6 +1338,7 @@ class QQConv2DTranspose(qkeras.QConv2DTranspose, _QQLayer, PrunableLayer, Weight
 
         # 🔹 Enable bit-flip perturbation support
         self.has_delta = True
+
     
     def build(self, input_shape):
         """Add bit-flip attack variables for kernel and bias."""
@@ -1264,6 +1371,10 @@ class QQConv2DTranspose(qkeras.QConv2DTranspose, _QQLayer, PrunableLayer, Weight
     # Attack method
     def attack(self, X, N = None, **kwargs):
         return WeightLayer._attack(self, X, N = N, **kwargs)
+    
+    # Inject
+    def inject(self, X, BER = 0.0, protection = 0.0, **kwargs):
+        return WeightLayer._inject(self, X, BER = BER, protection = protection, **kwargs)
     
     def compute_conv2dtranspose_bitwise_impact(self, X, batch_size, delta_kernel, N_kernel, 
                                            kernel_size, strides, padding, filters,
@@ -1413,6 +1524,10 @@ class QQConv3DTranspose(tf.keras.layers.Conv3DTranspose, _QQLayer, PrunableLayer
     # Attack method
     def attack(self, X, N = None, **kwargs):
         return WeightLayer._attack(self, X, N = N, **kwargs)
+    
+    # Inject
+    def inject(self, X, BER = 0.0, protection = 0.0, **kwargs):
+        return WeightLayer._inject(self, X, BER = BER, protection = protection, **kwargs)
 
     def serialize(self, **kwargs):
         return WeightLayer._serialize_conv(self, **kwargs)
@@ -1443,7 +1558,8 @@ class QQDepthwiseConv2D(qkeras.QDepthwiseConv2D, _QQLayer, PrunableLayer):
 
         # 🔹 Enable bit-flip perturbation support
         self.has_delta = True
-    
+
+
     def build(self, input_shape):
         """Add bit-flip attack variables for kernel and bias."""
         super().build(input_shape)  # Call QKeras build method
@@ -1462,6 +1578,10 @@ class QQDepthwiseConv2D(qkeras.QDepthwiseConv2D, _QQLayer, PrunableLayer):
     # Attack method
     def attack(self, X, N = None, **kwargs):
         return WeightLayer._attack(self, X, N = N, **kwargs)
+    
+    # Inject
+    def inject(self, X, BER = 0.0, protection = 0.0, **kwargs):
+        return WeightLayer._inject(self, X, BER = BER, protection = protection, **kwargs)
 
     def serialize(self, **kwargs):
         return WeightLayer._serialize_conv(self, **kwargs)
@@ -1492,7 +1612,8 @@ class QQSeparableConv2D(qkeras.QSeparableConv2D, _QQLayer, PrunableLayer, Weight
 
         # 🔹 Enable bit-flip perturbation support
         self.has_delta = True
-    
+
+
     def build(self, input_shape):
         """Add bit-flip attack variables for kernel and bias."""
         super().build(input_shape)  # Call QKeras build method
@@ -1513,16 +1634,22 @@ class QQSeparableConv2D(qkeras.QSeparableConv2D, _QQLayer, PrunableLayer, Weight
         # If N is not an attack object, turn it into one 
         if isinstance(N, Attack):
             # Apply the "N" values to the variables 
+            depthwise_N = self.depthwise_N
             if self.depthwise.name in N:
-                self.depthwise_N.assign(N[self.depthwise.name])
+                depthwise_N = N[self.depthwise.name]
+                self.depthwise_N.assign_add(depthwise_N)
+            pointwise_N = self.pointwise_N
             if self.pointwise.name in N:
-                self.pointwise_N.assign(N[self.pointwise.name])
+                pointwise_N = N[self.pointwise.name]
+                self.pointwise_N.assign_add(pointwise_N)
+            bias_N = self.bias_N
             if self.bias.name in N:
-                self.bias_N.assign(N[self.bias.name])
+                bias_N = N[self.bias.name]
+                self.bias_N.assign_add(bias_N)
             # Now apply the deltas 
-            depthwise_d = self.depthwise + tf.reduce_sum(self.depthwise_delta * self.depthwise_N, axis = -1)
-            pointwise_d = self.pointwise + tf.reduce_sum(self.pointwise_delta * self.pointwise_N, axis = -1)
-            b_d = self.bias + tf.reduce_sum(self.bias_delta * self.bias_N, axis = -1)
+            depthwise_d = self.depthwise + tf.reduce_sum(self.depthwise_delta * tf.cast(depthwise_N > 0, tf.float32), axis = -1)
+            pointwise_d = self.pointwise + tf.reduce_sum(self.pointwise_delta * tf.cast(pointwise_N > 0, tf.float32), axis = -1)
+            b_d = self.bias + tf.reduce_sum(self.bias_delta * tf.cast(bias_N > 0, tf.float32), axis = -1)
             return self(X, training = False, depthwise = depthwise_d, pointwise = pointwise_d, b = b_d)
         elif isinstance(N, dict) or isinstance(N, int) or isinstance(N, float):
             # Turn into Attack object 
@@ -1532,6 +1659,38 @@ class QQSeparableConv2D(qkeras.QSeparableConv2D, _QQLayer, PrunableLayer, Weight
             return self.attack(X, N, **kwargs)
         else:
             return self(X)
+        
+    
+    # Inject
+    def inject(self, X, BER = 0.0, protection = 0.0, **kwargs):
+        # Noise for depthwise
+        depthwise_N = tf.cast(tf.random.uniform(tf.shape(self.depthwise_delta), minval=0, maxval=1) < BER, self.depthwise_delta.dtype)
+        # pointwise 
+        pointwise_N = tf.cast(tf.random.uniform(tf.shape(self.pointwise_delta), minval=0, maxval=1) < BER, self.pointwise_delta.dtype)
+        # bias
+        bias_N = tf.cast(tf.random.uniform(tf.shape(self.bias_delta), minval=0, maxval=1) < BER, self.bias_delta.dtype)
+        # Now mask the noise with the protection (basically multiply by (self.kernel_ranking > protection)
+        depthwise_mask = tf.cast(self.depthwise_ranking > protection, depthwise_N.dtype)
+        depthwise_N = depthwise_N * depthwise_mask
+        self.depthwise_N.assign_add(depthwise_N)
+        # Same for pointwise
+        pointwise_mask = tf.cast(self.pointwise_ranking > protection, pointwise_N.dtype)
+        pointwise_N = pointwise_N * pointwise_mask
+        self.pointwise_N.assign_add(pointwise_N)
+        # Same for bias
+        bias_mask = tf.cast(self.bias_ranking > protection, bias_N.dtype)
+        bias_N = bias_N * bias_mask
+        self.bias_N.assign_add(bias_N)
+        # Update the bit-flip counter as int32
+        self.bit_flip_counter.assign_add(tf.cast(tf.reduce_sum(depthwise_N) + tf.reduce_sum(pointwise_N) + tf.reduce_mask(bias_N), tf.int32))
+
+        # Now apply the deltas
+        depthwise_d = self.depthwise + tf.reduce_sum(self.depthwise_delta * tf.cast(depthwise_N > 0, tf.float32), axis = -1)
+        pointwise_d = self.pointwise + tf.reduce_sum(self.pointwise_delta * tf.cast(pointwise_N > 0, tf.float32), axis = -1)
+        b_d = self.bias + tf.reduce_sum(self.bias_delta * tf.cast(bias_N > 0, tf.float32), axis = -1)
+        # Finally call
+        return self(X, training = False, depthwise = depthwise_d, pointwise = pointwise_d, b = b_d, **kwargs)
+        
 
     def serialize(self, **kwargs):
         return WeightLayer._serialize_conv(**kwargs)
@@ -1576,8 +1735,13 @@ class QQBatchNormalization(qkeras.QBatchNormalization, _QQLayer, PrunableLayer, 
                                             moving_mean_initializer = moving_mean_initializer, moving_variance_initializer = moving_variance_initializer,
                                             **kwargs)
         
+        # Initialize pruning logic
+        PrunableLayer.__init__(self)  
+        
+        
         # 🔹 Enable bit-flip perturbation support
         self.has_delta = True
+
 
     def build(self, input_shape):
         """Add bit-flip attack variables to beta and gamma."""
@@ -1591,7 +1755,7 @@ class QQBatchNormalization(qkeras.QBatchNormalization, _QQLayer, PrunableLayer, 
 
 
     """ Override the call method to include bit-flip perturbations """
-    def call(self, inputs, training=False, apply_attack=False):
+    def call(self, inputs, training=False, apply_attack=False, gamma = None, beta = None, **kwargs):
         """
         Apply batch normalization with optional bit-flip attack on gamma/beta.
         """
@@ -1602,8 +1766,8 @@ class QQBatchNormalization(qkeras.QBatchNormalization, _QQLayer, PrunableLayer, 
             original_beta = tf.identity(self.beta)
 
             # Apply bit-flip attack perturbations
-            self.gamma.assign(self.gamma + tf.reduce_sum(self.gamma_delta * self.gamma_N, axis=-1))
-            self.beta.assign(self.beta + tf.reduce_sum(self.beta_delta * self.beta_N, axis=-1))
+            self.gamma.assign(gamma)
+            self.beta.assign(beta)
 
             # Compute batch norm output
             output = super().call(inputs, training=training)
@@ -1622,12 +1786,19 @@ class QQBatchNormalization(qkeras.QBatchNormalization, _QQLayer, PrunableLayer, 
         """
         if isinstance(N, Attack):
             # Apply bit-flip noise to gamma and beta if present
+            gamma_N = self.gamma_N
             if self.gamma.name in N:
-                self.gamma_N.assign(N[self.gamma.name])
+                gamma_N = N[self.gamma.name]
+                self.gamma_N.assign_add(gamma_N)
+            beta_N = self.beta_N
             if self.beta.name in N:
-                self.beta_N.assign(N[self.beta.name])
-
-            return self(X, training=False, apply_attack=True)
+                beta_N = N[self.beta.name]
+                self.beta_N.assign_add(beta_N)
+            
+            gamma = self.gamma + tf.reduce_sum(self.gamma_delta * tf.cast(gamma_N > 0, tf.float32), axis = -1)
+            beta = self.beta + tf.reduce_sum(self.beta_delta * tf.cast(beta_N > 0, tf.float32), axis = -1)
+            # Call the parent class with the perturbed gamma and beta
+            return self(X, training=False, apply_attack=True, gamma = gamma, beta = beta)
 
         elif isinstance(N, dict) or isinstance(N, int) or isinstance(N, float):
             # Convert to Attack object
@@ -1636,6 +1807,34 @@ class QQBatchNormalization(qkeras.QBatchNormalization, _QQLayer, PrunableLayer, 
 
         else:
             return self(X)
+        
+    def inject(self, X, BER=0.0, protection=0.0, **kwargs):
+        """
+        Inject bit-flip noise into gamma and beta.
+        """
+        # Generate random noise for gamma and beta
+        gamma_N = tf.cast(tf.random.uniform(tf.shape(self.gamma_delta), minval=0, maxval=1) < BER, self.gamma_delta.dtype)
+        beta_N = tf.cast(tf.random.uniform(tf.shape(self.beta_delta), minval=0, maxval=1) < BER, self.beta_delta.dtype)
+
+        # Apply protection
+        gamma_mask = tf.cast(self.gamma_ranking > protection, gamma_N.dtype)
+        beta_mask = tf.cast(self.beta_ranking > protection, beta_N.dtype)
+
+        # Apply masks
+        gamma_N = gamma_N * gamma_mask
+        beta_N = beta_N * beta_mask
+
+        gamma = self.gamma + tf.reduce_sum(self.gamma_delta * tf.cast(gamma_N > 0, tf.float32), axis = -1)
+        beta = self.beta + tf.reduce_sum(self.beta_delta * tf.cast(beta_N > 0, tf.float32), axis = -1)
+
+        # Update the bit-flip counter
+        self.bit_flip_counter.assign_add(tf.cast(tf.reduce_sum(gamma_N) + tf.reduce_sum(beta_N), tf.int32))
+
+        self.gamma_N.assign_add(gamma_N)
+        self.beta_N.assign_add(beta_N)
+
+        return self(X, training=False, apply_attack=True, gamma = gamma, beta = beta, **kwargs)
+    
     
     def compute_impact(self, X, N=None, batch_size=None, **kwargs):
         # Impact for batchnorm is similar to dense layer, but even easier
@@ -1651,7 +1850,7 @@ class QQBatchNormalization(qkeras.QBatchNormalization, _QQLayer, PrunableLayer, 
             batch_size = tf.shape(X)[0]
         
         # Compute num_batches
-        num_batches = tf.maximum(1, tf.shape(X)[0]//batch_size)
+        num_batches = int(np.maximum(1, np.shape(X)[0]//batch_size))
 
         # We need to remove mean and divide by stddev
         # Get the mean and std of the activations
@@ -1668,7 +1867,7 @@ class QQBatchNormalization(qkeras.QBatchNormalization, _QQLayer, PrunableLayer, 
                 prop_shape = prop_val.shape
                 # Compute the impact
                 if prop == 'gamma':
-                    with tqdm(total=self.quantizer.m*num_batches, desc=f"Computing impact for {self.name}") as pbar:
+                    with utils.ProgressBar(total = self.quantizer.m*num_batches, prefix = f"Computing impact for {self.name}") as pbar:
                         # Compute the impact of the attack
                         # P_d = X * delta_k*N
                         # P_b = delta_b*N
@@ -1680,9 +1879,9 @@ class QQBatchNormalization(qkeras.QBatchNormalization, _QQLayer, PrunableLayer, 
                             P_bit = tf.zeros(prop_shape, dtype = tf.float32)
                             total_samples = 0.0
                             for b in range(num_batches):
-                                P_bit += tf.reduce_sume(X[b*batch_size:(b+1)*batch_size] * self.gamma_delta[...,i] * N[self.gamma.name][...,i], axis = 0)
+                                P_bit += tf.reduce_sum(X[b*batch_size:(b+1)*batch_size] * self.gamma_delta[...,i] * N[self.gamma.name][...,i], axis = 0)
                                 total_samples += tf.cast(tf.shape(X[b*batch_size:(b+1)*batch_size])[0], tf.float32)
-                                pbar.update(1)
+                                pbar.update()
                             # Normalize by the number of samples
                             P_bit /= total_samples
 

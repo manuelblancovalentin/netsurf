@@ -400,7 +400,86 @@ class ResultSpace(pd.DataFrame):
                 except Exception as e:
                     print(e)
                     pass
+
+
+@dataclass
+class MCResultSpace:
+    """
+    Class to hold the results of the Monte Carlo simulations.
+    """
+    loss_name: str
+    metrics: List[str]
+    protection_range: np.ndarray
+    ber_range: np.ndarray
+    total_num_params: int
+    columns: Optional[List[str]] = field(default_factory=lambda: ['protection', 'ber', 'true_ber', 'loss', 'elapsed_time', 'datetime', 'dataset', 'model_name', 'ranking_method', 'experiment_hash'])
+    data: Optional[pd.DataFrame] = pd.DataFrame(columns=['protection', 'ber', 'true_ber', 'loss', 'elapsed_time', 'datetime', 'dataset', 'model_name', 'ranking_method', 'experiment_hash'])
+
+    def __post_init__(self):
+        # If data is None, initialize empty dataFrame
+        if self.data is None:
+            # Create empty DataFrame with the specified columns
+            self.data = pd.DataFrame(columns=self.columns)
         
+    # Ability to access the data as a DataFrame directly by using getattr
+    def __getattr__(self, attr):
+        """
+        Delegate attribute access to self.data if the attribute isn't found on the instance.
+        """
+        # Avoid recursion: __getattr__ is only called if the attribute isn't found normally.
+        return getattr(self.data, attr)
+
+    def __getitem__(self, key):
+        """
+        Delegate item access (e.g., MCResultSpace['model_name']) to self.data.
+        """
+        return self.data[key]
+    
+    def __repr__(self):
+        return self.data.__repr__()
+    
+    @property
+    def coverage_space(self):
+         # Our protection_range and ber_range are the bins of our space. 
+        # Then the coverage is just counting the number of times we have flipped 
+        # bits in each one of those bins.
+        if 'ber' not in self.data.columns or 'protection' not in self.data.columns:
+            # This is most likely an empty dataframe. But let's initialize it correctly, with the right columns!
+            if self.data.empty:
+                self.data = pd.DataFrame(columns=self.columns)
+            self.data.columns = self.columns
+        ber_bin = pd.cut(self.data['ber'], bins=self.ber_range, include_lowest=True)
+        protection_bin = pd.cut(self.data['protection'], bins=self.protection_range, include_lowest=True)
+
+        # Now group by these bins and count the number of samples per bin
+        coverage_counts = pd.DataFrame({'ber_bin': ber_bin, 'protection_bin': protection_bin}).groupby(['ber_bin', 'protection_bin'], observed=False).size().unstack(fill_value=0)
+
+        return coverage_counts
+
+    @property
+    def coverage(self):
+        coverage_counts = self.coverage_space
+        num_nonempty_bins = (coverage_counts > 0).sum().sum()  # bins with at least one sample
+        num_total_bins = coverage_counts.size                 # total number of bins
+        coverage_fraction = num_nonempty_bins / num_total_bins
+        return coverage_fraction
+    
+    def get_coverage(self, threshold = 0):
+        """
+        Get the coverage of the results. 
+        Coverage is defined as the fraction of bins that have at least one sample.
+        """
+        # Get the coverage space
+        coverage_counts = self.coverage_space
+        # Get the number of non-empty bins
+        num_nonempty_bins = (coverage_counts >= threshold).sum().sum()
+        # Get the total number of bins
+        num_total_bins = coverage_counts.size
+        # Get the coverage fraction
+        coverage_fraction = num_nonempty_bins / num_total_bins
+        return coverage_fraction
+
+
 
 """ Experiment class """
 class Experiment:
@@ -408,7 +487,9 @@ class Experiment:
                  benchmark: 'Benchmark', 
                  ranking: 'Ranking', 
                  name = None, path = None, 
-                 num_reps = 10, ber_range = np.arange(0.005, 0.055, step=0.005), protection_range = np.arange(0.0, 1.0, step = 0.1), 
+                 num_reps = 10, 
+                 ber_range = np.arange(0.005, 0.055, step=0.005), 
+                 protection_range = np.arange(0.0, 1.0, step = 0.1), 
                  **kwargs):
 
         # Set ranker object
@@ -582,14 +663,20 @@ class Experiment:
         # Check if results exist 
         results_file = os.path.join(exp_path, 'results.csv')
         if netsurf.utils.path_exists(results_file):
-            results = pd.read_csv(results_file)
+            try:
+                results = pd.read_csv(results_file)
+            except Exception as e:
+                netsurf.error(f'Error parsing CSV file {results_file}: {e}. Initializing empty dataframe.')
+                results = pd.DataFrame(columns=columns)
             # Convert to Result object
-            results = ResultSpace(loss_name, metric_names, self.protection_range, self.ber_range, self.num_reps, total_num_params, data=results, columns=columns)
+            #results = ResultSpace(loss_name, metric_names, self.protection_range, self.ber_range, self.num_reps, total_num_params, data=results, columns=columns)
+            results = MCResultSpace(loss_name, metric_names, self.protection_range, self.ber_range, total_num_params, data=results, columns=columns)
             # Log 
             netsurf.utils.log._info(f'Loaded results from {results_file}')
         else:
             # Create empty results
-            results = ResultSpace(loss_name, metric_names, self.protection_range, self.ber_range, self.num_reps, total_num_params, data = None, columns=columns)
+            #results = ResultSpace(loss_name, metric_names, self.protection_range, self.ber_range, self.num_reps, total_num_params, data = None, columns=columns)
+            results = MCResultSpace(loss_name, metric_names, self.protection_range, self.ber_range, total_num_params, data = None, columns=columns)
             # Log 
             netsurf.utils.log._info(f'No results found for experiment {exp_name}')
 
@@ -608,9 +695,7 @@ class Experiment:
 
     """ Run experiment"""
     def run_experiment(self, benchmark, XY = None,
-                       batch_size = 10000, 
-                       interlayer_mse = False,
-                       rerun = False, verbose = True, 
+                       batch_size = 10000, verbose = True, sampling_size = 300, coverage_threshold = 2,
                        **kwargs):
         
         # Start timer
@@ -619,47 +704,52 @@ class Experiment:
         # Results name
         results_file = os.path.join(self.path, 'results.csv')
         # coverage file 
-        coverage_file = os.path.join(self.path, 'coverage.csv')
+        # coverage_file = os.path.join(self.path, 'coverage.csv')
 
-        # Check which combinations we have left 
-        coverage = 0.0
-        results = self.results
-        # Get coverage 
-        coverage_df, coverage, coverage_table = results.get_coverage()
+        # coverage
+        #coverage = self.results.coverage
+        coverage = self.results.get_coverage(coverage_threshold)
 
+        # Get the loss and metrics
         (loss_name, formatted_loss_name, fmt_loss_name), (metric_names, metrics, fmt_metrics, metric_fcns) = self.get_loss_and_metrics(benchmark)
 
-        if coverage <= 0.0:
-            if rerun: 
-                results = ResultSpace(loss_name, metric_names, self.protection_range, self.ber_range, self.num_reps, data = None)
-                coverage_df, coverage, coverage_table = results.get_coverage()
+        # if coverage <= 0.0:
+        #     if rerun: 
+        #         results = ResultSpace(loss_name, metric_names, self.protection_range, self.ber_range, self.num_reps, data = None)
+        #         coverage_df, coverage, coverage_table = results.get_coverage()
 
-            # NO!!!! --> We need to run all combinations, so initialize file <-- NO!!!!
-            # We might have coverage 0.0 but this only means this coverage is FOR THE CURRENT
-            # BER AND TMR RANGE. We might have other BER and TMR values in the file. NEVER
-            # OVERWRITE THE RESULTS_FILE, IF IT EXISTS!!!
+        #     # NO!!!! --> We need to run all combinations, so initialize file <-- NO!!!!
+        #     # We might have coverage 0.0 but this only means this coverage is FOR THE CURRENT
+        #     # BER AND TMR RANGE. We might have other BER and TMR values in the file. NEVER
+        #     # OVERWRITE THE RESULTS_FILE, IF IT EXISTS!!!
         
         if not os.path.exists(results_file):
             with open(results_file, 'w') as csvfile:
                 csv_writer = csv.writer(csvfile)
-                csv_writer.writerow(results.columns)
+                csv_writer.writerow(self.results.columns)
 
         # Save coverage table 
-        results.coverage_to_csv(coverage_file)
+        # results.coverage_to_csv(coverage_file)
 
         # Get combs from coverage_df (combs are the ones that 
         # have not been run yet, and thus have NaN values in metric)
-        g = coverage_df[coverage_df['coverage'] < 1.0][['protection','ber','run_reps']]
-        combs = {tuple(r[['protection','ber']].to_list()): int(max(0,r['run_reps'])) for _, r in g.iterrows()}
-        # If we have no combinations left, we can return the results
-        if len(combs) == 0:
+        # g = coverage_df[coverage_df['coverage'] < 1.0][['protection','ber','run_reps']]
+        # combs = {tuple(r[['protection','ber']].to_list()): int(max(0,r['run_reps'])) for _, r in g.iterrows()}
+        # # If we have no combinations left, we can return the results
+        # if len(combs) == 0:
+        #     # Log 
+        #     netsurf.utils.log._info('Experiment is finished. Nothing else to run.')
+        #     return results
+
+        if coverage >= 1.0:
             # Log 
             netsurf.utils.log._info('Experiment is finished. Nothing else to run.')
-            return results
+            return self.results
 
         # Log
-        netsurf.utils.log._info(f'Experiment {self.name} started. Coverage: {100*coverage:3.1f}%')
+        netsurf.utils.log._info(f'Experiment {self.name} started. Coverage: {coverage:3.2%}')
 
+        # Get the model
         model = benchmark.model
 
         # # Get data 
@@ -730,19 +820,12 @@ class Experiment:
             # Get number of samples
             num_samples = XY[0].shape[0]
         
-        # if interlayer_mse also get interlayer activations
-        interactivations = None 
-        if interlayer_mse:
-            pass
-
+        
         # Calculate max num of iters (per batch_size)
         if batch_size:
             num_iters = np.ceil(num_samples/batch_size).astype(int)
         else:
             num_iters = 1
-
-        # protection,ber,true_ber,metric,accuracy,mse,elapsed_time,datetime,dataset,model_name,ranking_method,experiment_hash
-        T = []
 
         # There are some parameters that we add on every row, but that are the same for all rows, so let's
         # initalize them here 
@@ -751,8 +834,9 @@ class Experiment:
         ranking_method = self.ranking.method
         experiment_hash = self.ranking.hash
 
-        common_args = [dataset_name, model_name, ranking_method, experiment_hash]
-
+        #common_args = [dataset_name, model_name, ranking_method, experiment_hash]
+        common_args = {'dataset': dataset_name, 'model_name': model_name, 'ranking_method': ranking_method, 'experiment_hash': experiment_hash}
+        
         # Reopen file in append mode 
         csvfile = open(results_file, 'a', newline='')
         csv_writer = csv.writer(csvfile)
@@ -768,12 +852,10 @@ class Experiment:
         # Undo escape \.
         table_printout_filename = table_printout_filename.replace('\\.','.')
 
-        # Get quantization
-        quantization = benchmark.quantization
-        
+
         """ Initialize dynamic table """
         header = ['Iteration', 'Method', 'Protection(%)', 'Bit Error Rate(%)', 'Elapsed time', 'Remain. time']
-        formatters = {'Iteration':'{:10s}', 'Method': '{:30s}', 'Protection(%)':'%$', 'Bit Error Rate(%)': '%$', 
+        formatters = {'Iteration':'{:10s}', 'Method': '{:30s}', 'Protection(%)':'{:3.2%}', 'Bit Error Rate(%)': '{:3.2%}', 
                       'Elapsed time': '{:8s}', 'Remain. time': '{:8s}'}
         # Now add the loss
         header += [formatted_loss_name]
@@ -789,8 +871,8 @@ class Experiment:
         formatters['True BER(%)'] = '{:2.5%}'
         formatters['Coverage(%)'] = '{:3.1%}'
 
-        num_tmrs = len(self.protection_range)
-        num_rads = len(self.ber_range)
+        # num_tmrs = len(self.protection_range)
+        # num_rads = len(self.ber_range)
 
         # time per rep
         time_per_rep = [] if 'time_per_rep' not in self.global_metrics else self.global_metrics['time_per_rep']
@@ -799,18 +881,26 @@ class Experiment:
 
         # Now create the ErrorInjector wrapper for this value of protection
         injector_time_start = time.time()
-        injector = injection.ErrorInjector(model, self.ranking, quantization, 
+        # injector = injection.ErrorInjector(model, self.ranking, quantization, 
+        #                                     ber_range = self.ber_range, 
+        #                                     protection_range = self.protection_range,
+        #                                     verbose = False)
+        injector = injection.BitFlipInjector(model, self.ranking,
                                             ber_range = self.ber_range, 
                                             protection_range = self.protection_range,
                                             verbose = False)
-        
-        build_time_start = time.time()
+        # Reset the bit flip counter
+        model.reset_bit_flip_counter()
+        total_number_of_parameters = len(self.ranking)
+        # model.bit_flip_counter
+        # model.bit_flip_counter_variables
+
         # Build injection models 
-        attack_container = injector.build_injection_models(combs, self.num_reps, verbose = False)
-        
+        #build_time_start = time.time()
+        #attack_container = injector.build_injection_models(combs, self.num_reps, verbose = False)
         if verbose:
-            netsurf.utils.log._info(f'Injector created in {build_time_start - injector_time_start:.2f} seconds')
-            netsurf.utils.log._info(f'Injector models built in {time.time() - build_time_start:.2f} seconds')
+            netsurf.utils.log._info(f'Injector created in {time.time() - injector_time_start:.2f} seconds')
+            #netsurf.utils.log._info(f'Injector models built in {time.time() - build_time_start:.2f} seconds')
 
         # Hold a second before printing the table (for some reason it's printing the table before the 
         # log above)
@@ -818,60 +908,109 @@ class Experiment:
         time.sleep(1)
 
         # Get total_num_reps
-        total_num_reps = attack_container.stats['num_attacks'].sum()
+        #total_num_reps = attack_container.stats['num_attacks'].sum()
 
-        if total_num_reps > 0:
-            """ Build table """
-            #formatters = {'Epoch':'{:03d}', 'Type': '{:s}', 'Progress':'%$', 'loss_labels':'{:.3f}'}
-            progress_table = DynamicTable(header, formatters)
-            progress_table.print_header()
-            # Print to output file 
-            with open(table_printout_filename, 'a') as table_printout:
-                table_printout.write(progress_table.header)
-            
-            """ Loop thru all cases """
-            icase = 0
-            for icomb, attack_scheme in enumerate(attack_container):
-                # Get tmr, rep and rad from case 
-                # itmr, tmr = case['protection_idx'], case['protection']
-                # irad, rad = case['ber_idx'], case['ber']
-                # irep = case['rep']
-                # Get tmr, rad and rep from comb
-                tmr, rad, true_ber = attack_scheme['protection'], attack_scheme['ber'], attack_scheme['true_ber']
-                comb = (tmr, rad)
+        """ Build table """
+        #formatters = {'Epoch':'{:03d}', 'Type': '{:s}', 'Progress':'%$', 'loss_labels':'{:.3f}'}
+        progress_table = DynamicTable(header, formatters)
+        progress_table.print_header()
+        # Print to output file 
+        with open(table_printout_filename, 'a') as table_printout:
+            table_printout.write(progress_table.header)
+        
+        # """ Loop thru all cases """
+        icase = 0
+        total_bit_flips_counter = 0
+        # for icomb, attack_scheme in enumerate(attack_container):
+        """ While coverage is less than 1.0, keep sampling the space """
+        total_elapsed_time = 0.0
+        while coverage < 1.0:
 
-                # Get already run reps for this 
-                already_run_reps = combs[(tmr, rad)]
+            """ Sample """
+            combs = injector.sample(num_samples = sampling_size)
+            ncombs = len(combs)
 
-                itmr = np.where(self.protection_range == tmr)[0][0]
-                irad = np.where(self.ber_range == rad)[0][0]
+            # Get tmr, rep and rad from case 
+            # itmr, tmr = case['protection_idx'], case['protection']
+            # irad, rad = case['ber_idx'], case['ber']
+            # irep = case['rep']
+            # Get tmr, rad and rep from comb
+            #tmr, rad, true_ber = attack_scheme['protection'], attack_scheme['ber'], attack_scheme['true_ber']
+            #comb = (tmr, rad)
 
-                # Num reps for this attack
-                num_reps = int(attack_scheme['num_attacks'])
+            # # Get already run reps for this 
+            # already_run_reps = combs[(tmr, rad)]
 
-                #already_run_reps = max(0,num_reps - missing_num_reps)
-                missing_num_reps = max(0, num_reps - already_run_reps)
+            # itmr = np.where(self.protection_range == tmr)[0][0]
+            # irad = np.where(self.ber_range == rad)[0][0]
 
-                # Get all coverage values from table, BUT this one 
-                already_run_tmp = coverage_table.sum().sum()
+            # # Num reps for this attack
+            # num_reps = int(attack_scheme['num_attacks'])
 
+            # #already_run_reps = max(0,num_reps - missing_num_reps)
+            # missing_num_reps = max(0, num_reps - already_run_reps)
+
+            # # Get all coverage values from table, BUT this one 
+            # already_run_tmp = coverage_table.sum().sum()
+
+            # Loop thru combinations 
+            for icomb, (protection, BER) in enumerate(combs):
                 # Keep a running avg for loss and metrics 
                 avg_loss = 0.0
                 avg_metrics = {mn: 0.0 for mn in metric_names}
                 std_loss = 0.0
                 std_metrics = {mn: 0.0 for mn in metric_names}
+                
+                # 1. Determine which bins ber_val and protection_val fall into.
+                #    We use the categories from the existing cut-based index/columns.
+                ber_bin_label = pd.cut([BER], self.results.coverage_space.index.categories, include_lowest=True)[0]
+                protection_bin_label = pd.cut([protection], self.results.coverage_space.columns.categories, include_lowest=True)[0]
 
-                # loop thru reps
-                for irep, attack in enumerate(attack_scheme):
+                # 2. Get the coverage cell for that bin
+                counter_inside = self.results.coverage_space.loc[ber_bin_label, protection_bin_label]
+
+                # 3. Sum all other bins
+                counter_outside = (self.results.coverage_space > 0).sum().sum() - int((counter_inside > 0)*1.0)
+
+                # 4. Get the total space
+                total_space = self.results.coverage_space.size
+
+                # Keep track of avg true ber 
+                unprotected_parameters = total_number_of_parameters*(1-protection)
+
+                # Init T to hold rows (results per rep)
+                # protection,ber,true_ber,metric,accuracy,mse,elapsed_time,datetime,dataset,model_name,ranking_method,experiment_hash
+                T = []
+
+                # # loop thru reps
+                # for irep, attack in enumerate(attack_scheme):
+                for irep in range(self.num_reps):
+
+                    # Update icase
+                    icase += 1
+
                     # Get start time for this rep
                     rep_start_time = time.time()
 
                     # Do forward pass with injection of attack 
-                    activations = injector(X, attack = attack, batch_size = batch_size, verbose = False)
+                    #activations = injector(X, attack = attack, batch_size = batch_size, verbose = False)
+                    activations = injector(X, BER = BER, protection = protection, batch_size = batch_size, verbose = False)
 
                     # Evaluate with metrics, loss 
                     metrics_vals = injector.evaluate(Y, activations, metric_fcns = metric_fcns, verbose = False)
                     
+                    # Get true BER (avg)
+                    total_bit_flips_counter_tmp = injector.model.bit_flip_counter
+
+                    # Because we are accumulating the bit flip counter internally in the model, let's get the ACTUAL number of bit-flips since last 
+                    # iteration 
+                    diff_bit_flips_counter = total_bit_flips_counter_tmp - total_bit_flips_counter
+
+                    # Get true BER (avg)
+                    true_ber = diff_bit_flips_counter/(unprotected_parameters*X.shape[0])
+
+                    coverage_tmp = ((counter_inside > 0) + counter_outside)/(total_space)
+
                     # Calculate elapsed time and ETA
                     s0 = time.time()
                     elapsed_time = s0 - start_time
@@ -879,11 +1018,11 @@ class Experiment:
                     rep_elapsed_time = s0 - rep_start_time
 
                     # Calculate ETA
-                    eta = elapsed_time * total_num_reps/(icase+1) 
-                    eta_hhmmss = netsurf.utils.seconds_to_hms(eta)
+                    eta = (total_elapsed_time + elapsed_time) / coverage_tmp
+                    #eta_hhmmss = netsurf.utils.seconds_to_hms(eta)
 
                     # remaining time
-                    remain_time = eta - elapsed_time
+                    remain_time = eta - total_elapsed_time
                     remain_time_hhmmss = netsurf.utils.seconds_to_hms(remain_time)
 
                     loss = metrics_vals.pop('loss')
@@ -896,24 +1035,28 @@ class Experiment:
                         avg_metrics[mn] = (avg_metrics[mn]*irep + metrics_vals[mn])/(irep+1)
                         std_metrics[mn] = np.sqrt((std_metrics[mn]**2*irep + (metrics_vals[mn] - avg_metrics[mn])**2)/(irep+1))
                     
+                    # Add to counter_inside
+                    counter_inside += 1
+
+                    
                     #fmt_loss_name, fmt_metric_name
                     """ Get updated values to be set into table """
-                    vals = {'Iteration': f'{irep+already_run_reps}/{num_reps+already_run_reps-1}', 
+                    vals = {'Iteration': f'{icomb}/{ncombs}', 
                             'Method': self.ranking.method, 
-                            'Protection(%)': (itmr+1)/num_tmrs, 
-                            'Bit Error Rate(%)': (irad+1)/num_rads, 
+                            'Protection(%)': protection, 
+                            'Bit Error Rate(%)': BER, 
                             'Elapsed time': elapsed_time_hhmmss, 
                             'Remain. time': remain_time_hhmmss, 
                             formatted_loss_name: fmt_loss_name.format(avg_loss) + ' ± ' + fmt_loss_name.format(std_loss),
                             **{mft: ffmt.format(avg_metrics[mn]) + ' ± ' + ffmt.format(std_metrics[mn]) for mn,mft,ffmt in zip(metric_names, metrics, fmt_metrics)},
                             'True BER(%)': true_ber,
-                            'Coverage(%)': (icase/(total_num_reps-1))
+                            'Coverage(%)': coverage_tmp
                             }
 
 
                     """ Update and print line """
-                    append = (irep == (num_reps - 1))
-                    append |= (itmr+irad+irep == 0)
+                    append = (irep == (self.num_reps - 1))
+                    append |= (icomb+irep == 0)
                     if (irep % 20) == 0 or append:
                         progress_table.update_line(vals, append = append, print = True)
 
@@ -922,14 +1065,17 @@ class Experiment:
                 
                     # Append to table
                     # protection,ber,true_ber,loss,**metrics,elapsed_time,datetime,dataset,model_name,ranking_method,experiment_hash,rep
-                    row = [tmr, rad, true_ber, loss_name, loss] + list(metrics_vals.values()) + [rep_elapsed_time, dt] + common_args + [irep]
+                    #row = [protection, BER, true_ber, loss_name, loss] + list(metrics_vals.values()) + [rep_elapsed_time, dt] + common_args # + [irep]
+                    row = {'protection': protection, 'ber': BER, 'true_ber': true_ber, 'loss': loss_name, loss_name: loss} 
+                    row = {**row, **{mn: metrics_vals[mn] for mn in metric_names}, **{'elapsed_time': rep_elapsed_time, 'datetime':dt}, **common_args}
+                    
                     T.append(row)
 
                     # Append to csv file 
                     with open(results_file, 'a', newline='') as csvfile:
                         csv_writer = csv.writer(csvfile)
                         # Append to csv file 
-                        csv_writer.writerow(row)
+                        csv_writer.writerow(list(row.values()))
 
                     if len(time_per_rep) > 0 :
                         time_per_rep.append(elapsed_time - time_per_rep[-1])
@@ -937,60 +1083,65 @@ class Experiment:
                         time_per_rep.append(elapsed_time)
                     
                     # Update missing_tmp
-                    already_run_tmp += 1
+                    #already_run_tmp += 1
 
-                    # Update icase
-                    icase += 1
                 
                 # Printout 
                 with open(table_printout_filename, 'a') as table_printout:
                     table_printout.write(progress_table.lines[-1]+'\n')
 
+                # Update results (append T)
+                self.results.data = pd.concat([self.results.data, pd.DataFrame(T)], ignore_index=True)
+
                 # Update coverage table directly 
-                combs[comb] += (num_reps - already_run_reps)
-                i = coverage_df[(coverage_df['protection'] == tmr) & (coverage_df['ber'] == rad)].index[0]
-                if combs[comb] == 0:
-                    # We are done, avoid division by zero
-                    coverage_df.loc[i, ['run_reps','coverage']] = [num_reps, 1.0]
-                else:
-                    coverage_df.loc[i, ['run_reps','coverage']] = [combs[comb], combs[comb]/num_reps]
+                # combs[comb] += (num_reps - already_run_reps)
+                # i = coverage_df[(coverage_df['protection'] == tmr) & (coverage_df['ber'] == rad)].index[0]
+                # if combs[comb] == 0:
+                #     # We are done, avoid division by zero
+                #     coverage_df.loc[i, ['run_reps','coverage']] = [num_reps, 1.0]
+                # else:
+                #     coverage_df.loc[i, ['run_reps','coverage']] = [combs[comb], combs[comb]/num_reps]
 
                 # Update coverage table too 
-                coverage_table[itmr, irad] = combs[comb]
+                #coverage_table[itmr, irad] = combs[comb]
 
                 # Save coverage table
-                results.coverage.coverage_df = coverage_df
-                results.coverage.coverage_table = coverage_table
-                results.coverage.coverage = np.minimum(coverage_table, num_reps).sum().sum()/total_num_reps
-                results.coverage_to_csv(coverage_file)
-
-            df = pd.DataFrame(T, columns = results.columns)
-            # merge results, keeping non-nan entries
-            #self.results.set_index(['protection','ber'], inplace = True)
-            #df.set_index(['protection','ber'], inplace = True)
-            self.results = df.combine_first(self.results)
+                # results.coverage.coverage_df = coverage_df
+                # results.coverage.coverage_table = coverage_table
+                # results.coverage.coverage = np.minimum(coverage_table, num_reps).sum().sum()/total_num_reps
+                # results.coverage_to_csv(coverage_file)
             
-            # Print last line of table
-            progress_table.print_sep()
-            with open(table_printout_filename, 'a') as table_printout:
-                table_printout.write(progress_table.bottom_border)
+            # Update coverage (otherwise we will never get out of the loop - yep, this happened to me)
+            #coverage = self.results.coverage
+            coverage = self.results.get_coverage(coverage_threshold)
+
+        #df = pd.DataFrame(T, columns = results.columns)
+        # merge results, keeping non-nan entries
+        #self.results.set_index(['protection','ber'], inplace = True)
+        #df.set_index(['protection','ber'], inplace = True)
+        #self.results = df.combine_first(self.results)
+        
+        # Print last line of table
+        progress_table.print_sep()
+        with open(table_printout_filename, 'a') as table_printout:
+            table_printout.write(progress_table.bottom_border)
+        
+        # Set self.progress_table to this raw text 
+        self.progress_table = open(table_printout_filename, 'r').read()
+
+        # Add time per rep to global metrics
+        self.global_metrics['elapsed_time'] += time_per_rep
+        total_exp_time = self.results['elapsed_time'].sum()
+
+        # Add to global metrics
+        self.global_metrics['total_experiment_time'] = total_exp_time
+
+        # Write global_metrics to file 
+        filename_json = os.path.join(self.path, 'metrics.json')
+        with open(filename_json, 'w') as f:
+            json.dump(self.global_metrics, f, indent=2)
             
-            # Set self.progress_table to this raw text 
-            self.progress_table = open(table_printout_filename, 'r').read()
-
-            # Add time per rep to global metrics
-            self.global_metrics['elapsed_time'] += time_per_rep
-            total_exp_time = self.results['elapsed_time'].sum()
-
-            # Add to global metrics
-            self.global_metrics['total_experiment_time'] = total_exp_time
-
-            # Write global_metrics to file 
-            filename_json = os.path.join(self.path, 'metrics.json')
-            with open(filename_json, 'w') as f:
-                json.dump(self.global_metrics, f, indent=2)
-                
-            print("--- %s seconds ---" % (s0 - start_time))
+        print("--- %s seconds ---" % (s0 - start_time))
 
 
     """ Implement method for html (for pergamos) """
@@ -1064,9 +1215,9 @@ class Experiment:
         # Plot 2D curve
         loss_name = self.results['loss'].mode()[0]
         # Find index of loss_name
-        idx = self.results.columns.get_loc(loss_name)
+        idx = self.results.columns.index(loss_name)
         # Metrics is everything after loss_name and before "elapsed_time"
-        metric_names = self.results.columns[idx+1:self.results.columns.get_loc('elapsed_time')]
+        metric_names = self.results.columns[idx+1:self.results.columns.index('elapsed_time')]
 
         # number of axs will be loss + metrics
         n_axs = len(metric_names) + 1

@@ -539,7 +539,7 @@ class Benchmark:
                 last_file = os.path.join(path,self.model_full_name + '.keras.latest')
                 if verbose: netsurf.utils.log._custom('BMK',f'Looking for file {last_file}')
             if last_file == '' or last_file is None:
-                if verbose: netsurf.utils.log._warn(f'No weights files found at {path}. Skipping.')
+                if verbose: netsurf.utils.log._warn(f'No model file found at {path}. Skipping.')
                 return
             # We found the file, let's try to load it
             path = last_file
@@ -549,8 +549,7 @@ class Benchmark:
                 if verbose:
                     netsurf.utils.log._custom('BMK',f'Weights successfully loaded from file {path}')
             except Exception as e:
-                if verbose: print(e)
-                if verbose: netsurf.utils.log._error(f'Error loading weights from file {path}')
+                if verbose: netsurf.error(f'Error loading weights from file {path}: {e}')
         else:
             if verbose: netsurf.utils.log._warn(f'Weights file {path} not found')
         
@@ -582,8 +581,8 @@ class Benchmark:
             if verbose: netsurf.utils.log._custom('BMK',f'Weights saved to h5 file {filepath}')
             self.model.save(model_path, save_format = 'tf')
             if verbose: netsurf.utils.log._custom('BMK',f'Model saved to keras file {model_path}')
-        except:
-            if verbose: netsurf.utils.log._error(f'Error saving weights to file {path}')
+        except Exception as e:
+            if verbose: netsurf.utils.log._error(f'Error saving weights to file {path}: {e}')
             return
         
         # Create a link to the latest weights

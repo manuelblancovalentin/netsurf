@@ -1407,24 +1407,33 @@ def plot_model_profile(model, X= None, Y = None, show = True,  sharex = True, ve
     xticks = np.arange(gmin-gmax, -gmin+gmax+1)
 
     max_num_ticks = 10 if (len(xticks)%2 == 0) else 11
-    if len(xticklabels) > max_num_ticks:
-        # Make sure to add the first and the last one always 
-        indexes = np.linspace(0, len(xticks)-1, max_num_ticks-2).astype(int)
-        indexes = np.concatenate(([0], indexes, [len(xticks)-1]))
-        xticks = xticks[indexes]
-        xticklabels = xticklabels[indexes]
+    if (len(xticklabels) > max_num_ticks) and (len(xticks) > max_num_ticks):
+        try:
+            xticks_old = [xt for xt in xticks]
+            xticklabels_old = [xtl for xtl in xticklabels]
+            # Make sure to add the first and the last one always 
+            indexes = np.linspace(0, len(xticks)-1, max_num_ticks-2).astype(int)
+            indexes = np.concatenate(([0], indexes, [len(xticks)-1]))
+            xticks = xticks[indexes]
+            xticklabels = xticklabels[indexes]
+        except:
+            # If we can't do it, just skip
+            xticks = xticks_old
+            xticklabels = xticklabels_old
 
         #step = int(np.floor(len(xticklabels) / max_num_ticks))
         #xticks = xticks[::step]
         #xticklabels = xticklabels[::step]
+    try:
+        axs[0].set_xticks(xticks)
+        axs[0].set_xticklabels(xticklabels, rotation=0, fontsize=8)
+        # Flip yaxis
+        axs[0].invert_yaxis()
 
-    axs[0].set_xticks(xticks)
-    axs[0].set_xticklabels(xticklabels, rotation=0, fontsize=8)
-    # Flip yaxis
-    axs[0].invert_yaxis()
-
-    # For now, delete axs[1]
-    axs[1].remove()
+        # For now, delete axs[1]
+        axs[1].remove()
+    except Exception as e:
+        netsurf.error(f'Error setting xticks for profile plot: {e}')
 
     if show:
         plt.show()

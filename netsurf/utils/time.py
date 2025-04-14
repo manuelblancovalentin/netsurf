@@ -8,6 +8,11 @@ from datetime import datetime
 
 # Snippet to convert seconds to HH:MM:SS
 def seconds_to_hms(seconds):
+    # if seconds is a not number (nan, inf, etc.) return infinity symbol
+    if isinstance(seconds, (float, int)) and (seconds < 0 or seconds == float('inf')):
+        return '∞'
+    elif not isinstance(seconds, (float, int)):
+        return '∞'
     hours, remainder = divmod(seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
     return '{:02}:{:02}:{:02}'.format(int(hours), int(minutes), int(seconds))

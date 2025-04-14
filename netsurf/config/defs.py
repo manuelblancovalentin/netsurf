@@ -13,13 +13,13 @@ DEFAULT_QUANTIZATIONS = ['q<6,0,1>']
 DEFAULT_BENCHMARKS = ['mnist_hls4ml', 'ECONT_AE']
 DEFAULT_METHODS = ['bitwise_msb', 'random', 'layerwise_first', 'layerwise_last', 'weight_abs_value', 
                    'grad_norm', 'graddelta', 'hessian', 'hessiandelta',
-                   'qpolar', 'qpolargrad', 'aiber','fisher']
+                   'qpolar', 'qpolargrad', 'aiber','fisher', 'laplace']
 # Default simulation config values
 DEFAULT_NUM_REPS = 10
 
 AVAILABLE_METHODS = ['bitwise_msb', 'bitwise_lsb', 'random', 'layerwise_first', 'layerwise_last', 'weight_abs_value', 
                     'grad', 'grad_norm',  'graddelta', 'graddelta_norm', 
-                    'hessian', 'hessiandelta', 'aiber', 'qpolar', 'qpolargrad','fisher']
+                    'hessian', 'hessiandelta', 'aiber', 'qpolar', 'qpolargrad','fisher', 'laplace']
 
 METHODS_NAMES = {'bitwise': 'bitwise', 
                  'bitwise_msb': 'bitwise', 
@@ -39,6 +39,7 @@ METHODS_NAMES = {'bitwise': 'bitwise',
                  'qpolargrad': 'qpolargrad',
                  'aiber': 'aiber',
                  'fisher': 'fisher',
+                 'laplace': 'laplace',
                  }
 
 
@@ -71,6 +72,8 @@ config_per_method = {
     'qpolargrad': {'method': 'qpolargrad', 'method_suffix': None, 'method_kws': 'ascending=False batch_size=96'},
 
     'fisher': {'method': 'fisher', 'method_suffix': None, 'method_kws': 'ascending=False batch_size=96'},
+
+    'laplace': {'method': 'laplace', 'method_suffix': None, 'method_kws': 'ascending=False num_hutchinson_samples=10'},
 }
 
 
@@ -107,6 +110,7 @@ key_map = {'graddelta_None': 'GradDelta', 'graddelta': 'GradDelta',
             'bitwise_lsb_to_msb': 'LSB to MSB',
 
             'fisher': 'Fisher', 'fisher_None': 'Fisher',
+            'laplace': 'Laplace', 'laplace_None': 'Laplace',
             
             '_None': '',
             '_ranking_msb_ranking_method_msb': ' (Original - MSB)', 

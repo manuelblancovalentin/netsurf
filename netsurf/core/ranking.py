@@ -566,7 +566,8 @@ class WeightRanker:
                     'qpolar': QPolarWeightRanker,
                     'qpolargrad': QPolarGradWeightRanker,
                     'fisher': FisherWeightRanker,
-                    'aiber': AIBerWeightRanker}
+                    'aiber': AIBerWeightRanker,
+                    'laplace': LaplaceSpectralGraphWeightRanker}
         
         # Parse config
         if 'method_kws' in config:
@@ -2247,6 +2248,176 @@ class FisherWeightRanker(WeightRanker):
         return self.ranking
 
 
+################################################################################
+#
+# SPECTRAL LAPLACIAN GRAPH
+#
+#################################################################################
+@dataclass
+class LaplaceSpectralGraphWeightRanker(WeightRanker):
+    num_hutchinson_samples: int = 10  # Number of random vectors for estimation
+    _ICON = "🌈"  # An icon for visualization/logging
+    
+    def _generate_random_vector(self, vars, rademacher=True):
+        """Generate a random vector matching the structure of the variables."""
+        if rademacher:
+            return [tf.cast(2 * tf.random.uniform(p.shape, minval=0, maxval=2, dtype=tf.int32) - 1, tf.float32)
+                    for p in vars]
+        else:
+            return [tf.random.normal(p.shape) for p in vars]
+    
+    @staticmethod
+    @tf.function
+    def _compute_hvp(model, x, y, v):
+        """
+        Compute the Hessian-vector product (HVP) for the model's trainable variables.
+        """
+        with tf.GradientTape() as tape2:
+            with tf.GradientTape() as tape1:
+                # Forward pass
+                y_pred = model(x, training=True)
+                loss = model.loss(y, y_pred)
+            # Compute first-order gradients
+            grads = tape1.gradient(loss, model.trainable_variables)
+            # Compute inner product of gradients and v
+            inner_product = tf.add_n([tf.reduce_sum(g * v_i) for g, v_i in zip(grads, v) if g is not None])
+        # Compute Hessian-vector product
+        hvp = tape2.gradient(inner_product, model.trainable_variables)
+        return hvp
+
+    def compute_diagonal_hessian(self, model, x, y):
+        """
+        Compute an approximation of the diagonal Hessian for each trainable variable using Hutchinson's method.
+        Returns a list of tensors with the same shapes as the trainable variables.
+        """
+        # Initialize accumulator for each variable
+        diag_estimates = [tf.zeros_like(v) for v in model.trainable_variables]
+        for i in range(self.num_hutchinson_samples):
+            # Generate a random vector for each variable
+            v = self._generate_random_vector(model.trainable_variables, rademacher=True)
+            # Compute Hessian-vector product
+            hvp = LaplaceSpectralGraphWeightRanker._compute_hvp(model, x, y, v)
+            # Accumulate element-wise product: v ∘ (H v)
+            diag_estimates = [d + (v_i * hvp_i) for d, v_i, hvp_i in zip(diag_estimates, v, hvp)]
+        # Average over samples
+        diag_estimates = [d / self.num_hutchinson_samples for d in diag_estimates]
+        return diag_estimates
+    
+    def compute_diagonal_hessian_converged(self, model, x, y, tol=1e-3, max_samples=1000):
+        diag_estimates = [tf.zeros_like(v) for v in model.trainable_variables]
+        running_avg = None
+        with netsurf.utils.ProgressBar(total = 100, prefix = "Estimating diagonal Hessian") as pbar:
+            for i in range(1, max_samples + 1):
+                v = self._generate_random_vector(model.trainable_variables, rademacher=True)
+                hvp = self._compute_hvp(model, x, y, v)
+                diag_estimates = [d + (v_i * hvp_i) for d, v_i, hvp_i in zip(diag_estimates, v, hvp)]
+                current_estimate = [d / i for d in diag_estimates]
+
+                # For convergence check, flatten and compute the norm of the vector difference
+                current_flat = tf.concat([tf.reshape(t, [-1]) for t in current_estimate], axis=0)
+                if running_avg is not None:
+                    diff = tf.norm(current_flat - running_avg) / (tf.norm(running_avg) + 1e-10)
+                    pbar.update(int(100*np.clip(0,tol/diff,1)))
+                    if diff < tol:
+                        print(f"Converged after {i} samples with relative change {diff.numpy():.2e}")
+                        return current_estimate
+                running_avg = current_flat
+        print(f"Reached max_samples ({max_samples}) without full convergence.")
+        return current_estimate
+
+    def extract_weight_table(self, model, X, Y, verbose=True, base_df=None, **kwargs):
+        """
+        Extend the base weight table with diagonal Hessian approximations as the 'susceptibility' score.
+        """
+        # Use the base method from WeightRanker to get a DataFrame with weight info.
+        df = WeightRanker.extract_weight_table(self, model, verbose=verbose, **self.config) if base_df is None else base_df
+        
+        # Compute diagonal Hessian estimates
+        #diag_hessians = self.compute_diagonal_hessian(model, X, Y)
+        diag_hessians = self.compute_diagonal_hessian_converged(model, X, Y, tol=1e-3, max_samples=1000)
+        
+        # For each trainable variable, assign the corresponding diagonal values.
+        # The base df should have entries per weight bit; here we assume one entry per weight (or you may tile across bits).
+        # For simplicity, we assign the same diagonal value for all bits of a weight.
+        bits = sorted(df['bit'].unique())[::-1]
+        total_v = 0
+        with netsurf.utils.ProgressBar(total = np.sum([tf.reduce_prod(v.shape) for v in model.trainable_variables]), 
+                                        prefix = "Assigning diagonal Hessian") as pbar:
+            for v_idx, v in enumerate(model.trainable_variables):
+                # Flatten the diagonal estimate tensor for this variable.
+                diag_flat = tf.reshape(diag_hessians[v_idx], [-1]).numpy()
+                # Update rows in the DataFrame corresponding to this variable.
+                
+                for b in bits:
+                    mask = (df['param'] == v.name) & (df['bit'] == b)
+                    # Here, we assume the ordering in df for this variable corresponds to the flattened order.
+                    indices = df[mask].index
+                    param_num = df[mask]['internal_param_num'].values
+                    # Assign the diagonal values to the DataFrame.
+                    df.loc[indices, 'Hij'] = diag_flat[param_num]
+                
+                total_v += tf.reduce_prod(v.shape)
+                pbar.update(int(total_v))
+
+        return df
+
+    @tf.function
+    def _flatten_params(self, params):
+        """Flatten a list of parameter tensors into a single 1D tensor."""
+        return tf.concat([tf.reshape(p, [-1]) for p in params], axis=0)
+
+    @tf.function
+    def _reshape_vector_to_param_shapes(self, vars, vector):
+        """Reshape a flat vector back to the original parameter shapes."""
+        param_shapes = [p.shape for p in vars]
+        param_sizes = [tf.size(p).numpy() for p in vars]
+        reshaped_params = []
+        start_idx = 0
+        for shape, size in zip(param_shapes, param_sizes):
+            end_idx = start_idx + size
+            reshaped_params.append(tf.reshape(vector[start_idx:end_idx], shape))
+            start_idx = end_idx
+        return reshaped_params
+
+    def rank(self, model, X, Y, **kwargs):
+        """
+        Rank weights based on the approximated diagonal Hessian values.
+        Returns a Ranking object (or a DataFrame) with updated 'susceptibility' scores.
+        """
+        df = self.extract_weight_table(model, X, Y, **self.config)
+        # Susceptibility here is Hij
+        df['susceptibility'] = np.abs(df['Hij'])
+        
+        # Sort by susceptibility (the diagonal Hessian approximations)
+        df = df.sort_values(by=['pruned', 'bit', 'susceptibility'], ascending=[True, False, self.ascending])
+        df['rank'] = np.arange(len(df))
+        df['alias'] = self.alias
+        df['method'] = self.method
+        df = df.reset_index(drop=True)
+        # Create a Ranking object (assumed to exist in the framework)
+        self.ranking = Ranking(df, config=self.config, filepath=self.path, loaded_from_file=False)
+        return self.ranking
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 """ ###########################################################################################
@@ -2497,7 +2668,10 @@ class RankingComparator:
         if len(not_yet_ranked) > 0:
             raise ValueError(f"Rankers {', '.join(not_yet_ranked)} have not been ranked yet.")
 
-        baseline_ranker = next(r for r in self.rankers if r.alias == self.baseline)
+        baseline_ranker = [r for r in self.rankers if r.alias == self.baseline]
+        if len(baseline_ranker) == 0:
+            raise ValueError(f"Baseline ranker '{self.baseline}' not found.")
+        baseline_ranker = baseline_ranker[0]
         n_total = len(baseline_ranker.ranking)
         min_granularity = 1.0 / n_total
         if granularity < min_granularity:
