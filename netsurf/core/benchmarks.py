@@ -922,8 +922,15 @@ class Benchmark:
 
     def get_dataset_sample(self, subset = 'validation', nsamples = -1):
         # Get the data
-        xsample = (self.dataset[subset])[0][:nsamples] if subset in self.dataset else None
-        ysample = (self.dataset[subset])[1][:nsamples] if subset in self.dataset else None
+        if isinstance(self.dataset[subset], tuple):
+            xsample = (self.dataset[subset])[0][:nsamples] if subset in self.dataset else None
+            ysample = (self.dataset[subset])[1][:nsamples] if subset in self.dataset else None
+        elif isinstance(self.dataset[subset], keras.preprocessing.image.DirectoryIterator):
+            xsample = self.dataset[subset].next()[0][:nsamples]
+            ysample = self.dataset[subset].next()[1][:nsamples]
+        elif isinstance(self.dataset[subset], tf.data.Dataset):
+            d = next(iter(self.dataset[subset].take(nsamples)))
+            xsample, ysample = d
 
         # If the model has a preprocess method, call it now 
         if hasattr(self.model, 'preprocess_input'):

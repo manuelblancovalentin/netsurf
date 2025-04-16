@@ -755,6 +755,20 @@ class WeightLayer:
         output = tf.nn.bias_add(output, b)
         return output
 
+    def _depthwise_conv_2d_call(self, X, training = False, depthwise = None, b = None, **kwargs):
+        # Apply pruning masks before computation
+        if self.prune: self.apply_pruning() 
+        # Get the kernel and bias
+        if depthwise is None: depthwise = self.depthwise_kernel
+        if b is None: b = self.bias
+        # Perform convolution (assumes self.strides, self.padding, etc. are defined)
+        output = tf.nn.depthwise_conv2d(X, depthwise, strides = (1,1,1,1), padding = self.padding.upper(), 
+                                        dilations = self.dilation_rate, 
+                                        data_format = "NHWC" if self.data_format == 'channels_last' else "NCHW", **kwargs)
+        # Add bias
+        output = tf.nn.bias_add(output, b)
+        return output
+
     def _sep_conv_2d_call(self, X, training = False, depthwise = None, pointwise = None, b = None, **kwargs):
         # Apply pruning masks before computation
         if self.prune: self.apply_pruning() 
@@ -1535,7 +1549,7 @@ class QQConv3DTranspose(tf.keras.layers.Conv3DTranspose, _QQLayer, PrunableLayer
 
 class QQDepthwiseConv2D(qkeras.QDepthwiseConv2D, _QQLayer, PrunableLayer):
     _QPROPS = ['depthwise', 'bias']
-    _PRUNED_QPROPS = ['kernel']
+    _PRUNED_QPROPS = ['depthwise']
     _ICON = "📕"
     def __init__(self, quantizer, *args, 
                  depthwise_quantizer: str = 'logit', 
@@ -1572,8 +1586,7 @@ class QQDepthwiseConv2D(qkeras.QDepthwiseConv2D, _QQLayer, PrunableLayer):
     
     def call(self, X, **kwargs):
         # Add some kwargs
-        return WeightLayer._conv_call(self, tf.nn.depthwise_conv2d, X, 
-                                      **kwargs, strides=self.strides, padding=self.padding.upper())
+        return WeightLayer._depthwise_conv_2d_call(self, X, **kwargs)
     
     # Attack method
     def attack(self, X, N = None, **kwargs):

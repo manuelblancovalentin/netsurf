@@ -221,12 +221,21 @@ class Dataset:
 
         # Train normalizer
         if verbose: netsurf.utils.log._custom('DATA', f"Normalizing dataset (input) using quantizer range ({quantizer.min_value}, {quantizer.max_value})")
-        normalizer.train(dataset['train'][0])
-
-        # Normalize the dataset
-        dataset['train'] = (normalizer(dataset['train'][0]), dataset['train'][1])
-        dataset['validation'] = (normalizer(dataset['validation'][0]), dataset['validation'][1])
-
+        if isinstance(dataset['train'], tuple):
+            normalizer.train(dataset['train'][0])
+            # Normalize the dataset
+            dataset['train'] = (normalizer(dataset['train'][0]), dataset['train'][1])
+            dataset['validation'] = (normalizer(dataset['validation'][0]), dataset['validation'][1])
+        elif isinstance(dataset['train'], keras.preprocessing.image.DirectoryIterator):
+            normalizer.train(dataset['train'].next()[0])
+            dataset['train'].reset()
+        elif isinstance(dataset['train'], tf.data.Dataset):
+            # Convert to numpy arrays
+            try:
+                normalizer.train(dataset['train'].take(1000).as_numpy_iterator().next()[0])
+            except:
+                # do nothing
+                pass
         return dataset, normalizer
     
     @property
@@ -1931,6 +1940,18 @@ class KeywordSpotting(Dataset):
         # Now call super 
         super().build_dataset(dataset, types = types, **kwargs)
         
+    @property
+    def in_shape(self):
+        d = self.dataset['train'].take(1)
+        d = next(iter(d))
+        return d[0].shape[1:]
+    
+    @property
+    def out_shape(self):
+        d = self.dataset['train'].take(1)
+        d = next(iter(d))
+        return d[1].shape[1:]
+
     def cast_and_pad(self, sample_dict):
         audio = sample_dict['audio']
         label = sample_dict['label']
@@ -2262,6 +2283,10 @@ class KeywordSpotting(Dataset):
     def display_classes_distribution(self, *args, **kwargs):
         print("[WARN] - Displaying classes distribution not implemented for keyword_spotting")
 
+    def html(self):
+        print("[WARN] - HTML not implemented for keyword_spotting")
+        return None
+
 
 
 """ Generic function to pick a dataset """
@@ -2283,4 +2308,6 @@ def load(dataset, quantizer, **kwargs):
     ds = options.get(dataset.lower(), None)(quantizer, **kwargs)
 
     return ds
+
+
 
