@@ -18,7 +18,7 @@ from netsurf.manifests import sha256_file
 
 
 EXPECTED_CHECKPOINT = "1c58daf1bb23d1cdbaf38e68e4d957145be62435fd379bc3716904d57aa77780"
-EXPECTED_PAYLOAD = "0b1b7b0edb92cf7480ceb1c261cdf02cd948a70ce9e9d5f26b57905e71bd650f"
+EXPECTED_PAYLOAD = "f0fa9c19929b577fb8d47f2d479a8730b60606182bc564f00d3a07bf2ce8a32a"
 
 
 def main() -> int:
@@ -41,6 +41,13 @@ def main() -> int:
     digests = (first.scientific_payload_sha256, second.scientific_payload_sha256)
     if digests != (EXPECTED_PAYLOAD, EXPECTED_PAYLOAD):
         raise RuntimeError(f"scientific payload mismatch: {digests}")
+    expected_environment = {
+        "TF_ENABLE_ONEDNN_OPTS": "0",
+        "TF_DETERMINISTIC_OPS": "1",
+        "CUDA_VISIBLE_DEVICES": "-1",
+    }
+    if first.manifest["runtime"]["tensorflow_numerical_environment"] != expected_environment:
+        raise RuntimeError("TensorFlow numerical environment was not recorded correctly")
     print(f"PASS repeated modern MNIST payload {EXPECTED_PAYLOAD}")
     print(first.path)
     print(second.path)

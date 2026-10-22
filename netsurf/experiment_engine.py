@@ -485,6 +485,10 @@ def execute_experiment(
         scientific_payload["paired_comparisons"] = comparisons
         scientific_payload["benchmark"]["quantization_backend"] = configuration.benchmark.quantization_backend
         scientific_payload["benchmark"]["injectable_parameters"] = list(configuration.benchmark.injectable_parameters)
+        if configuration.benchmark.adapter == "mnist_quantized":
+            scientific_payload["benchmark"]["execution_backend"] = (
+                "tensorflow-cpu-eager-onednn-disabled/v1"
+            )
         if qpolar_name is None:
             scientific_payload["checks"]["full_msb_mask_equivalent"] = "not_applicable"
     return ExperimentOutcome(

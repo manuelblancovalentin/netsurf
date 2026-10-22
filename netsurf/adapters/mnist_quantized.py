@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
+import sys
 import tempfile
 from typing import Iterator, Mapping
 
@@ -26,6 +27,36 @@ class Evaluation:
 
 
 PARAMETER_NAMES = ("dense0/kernel", "dense0/bias", "dense1/kernel", "dense1/bias")
+
+
+def _configure_tensorflow_runtime() -> None:
+    """Freeze the numerical backend before TensorFlow initializes.
+
+    oneDNN graph rewrites produced cross-process last-bit drift in losses and
+    gradients on the validated host.  The benchmark is therefore explicitly a
+    CPU eager-execution contract with those rewrites disabled.
+    """
+
+    required = {
+        "TF_ENABLE_ONEDNN_OPTS": "0",
+        "TF_DETERMINISTIC_OPS": "1",
+        "CUDA_VISIBLE_DEVICES": "-1",
+    }
+    initialized = "tensorflow" in sys.modules or "keras" in sys.modules
+    conflicts = {
+        name: os.environ.get(name)
+        for name, expected in required.items()
+        if initialized and os.environ.get(name) != expected
+    }
+    if conflicts:
+        raise RuntimeError(
+            "mnist_quantized requires TensorFlow to be imported after "
+            f"{required}; restart the process with that environment (found {conflicts})"
+        )
+    os.environ.update(required)
+
+
+_configure_tensorflow_runtime()
 
 
 def _keras_model():

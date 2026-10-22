@@ -41,8 +41,10 @@ deployment record when exact transitive recreation matters. No EDA tool or
 `proj` module is required for software experiments.
 
 CPU-only TensorFlow messages saying that CUDA drivers are absent are expected.
-See `dependencies/MODERN_ML.md` for warning interpretation and the modern
-quantization/HLS-library boundary.
+The adapter fixes `TF_ENABLE_ONEDNN_OPTS=0`, `TF_DETERMINISTIC_OPS=1`, and
+`CUDA_VISIBLE_DEVICES=-1` before TensorFlow import; importing TensorFlow first
+under conflicting settings causes a clear failure. See
+`dependencies/MODERN_ML.md` for the evidence and HLS-library boundary.
 
 ## Modern diagnostics and reference benchmark
 
@@ -107,8 +109,8 @@ No training occurs.
 
 Expected scientific payload SHA-256 values for the validated checkpoint are:
 
-- single MSB: `a925217f6e34ac68dea805b66f68d0fd5191bdee7d23b29ca19a112e571547ec`
-- comparison: `0b1b7b0edb92cf7480ceb1c261cdf02cd948a70ce9e9d5f26b57905e71bd650f`
+- single MSB: `696cc0c57ba6107c3fd687072cf400e7d69bc9555d1ce57dcd00f2d621ca8c58`
+- comparison: `f0fa9c19929b577fb8d47f2d479a8730b60606182bc564f00d3a07bf2ce8a32a`
 
 The explicit twice-repeated check is `python -m tests.integration_modern_mnist`.
 It does not train; it verifies the checkpoint and two finalized comparison

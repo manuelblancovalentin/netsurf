@@ -31,9 +31,11 @@ python -m pytest -q
 ```
 
 CPU-only TensorFlow messages saying that CUDA drivers are absent are expected
-on a CPU run. oneDNN may warn about floating-point operation ordering; stable
-scientific comparison is checked from the fixed quantized checkpoint and
-repeated payload digest. A TensorFlow `NodeDef` unknown-attribute warning was
+on a CPU run. The MNIST adapter disables oneDNN graph rewrites and GPU exposure
+before TensorFlow import because cross-process last-bit drift was observed in
+losses and gradients otherwise. If TensorFlow was already imported with a
+conflicting environment, the adapter fails and asks for a fresh process rather
+than silently weakening reproducibility. A TensorFlow `NodeDef` warning was
 observed during the bounded preparation run but did not stop training or the
 numerical integration checks; it remains a compatibility warning to revisit
 before changing TensorFlow versions.

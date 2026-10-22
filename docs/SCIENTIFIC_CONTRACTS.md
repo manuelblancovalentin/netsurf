@@ -57,3 +57,10 @@ The current backend identifier is `netsurf_bitcodec_v1`. HGQ2 and hls4ml
 availability does not imply C-simulation, RTL-equivalence, or synthesis
 validation. `perfect_event_suppression` is an ideal logical mask, not ECC, TMR,
 or another hardware mitigation guarantee.
+
+The modern MNIST numerical execution contract is CPU TensorFlow eager mode with
+oneDNN graph rewrites disabled. This is enforced before framework import because
+the enabled rewrite path exhibited cross-process last-bit drift in gradients
+and cross-entropy on Kona. A process that initialized TensorFlow under a
+conflicting environment must be restarted; the adapter does not silently hash
+numerically unstable results as equivalent.

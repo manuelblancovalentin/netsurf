@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import platform
 import subprocess
@@ -64,7 +65,7 @@ def git_provenance(root: Path) -> dict[str, Any]:
     }
 
 
-def runtime_provenance() -> dict[str, str]:
+def runtime_provenance() -> dict[str, Any]:
     from importlib.metadata import PackageNotFoundError, version
 
     result = {
@@ -77,4 +78,12 @@ def runtime_provenance() -> dict[str, str]:
             result[distribution.lower()] = version(distribution)
         except PackageNotFoundError:
             result[distribution.lower()] = "not-installed"
+    result["tensorflow_numerical_environment"] = {
+        name: os.environ.get(name, "unset")
+        for name in (
+            "TF_ENABLE_ONEDNN_OPTS",
+            "TF_DETERMINISTIC_OPS",
+            "CUDA_VISIBLE_DEVICES",
+        )
+    }
     return result
