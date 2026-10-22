@@ -77,3 +77,80 @@ def write_report(summary: Mapping[str, Any], resolved: Mapping[str, Any], output
     output = Path(output)
     output.write_text(render_report(summary, resolved, figure_paths=figure_paths), encoding="utf-8")
     return output
+
+
+def render_study_report(summary: Mapping[str, Any], resolved: Mapping[str, Any], *, figure_paths: tuple[str, ...] = ()) -> str:
+    """Render an M3 report entirely from saved summary and resolved data."""
+
+    experiment = resolved["experiment"]
+    benchmark = resolved["benchmark"]
+    lines = [
+        f"# {experiment['name']}", "", experiment.get("description", ""), "",
+        "## Objective", "", experiment.get("objective", "Not specified."), "",
+        "## Scientific protocol", "",
+        f"- Protocol: `{resolved['scientific_protocol']}`.",
+        f"- Benchmark: `{benchmark['id']}` (`{benchmark['adapter']}`).",
+        f"- Quantization: `{benchmark['quantization']}`; eligible bits: `{summary['eligible_bits']}`.",
+        f"- Ranking/calibration samples: `{resolved['samples']['ranking_count']}`; empirical-validation samples: `{resolved['samples']['empirical_count']}`; final-evaluation samples: `{resolved['samples']['evaluation_count']}`.",
+        f"- Sample partitions are required to be disjoint: `{resolved['samples']['require_disjoint']}`.",
+        "- Estimator scores, ordering policies, and protection-budget allocation are separate recorded objects.",
+        "", "## Clean evaluation", "",
+        f"Accuracy: `{summary['clean_evaluation']['accuracy']:.6f}`; categorical cross-entropy: `{summary['clean_evaluation']['categorical_crossentropy']:.6f}`.",
+    ]
+    if summary.get("empirical_candidate_count", 0):
+        lines.extend([
+            "", "## Exact isolated-bit reference", "",
+            f"Exactly one encoded bit was flipped for each of `{summary['empirical_candidate_count']}` candidates. Signed loss changes were retained.",
+            "The reference addresses isolated-fault prediction and damaging-bit identification; it does not prove optimality under multi-fault schedules.",
+            "", "### Ranking-quality summary", "",
+            "| Estimator | Spearman (positive damage) | Kendall tau-b | Top-10 recall | Zero-score fraction | Wall time (s) |",
+            "|---|---:|---:|---:|---:|---:|",
+        ])
+        for row in summary.get("ranking_metrics_overall", []):
+            def show(value):
+                return "N/A" if value is None else f"{value:.6f}"
+            lines.append(
+                f"| {row['estimator']} | {show(row['spearman_positive_damage'])} | {show(row['kendall_positive_damage'])} | "
+                f"{show(row['top_10_recall'])} | {show(row['zero_score_fraction'])} | {row['runtime_seconds']:.6f} |"
+            )
+        if summary.get("sample_limited"):
+            lines.extend(["", "These metrics are sample-limited to the recorded stratified candidate set and are not whole-network top-k claims."])
+    if summary.get("protection_results"):
+        lines.extend([
+            "", "## Matched protection experiment", "",
+            f"Logical BER `{resolved['fault']['probability']}` with persistence `{resolved['fault']['persistence']}` was evaluated in `{summary['trial_count']}` independent fault trials.",
+            "All policies used the same underlying schedule within each trial. Protection means ideal logical event suppression, not ECC or TMR hardware.",
+            "", f"| Policy and coverage | Protected bits | Accuracy mean | {100 * resolved['execution']['confidence']:.1f}% CI | Loss mean | Minimum accuracy (trial) |",
+            "|---|---:|---:|---:|---:|---:|",
+        ])
+        for result in summary["protection_results"]:
+            accuracy = result["accuracy"]
+            interval = accuracy["confidence_interval"]
+            lines.append(
+                f"| {result['policy']} | {result['protected_bits']} | {accuracy['mean']:.6f} | "
+                f"[{interval[0]:.6f}, {interval[1]:.6f}] | {result['categorical_crossentropy']['mean']:.6f} | "
+                f"{result['minimum_accuracy']:.6f} ({result['minimum_accuracy_trial']}) |"
+            )
+        lines.extend([
+            "", "Paired effect sizes, two-sided paired sign-flip permutation tests, and Holm-adjusted p-values are stored in `measurements/paired_comparisons.csv`.",
+            "No superiority claim is made automatically from point estimates or marginal confidence intervals.",
+        ])
+    if summary.get("estimator_runtimes_seconds"):
+        lines.extend(["", "## Estimator execution time", "", "| Estimator | Wall time (seconds) |", "|---|---:|"])
+        for name, runtime in summary["estimator_runtimes_seconds"].items():
+            lines.append(f"| {name} | {runtime:.6f} |")
+        lines.extend(["", "Wall-clock time is execution metadata and is excluded from the scientific payload digest."])
+    if figure_paths:
+        lines.extend(["", "## Figures", ""])
+        for path in figure_paths:
+            lines.extend([f"![M3 diagnostic figure]({path})", ""])
+    lines.extend([
+        "", "## Interpretation limits", "",
+        "Logical BER is not a radiation-calibrated SEU rate. Isolated-bit susceptibility is not equivalent to multi-fault protection benefit. Detection is not correction, and ideal event suppression is not synthesized hardware.",
+        "Recovered `legacy_qpolargrad` is preserved as a historical heuristic; the clean and uncancelled variants are explicitly separate research candidates.",
+        "Second-order estimators are local approximations and may be inaccurate for large sign-bit perturbations.",
+        "", "## Reproduction", "", "```bash", f"netsurf run {resolved.get('source_configuration', 'config.toml')}", "```", "",
+        "The exact submitted configuration, explicit sample indices and hashes, estimator versions, masks, schedules, measurements, and checksums are included in this immutable bundle.", "",
+        f"Scientific payload SHA-256: `{summary['scientific_payload_sha256']}`", "",
+    ])
+    return "\n".join(lines)

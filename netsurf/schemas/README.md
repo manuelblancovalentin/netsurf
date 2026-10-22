@@ -11,6 +11,14 @@ backend, injectable parameter classes, and modern benchmark adapters;
 measurement `2.0.0` adds the corresponding control/policy rows and estimator
 runtime records. Manifest and summary remain compatible at `1.0.0`.
 
+Experiment and measurement `3.0.0` add explicit role-specific sample
+partitions, empirical candidate inclusion metadata, estimator implementation
+versions, composable ordering policies, multiple coverages, signed
+predictions, exact isolated-bit effects, tied-rank metrics, mask composition,
+and paired multiplicity-adjusted comparisons. Manifest and summary remain at
+`1.0.0`; schema-3-specific fields are additive and identified by the resolved
+experiment version.
+
 The Python validators enforce the executable subset and load these documents as
 the machine-readable field contract. Breaking changes require a new schema file
 and reader; migrations must write a new bundle.

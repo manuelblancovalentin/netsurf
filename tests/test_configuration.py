@@ -92,3 +92,9 @@ def test_versioned_schema_documents_are_exercised():
     assert modern_experiment["properties"]["schema_version"]["const"] == "2.0.0"
     assert modern_measurements["schema_version"] == "2.0.0"
     assert "runtime_seconds" in modern_measurements["tables"]["estimator_runtime.csv"]["columns"]
+    study_experiment = load_schema("experiment", "v3")
+    study_measurements = load_schema("measurements", "v3")
+    assert study_experiment["properties"]["schema_version"]["const"] == "3.0.0"
+    assert study_measurements["schema_version"] == "3.0.0"
+    assert "signed_loss_difference" in study_measurements["tables"]["empirical_bits.csv"]["columns"]
+    assert "p_value_holm" in study_measurements["tables"]["paired_comparisons.csv"]["columns"]

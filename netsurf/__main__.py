@@ -7,13 +7,14 @@ import json
 from pathlib import Path
 import sys
 
-from .api import read_result_bundle, regenerate_report, run_experiment
+from .api import load_configuration, read_result_bundle, regenerate_report, run_experiment
 from .benchmarks import benchmark_info, benchmark_list
 from .doctor import doctor_report
 from .experiment_config import ConfigurationError, load_experiment, template_text
 from .paths import workspace_root
 from .plotting import PlottingDependencyError
 from .result_bundle import ResultBundleError
+from .study_config import StudyConfigurationError
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -86,7 +87,7 @@ def main(argv: list[str] | None = None) -> int:
                 stream.write(template_text(args.template))
             print(destination)
         elif args.command == "validate":
-            config = load_experiment(args.configuration)
+            config = load_configuration(args.configuration)
             print(json.dumps(config.resolved_document(), indent=2, sort_keys=True) if args.resolved else f"valid: {config.name} (schema {config.schema_version})")
         elif args.command == "run":
             destination = run_experiment(args.configuration)
@@ -100,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
             output = args.output or workspace_root() / "scratch" / "reports" / result.manifest["run_id"]
             print(regenerate_report(result, output, plots=args.plots))
         return 0
-    except (ConfigurationError, ResultBundleError, PlottingDependencyError, FileExistsError, OSError, KeyError) as error:
+    except (ConfigurationError, StudyConfigurationError, ResultBundleError, PlottingDependencyError, FileExistsError, OSError, KeyError, ValueError) as error:
         print(f"netsurf: {error}", file=sys.stderr)
         return 2
 

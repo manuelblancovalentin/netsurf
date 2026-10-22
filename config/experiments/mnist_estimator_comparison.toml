@@ -1,0 +1,83 @@
+schema_version = "3.0.0"
+scientific_protocol = "estimator-validation/v1"
+policies = []
+
+[experiment]
+name = "mnist_quantized_estimator_comparison_bounded"
+description = "Bounded empirical comparison of first-order, Hessian-diagonal, and reconstructed qPolarGrad estimators."
+objective = "Measure estimator agreement with exact isolated encoded-bit effects on a recorded stratified candidate sample."
+
+[benchmark]
+adapter = "mnist_quantized"
+id = "mnist_dense32_q621-v1"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "m3_explicit_disjoint_partitions"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 128
+empirical_count = 128
+evaluation_count = 256
+require_disjoint = true
+
+[candidates]
+strategy = "stratified"
+count = 192
+seed = 31301
+score_estimator = "first_order_gradient_delta"
+score_quantiles = 4
+
+[[estimators]]
+name = "gradient_magnitude"
+implementation_version = "absolute-mean-loss-gradient/v2"
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+
+[[estimators]]
+name = "per_sample_first_order_magnitude"
+implementation_version = "mean-absolute-per-example-gradient-times-exact-delta/v1"
+
+[[estimators]]
+name = "hutchinson_diagonal_second_order"
+implementation_version = "rademacher-hvp-diagonal/v1"
+seed = 31302
+probes = 8
+
+[[estimators]]
+name = "legacy_qpolargrad"
+implementation_version = "recovered-dense-first-call/v1"
+
+[[estimators]]
+name = "clean_activation_qpolargrad"
+implementation_version = "clean-dense-mean-cancelled/v1"
+
+[[estimators]]
+name = "uncancelled_activation_drift"
+implementation_version = "clean-dense-mean-absolute/v1"
+
+[protection]
+coverages = []
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.0
+
+[execution]
+trials = 1
+confidence = 0.95
+fault_seed = 946000
+permutation_seed = 947000
+
+[output]
+root = ""
+report = true
+plots = true

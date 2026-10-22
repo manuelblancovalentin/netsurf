@@ -1,0 +1,103 @@
+schema_version = "3.0.0"
+scientific_protocol = "ranking-policy-comparison/v1"
+
+[experiment]
+name = "mnist_quantized_msb_policies_bounded"
+description = "Matched bounded comparison of explicit MSB tie-breaking policies."
+objective = "Measure how within-tier ordering changes partial-tier masks while preserving complete-tier equivalence."
+
+[benchmark]
+adapter = "mnist_quantized"
+id = "mnist_dense32_q621-v1"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "m3_explicit_disjoint_partitions"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 128
+empirical_count = 32
+evaluation_count = 128
+require_disjoint = true
+
+[candidates]
+strategy = "stratified"
+count = 32
+seed = 31201
+score_quantiles = 4
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "encoded-bit-index/v1"
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+
+[[policies]]
+name = "msb+ordered"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "canonical"]
+prespecified = true
+
+[[policies]]
+name = "msb+reversed"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "reverse_canonical"]
+prespecified = true
+
+[[policies]]
+name = "msb+random.seed31211"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "random"]
+seed = 31211
+prespecified = true
+
+[[policies]]
+name = "msb+random.seed31212"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "random"]
+seed = 31212
+prespecified = true
+
+[[policies]]
+name = "msb+layer_input_first"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "layer_input_first", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "msb+layer_output_first"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "layer_output_first", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "msb+gradient"
+estimator = "first_order_gradient_delta"
+priority = ["bit_significance_desc", "estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[protection]
+coverages = [0.10, 0.16666666666666666]
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.001
+
+[execution]
+trials = 6
+confidence = 0.95
+fault_seed = 944000
+permutation_seed = 945000
+
+[output]
+root = ""
+report = true
+plots = true

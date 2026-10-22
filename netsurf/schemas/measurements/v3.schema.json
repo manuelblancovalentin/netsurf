@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/measurements/v3.schema.json",
+  "title": "NetSuRF M3 empirical susceptibility and composable-policy measurements",
+  "schema_version": "3.0.0",
+  "null_representation": "empty CSV field; nullable fields are signed_prediction, score_quantile, prediction_change_count, and undefined tied-rank statistics",
+  "tables": {
+    "empirical_bits.csv": {
+      "independent_unit": "one exact isolated encoded-bit injection on the recorded empirical-validation sample partition",
+      "semantics": "signed_loss_difference=faulted_loss-clean_loss; accuracy_damage=clean_accuracy-faulted_accuracy",
+      "columns": ["schema_version", "parameter", "flat_index", "bit_index", "layer", "parameter_class", "original_encoded", "flipped_encoded", "numerical_perturbation", "clean_loss", "faulted_loss", "signed_loss_difference", "positive_loss_damage", "absolute_loss_difference", "clean_accuracy", "faulted_accuracy", "accuracy_damage", "prediction_change_count", "evaluation_sample_sha256", "runtime_seconds", "inclusion_rule", "sampling_probability", "score_quantile"]
+    },
+    "estimator_predictions.csv": {
+      "semantics": "score is the raw ranking score; signed_prediction is present only for a numerically interpretable signed loss-change approximation",
+      "columns": ["schema_version", "estimator", "implementation_version", "parameter", "flat_index", "bit_index", "score", "signed_prediction", "empirical_candidate"]
+    },
+    "ranking_metrics.csv": {
+      "semantics": "metrics are computed only over the explicitly selected empirical candidate set and scopes",
+      "columns": ["schema_version", "estimator", "implementation_version", "scope", "candidate_count", "spearman_positive_damage", "spearman_absolute_change", "kendall_positive_damage", "zero_score_fraction", "tied_score_fraction", "runtime_seconds", "sample_limited", "top_5_recall", "top_5_overlap", "top_10_recall", "top_10_overlap", "top_20_recall", "top_20_overlap", "signed_mae", "signed_rmse", "signed_bias"]
+    },
+    "trials.csv": {
+      "independent_unit": "fault trial; every policy row with the same trial and schedule_sha256 is paired",
+      "columns": ["schema_version", "trial", "policy", "schedule_sha256", "accuracy", "categorical_crossentropy", "schedule_hash", "proposed_events", "applied_events", "suppressed_events", "unique_applied_bits"]
+    },
+    "protection_results.csv": {
+      "columns": ["schema_version", "policy", "protected_bits", "coverage", "mask_sha256", "accuracy_mean", "accuracy_ci_low", "accuracy_ci_high", "loss_mean", "loss_ci_low", "loss_ci_high", "mean_applied_events", "mean_suppressed_events", "minimum_accuracy", "minimum_accuracy_trial"]
+    },
+    "paired_comparisons.csv": {
+      "semantics": "left-minus-right paired effect; two-sided sign-flip permutation p-values with Holm adjustment within metric family",
+      "columns": ["schema_version", "metric", "comparison", "left", "right", "mean_difference", "ci_low", "ci_high", "p_value_raw", "p_value_holm", "test"]
+    },
+    "mask_composition.csv": {
+      "columns": ["schema_version", "policy", "dimension", "category", "protected_count", "protected_fraction_of_mask", "coverage_within_category", "eligible_count"]
+    },
+    "estimator_runtime.csv": {
+      "clock": "monotonic wall clock; execution metadata excluded from scientific payload hash",
+      "columns": ["schema_version", "estimator", "implementation_version", "runtime_seconds"]
+    }
+  }
+}

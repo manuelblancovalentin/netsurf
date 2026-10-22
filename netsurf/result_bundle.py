@@ -42,6 +42,39 @@ class ResultBundle:
                 int(row["applied_events"]), int(row["suppressed_events"]), int(row["unique_applied_bits"]),
             ) for row in csv.DictReader(stream))
 
+    def measurement_rows(self, table: str) -> tuple[dict[str, str], ...]:
+        """Read an explicitly named saved CSV table without running a benchmark."""
+
+        if not table.endswith(".csv") or Path(table).name != table:
+            raise ResultBundleError("measurement table must be a CSV basename")
+        path = self.path / "measurements" / table
+        if not path.is_file():
+            raise ResultBundleError(f"measurement table is not present: {table}")
+        with path.open(newline="", encoding="utf-8") as stream:
+            return tuple(dict(row) for row in csv.DictReader(stream))
+
+    def empirical_bits(self):
+        """Return typed M3 exact-bit measurements from a finalized bundle."""
+
+        from .empirical import SingleBitMeasurement
+
+        result = []
+        for row in self.measurement_rows("empirical_bits.csv"):
+            nullable_integer = lambda value: None if value == "" else int(value)
+            result.append(SingleBitMeasurement(
+                row["parameter"], int(row["flat_index"]), int(row["bit_index"]),
+                row["layer"], row["parameter_class"], int(row["original_encoded"]),
+                int(row["flipped_encoded"]), float(row["numerical_perturbation"]),
+                float(row["clean_loss"]), float(row["faulted_loss"]),
+                float(row["signed_loss_difference"]), float(row["positive_loss_damage"]),
+                float(row["absolute_loss_difference"]), float(row["clean_accuracy"]),
+                float(row["faulted_accuracy"]), float(row["accuracy_damage"]),
+                nullable_integer(row["prediction_change_count"]), row["evaluation_sample_sha256"],
+                float(row["runtime_seconds"]), row["inclusion_rule"],
+                float(row["sampling_probability"]), nullable_integer(row["score_quantile"]),
+            ))
+        return tuple(result)
+
 
 def _write_bytes(path: Path, value: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,77 @@
+schema_version = "3.0.0"
+scientific_protocol = "multi-coverage-protection/v1"
+
+[experiment]
+name = "mnist_quantized_multi_coverage_bounded"
+description = "Bounded matched protection comparison across multiple logical-bit budgets."
+objective = "Compare global gradient and explicit MSB policies across protection coverage without changing fault schedules."
+
+[benchmark]
+adapter = "mnist_quantized"
+id = "mnist_dense32_q621-v1"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "m3_explicit_disjoint_partitions"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 256
+empirical_count = 32
+evaluation_count = 256
+require_disjoint = true
+
+[candidates]
+strategy = "stratified"
+count = 32
+seed = 31401
+score_quantiles = 4
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "encoded-bit-index/v1"
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+
+[[policies]]
+name = "msb+ordered"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "canonical"]
+prespecified = true
+
+[[policies]]
+name = "msb+gradient"
+estimator = "first_order_gradient_delta"
+priority = ["bit_significance_desc", "estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "gradient_global"
+estimator = "first_order_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[protection]
+coverages = [0.05, 0.10, 0.16666666666666666]
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.001
+
+[execution]
+trials = 12
+confidence = 0.95
+fault_seed = 948000
+permutation_seed = 949000
+
+[output]
+root = ""
+report = true
+plots = true

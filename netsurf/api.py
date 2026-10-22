@@ -3,12 +3,28 @@
 from __future__ import annotations
 
 from pathlib import Path
+import csv
+import tomllib
 
 from .experiment_config import ExperimentConfiguration, load_experiment
 from .experiment_engine import ExperimentOutcome, execute_experiment
-from .plotting import plot_protection_results
-from .reporting import write_report
+from .plotting import plot_protection_results, plot_study_results
+from .reporting import render_study_report, write_report
 from .result_bundle import ResultBundle, create_result_bundle, read_result_bundle
+from .study_bundle import create_study_bundle
+from .study_config import StudyConfiguration, load_study
+from .study_engine import StudyOutcome, execute_study
+
+
+def load_configuration(path: str | Path):
+    """Load the explicitly versioned configuration supported by its schema."""
+
+    source = Path(path).expanduser().resolve()
+    with source.open("rb") as stream:
+        version = tomllib.load(stream).get("schema_version")
+    if version == "3.0.0":
+        return load_study(source)
+    return load_experiment(source)
 
 
 def run_experiment(
@@ -17,10 +33,11 @@ def run_experiment(
     repository_root: Path | None = None,
 ) -> Path:
     """Validate, execute, and atomically save an experiment."""
-    config = load_experiment(configuration) if isinstance(configuration, (str, Path)) else configuration
-    outcome = execute_experiment(config)
     root = repository_root or Path(__file__).resolve().parents[1]
-    return create_result_bundle(outcome, repository_root=root)
+    config = load_configuration(configuration) if isinstance(configuration, (str, Path)) else configuration
+    if isinstance(config, StudyConfiguration):
+        return create_study_bundle(execute_study(config), repository_root=root)
+    return create_result_bundle(execute_experiment(config), repository_root=root)
 
 
 def regenerate_report(
@@ -34,13 +51,32 @@ def regenerate_report(
     destination = Path(output).expanduser().resolve()
     destination.mkdir(parents=True, exist_ok=True)
     figures: tuple[str, ...] = ()
-    if plots:
+    is_study = result.resolved_config.get("schema_version") == "3.0.0"
+    if plots and is_study:
+        def rows(name):
+            path = result.path / "measurements" / name
+            if not path.is_file():
+                return ()
+            with path.open(newline="", encoding="utf-8") as stream:
+                return tuple(dict(row) for row in csv.DictReader(stream))
+        generated = plot_study_results(
+            result.summary, destination / "plots",
+            empirical_rows=rows("empirical_bits.csv"), prediction_rows=rows("estimator_predictions.csv"),
+            trial_rows=rows("trials.csv"),
+        )
+        figures = tuple(path.relative_to(destination).as_posix() for path in generated)
+    elif plots:
         generated = plot_protection_results(result.summary, destination / "plots")
         figures = tuple(path.relative_to(destination).as_posix() for path in generated)
+    if is_study:
+        output_path = destination / "report.md"
+        output_path.write_text(render_study_report(result.summary, result.resolved_config, figure_paths=figures), encoding="utf-8")
+        return output_path
     return write_report(result.summary, result.resolved_config, destination / "report.md", figure_paths=figures)
 
 
 __all__ = [
-    "ExperimentConfiguration", "ExperimentOutcome", "ResultBundle", "load_experiment",
+    "ExperimentConfiguration", "ExperimentOutcome", "StudyConfiguration", "StudyOutcome", "ResultBundle",
+    "load_configuration", "load_experiment", "load_study", "execute_study",
     "read_result_bundle", "regenerate_report", "run_experiment",
 ]
