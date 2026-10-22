@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "benchmark": "numpy_reference",
+  "quantization": "q<6,2,1>",
+  "parameters": {
+    "dense0/kernel": [[1.0, -1.0, 0.5], [1.0, 1.0, -0.5]],
+    "dense0/bias": [0.0, 0.0, 0.0],
+    "dense1/kernel": [[-1.0, 1.0], [0.0, 0.0], [0.0, 0.0]],
+    "dense1/bias": [0.25, -0.25]
+  }
+}

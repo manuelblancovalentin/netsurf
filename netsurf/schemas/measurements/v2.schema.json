@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/measurements/v2.schema.json",
+  "title": "NetSuRF modern quantized-weight measurement formats",
+  "schema_version": "2.0.0",
+  "null_representation": "empty field; current tables contain no nullable columns",
+  "tables": {
+    "trials.csv": {
+      "independent_unit": "fault trial and schedule_sha256; policy rows in a trial are paired",
+      "columns": {
+        "schema_version": "string",
+        "trial": "integer, unitless, zero-based",
+        "policy": "string",
+        "schedule_sha256": "64-character lowercase hexadecimal string",
+        "accuracy": "float, fraction in [0,1]",
+        "categorical_crossentropy": "float, mean per evaluated inference",
+        "schedule_hash": "64-character lowercase hexadecimal schedule identity",
+        "proposed_events": "integer, logical bit events",
+        "applied_events": "integer, logical bit events",
+        "suppressed_events": "integer, logical bit events",
+        "unique_applied_bits": "integer, distinct corrupted logical bits"
+      }
+    },
+    "estimator_scores.csv": {
+      "columns": {
+        "schema_version": "string",
+        "estimator": "string",
+        "parameter": "string",
+        "flat_index": "integer, scalar index",
+        "bit_index": "integer, encoded LSB-zero index",
+        "score": "float, estimator-specific units"
+      }
+    },
+    "protection_results.csv": {
+      "columns": {
+        "schema_version": "string",
+        "policy": "string",
+        "protected_bits": "integer, logical bits",
+        "coverage": "float, fraction of eligible logical bits",
+        "accuracy_mean": "float, fraction",
+        "accuracy_ci_low": "float, fraction",
+        "accuracy_ci_high": "float, fraction",
+        "crossentropy_mean": "float, mean per inference",
+        "crossentropy_ci_low": "float, mean per inference",
+        "crossentropy_ci_high": "float, mean per inference",
+        "independent_trials": "integer"
+      }
+    },
+    "estimator_runtime.csv": {
+      "clock": "monotonic wall clock; performance metadata excluded from scientific payload hash",
+      "columns": {
+        "schema_version": "string",
+        "estimator": "string",
+        "runtime_seconds": "float, monotonic wall-clock seconds"
+      }
+    }
+  }
+}

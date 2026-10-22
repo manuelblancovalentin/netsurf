@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
+from time import perf_counter
 from typing import Any, Mapping
 
 import numpy as np
@@ -10,7 +11,7 @@ import numpy as np
 from .adapters.protocol import BenchmarkAdapter
 from .adapters.registry import create_adapter
 from .experiment_config import ExperimentConfiguration
-from .faults import FaultModel, FaultSchedule, apply_persistent_schedule
+from .faults import FaultModel, FaultSchedule, apply_per_inference_schedule, apply_persistent_schedule
 from .identities import BitIdentity
 from .manifests import digest_object, sha256_file
 from .protection import ProtectionMask, ProtectionPolicy
@@ -51,6 +52,7 @@ class ExperimentOutcome:
     rankings: Mapping[str, list[list[Any]]]
     protection_masks: Mapping[str, list[list[Any]]]
     fault_schedules: tuple[Mapping[str, Any], ...]
+    estimator_runtimes_seconds: Mapping[str, float] = field(default_factory=dict)
 
     @property
     def scientific_payload_sha256(self) -> str:
@@ -96,7 +98,7 @@ def _construct_rankings(
     ranking_labels: np.ndarray,
     checkpoint_state: Mapping[str, np.ndarray],
     codec: BitCodec,
-) -> tuple[tuple[Ranking, ...], Mapping[str, Ranking]]:
+) -> tuple[tuple[Ranking, ...], Mapping[str, Ranking], Mapping[str, float]]:
     requested = {value.name for value in configuration.estimators}
     needs_gradients = bool(
         requested
@@ -119,7 +121,9 @@ def _construct_rankings(
     )
     result = []
     by_result_name: dict[str, Ranking] = {}
+    runtimes: dict[str, float] = {}
     for specification in configuration.estimators:
+        started = perf_counter()
         if specification.name == "legacy_qpolargrad":
             source = specification.activation_source or "clean"
             impacts = adapter.polar_impacts(ranking_inputs, activation_source=source)
@@ -143,7 +147,8 @@ def _construct_rankings(
             raise ValueError(f"unsupported estimator: {specification.name}")
         result.append(ranking)
         by_result_name[specification.result_name] = ranking
-    return tuple(result), by_result_name
+        runtimes[specification.result_name] = perf_counter() - started
+    return tuple(result), by_result_name, runtimes
 
 
 def _construct_masks(
@@ -167,6 +172,47 @@ def _construct_masks(
     return masks
 
 
+def _evaluate_faulted(
+    adapter: BenchmarkAdapter,
+    inputs: np.ndarray,
+    labels: np.ndarray,
+    checkpoint_state: Mapping[str, np.ndarray],
+    schedule: FaultSchedule,
+    mask: ProtectionMask,
+    codec: BitCodec,
+) -> tuple[float, float, Any]:
+    if schedule.model.persistence == "persistent_trial":
+        corrupted, accounting = apply_persistent_schedule(checkpoint_state, schedule, mask, codec)
+        with adapter.temporary_values(corrupted):
+            evaluation = adapter.evaluate(inputs, labels)
+        return evaluation.accuracy, evaluation.categorical_crossentropy, accounting
+    if schedule.model.persistence != "per_inference":
+        raise ValueError(f"unsupported fault persistence: {schedule.model.persistence}")
+    accuracies, losses = [], []
+    proposed = applied = suppressed = 0
+    unique: set[BitIdentity] = set()
+    for index in range(len(labels)):
+        corrupted, accounting = apply_per_inference_schedule(
+            checkpoint_state, schedule, mask, codec, index
+        )
+        with adapter.temporary_values(corrupted):
+            evaluation = adapter.evaluate(inputs[index:index + 1], labels[index:index + 1])
+        accuracies.append(evaluation.accuracy)
+        losses.append(evaluation.categorical_crossentropy)
+        proposed += accounting.proposed_events
+        applied += accounting.applied_events
+        suppressed += accounting.suppressed_events
+        unique.update(
+            event.bit for event in schedule.events
+            if event.inference_index == index and event.bit not in mask.protected
+        )
+    from .faults import InjectionReport
+
+    return float(np.mean(accuracies)), float(np.mean(losses)), InjectionReport(
+        schedule.digest(), proposed, applied, suppressed, len(unique)
+    )
+
+
 def execute_experiment(
     configuration: ExperimentConfiguration,
     *,
@@ -177,12 +223,20 @@ def execute_experiment(
     codec = BitCodec(FixedPointFormat.parse(configuration.benchmark.quantization))
     benchmark_adapter = adapter or create_adapter(configuration, codec)
     benchmark_adapter.load()
-    evaluation_inputs, evaluation_labels = benchmark_adapter.dataset(
-        configuration.benchmark.evaluation_samples
-    )
-    ranking_inputs, ranking_labels = benchmark_adapter.dataset(
-        configuration.benchmark.ranking_samples
-    )
+    if configuration.schema_version == "2.0.0":
+        evaluation_inputs, evaluation_labels = benchmark_adapter.dataset(
+            configuration.benchmark.evaluation_samples, role="evaluation"
+        )
+        ranking_inputs, ranking_labels = benchmark_adapter.dataset(
+            configuration.benchmark.ranking_samples, role="ranking"
+        )
+    else:
+        evaluation_inputs, evaluation_labels = benchmark_adapter.dataset(
+            configuration.benchmark.evaluation_samples
+        )
+        ranking_inputs, ranking_labels = benchmark_adapter.dataset(
+            configuration.benchmark.ranking_samples
+        )
     checkpoint_state = benchmark_adapter.values()
     checkpoint_baseline = benchmark_adapter.evaluate(
         evaluation_inputs, evaluation_labels
@@ -195,7 +249,7 @@ def execute_experiment(
 
     with benchmark_adapter.temporary_values(checkpoint_state):
         identities = tuple(benchmark_adapter.bit_identities())
-        rankings, rankings_by_result = _construct_rankings(
+        rankings, rankings_by_result, estimator_runtimes = _construct_rankings(
             configuration,
             benchmark_adapter,
             identities,
@@ -205,6 +259,16 @@ def execute_experiment(
             codec,
         )
         masks = _construct_masks(configuration, rankings_by_result)
+        modern = configuration.schema_version == "2.0.0"
+        if modern:
+            universe = frozenset(identities)
+            masks = {
+                "no_protection": ProtectionMask("control_none", frozenset(), len(identities), 0.0, {"control": True}),
+                **masks,
+                "full_protection": ProtectionMask(
+                    "control_full", universe, len(identities), float(len(identities)), {"control": True}
+                ),
+            }
         fault_model = FaultModel(
             target=configuration.fault.target,
             location=configuration.fault.location,
@@ -224,20 +288,17 @@ def execute_experiment(
             )
             schedules.append(schedule)
             for policy_name, mask in masks.items():
-                corrupted, accounting = apply_persistent_schedule(
-                    checkpoint_state, schedule, mask, codec
+                accuracy, loss, accounting = _evaluate_faulted(
+                    benchmark_adapter, evaluation_inputs, evaluation_labels,
+                    checkpoint_state, schedule, mask, codec,
                 )
-                with benchmark_adapter.temporary_values(corrupted):
-                    evaluation = benchmark_adapter.evaluate(
-                        evaluation_inputs, evaluation_labels
-                    )
                 rows.append(
                     TrialMeasurement(
                         trial,
                         policy_name,
                         schedule.digest(),
-                        evaluation.accuracy,
-                        evaluation.categorical_crossentropy,
+                        accuracy,
+                        loss,
                         accounting.schedule_hash,
                         accounting.proposed_events,
                         accounting.applied_events,
@@ -338,7 +399,11 @@ def execute_experiment(
         )
 
     scientific_payload: dict[str, Any] = {
-        "schema": "netsurf-v2-mnist-lite-milestone/v1",
+        "schema": (
+            "netsurf-quantized-weight-experiment/v2"
+            if configuration.schema_version == "2.0.0"
+            else "netsurf-v2-mnist-lite-milestone/v1"
+        ),
         "benchmark": {
             "id": configuration.benchmark.id,
             "checkpoint_sha256": sha256_file(configuration.benchmark.checkpoint),
@@ -400,6 +465,28 @@ def execute_experiment(
             ),
         },
     }
+    if modern:
+        comparisons = {}
+        unprotected = [row for row in rows if row.policy == "no_protection"]
+        for specification in configuration.estimators:
+            protected = [row for row in rows if row.policy == specification.result_name]
+            comparisons[specification.result_name] = {
+                "accuracy_difference": summarize(
+                    [p.accuracy - u.accuracy for p, u in zip(protected, unprotected)],
+                    confidence=configuration.execution.confidence,
+                    bounds=(-1.0, 1.0),
+                ).to_dict(),
+                "crossentropy_difference": summarize(
+                    [p.categorical_crossentropy - u.categorical_crossentropy for p, u in zip(protected, unprotected)],
+                    confidence=configuration.execution.confidence,
+                ).to_dict(),
+                "pairing": "same fault schedule within trial",
+            }
+        scientific_payload["paired_comparisons"] = comparisons
+        scientific_payload["benchmark"]["quantization_backend"] = configuration.benchmark.quantization_backend
+        scientific_payload["benchmark"]["injectable_parameters"] = list(configuration.benchmark.injectable_parameters)
+        if qpolar_name is None:
+            scientific_payload["checks"]["full_msb_mask_equivalent"] = "not_applicable"
     return ExperimentOutcome(
         configuration,
         scientific_payload,
@@ -407,4 +494,5 @@ def execute_experiment(
         exact_rankings,
         exact_masks,
         exact_schedules,
+        estimator_runtimes,
     )

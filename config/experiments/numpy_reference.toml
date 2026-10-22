@@ -1,0 +1,59 @@
+schema_version = "2.0.0"
+scientific_protocol = "quantized-weight-fault/v2"
+
+[experiment]
+name = "numpy_reference_ranker_comparison"
+description = "Deterministic reference experiment on an exactly quantized NumPy network."
+objective = "Validate encoded bit faults and compare established rankers under paired schedules."
+
+[benchmark]
+adapter = "numpy_reference"
+id = "numpy_reference_dense_2x3x2-v1"
+checkpoint = "../../netsurf/benchmarks/data/numpy_reference_checkpoint.json"
+dataset = "../../netsurf/benchmarks/data/numpy_reference_dataset.json"
+split = "fixed_all"
+evaluation_samples = 8
+ranking_samples = 8
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "encoded-bit-index/v1"
+policy = "global_ranking"
+result_name = "msb_first"
+
+[[estimators]]
+name = "random"
+implementation_version = "numpy-pcg64/v1"
+policy = "global_ranking"
+result_name = "random"
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "abs-gradient-times-exact-delta/v1"
+policy = "global_ranking"
+result_name = "first_order_gradient_delta"
+
+[protection]
+coverage = 0.20
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.05
+
+[execution]
+trials = 12
+confidence = 0.95
+random_ranking_seed = 23011
+fault_seed = 920000
+
+[output]
+root = ""
+report = true
+plots = true

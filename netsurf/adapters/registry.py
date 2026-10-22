@@ -11,6 +11,22 @@ def create_adapter(
     configuration: ExperimentConfiguration, codec: BitCodec
 ) -> BenchmarkAdapter:
     name = configuration.benchmark.adapter
+    if name == "numpy_reference":
+        from .numpy_reference import NumpyReferenceAdapter
+
+        return NumpyReferenceAdapter(
+            configuration.benchmark.checkpoint,
+            configuration.benchmark.dataset,
+            codec,
+        )
+    if name == "mnist_quantized":
+        from .mnist_quantized import MnistQuantizedAdapter
+
+        return MnistQuantizedAdapter(
+            configuration.benchmark.checkpoint,
+            configuration.benchmark.dataset,
+            codec,
+        )
     if name == "legacy_mnist_lite":
         from .legacy_mnist import LegacyMnistLiteAdapter
 

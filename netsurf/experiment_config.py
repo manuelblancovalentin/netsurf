@@ -18,10 +18,13 @@ from .quantization import FixedPointFormat
 
 
 EXPERIMENT_SCHEMA_VERSION = "1.0.0"
+LATEST_EXPERIMENT_SCHEMA_VERSION = "2.0.0"
 MANIFEST_SCHEMA_VERSION = "1.0.0"
 SUMMARY_SCHEMA_VERSION = "1.0.0"
 MEASUREMENT_SCHEMA_VERSION = "1.0.0"
+MODERN_MEASUREMENT_SCHEMA_VERSION = "2.0.0"
 SUPPORTED_PROTOCOL = "legacy-mnist-persistent-weight/v1"
+MODERN_PROTOCOL = "quantized-weight-fault/v2"
 
 
 class ConfigurationError(ValueError):
@@ -42,6 +45,8 @@ class BenchmarkConfiguration:
     evaluation_samples: int
     ranking_samples: int
     quantization: str
+    quantization_backend: str = "legacy_qkeras"
+    injectable_parameters: tuple[str, ...] = ("all_trainable",)
 
 
 @dataclass(frozen=True)
@@ -105,6 +110,7 @@ class ExperimentConfiguration:
         return {
             "schema_version": self.schema_version,
             "scientific_protocol": self.scientific_protocol,
+            "source_configuration": str(self.source_path),
             "experiment": {
                 "name": self.name,
                 "description": self.description,
@@ -183,15 +189,16 @@ def validate_experiment_document(
     *,
     check_inputs: bool = True,
 ) -> ExperimentConfiguration:
-    """Validate the supported executable subset of experiment schema v1."""
+    """Validate the supported executable subset of experiment schemas v1/v2."""
 
     schema_version = document.get("schema_version")
-    if schema_version != EXPERIMENT_SCHEMA_VERSION:
+    if schema_version not in {EXPERIMENT_SCHEMA_VERSION, LATEST_EXPERIMENT_SCHEMA_VERSION}:
         raise UnsupportedSchemaVersion(
             f"unsupported experiment schema_version {schema_version!r}; "
-            f"supported: {EXPERIMENT_SCHEMA_VERSION}"
+            f"supported: {EXPERIMENT_SCHEMA_VERSION}, {LATEST_EXPERIMENT_SCHEMA_VERSION}"
         )
-    load_schema("experiment")
+    modern = schema_version == LATEST_EXPERIMENT_SCHEMA_VERSION
+    load_schema("experiment", "v2" if modern else "v1")
     _check_keys(
         document,
         {
@@ -209,9 +216,10 @@ def validate_experiment_document(
         "root",
     )
     protocol = document["scientific_protocol"]
-    if protocol != SUPPORTED_PROTOCOL:
+    expected_protocol = MODERN_PROTOCOL if modern else SUPPORTED_PROTOCOL
+    if protocol != expected_protocol:
         raise ConfigurationError(
-            f"unsupported scientific_protocol {protocol!r}; supported: {SUPPORTED_PROTOCOL}"
+            f"unsupported scientific_protocol {protocol!r}; supported for schema {schema_version}: {expected_protocol}"
         )
 
     experiment = _mapping(document["experiment"], "experiment")
@@ -221,23 +229,24 @@ def validate_experiment_document(
         raise ConfigurationError("experiment.name must be a filesystem-safe identifier")
 
     benchmark = _mapping(document["benchmark"], "benchmark")
+    benchmark_required = {
+        "adapter", "id", "checkpoint", "dataset", "split", "evaluation_samples",
+        "ranking_samples", "quantization",
+    }
+    if modern:
+        benchmark_required |= {"quantization_backend", "injectable_parameters"}
     _check_keys(
         benchmark,
-        {
-            "adapter",
-            "id",
-            "checkpoint",
-            "dataset",
-            "split",
-            "evaluation_samples",
-            "ranking_samples",
-            "quantization",
-        },
+        benchmark_required,
         set(),
         "benchmark",
     )
-    if benchmark["adapter"] != "legacy_mnist_lite":
-        raise ConfigurationError("only benchmark.adapter='legacy_mnist_lite' is implemented")
+    supported_adapters = {"numpy_reference", "mnist_quantized"} if modern else {"legacy_mnist_lite"}
+    if benchmark["adapter"] not in supported_adapters:
+        raise ConfigurationError(
+            f"unsupported benchmark.adapter for schema {schema_version}: {benchmark['adapter']!r}; "
+            f"supported: {sorted(supported_adapters)}"
+        )
     checkpoint = _resolve_path(str(benchmark["checkpoint"]), source_path)
     dataset = _resolve_path(str(benchmark["dataset"]), source_path)
     if check_inputs:
@@ -249,6 +258,12 @@ def validate_experiment_document(
         if not isinstance(benchmark[field], int) or not 1 <= benchmark[field] <= 10_000:
             raise ConfigurationError(f"benchmark.{field} must be an integer in [1, 10000]")
     FixedPointFormat.parse(str(benchmark["quantization"]))
+    quantization_backend = str(benchmark.get("quantization_backend", "legacy_qkeras"))
+    if modern and quantization_backend != "netsurf_bitcodec_v1":
+        raise ConfigurationError("modern experiments currently require quantization_backend='netsurf_bitcodec_v1'")
+    injectable = benchmark.get("injectable_parameters", ["all_trainable"])
+    if not isinstance(injectable, list) or not injectable or not all(isinstance(value, str) for value in injectable):
+        raise ConfigurationError("benchmark.injectable_parameters must be a nonempty string array")
 
     raw_estimators = document["estimators"]
     if not isinstance(raw_estimators, list) or not raw_estimators:
@@ -260,6 +275,8 @@ def validate_experiment_document(
         "gradient_magnitude",
         "first_order_gradient_delta",
     }
+    if modern:
+        supported_estimators.remove("legacy_qpolargrad")
     estimators = []
     result_names = set()
     for index, raw in enumerate(raw_estimators):
@@ -314,12 +331,16 @@ def validate_experiment_document(
     expected_fault = {
         "target": "weight",
         "location": "logical_trainable_parameter_bits",
-        "persistence": "persistent_trial",
         "distribution": "independent_bernoulli",
     }
     for field, expected in expected_fault.items():
         if fault[field] != expected:
             raise ConfigurationError(f"unsupported fault.{field}: {fault[field]!r}")
+    allowed_persistence = {"persistent_trial", "per_inference"} if modern else {"persistent_trial"}
+    if fault["persistence"] not in allowed_persistence:
+        raise ConfigurationError(
+            f"unsupported fault.persistence for adapter {benchmark['adapter']!r}: {fault['persistence']!r}"
+        )
     probability = float(fault["probability"])
     if not 0.0 <= probability <= 1.0:
         raise ConfigurationError("fault.probability must be in [0,1]")
@@ -352,7 +373,7 @@ def validate_experiment_document(
     ).resolve()
 
     return ExperimentConfiguration(
-        EXPERIMENT_SCHEMA_VERSION,
+        str(schema_version),
         str(protocol),
         str(name),
         str(experiment["description"]),
@@ -366,6 +387,8 @@ def validate_experiment_document(
             int(benchmark["evaluation_samples"]),
             int(benchmark["ranking_samples"]),
             str(benchmark["quantization"]),
+            quantization_backend,
+            tuple(injectable),
         ),
         tuple(estimators),
         ProtectionConfiguration(coverage, str(protection["mitigation_model"])),

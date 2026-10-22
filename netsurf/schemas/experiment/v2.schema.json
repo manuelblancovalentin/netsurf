@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/experiment/v2.schema.json",
+  "title": "NetSuRF modern quantized-weight experiment",
+  "type": "object",
+  "required": ["schema_version", "scientific_protocol", "experiment", "benchmark", "estimators", "protection", "fault", "execution", "output"],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "scientific_protocol": {"const": "quantized-weight-fault/v2"},
+    "experiment": {"type": "object", "required": ["name", "description"]},
+    "benchmark": {"type": "object", "required": ["adapter", "id", "checkpoint", "dataset", "split", "evaluation_samples", "ranking_samples", "quantization", "quantization_backend", "injectable_parameters"]},
+    "estimators": {"type": "array", "minItems": 1},
+    "protection": {"type": "object", "required": ["coverage", "mitigation_model"]},
+    "fault": {"type": "object", "required": ["target", "location", "persistence", "distribution", "probability"]},
+    "execution": {"type": "object", "required": ["trials", "confidence", "random_ranking_seed", "fault_seed"]},
+    "output": {"type": "object", "required": ["report", "plots"]}
+  },
+  "additionalProperties": false
+}

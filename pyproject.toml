@@ -10,11 +10,19 @@ readme = "README.md"
 requires-python = ">=3.11,<3.12"
 license = {text = "Research software; licensing review pending"}
 authors = [{name = "Manuel Blanco Valentin"}]
-dependencies = ["numpy>=1.24,<2"]
+dependencies = ["numpy>=2.0,<3"]
 
 [project.optional-dependencies]
 test = ["pytest>=7,<9"]
 plot = ["matplotlib>=3.8,<4"]
+modern = [
+  "tensorflow==2.21.0",
+  "keras>=3.15,<4",
+  "HGQ2>=0.2,<0.3",
+  "hls4ml[hgq2]>=1.3,<1.4",
+  "matplotlib>=3.8,<4",
+  "scipy>=1.11,<2",
+]
 
 [project.scripts]
 netsurf = "netsurf.__main__:main"
@@ -24,7 +32,7 @@ include = ["netsurf*"]
 exclude = ["DEPRECATED*", "tests*"]
 
 [tool.setuptools.package-data]
-netsurf = ["schemas/**/*.json", "schemas/README.md", "templates/*.toml"]
+netsurf = ["schemas/**/*.json", "schemas/README.md", "templates/*.toml", "benchmarks/data/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

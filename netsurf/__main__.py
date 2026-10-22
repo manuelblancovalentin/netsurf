@@ -8,6 +8,8 @@ from pathlib import Path
 import sys
 
 from .api import read_result_bundle, regenerate_report, run_experiment
+from .benchmarks import benchmark_info, benchmark_list
+from .doctor import doctor_report
 from .experiment_config import ConfigurationError, load_experiment, template_text
 from .paths import workspace_root
 from .plotting import PlottingDependencyError
@@ -17,6 +19,17 @@ from .result_bundle import ResultBundleError
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="netsurf")
     subparsers = parser.add_subparsers(dest="command", required=True)
+    doctor = subparsers.add_parser("doctor", help="diagnose the software experiment environment")
+    doctor.add_argument("--json", action="store_true")
+    benchmarks = subparsers.add_parser("benchmarks", help="discover and prepare registered benchmarks")
+    benchmark_commands = benchmarks.add_subparsers(dest="benchmark_command", required=True)
+    benchmark_commands.add_parser("list", help="list registered benchmark readiness")
+    benchmark_info_parser = benchmark_commands.add_parser("info", help="inspect one benchmark contract")
+    benchmark_info_parser.add_argument("benchmark_name")
+    benchmark_prepare_parser = benchmark_commands.add_parser("prepare", help="prepare a reusable benchmark checkpoint")
+    benchmark_prepare_parser.add_argument("benchmark_name")
+    benchmark_prepare_parser.add_argument("--epochs", type=int, default=3)
+    benchmark_prepare_parser.add_argument("--train-samples", type=int, default=20000)
     initialize = subparsers.add_parser("init-experiment", help="create a validated experiment TOML template")
     initialize.add_argument("--output", type=Path, required=True)
     initialize.add_argument("--template", choices=("template", "smoke"), default="template")
@@ -38,7 +51,35 @@ def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
     try:
-        if args.command == "init-experiment":
+        if args.command == "doctor":
+            report = doctor_report()
+            if args.json:
+                print(json.dumps(report, indent=2, sort_keys=True))
+            else:
+                print(f"NetSuRF {report['netsurf']} | Python {report['python']}")
+                for name, value in report["packages"].items():
+                    print(f"{name}: {value or 'missing'}")
+                print(f"dataset root: {report['dataset_root']['path']} ({'readable' if report['dataset_root']['readable'] else 'unreadable'})")
+                print(f"workspace: {report['workspace']['path']} ({'writable' if report['workspace']['writable'] else 'not writable'})")
+                for name, status in report["benchmarks"].items():
+                    print(f"benchmark {name}: {status}")
+                for warning in report["warnings"]:
+                    print(f"warning: {warning}")
+        elif args.command == "benchmarks":
+            if args.benchmark_command == "list":
+                for item in benchmark_list():
+                    status, reasons = item.readiness()
+                    detail = f" ({'; '.join(reasons)})" if reasons else ""
+                    print(f"{item.name}: {status}{detail}")
+            elif args.benchmark_command == "info":
+                print(json.dumps(benchmark_info(args.benchmark_name).to_dict(), indent=2, sort_keys=True))
+            elif args.benchmark_command == "prepare":
+                if args.benchmark_name != "mnist_quantized":
+                    raise ConfigurationError(f"benchmark {args.benchmark_name!r} does not require preparation")
+                from .adapters.mnist_quantized import prepare_checkpoint
+
+                print(prepare_checkpoint(epochs=args.epochs, train_samples=args.train_samples))
+        elif args.command == "init-experiment":
             destination = args.output.expanduser().resolve()
             destination.parent.mkdir(parents=True, exist_ok=True)
             with destination.open("x", encoding="utf-8") as stream:
@@ -59,7 +100,7 @@ def main(argv: list[str] | None = None) -> int:
             output = args.output or workspace_root() / "scratch" / "reports" / result.manifest["run_id"]
             print(regenerate_report(result, output, plots=args.plots))
         return 0
-    except (ConfigurationError, ResultBundleError, PlottingDependencyError, FileExistsError, OSError) as error:
+    except (ConfigurationError, ResultBundleError, PlottingDependencyError, FileExistsError, OSError, KeyError) as error:
         print(f"netsurf: {error}", file=sys.stderr)
         return 2
 

@@ -1,0 +1,47 @@
+schema_version = "2.0.0"
+scientific_protocol = "quantized-weight-fault/v2"
+
+[experiment]
+name = "mnist_quantized_msb"
+description = "Modern Keras-trained MNIST model with explicit fixed-point inference and MSB-first protection."
+objective = "Measure ideal logical protection against matched persistent weight-bit faults."
+
+[benchmark]
+adapter = "mnist_quantized"
+id = "mnist_dense32_q621-v1"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "v2_test_first_n"
+evaluation_samples = 256
+ranking_samples = 256
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "encoded-bit-index/v1"
+policy = "global_ranking"
+result_name = "msb_first"
+
+[protection]
+coverage = 0.10
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.001
+
+[execution]
+trials = 12
+confidence = 0.95
+random_ranking_seed = 23011
+fault_seed = 930000
+
+[output]
+root = ""
+report = true
+plots = true

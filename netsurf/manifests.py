@@ -65,17 +65,16 @@ def git_provenance(root: Path) -> dict[str, Any]:
 
 
 def runtime_provenance() -> dict[str, str]:
-    import numpy
+    from importlib.metadata import PackageNotFoundError, version
 
     result = {
         "python": platform.python_version(),
         "platform": platform.platform(),
-        "numpy": numpy.__version__,
+        "numpy": version("numpy"),
     }
-    try:
-        import tensorflow
-
-        result["tensorflow"] = tensorflow.__version__
-    except ImportError:
-        result["tensorflow"] = "not-installed"
+    for distribution in ("tensorflow", "keras", "HGQ2", "hls4ml"):
+        try:
+            result[distribution.lower()] = version(distribution)
+        except PackageNotFoundError:
+            result[distribution.lower()] = "not-installed"
     return result

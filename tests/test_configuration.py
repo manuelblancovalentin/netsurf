@@ -13,6 +13,36 @@ from netsurf.experiment_config import (
 )
 
 
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_modern_schema_version_survives_resolution():
+    configuration = load_experiment(
+        Path(__file__).resolve().parents[1] / "config/experiments/numpy_reference.toml"
+    )
+    assert configuration.schema_version == "2.0.0"
+    assert configuration.resolved_document()["schema_version"] == "2.0.0"
+    assert configuration.resolved_document()["source_configuration"].endswith(
+        "config/experiments/numpy_reference.toml"
+    )
+    assert configuration.scientific_protocol == "quantized-weight-fault/v2"
+
+
+def test_modern_single_and_multiple_estimator_examples_validate():
+    single = load_experiment(ROOT / "config/experiments/mnist_msb.toml", check_inputs=False)
+    comparison = load_experiment(
+        ROOT / "config/experiments/mnist_ranker_comparison.toml", check_inputs=False
+    )
+    assert [value.name for value in single.estimators] == ["msb_first"]
+    assert [value.name for value in comparison.estimators] == [
+        "msb_first",
+        "random",
+        "first_order_gradient_delta",
+    ]
+    assert single.benchmark.injectable_parameters == ("kernels", "biases")
+    assert comparison.fault.persistence == "persistent_trial"
+
+
 def test_packaged_templates_validate_without_loading_frameworks():
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
@@ -57,3 +87,8 @@ def test_versioned_schema_documents_are_exercised():
     assert manifest["properties"]["schema_version"]["const"] == "1.0.0"
     assert summary["properties"]["schema_version"]["const"] == "1.0.0"
     assert measurements["schema_version"] == "1.0.0"
+    modern_experiment = load_schema("experiment", "v2")
+    modern_measurements = load_schema("measurements", "v2")
+    assert modern_experiment["properties"]["schema_version"]["const"] == "2.0.0"
+    assert modern_measurements["schema_version"] == "2.0.0"
+    assert "runtime_seconds" in modern_measurements["tables"]["estimator_runtime.csv"]["columns"]

@@ -127,3 +127,40 @@ def apply_persistent_schedule(
         suppressed_events=suppressed,
         unique_applied_bits=len(set(applied)),
     )
+
+
+def apply_per_inference_schedule(
+    values: Mapping[str, np.ndarray],
+    schedule: FaultSchedule,
+    protection: ProtectionMask,
+    codec: BitCodec,
+    inference_index: int,
+) -> tuple[dict[str, np.ndarray], InjectionReport]:
+    """Apply exactly one recorded per-inference window, independent of batching."""
+
+    if schedule.model.persistence != "per_inference":
+        raise ValueError("schedule is not per_inference")
+    if not 0 <= inference_index < schedule.inference_count:
+        raise IndexError(inference_index)
+    selected = tuple(event for event in schedule.events if event.inference_index == inference_index)
+    persistent = FaultSchedule(
+        FaultModel(
+            target=schedule.model.target,
+            location=schedule.model.location,
+            persistence="persistent_trial",
+            distribution=schedule.model.distribution,
+            probability=schedule.model.probability,
+            multiplicity=schedule.model.multiplicity,
+            correlation=schedule.model.correlation,
+            recovery=schedule.model.recovery,
+        ),
+        schedule.seed,
+        tuple(FaultEvent(None, event.bit) for event in selected),
+        schedule.universe_size,
+        1,
+    )
+    corrupted, report = apply_persistent_schedule(values, persistent, protection, codec)
+    return corrupted, InjectionReport(
+        schedule.digest(), report.proposed_events, report.applied_events,
+        report.suppressed_events, report.unique_applied_bits,
+    )
