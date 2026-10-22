@@ -10,6 +10,7 @@ from typing import Mapping, Sequence
 
 from .identities import BitIdentity
 from .ranking import Ranking
+from .ordering import OrderedRanking
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,23 @@ class ProtectionPolicy:
         if not 0.0 <= coverage <= 1.0:
             raise ValueError("coverage must be in [0, 1]")
         return min(universe_size, max(0, int(math.floor(coverage * universe_size + 1e-12))))
+
+    @classmethod
+    def ordered(cls, ordering: OrderedRanking, coverage: float) -> ProtectionMask:
+        count = cls._count(len(ordering.identities), coverage)
+        return ProtectionMask(
+            policy=ordering.name,
+            protected=frozenset(ordering.identities[:count]),
+            universe_size=len(ordering.identities),
+            budget=float(count),
+            metadata={
+                "estimator": ordering.estimator,
+                "criteria": list(ordering.criteria),
+                "ordering_sha256": ordering.digest(),
+                "ranking_seed": ordering.seed,
+                "requested_coverage": coverage,
+            },
+        )
 
     @classmethod
     def global_ranking(cls, ranking: Ranking, coverage: float) -> ProtectionMask:

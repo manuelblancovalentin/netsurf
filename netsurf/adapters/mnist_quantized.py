@@ -17,6 +17,7 @@ from ..identities import BitIdentity, ParameterSpec, enumerate_bits
 from ..manifests import digest_object, sha256_file
 from ..paths import dataset_root, workspace_root
 from ..quantization import BitCodec, FixedPointFormat
+from ..samples import SamplePartition, sample_identity_digest
 
 
 @dataclass(frozen=True)
@@ -177,6 +178,32 @@ class MnistQuantizedAdapter:
             raise ValueError(f"requested {count} {role} samples, found {len(labels)}")
         return _normalize(images), labels.astype(np.int64)
 
+    def sample_partition(self, role: str, count: int):
+        self._require_loaded()
+        definitions = {
+            "ranking": ("x_train", 50_000, 52_500, "training tail reserved for ranking/calibration"),
+            "empirical_validation": ("x_train", 52_500, 55_000, "training tail reserved for empirical estimator validation"),
+            "evaluation": ("x_test", 0, 10_000, "held-out test split reserved for final protection evaluation"),
+        }
+        if role not in definitions:
+            raise ValueError(f"unsupported M3 sample role: {role}")
+        source_name, start, stop, provenance = definitions[role]
+        if not 1 <= count <= stop - start:
+            raise ValueError(f"{role} count must be in [1,{stop-start}]")
+        indices = tuple(range(start, start + count))
+        with np.load(self.dataset_path) as data:
+            images = data[source_name][list(indices)]
+            labels = data["y_train" if source_name == "x_train" else "y_test"][list(indices)].astype(np.int64)
+        source_split = "mnist_train" if source_name == "x_train" else "mnist_test"
+        partition = SamplePartition(
+            role,
+            source_split,
+            indices,
+            sample_identity_digest(source_split, indices, labels),
+            provenance,
+        )
+        return _normalize(images), labels, partition
+
     def values(self) -> dict[str, np.ndarray]:
         self._require_loaded()
         return {name: value.copy() for name, value in self._values.items()}
@@ -218,6 +245,13 @@ class MnistQuantizedAdapter:
         accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(logits, axis=1, output_type=tf.int64), labels), tf.float32))
         return Evaluation(float(accuracy.numpy()), float(tf.reduce_mean(losses).numpy()), len(labels))
 
+    def predict_classes(self, inputs: np.ndarray) -> np.ndarray:
+        import tensorflow as tf
+
+        values = {name: tf.convert_to_tensor(value) for name, value in self._values.items()}
+        logits = self._forward_tensor(tf.convert_to_tensor(inputs), values)
+        return tf.argmax(logits, axis=1, output_type=tf.int64).numpy()
+
     def gradients(self, inputs: np.ndarray, labels: np.ndarray) -> dict[str, np.ndarray]:
         import tensorflow as tf
 
@@ -228,5 +262,62 @@ class MnistQuantizedAdapter:
         gradients = tape.gradient(loss, list(variables.values()))
         return {name: gradient.numpy().copy() for name, gradient in zip(variables, gradients)}
 
+    def per_example_gradients(self, inputs: np.ndarray, labels: np.ndarray) -> dict[str, np.ndarray]:
+        import tensorflow as tf
+
+        variables = {name: tf.Variable(value, trainable=True, name=name.replace("/", "_")) for name, value in self._values.items()}
+        with tf.GradientTape() as tape:
+            logits = self._forward_tensor(tf.convert_to_tensor(inputs), variables)
+            losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
+        jacobians = tape.jacobian(losses, list(variables.values()), experimental_use_pfor=True)
+        return {name: value.numpy().copy() for name, value in zip(variables, jacobians)}
+
+    def hessian_vector_product(self, inputs, labels, vectors):
+        import tensorflow as tf
+
+        variables = {name: tf.Variable(value, trainable=True, name=name.replace("/", "_")) for name, value in self._values.items()}
+        with tf.GradientTape() as outer:
+            with tf.GradientTape() as inner:
+                logits = self._forward_tensor(tf.convert_to_tensor(inputs), variables)
+                loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits))
+            gradients = inner.gradient(loss, list(variables.values()))
+            product = tf.add_n([
+                tf.reduce_sum(gradient * tf.convert_to_tensor(vectors[name], dtype=gradient.dtype))
+                for name, gradient in zip(variables, gradients)
+            ])
+        hvp = outer.gradient(product, list(variables.values()))
+        return {name: value.numpy().copy() for name, value in zip(variables, hvp)}
+
     def polar_impacts(self, inputs: np.ndarray, *, activation_source: str):
-        raise ValueError("legacy_qpolargrad is not supported by mnist_quantized")
+        import tensorflow as tf
+
+        flat = tf.reshape(tf.convert_to_tensor(inputs), (len(inputs), 784)).numpy()
+        values = self.values()
+        clean_hidden = np.maximum(flat @ values["dense0/kernel"] + values["dense0/bias"], 0.0)
+        if activation_source == "clean":
+            layer_inputs = {"dense0": flat, "dense1": clean_hidden}
+            uncancelled = False
+        elif activation_source == "globally_attacked_first_call":
+            full_mask = np.uint64((1 << self.codec.format.total_bits) - 1)
+            attacked = {
+                name: self.codec.decode(np.bitwise_xor(self.codec.encode(value), full_mask)).astype(np.float32)
+                for name, value in values.items()
+            }
+            attacked_hidden = np.maximum(flat @ attacked["dense0/kernel"] + attacked["dense0/bias"], 0.0)
+            layer_inputs = {"dense0": flat, "dense1": attacked_hidden}
+            uncancelled = False
+        elif activation_source == "clean_uncancelled":
+            layer_inputs = {"dense0": flat, "dense1": clean_hidden}
+            uncancelled = True
+        else:
+            raise ValueError(f"unsupported qPolar activation source: {activation_source}")
+        impacts = {}
+        for name, value in values.items():
+            delta = self.codec.perturbation_matrix(value)
+            if name.endswith("/bias"):
+                impacts[name] = np.abs(delta) if uncancelled else delta
+            else:
+                activation = layer_inputs[name.split("/", 1)[0]]
+                factor = np.mean(np.abs(activation), axis=0) if uncancelled else np.mean(activation, axis=0)
+                impacts[name] = factor[:, None, None] * (np.abs(delta) if uncancelled else delta)
+        return impacts
