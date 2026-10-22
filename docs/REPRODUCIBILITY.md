@@ -107,7 +107,7 @@ No training occurs.
 
 Expected scientific payload SHA-256 values for the validated checkpoint are:
 
-- single MSB: `ba89ff7952484bed90883e215bec05d35f06b36b4c91a6ea2fb0c608daca04ec`
+- single MSB: `a925217f6e34ac68dea805b66f68d0fd5191bdee7d23b29ca19a112e571547ec`
 - comparison: `0b1b7b0edb92cf7480ceb1c261cdf02cd948a70ce9e9d5f26b57905e71bd650f`
 
 The explicit twice-repeated check is `python -m tests.integration_modern_mnist`.
