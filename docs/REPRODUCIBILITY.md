@@ -57,6 +57,12 @@ conda run -n netsurf-legacy python -m netsurf run config/experiments/template.to
 conda run -n netsurf-legacy python -m netsurf run config/experiments/template.toml
 ```
 
+The optional automated form of the same twice-repeated check is:
+
+```bash
+conda run -n netsurf-legacy python -m tests.integration_mnist
+```
+
 Run `netsurf inspect <printed-run-directory>` for each output and compare the
 reported scientific payload digests. This bounded command is CPU-only,
 evaluates 256 held-out MNIST test images,

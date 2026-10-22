@@ -24,6 +24,8 @@ from .ranking import (
 )
 from .result_store import ResultStore
 from .statistics import summarize
+from .experiment_config import validate_experiment_document
+from .experiment_engine import execute_experiment
 
 
 CHECKPOINT_RELATIVE = Path(
@@ -112,7 +114,7 @@ def _codec_exhaustive(codec: BitCodec) -> bool:
     return True
 
 
-def execute_once(
+def _legacy_execute_once_reference(
     root: Path,
     output_root: Path,
     *,
@@ -340,6 +342,68 @@ def execute_once(
     store.write_json("rankings.json", exact_rankings)
     store.write_json("protection_masks.json", exact_masks)
     store.write_json("fault_schedules.json", exact_schedules)
+    store.write_text("report.md", _report_markdown(scientific_payload))
+    digest = store.finalize(scientific_payload)
+    return store.path, digest, scientific_payload
+
+
+def execute_once(
+    root: Path,
+    output_root: Path,
+    *,
+    repeat_index: int,
+    checkpoint: Path | None = None,
+    dataset: Path | None = None,
+    sample_count: int = 256,
+    ranking_count: int = 256,
+    trials: int = 12,
+    ber: float = 0.001,
+    coverage: float = 0.10,
+    random_ranking_seed: int = 23011,
+    fault_seed: int = 910_000,
+) -> tuple[Path, str, dict[str, Any]]:
+    """Run the historical file-layout API through the canonical engine.
+
+    ``_legacy_execute_once_reference`` remains as audit evidence only. New CLI
+    and API callers use versioned result bundles directly.
+    """
+
+    root = Path(root).resolve()
+    output_root = Path(output_root).resolve()
+    checkpoint = Path(checkpoint or artifact_root() / "legacy" / CHECKPOINT_RELATIVE).expanduser().resolve()
+    if dataset is None:
+        raise ValueError("dataset path must be provided explicitly")
+    dataset = Path(dataset).expanduser().resolve()
+    document = {
+        "schema_version": "1.0.0",
+        "scientific_protocol": "legacy-mnist-persistent-weight/v1",
+        "experiment": {"name": "mnist_deterministic_milestone", "description": "Historical compatibility wrapper."},
+        "benchmark": {"adapter": "legacy_mnist_lite", "id": "mnist_fnn_lite-20250414_152629-q6_2_1-pruned_0_125", "checkpoint": str(checkpoint), "dataset": str(dataset), "split": "keras_mnist_test_first_n", "evaluation_samples": sample_count, "ranking_samples": ranking_count, "quantization": "q<6,2,1>"},
+        "estimators": [
+            {"name": "legacy_qpolargrad", "implementation_version": "recovered-first-call/v1", "policy": "position_first", "result_name": "legacy_qpolargrad_position_first", "activation_source": "globally_attacked_first_call"},
+            {"name": "msb_first", "implementation_version": "encoded-bit-index/v1", "policy": "global_ranking", "result_name": "msb_first"},
+            {"name": "random", "implementation_version": "numpy-pcg64/v1", "policy": "global_ranking", "result_name": "random"},
+            {"name": "first_order_gradient_delta", "implementation_version": "abs-gradient-times-exact-delta/v1", "policy": "global_ranking", "result_name": "first_order_gradient_delta"},
+        ],
+        "protection": {"coverage": coverage, "mitigation_model": "perfect_event_suppression"},
+        "fault": {"target": "weight", "location": "logical_trainable_parameter_bits", "persistence": "persistent_trial", "distribution": "independent_bernoulli", "probability": ber},
+        "execution": {"trials": trials, "confidence": 0.95, "random_ranking_seed": random_ranking_seed, "fault_seed": fault_seed},
+        "output": {"root": str(output_root), "report": True, "plots": False},
+    }
+    configuration = validate_experiment_document(document, root / "compatibility-milestone.toml")
+    outcome = execute_experiment(configuration)
+    scientific_payload = dict(outcome.scientific_payload)
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    run_id = f"mnist-lite-milestone-{timestamp}-r{repeat_index}"
+    store = ResultStore(output_root, run_id)
+    store.write_json("manifest.json", {"schema": "netsurf-v2-run-manifest/v1", "created_utc": datetime.now(timezone.utc).isoformat(), "run_id": run_id,
+        "scientific_payload_sha256": digest_object(scientific_payload), "source": git_provenance(root), "runtime": runtime_provenance(),
+        "artifacts": {"checkpoint": {"path": str(checkpoint), "sha256": sha256_file(checkpoint)}, "dataset": {"path": str(dataset), "sha256": sha256_file(dataset)}}})
+    store.write_json("scientific_payload.json", scientific_payload)
+    store.write_json("trials.json", [row.to_dict() for row in outcome.trials])
+    store.write_json("rankings.json", outcome.rankings)
+    store.write_json("protection_masks.json", outcome.protection_masks)
+    store.write_json("fault_schedules.json", outcome.fault_schedules)
     store.write_text("report.md", _report_markdown(scientific_payload))
     digest = store.finalize(scientific_payload)
     return store.path, digest, scientific_payload
