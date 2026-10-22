@@ -63,7 +63,7 @@ _REGISTRY = {
         "q<6,2,1>", "netsurf_bitcodec_v1 over Keras-trained parameters", "/ml/datasets/mnist/mnist.npz",
         "workspace/benchmarks/mnist_quantized/checkpoint.npz", ("msb_first", "random", "first_order_gradient_delta"),
         ("weight",), ("persistent_trial", "per_inference"), ("hls4ml Vitis: planned validation", "hls4ml Catapult: dense path only, planned validation"),
-        "experimental until prepared checkpoint integration passes", ("tensorflow", "keras"), True,
+        "bounded software integration validated; hardware equivalence not validated", ("tensorflow", "keras"), True,
     ),
     "legacy_mnist_lite": BenchmarkDescriptor(
         "legacy_mnist_lite", "legacy_mnist_lite", "historical MNIST compatibility",
