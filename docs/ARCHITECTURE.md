@@ -39,8 +39,18 @@ FaultModel -> deterministic FaultSchedule -> InjectionEngine
 - `netsurf.identities`: immutable tensor and bit identities. Bit index zero is always the encoded LSB.
 - `netsurf.ranking`: score-only estimators for random, correct MSB, gradient magnitude, elementary first order, and recovered legacy qPolarGrad.
 - `netsurf.protection`: global, position-first, and greedy nonuniform-cost policies. The greedy policy explicitly makes no optimality claim.
-- `netsurf.faults`: explicit deterministic events, persistent and per-inference schedule generation, perfect-mask suppression, and exact accounting. The first milestone executes persistent-trial weight faults only.
+- `netsurf.faults`: explicit deterministic events, persistent and
+  per-inference schedule generation, perfect-mask suppression, and exact
+  accounting. Per-inference windows are indexed by sample, not software batch.
 - `netsurf.adapters.legacy_mnist`: isolated TensorFlow/legacy checkpoint bridge with exact state restoration.
+- `netsurf.benchmarks.registry`: static benchmark contracts and readiness
+  diagnostics with no eager ML imports.
+- `netsurf.adapters.numpy_reference`: fixed 2-3-2 quantized reference network
+  used for exhaustive bit and gradient validation.
+- `netsurf.adapters.mnist_quantized`: explicit Keras-trained Dense-32 MNIST
+  architecture whose faulted inference consumes exact fixed-point values.
+- `netsurf.doctor`: environment, dataset, workspace, and adapter diagnostics
+  using package metadata rather than importing TensorFlow.
 - `netsurf.statistics`: sample statistics and Student-t confidence intervals.
 - `netsurf.experiment_config`: strict versioned TOML loading and executable validation.
 - `netsurf.adapters.protocol`: framework-neutral benchmark/model adapter contract; the registry imports TensorFlow only when explicitly requested.
@@ -66,6 +76,22 @@ scientific payload SHA-256. Unsupported versions fail rather than being
 reinterpreted. Presentation timestamps and absolute output paths are excluded
 from the payload digest.
 
+## Framework boundaries
+
+The engine depends only on the adapter protocol. An adapter explicitly owns
+model construction, dataset roles, fixed parameter names, exact current state,
+evaluation, gradients, and temporary-state restoration. NetSuRF does not clone
+arbitrary user models; adding an architecture means implementing and testing a
+new adapter.
+
+Keras prepares the modern MNIST source model. The inference checkpoint contains
+already quantized arrays, and TensorFlow operations consume those exact decoded
+arrays in clean and faulted inference. HGQ2/hls4ml are installed investigation
+tools, not part of this benchmark's numerical claim.
+
 ## Deferred interfaces
 
-Activation injection, Hessian estimation, empirical single-bit validation, mitigation implementations, HLS/RTL export, logical-to-physical mapping, and Wolf hardware execution are intentionally deferred until the first software milestone passes review.
+Activation injection, Hessian estimation, new qPolarGrad theory, mitigation
+implementations, HLS/RTL export, logical-to-physical mapping, and Wolf hardware
+execution remain deferred. Exhaustive single-bit validation is implemented for
+the NumPy reference but not for the 152,700-bit MNIST population.

@@ -10,7 +10,11 @@ For value `w` and bit `k`:
 delta(w, k) = decode(encode(w) XOR (1 << k)) - decode(encode(w))
 ```
 
-Fault injection adds this exact delta to the checkpoint value. It does not silently replace the checkpoint with a fully rounded model. The exhaustive 64-code/384-flip test is mandatory.
+Fault injection adds this exact delta to the checkpoint value. For modern
+adapters the checkpoint is already exactly quantized, so encoded XOR, decode,
+and inference state use the same representation. The exhaustive
+64-code/384-flip codec test is mandatory; the NumPy reference additionally
+exhausts every parameter bit through model inference.
 
 ## Estimator versus policy
 
@@ -24,7 +28,12 @@ No current estimator is claimed globally optimal.
 
 ## Fault model
 
-The first milestone uses independent Bernoulli logical weight-bit events, sampled once per Monte Carlo trial and held persistently for the evaluated test subset. Protected events are perfectly suppressed. Base model state is restored exactly after every policy/trial evaluation. Policies in a trial consume the same schedule hash.
+Modern experiments use independent Bernoulli logical weight-bit events either
+sampled once per Monte Carlo trial and held persistently for its evaluation
+window, or sampled separately for each indexed inference. The latter is
+independent of software batch size. Protected events are perfectly suppressed.
+Base model state is restored after every policy/trial or per-inference
+evaluation. Policies in a trial consume the same schedule hash.
 
 This probability is a logical BER parameter, not fluence, cross-section, FIT, SEU rate, or mission-time reliability.
 
@@ -35,3 +44,16 @@ Trial results are independent across explicitly recorded seeds. Policy compariso
 ## Result immutability
 
 A finalized run contains a manifest, scientific payload, trial records, exact ranking scores, exact protection-mask identities, exact fault events, a human-readable report, and `FINALIZED` digest. Files are created exclusively and made read-only. Hashes of the exact artifacts are embedded in the scientific payload. A repeated run must produce the same canonical scientific-payload SHA-256; timestamps and run paths are excluded from that digest.
+
+## Modern benchmark scope
+
+The MNIST source architecture is `Flatten(28x28) -> Dense(32, ReLU) ->
+Dense(10 logits)`. Injectable state is exactly the two kernels and two bias
+arrays. Optimizer state, training-time float shadows, and learned quantizer
+parameters are not fault targets. Ranking examples are drawn from the reserved
+training tail; evaluation examples are drawn from the test split.
+
+The current backend identifier is `netsurf_bitcodec_v1`. HGQ2 and hls4ml
+availability does not imply C-simulation, RTL-equivalence, or synthesis
+validation. `perfect_event_suppression` is an ideal logical mask, not ECC, TMR,
+or another hardware mitigation guarantee.

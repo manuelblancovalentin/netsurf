@@ -1,6 +1,132 @@
 # Reproducibility
 
-## Canonical environment and installation
+## Modern M2 environment construction
+
+NetSuRF M2 is validated on Python 3.11.17. `proj` selects the Kona environment
+but is not required by the software and is not a dependency lock.
+
+On Kona with `proj`:
+
+```bash
+cd /home/manuelbv/netsurf
+proj activate netsurf
+python -m pip install -r dependencies/modern-ml-direct.txt
+python -m pip install --no-deps -e .
+python -m pip check
+netsurf doctor
+python -m pytest -q
+```
+
+On another server without `proj`:
+
+```bash
+git clone <approved-netsurf-remote> netsurf
+cd netsurf
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r dependencies/modern-ml-direct.txt
+python -m pip install --no-deps -e .
+python -m pip check
+netsurf doctor
+python -m pytest -q
+```
+
+The user controls installation and site modules. These commands are a recorded
+recipe, not something NetSuRF runs automatically. Set `NETSURF_DATASET_ROOT`
+when the shared dataset tree is not `/ml/datasets`; set `NETSURF_WORKSPACE` to
+change the generated-work root. The normal destination remains the ignored
+repository-local `workspace/` tree. Archive `python -m pip freeze` with a
+deployment record when exact transitive recreation matters. No EDA tool or
+`proj` module is required for software experiments.
+
+CPU-only TensorFlow messages saying that CUDA drivers are absent are expected.
+See `dependencies/MODERN_ML.md` for warning interpretation and the modern
+quantization/HLS-library boundary.
+
+## Modern diagnostics and reference benchmark
+
+```bash
+netsurf doctor
+netsurf benchmarks list
+netsurf benchmarks info numpy_reference
+netsurf benchmarks info mnist_quantized
+netsurf validate config/experiments/numpy_reference.toml --resolved
+netsurf run config/experiments/numpy_reference.toml
+```
+
+The fixed NumPy 2-3-2 network has 17 exactly quantized parameters (102 encoded
+bits) and eight packaged samples. Tests exhaustively inject all 102 bits,
+compare analytic gradients with finite differences, exercise multi-bit XOR and
+per-inference replay, and verify state restoration. It is a scientific
+reference, not a publication benchmark.
+
+## Modern MNIST preparation
+
+Prerequisite dataset:
+
+- `${NETSURF_DATASET_ROOT:-/ml/datasets}/mnist/mnist.npz`
+- SHA-256 `731c5ac602752760c8e48fbffcf8c3b850d9dc2a2aedcf2cc48468fc17b673d1`
+
+Prepare once:
+
+```bash
+TF_CPP_MIN_LOG_LEVEL=2 CUDA_VISIBLE_DEVICES=-1 TF_DETERMINISTIC_OPS=1 \
+  netsurf benchmarks prepare mnist_quantized --epochs 3 --train-samples 20000
+```
+
+This trains on `x_train[0:20000]`, reserves `x_train[50000:60000]` for
+validation/ranking, evaluates `x_test`, quantizes each kernel and bias to
+NetSuRF `q<6,2,1>`, and atomically writes a read-only checkpoint to
+`workspace/benchmarks/mnist_quantized/checkpoint.npz`. It refuses overwrite.
+Expected scale is CPU-only, three short epochs, approximately one minute, with
+no HLS or synthesis.
+
+The checkpoint prepared on 2026-10-22 has SHA-256
+`1c58daf1bb23d1cdbaf38e68e4d957145be62435fd379bc3716904d57aa77780`.
+Exact quantized inference on the first 256 test samples is 0.92578125 accuracy
+and 0.2608608603477478 categorical cross-entropy. Training may not reproduce
+byte-identically across CPUs or TensorFlow builds. Once prepared, the
+checkpoint and checksum are the stable scientific input.
+
+## Modern single- and multi-ranker runs
+
+```bash
+netsurf validate config/experiments/mnist_msb.toml
+netsurf run config/experiments/mnist_msb.toml
+netsurf validate config/experiments/mnist_ranker_comparison.toml
+netsurf run config/experiments/mnist_ranker_comparison.toml
+```
+
+Both use 256 evaluation images, 256 disjoint ranking images, 12 independent
+persistent-fault trials, logical BER 0.001, and 10% equal-bit protection. The
+comparison uses matched schedules for MSB-first, seeded random, first-order
+gradient-times-exact-delta, no-protection, and full-protection controls. Typical
+runtime is under one minute on a Kona CPU and output is below 20 MB per bundle.
+No training occurs.
+
+Expected scientific payload SHA-256 values for the validated checkpoint are:
+
+- single MSB: `ba89ff7952484bed90883e215bec05d35f06b36b4c91a6ea2fb0c608daca04ec`
+- comparison: `0b1b7b0edb92cf7480ceb1c261cdf02cd948a70ce9e9d5f26b57905e71bd650f`
+
+The explicit twice-repeated check is `python -m tests.integration_modern_mnist`.
+It does not train; it verifies the checkpoint and two finalized comparison
+bundles. Wall-clock ranker timings, timestamps, paths, and Git dirty metadata
+are excluded from the digest.
+
+Every run prints its unique directory. Inspect and regenerate presentation
+without rerunning inference:
+
+```bash
+netsurf inspect workspace/runs/<experiment>/<run-id>
+netsurf report workspace/runs/<experiment>/<run-id> \
+  --output workspace/scratch/reports/<run-id> --plots
+```
+
+## Historical M1.5 compatibility
+
+### Canonical environment and installation
 
 The private `proj` project `netsurf` points to this repository and the dedicated
 Python 3.11.17 environment at
@@ -10,7 +136,7 @@ it is not a dependency lock.
 ```bash
 /opt/proj/bin/proj info --env netsurf
 proj activate netsurf
-python -m pip install -e .
+python -m pip install --no-deps -e .
 python -m tests.run
 ```
 
@@ -20,7 +146,7 @@ Expected M1.5 core result: 30 passed, 0 failed. From outside the checkout,
 On Kona, interactive shell startup must initialize Lmod, Conda, and the proj
 shell adapter. The repository does not modify those site shell settings.
 
-## Storage prerequisites
+### Storage prerequisites
 
 - Dataset: `/ml/datasets/mnist/mnist.npz`, SHA-256
   `731c5ac602752760c8e48fbffcf8c3b850d9dc2a2aedcf2cc48468fc17b673d1`.
@@ -33,7 +159,7 @@ and documented destination remains repository-local. Historical external runs
 are not moved. Exact input paths and migration evidence are in
 `STORAGE_MIGRATION.md`.
 
-## First scientific milestone
+### First scientific milestone
 
 The exact historical compatibility stack is TensorFlow 2.11.1 on Python 3.10,
 preserved as `netsurf-legacy`. TensorFlow 2.11 has no Python 3.11 wheel, so the
@@ -91,7 +217,6 @@ conda run -n netsurf python -m netsurf report <run-directory> \
   --output workspace/scratch/reports/<run-id>
 ```
 
-The canonical environment currently lacks optional `matplotlib`. Markdown
-regeneration works there; `--plots` requires `matplotlib>=3.8,<4`. The user may
-add it with `python -m pip install -e '.[plot]'`. The already-installed legacy
-environment provides a usable Matplotlib for the bounded integration run.
+The modern canonical environment now includes Matplotlib 3.11.2. A core-only
+installation can still regenerate Markdown without it; `--plots` requires the
+declared `matplotlib>=3.8,<4` optional dependency.

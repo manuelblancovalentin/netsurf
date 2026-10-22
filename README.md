@@ -14,13 +14,14 @@ the Python 3.11 environment at
 
 ```bash
 proj activate netsurf
-python -m pip install -e .
+python -m pip install --no-deps -e .
 python -m tests.run
 ```
 
-The core install requires only NumPy. The deterministic MNIST compatibility
-milestone additionally needs the validated historical TensorFlow/QKeras stack;
-see `dependencies/LEGACY_MNIST.md`.
+The validated modern stack is recorded in `dependencies/modern-ml-direct.txt`;
+see `dependencies/MODERN_ML.md` for setup without `proj`, compatibility notes,
+and acceptance checks. Historical compatibility remains documented separately
+in `dependencies/LEGACY_MNIST.md` and is not required by the new benchmarks.
 
 ## Storage configuration
 
@@ -36,25 +37,53 @@ ignored repository workspace. The Kona defaults are:
 Override these environment variables on another system. A reference layout is
 provided in `config/storage.example.toml`.
 
-## Self-service experiments
+## Self-service modern experiments
 
 The CLI, Python API, and notebook-style tutorial all use the same engine:
+
+```bash
+netsurf doctor
+netsurf benchmarks list
+netsurf benchmarks info numpy_reference
+netsurf benchmarks info mnist_quantized
+
+netsurf validate config/experiments/numpy_reference.toml --resolved
+netsurf run config/experiments/numpy_reference.toml
+
+# One-time bounded preparation; refuses to overwrite an existing checkpoint.
+netsurf benchmarks prepare mnist_quantized --epochs 3 --train-samples 20000
+
+netsurf validate config/experiments/mnist_msb.toml
+netsurf run config/experiments/mnist_msb.toml
+netsurf run config/experiments/mnist_ranker_comparison.toml
+
+# Use the run directory printed by either command.
+netsurf inspect workspace/runs/<experiment>/<run-id>
+netsurf report workspace/runs/<experiment>/<run-id> --plots
+```
+
+The preparation step trains `Flatten(28x28) -> Dense(32, ReLU) -> Dense(10)`
+and writes an exact `q<6,2,1>` checkpoint under
+`workspace/benchmarks/mnist_quantized/`. Experiments never retrain it. Kernels
+and biases are the injectable population: 25,450 scalars and 152,700 logical
+bits. MSB-first, seeded random, and first-order
+`abs(dL/dw * exact_bit_delta)` rankers are available independently or together.
+
+For generic schema-1 template operations retained from M1.5:
 
 ```bash
 netsurf --help
 netsurf init-experiment --template smoke --output workspace/scratch/my_experiment.toml
 netsurf validate config/experiments/template.toml --resolved
-netsurf run config/experiments/template.toml
-netsurf inspect workspace/runs/<experiment>/<run-id>
-netsurf report workspace/runs/<experiment>/<run-id>
 ```
 
 Finalized bundles are immutable and contain configuration, provenance,
 measurements, exact masks and schedules, checksums, a Markdown report, and
-supported plots. `tutorials/read_result.py` demonstrates the public Python API.
-The maintained experiment is a logical persistent weight-bit experiment, not a
-calibrated physical SEU model. See `docs/REPRODUCIBILITY.md` for its bounds and
-expected digest.
+supported plots. `tutorials/read_result.py` demonstrates the public Python API;
+report regeneration does not import TensorFlow or rerun inference. These are
+logical weight-bit experiments with ideal event suppression, not calibrated
+physical SEU models or synthesized mitigation. See `docs/REPRODUCIBILITY.md`
+for bounded commands and expected digests.
 
 ## Repository map
 

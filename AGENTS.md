@@ -25,4 +25,7 @@
 
 ## Current bounded milestone
 
-Run `python -m tests.run` in the activated `netsurf` project, then use the versioned experiment commands in `docs/REPRODUCIBILITY.md`.
+Run `python -m tests.run` in the activated `netsurf` project. Use
+`netsurf doctor` before modern experiments, and follow the bounded preparation,
+single-ranker, comparison, and optional integration commands in
+`docs/REPRODUCIBILITY.md`. Do not retrain an existing write-once checkpoint.

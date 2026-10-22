@@ -19,7 +19,16 @@ Acceptance criteria: exact checkpoint and held-out split; deterministic ranking/
 - [x] Reports and plots regenerated solely from finalized data.
 - [x] Dependency-free core regression suite plus bounded TensorFlow integration validation.
 
-## M2 — estimator validation
+## M2 — modern benchmarks and self-service fault injection
+
+- [x] Benchmark registry, environment doctor, and explicit readiness states.
+- [x] NumPy reference network with exhaustive bit injection and gradient checks.
+- [x] Fresh Keras Dense-32 MNIST preparation and exact fixed-point checkpoint.
+- [x] Single- and multi-ranker runs with matched schedules and no/full controls.
+- [x] Persistent and sample-indexed per-inference replay with restoration.
+- [x] Schema-2 bundles, paired reports, plots, and repeated payload digests.
+
+## M2.1 — estimator validation study
 
 On a deliberately small network/subset, exhaustively inject individual bits. Compare rank correlations, top-k overlap, loss prediction calibration, and protection outcomes for gradient magnitude, first order, clean-activation qPolarGrad, recovered attacked-activation qPolarGrad, Hessian, and random. Resolve qPolarGrad theory only after these data exist.
 

@@ -1,10 +1,11 @@
 # Versioned experiments and result bundles
 
-Experiment TOML schema `1.0.0` is the user-authored contract. The loader is
-strict: unknown fields, unsupported estimators/policies/fault semantics, and
-unsupported schema or protocol versions fail before model loading. Templates
-are in `config/experiments/`; packaged copies make `netsurf init-experiment`
-work outside the checkout.
+Experiment TOML schemas `1.0.0` and `2.0.0` are supported user-authored
+contracts. Version 1 preserves the historical adapter; version 2 adds explicit
+benchmark, quantization-backend, injectable-parameter, and persistent or
+per-inference fault semantics. The loader is strict: unknown fields,
+unsupported combinations, and unsupported schema or protocol versions fail
+before model loading.
 
 Each run is staged as a hidden `.incomplete` directory. Only after every
 requested measurement, artifact, report, plot, manifest, and checksum has been
@@ -21,6 +22,7 @@ workspace/runs/<experiment>/<run-id>/
 ├── measurements/
 │   ├── trials.csv
 │   ├── estimator_scores.csv
+│   ├── estimator_runtime.csv             # modern experiments
 │   └── protection_results.csv
 ├── artifacts/
 │   ├── protection_masks.json
@@ -33,6 +35,8 @@ workspace/runs/<experiment>/<run-id>/
 
 The measurement schema documents names, types, units, null representation,
 and the independent sampling unit. `trials.csv` contains paired policy rows:
-the independent unit is the persistent fault schedule/trial, not an inference
-sample. Schema evolution must add a new reader or an explicit non-mutating
-migration; finalized bundles are never rewritten in place.
+the independent unit is the fault schedule/trial, not an inference sample.
+Schema-2 runs include no- and full-protection controls. Estimator wall times are
+execution metadata and excluded from the stable scientific payload. Schema
+evolution must add a reader or explicit non-mutating migration; finalized
+bundles are never rewritten in place.
