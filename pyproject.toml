@@ -14,6 +14,7 @@ dependencies = ["numpy>=1.24,<2"]
 
 [project.optional-dependencies]
 test = ["pytest>=7,<9"]
+plot = ["matplotlib>=3.8,<4"]
 
 [project.scripts]
 netsurf = "netsurf.__main__:main"
@@ -21,6 +22,9 @@ netsurf = "netsurf.__main__:main"
 [tool.setuptools.packages.find]
 include = ["netsurf*"]
 exclude = ["DEPRECATED*", "tests*"]
+
+[tool.setuptools.package-data]
+netsurf = ["schemas/**/*.json", "schemas/README.md", "templates/*.toml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,0 +1,51 @@
+schema_version = "1.0.0"
+scientific_protocol = "legacy-mnist-persistent-weight/v1"
+
+[experiment]
+name = "mnist_smoke"
+description = "Fast functional smoke test of the versioned experiment engine."
+objective = "Validate loading, ranking, masking, injection, aggregation, and result serialization."
+
+[benchmark]
+adapter = "legacy_mnist_lite"
+id = "mnist_fnn_lite-20250414_152629-q6_2_1-pruned_0_125"
+checkpoint = "/ml/experiments/netsurf/legacy/benchmarks/mnist_fnn_lite/q6_2_1/pruned_0.125_159569_qflatten_dense10u_qapplyalpha_quantized_relu_dense10u_qsoftmax/models/pruned_0.125_159569_qflatten_dense10u_qapplyalpha_quantized_relu_dense10u_qsoftmax.20250414_152629.keras"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "keras_mnist_test_first_n"
+evaluation_samples = 16
+ranking_samples = 16
+quantization = "q<6,2,1>"
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "encoded-bit-index/v1"
+policy = "global_ranking"
+result_name = "msb_first"
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "abs-gradient-times-exact-delta/v1"
+policy = "global_ranking"
+result_name = "first_order_gradient_delta"
+
+[protection]
+coverage = 0.10
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.001
+
+[execution]
+trials = 2
+confidence = 0.95
+random_ranking_seed = 23011
+fault_seed = 910000
+
+[output]
+root = ""
+report = true
+plots = false

@@ -24,6 +24,15 @@ def artifact_root() -> Path:
     ).expanduser()
 
 
+def workspace_root() -> Path:
+    """Return the local generated-work root without creating it."""
+
+    configured = os.environ.get("NETSURF_WORKSPACE")
+    if configured:
+        return Path(configured).expanduser()
+    return Path(__file__).resolve().parents[1] / "workspace"
+
+
 def legacy_source_root() -> Path:
     """Return the preserved historical package root used by adapters only."""
 

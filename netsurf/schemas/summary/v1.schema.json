@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/summary/v1.schema.json",
+  "title": "NetSuRF result summary",
+  "type": "object",
+  "required": ["schema_version", "scientific_protocol", "experiment_name", "benchmark_id", "trial_count", "baseline", "protection_results", "checks", "scientific_payload_sha256"],
+  "properties": {"schema_version": {"const": "1.0.0"}}
+}

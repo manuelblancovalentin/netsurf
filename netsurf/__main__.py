@@ -1,46 +1,67 @@
-"""Command-line entry point for bounded NetSuRF v2 workflows."""
+"""Command-line interface for versioned NetSuRF experiments."""
 
 from __future__ import annotations
 
 import argparse
 import json
 from pathlib import Path
+import sys
 
-from .milestone import execute_repeated
-from .paths import artifact_root, dataset_root
+from .api import read_result_bundle, regenerate_report, run_experiment
+from .experiment_config import ConfigurationError, load_experiment, template_text
+from .paths import workspace_root
+from .plotting import PlottingDependencyError
+from .result_bundle import ResultBundleError
 
 
-def main() -> int:
+def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="netsurf")
     subparsers = parser.add_subparsers(dest="command", required=True)
-    milestone = subparsers.add_parser("milestone", help="run the deterministic MNIST-lite milestone twice")
-    milestone.add_argument("--repo", type=Path, default=Path.cwd())
-    milestone.add_argument("--output-root", type=Path)
-    milestone.add_argument("--checkpoint", type=Path)
-    milestone.add_argument("--dataset", type=Path)
-    milestone.add_argument("--samples", type=int, default=256)
-    milestone.add_argument("--ranking-samples", type=int, default=256)
-    milestone.add_argument("--trials", type=int, default=12)
-    milestone.add_argument("--ber", type=float, default=0.001)
-    milestone.add_argument("--coverage", type=float, default=0.10)
-    milestone.add_argument("--repeats", type=int, default=2)
-    args = parser.parse_args()
-    if args.command == "milestone":
-        result = execute_repeated(
-            args.repo,
-            args.output_root or artifact_root() / "runs" / "mnist_lite_milestone",
-            checkpoint=args.checkpoint,
-            dataset=args.dataset or dataset_root() / "mnist" / "mnist.npz",
-            repeats=args.repeats,
-            sample_count=args.samples,
-            ranking_count=args.ranking_samples,
-            trials=args.trials,
-            ber=args.ber,
-            coverage=args.coverage,
-        )
-        print(json.dumps(result, indent=2, sort_keys=True))
+    initialize = subparsers.add_parser("init-experiment", help="create a validated experiment TOML template")
+    initialize.add_argument("--output", type=Path, required=True)
+    initialize.add_argument("--template", choices=("template", "smoke"), default="template")
+    validate = subparsers.add_parser("validate", help="validate without running")
+    validate.add_argument("configuration", type=Path)
+    validate.add_argument("--resolved", action="store_true")
+    run = subparsers.add_parser("run", help="execute and finalize a new result bundle")
+    run.add_argument("configuration", type=Path)
+    inspect = subparsers.add_parser("inspect", help="verify and summarize a finalized bundle")
+    inspect.add_argument("run_directory", type=Path)
+    report = subparsers.add_parser("report", help="regenerate a report from saved data")
+    report.add_argument("run_directory", type=Path)
+    report.add_argument("--output", type=Path)
+    report.add_argument("--plots", action="store_true")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = _parser()
+    args = parser.parse_args(argv)
+    try:
+        if args.command == "init-experiment":
+            destination = args.output.expanduser().resolve()
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            with destination.open("x", encoding="utf-8") as stream:
+                stream.write(template_text(args.template))
+            print(destination)
+        elif args.command == "validate":
+            config = load_experiment(args.configuration)
+            print(json.dumps(config.resolved_document(), indent=2, sort_keys=True) if args.resolved else f"valid: {config.name} (schema {config.schema_version})")
+        elif args.command == "run":
+            destination = run_experiment(args.configuration)
+            result = read_result_bundle(destination)
+            print(json.dumps({"run_directory": str(destination), "scientific_payload_sha256": result.scientific_payload_sha256}, indent=2, sort_keys=True))
+        elif args.command == "inspect":
+            result = read_result_bundle(args.run_directory)
+            print(json.dumps({"run_directory": str(result.path), "run_id": result.manifest["run_id"], "experiment": result.summary["experiment_name"], "benchmark": result.summary["benchmark_id"], "trials": result.summary["trial_count"], "scientific_payload_sha256": result.scientific_payload_sha256, "checksums": "verified"}, indent=2, sort_keys=True))
+        elif args.command == "report":
+            result = read_result_bundle(args.run_directory)
+            output = args.output or workspace_root() / "scratch" / "reports" / result.manifest["run_id"]
+            print(regenerate_report(result, output, plots=args.plots))
         return 0
-    return 2
+    except (ConfigurationError, ResultBundleError, PlottingDependencyError, FileExistsError, OSError) as error:
+        print(f"netsurf: {error}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

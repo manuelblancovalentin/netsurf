@@ -43,11 +43,24 @@ def git_provenance(root: Path) -> dict[str, Any]:
         return result.stdout if binary else result.stdout.decode("utf-8").strip()
 
     diff = run("diff", "--binary", binary=True)
+    status = run("status", "--porcelain=v1", "--untracked-files=all")
+    listed = run("ls-files", "-z", "--cached", "--others", "--exclude-standard", binary=True)
+    source_fingerprint = hashlib.sha256()
+    for encoded in sorted(value for value in listed.split(b"\0") if value):
+        relative = encoded.decode("utf-8", errors="surrogateescape")
+        path = Path(root) / relative
+        if not path.is_file() or path.is_symlink():
+            continue
+        source_fingerprint.update(encoded)
+        source_fingerprint.update(b"\0")
+        source_fingerprint.update(bytes.fromhex(sha256_file(path)))
     return {
         "commit": run("rev-parse", "HEAD"),
         "branch": run("branch", "--show-current"),
         "tracked_diff_sha256": hashlib.sha256(diff).hexdigest(),
-        "dirty": bool(run("status", "--porcelain")),
+        "status_sha256": hashlib.sha256(status.encode("utf-8")).hexdigest(),
+        "source_fingerprint_sha256": source_fingerprint.hexdigest(),
+        "dirty": bool(status),
     }
 
 

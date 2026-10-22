@@ -11,6 +11,9 @@ from .protection import ProtectionMask, ProtectionPolicy
 from .quantization import BitCodec, FixedPointFormat
 from .ranking import Ranking, SusceptibilityEstimator
 
+# The public experiment API is available from ``netsurf.api``.  It is not
+# imported eagerly here so that importing ``netsurf`` remains minimal.
+
 __all__ = [
     "BitCodec",
     "BitIdentity",
