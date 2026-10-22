@@ -10,7 +10,7 @@
 
 ## Preservation
 
-- Do not edit historical checkpoints, datasets, rankings, CSV results, notebooks, HLS workspaces, synthesis reports, or the external `qkeras` link in place.
+- Do not edit historical checkpoints, datasets, rankings, CSV results, notebooks, HLS workspaces, synthesis reports, or `DEPRECATED/external_links/qkeras` in place.
 - Do not reset, clean, or discard the dirty handoff state. Its tracked diff SHA-256 is recorded in `docs/LEGACY_MAPPING.md`.
 - New results belong under the configured external artifact root and are write-once after finalization.
 - Do not commit proprietary libraries, credentials, license data, or private environment details.

@@ -11,16 +11,10 @@ dist/
 workspace/*
 !workspace/README.md
 
-# Datasets and generated experiment artifacts are external
-/datasets
-/benchmarks
-/benchmarks_old
-/v2_runs
-/netsurf_db
-/qkeras
-
 # Historical generated material retained locally but not source-controlled
 /DEPRECATED/recovery/
+/DEPRECATED/external_links/
+/DEPRECATED/historical_artifacts/root/
 /DEPRECATED/historical_docs/*.pdf
 /DEPRECATED/historical_tutorials/**/*.html
 /DEPRECATED/historical_tutorials/**/checkpoints/
@@ -29,15 +23,6 @@ workspace/*
 /DEPRECATED/historical_tutorials/6_hls*.ipynb
 /DEPRECATED/historical_tutorials/mcmc_test.ipynb
 /DEPRECATED/historical_tutorials/*.png
-
-# Hardware work products and proprietary inputs
-/syn
-
-# Root-level historical generated figures
-/fashion_mnist_cnn.png
-/mnist.png
-/output.png
-/tinyml_anomaly_det.png
 
 # Editor and OS state
 .DS_Store

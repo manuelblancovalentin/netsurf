@@ -39,4 +39,18 @@ def qkeras_package_root() -> Path:
     configured = os.environ.get("NETSURF_QKERAS_ROOT")
     if configured:
         return Path(configured).expanduser()
-    return Path(__file__).resolve().parents[1] / "qkeras"
+    return (
+        Path(__file__).resolve().parents[1]
+        / "DEPRECATED"
+        / "external_links"
+        / "qkeras"
+    )
+
+
+def legacy_workspace_root() -> Path:
+    """Return the disposable workspace for historical import side effects."""
+
+    configured = os.environ.get("NETSURF_LEGACY_WORKSPACE")
+    if configured:
+        return Path(configured).expanduser()
+    return Path(__file__).resolve().parents[1] / "workspace" / "legacy"

@@ -9,4 +9,6 @@ verified immutable provenance for a fresh Python 3.11 installation.
 
 The previously working environment snapshot is in `DEPRECATED/env/`. Validate
 the new environment against that evidence without blindly replaying the entire
-snapshot. Core tests remain independent of this stack.
+snapshot. Core tests remain independent of this stack. Historical Nodus import
+state is routed to `workspace/legacy/` by default and can be relocated with
+`NETSURF_LEGACY_WORKSPACE`.

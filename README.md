@@ -30,6 +30,8 @@ The Kona defaults are:
 - `NETSURF_DATASET_ROOT=/ml/datasets`
 - `NETSURF_ARTIFACT_ROOT=/ml/experiments/netsurf`
 - `NETSURF_LEGACY_SOURCE_ROOT=<repo>/DEPRECATED/legacy_source/netsurf`
+- `NETSURF_QKERAS_ROOT=<repo>/DEPRECATED/external_links/qkeras`
+- `NETSURF_LEGACY_WORKSPACE=<repo>/workspace/legacy`
 
 Override these environment variables on another system. A reference layout is
 provided in `config/storage.example.toml`.

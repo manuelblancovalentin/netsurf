@@ -13,8 +13,10 @@ dataset was overwritten.
 | `syn/` | `/ml/experiments/netsurf/hardware/syn-legacy/` | `2304:481513605` | 5.4 GB |
 | `v2_runs/` | `/ml/experiments/netsurf/runs/` | `2304:15875090` | 15 MB |
 
-Ignored root-level symlinks retain convenient historical path access. They are
-not a library API and are not committed.
+Ignored compatibility symlinks are grouped under `DEPRECATED/external_links/`.
+The repository root intentionally contains no aliases for legacy datasets,
+benchmarks, results, or synthesis workspaces. These links are not a library API
+and are not committed.
 
 ## Dataset conflicts
 

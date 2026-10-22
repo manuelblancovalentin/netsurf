@@ -10,6 +10,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from dataclasses import dataclass
 import importlib.util
+import os
 from pathlib import Path
 import sys
 from typing import Iterator, Mapping
@@ -18,7 +19,7 @@ import numpy as np
 
 from ..identities import ParameterSpec, enumerate_bits
 from ..quantization import BitCodec
-from ..paths import legacy_source_root, qkeras_package_root
+from ..paths import legacy_source_root, legacy_workspace_root, qkeras_package_root
 
 
 def _load_legacy_package():
@@ -50,14 +51,19 @@ def _load_legacy_package():
     added_qkeras_parent = qkeras_parent not in sys.path
     if added_qkeras_parent:
         sys.path.insert(0, qkeras_parent)
+    side_effect_root = legacy_workspace_root().resolve()
+    side_effect_root.mkdir(parents=True, exist_ok=True)
+    previous_working_directory = Path.cwd()
     sys.modules[module_name] = module
     sys.modules["netsurf"] = module
     try:
+        os.chdir(side_effect_root)
         spec.loader.exec_module(module)
     except Exception:
         sys.modules.pop(module_name, None)
         raise
     finally:
+        os.chdir(previous_working_directory)
         if added_qkeras_parent:
             sys.path.remove(qkeras_parent)
         if canonical is None:

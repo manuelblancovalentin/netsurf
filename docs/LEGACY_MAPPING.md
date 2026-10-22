@@ -8,7 +8,7 @@
 - Tracked dirty diff at preservation: SHA-256 `769f4980517fdce7f157e707efba8952bf021795b297814e3c58ffe374b9a214`.
 - Audit: `NETSURF_AUDIT_2026-10-21.md`, SHA-256 `1726191735374bfbef527e2bd1c3c788d5a79362941cf411cc484eb95958dbde`.
 - Manuscript: `TCAD-2026-0117.R1_Proof_hi.pdf`, SHA-256 `41b60dae3654e0ec855746e48bebfbeeacc0316e5cd929b73dd2625bed3a26c0`.
-- External QKeras remains the unmodified link `qkeras -> /home/manuelbv/qkeras`; exact repository provenance is unknown.
+- External QKeras remains unmodified and is reachable through the ignored link `DEPRECATED/external_links/qkeras -> /home/manuelbv/qkeras`; exact repository provenance is unknown.
 
 The original modified/untracked inventory was preserved during reconstruction.
 The remote `master` history was reattached without checking out or overwriting
