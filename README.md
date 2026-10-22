@@ -24,11 +24,11 @@ see `dependencies/LEGACY_MNIST.md`.
 
 ## Storage configuration
 
-Source code never requires datasets or generated runs to live in the Git tree.
-The Kona defaults are:
+Input datasets remain shared, while all new generated runs are local to the
+ignored repository workspace. The Kona defaults are:
 
 - `NETSURF_DATASET_ROOT=/ml/datasets`
-- `NETSURF_ARTIFACT_ROOT=/ml/experiments/netsurf`
+- `NETSURF_WORKSPACE=<repo>/workspace`
 - `NETSURF_LEGACY_SOURCE_ROOT=<repo>/DEPRECATED/legacy_source/netsurf`
 - `NETSURF_QKERAS_ROOT=<repo>/DEPRECATED/external_links/qkeras`
 - `NETSURF_LEGACY_WORKSPACE=<repo>/workspace/legacy`
@@ -36,21 +36,25 @@ The Kona defaults are:
 Override these environment variables on another system. A reference layout is
 provided in `config/storage.example.toml`.
 
-## Deterministic milestone
+## Self-service experiments
 
-After installing the compatibility dependencies and verifying the external
-checkpoint and MNIST hashes, run the bounded experiment twice:
+The CLI, Python API, and notebook-style tutorial all use the same engine:
 
 ```bash
-env HOME=/tmp/netsurf_home CUDA_VISIBLE_DEVICES=-1 \
-  TF_DETERMINISTIC_OPS=1 TF_CPP_MIN_LOG_LEVEL=2 \
-  netsurf milestone --repo "$PWD" --samples 256 --ranking-samples 256 \
-  --trials 12 --ber 0.001 --coverage 0.10 --repeats 2
+netsurf --help
+netsurf init-experiment --template smoke --output workspace/scratch/my_experiment.toml
+netsurf validate config/experiments/template.toml --resolved
+netsurf run config/experiments/template.toml
+netsurf inspect workspace/runs/<experiment>/<run-id>
+netsurf report workspace/runs/<experiment>/<run-id>
 ```
 
-This is a logical persistent weight-bit experiment, not a calibrated physical
-SEU model. Full prerequisites, paths, expected hash, and resource bounds are in
-`docs/REPRODUCIBILITY.md`.
+Finalized bundles are immutable and contain configuration, provenance,
+measurements, exact masks and schedules, checksums, a Markdown report, and
+supported plots. `tutorials/read_result.py` demonstrates the public Python API.
+The maintained experiment is a logical persistent weight-bit experiment, not a
+calibrated physical SEU model. See `docs/REPRODUCIBILITY.md` for its bounds and
+expected digest.
 
 ## Repository map
 
@@ -60,7 +64,7 @@ SEU model. Full prerequisites, paths, expected hash, and resource bounds are in
 - `workflows/`: workflow contracts; Wolf is restricted to supported hardware stages.
 - `docs/`: scientific contracts, audit, architecture, provenance, and roadmap.
 - `tutorials/`: maintained examples only.
-- `workspace/`: ignored disposable local work.
+- `workspace/`: ignored runs, scratch data, caches, and legacy side effects.
 - `DEPRECATED/`: recovered source, notebooks, environment snapshots, and evidence.
 
 Generated benchmark outputs, checkpoints, rankings, and synthesis products are

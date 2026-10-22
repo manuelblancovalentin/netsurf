@@ -12,7 +12,7 @@
 
 - Do not edit historical checkpoints, datasets, rankings, CSV results, notebooks, HLS workspaces, synthesis reports, or `DEPRECATED/external_links/qkeras` in place.
 - Do not reset, clean, or discard the dirty handoff state. Its tracked diff SHA-256 is recorded in `docs/LEGACY_MAPPING.md`.
-- New results belong under the configured external artifact root and are write-once after finalization.
+- New results belong under `workspace/runs/` by default and are write-once after finalization. Historical external archives remain untouched.
 - Do not commit proprietary libraries, credentials, license data, or private environment details.
 
 ## Development
@@ -25,4 +25,4 @@
 
 ## Current bounded milestone
 
-Run `python -m tests.run` in the activated `netsurf` project, then follow `docs/REPRODUCIBILITY.md` for the twice-repeated MNIST-lite experiment.
+Run `python -m tests.run` in the activated `netsurf` project, then use the versioned experiment commands in `docs/REPRODUCIBILITY.md`.

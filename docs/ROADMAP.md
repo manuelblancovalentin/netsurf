@@ -11,6 +11,14 @@
 
 Acceptance criteria: exact checkpoint and held-out split; deterministic ranking/mask hashes; matched schedules; exact restoration; correct confidence summaries; two identical payload hashes; explicit legacy qPolarGrad label.
 
+## M1.5 — self-service experiment framework
+
+- [x] Versioned executable configuration, manifest, summary, and measurement schemas.
+- [x] Adapter-driven engine shared by CLI and Python/notebook API.
+- [x] Atomic immutable bundles under `workspace/runs/`, with checksums and stable scientific digest.
+- [x] Reports and plots regenerated solely from finalized data.
+- [x] Dependency-free core regression suite plus bounded TensorFlow integration validation.
+
 ## M2 — estimator validation
 
 On a deliberately small network/subset, exhaustively inject individual bits. Compare rank correlations, top-k overlap, loss prediction calibration, and protection outcomes for gradient magnitude, first order, clean-activation qPolarGrad, recovered attacked-activation qPolarGrad, Hessian, and random. Resolve qPolarGrad theory only after these data exist.
