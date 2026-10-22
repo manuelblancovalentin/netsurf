@@ -1,0 +1,25 @@
+name: netsurf
+channels:
+  - vlsida-eda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - tensorflow=2.11
+  - pyparsing
+  - ca-certificates
+  - certifi
+  - openssl
+  - networkx
+  - tqdm
+  - ipykernel
+  - shyaml
+  - dill
+  - scikit-learn
+  - seaborn
+  - rich
+  - mplcursors
+  - textual
+  - pydub
+  - tensorflow-datasets==4.8.3
+prefix: /mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf

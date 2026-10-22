@@ -1,0 +1,12 @@
+[storage]
+dataset_root = "/ml/datasets"
+artifact_root = "/ml/experiments/netsurf"
+
+[legacy]
+source_root = "DEPRECATED/legacy_source/netsurf"
+qkeras_root = "/home/manuelbv/qkeras"
+checkpoint_collection = "/ml/experiments/netsurf/legacy/benchmarks"
+
+# Environment variables NETSURF_DATASET_ROOT, NETSURF_ARTIFACT_ROOT, and
+# NETSURF_LEGACY_SOURCE_ROOT, and NETSURF_QKERAS_ROOT are the currently
+# implemented configuration API.

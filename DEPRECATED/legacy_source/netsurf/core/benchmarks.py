@@ -854,7 +854,7 @@ class Benchmark:
                 batch_size = batch_size,
                 validation_data = (np.array(XTest), np.array(YTest)) if not 'ECON' in self.name else None, 
                 callbacks = callbacks,
-                verbose = False,
+                verbose = verbose,
                 **kwargs #,callbacks=[pruning_callbacks.UpdatePruningStep()]
             )
 
@@ -872,11 +872,12 @@ class Benchmark:
             # Add custom printer callback
             callbacks += [netsurf.dnn.callbacks.CustomPrinter()]
 
-            logs = self.model.fit(self.dataset['train'], 
+            logs = self.model.fit_generator(self.dataset['train'], 
                                         epochs = epochs,
                                         validation_data = self.dataset['validation'],
                                         callbacks = callbacks,
-                                        verbose = False,
+                                        verbose = verbose,
+                                        workers=40,
                                         **kwargs)
         else:
             raise ValueError('Unknown dataset type')
@@ -1033,7 +1034,7 @@ def get_benchmark(benchmark: str, quantization: 'QuantizationScheme', *args, **k
 
 
 """ Get training session (load or train) """
-def get_training_session(bmk, train_model = False, pruning = None, show_plots = False, plot = True):
+def get_training_session(bmk, train_model = False, pruning = None, show_plots = False, plot = True, verbose = False):
 
     # Assert dataset is loaded 
     bmk.assert_dataset_is_loaded()
@@ -1077,7 +1078,7 @@ def get_training_session(bmk, train_model = False, pruning = None, show_plots = 
             bmk.compile(opt_params = opt_params, batch_size = batch_size)
 
             # Run fitting
-            sess, logs = bmk.fit(batch_size = batch_size, epochs = epochs, callbacks = callbacks) #callbacks=[pruning_callbacks.UpdatePruningStep()]
+            sess, logs = bmk.fit(batch_size = batch_size, epochs = epochs, callbacks = callbacks, verbose = verbose) #callbacks=[pruning_callbacks.UpdatePruningStep()]
 
             # Save session config and object
             sess.save()

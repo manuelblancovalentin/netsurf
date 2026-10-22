@@ -1342,7 +1342,7 @@ class AE(QModel):
 
     """ Build model method """
     def aemodel(self, quantizer: 'QuantizationScheme', in_shape, use_bias = True, 
-                use_constraint = True, **kwargs):
+                use_constraint = True, alpha_reg_loss = 1.0, **kwargs):
 
         # Input layer
         ip = keras.layers.Input(shape=in_shape)
@@ -1356,15 +1356,22 @@ class AE(QModel):
         activations += [x]
 
         # Encoding block
-        for _ in range(4):
+        for i in range(4):
             # First encoder layer
-            x = QQDense(quantizer, 128, 
+            x = QQDense(quantizer, 10, 
                             use_bias = use_bias,
                             kernel_quantizer = 'logit',
                             bias_quantizer = 'logit',
                             kernel_initializer = 'lecun_uniform',
                             bias_initializer = 'zeros',
-                            use_constraint=use_constraint)(x)
+                            use_constraint=use_constraint,
+                            name = f'fc{i}')(x)
+            # Append to activations
+            activations += [x]
+
+            # Add QQApplyAlpha
+            x = QQApplyAlpha(quantizer, reg_factor = alpha_reg_loss, name = f'alpha{i}')(x)
+
             # Append to activations
             activations += [x]
             
@@ -1376,11 +1383,12 @@ class AE(QModel):
                                             gamma_initializer = 'ones', 
                                             moving_mean_initializer = 'zeros', 
                                             moving_variance_initializer = 'ones',
-                                            use_constraint=use_constraint)(x)
+                                            use_constraint=use_constraint,
+                                            name = f'bn{i}')(x)
             # Append to activations
             activations += [x]
             
-            x = QQActivation(quantizer, 'relu', use_constraint=use_constraint)(x) 
+            x = QQActivation(quantizer, 'relu', use_constraint=use_constraint, name = f'act{i}')(x) 
             # Append to activations
             activations += [x]
 
@@ -1393,6 +1401,12 @@ class AE(QModel):
                         use_constraint=use_constraint)(x)
         # Append to activations
         activations += [x]
+
+        # Add QQApplyAlpha
+        x = QQApplyAlpha(quantizer, reg_factor = alpha_reg_loss, name = f'alpha{i+1}')(x)
+
+        # Append to activations
+        activations += [x]
         
         x = QQBatchNormalization(quantizer, beta_quantizer = 'po2', 
                                         gamma_quantizer = 'relu_po2', 
@@ -1402,25 +1416,33 @@ class AE(QModel):
                                         gamma_initializer = 'ones', 
                                         moving_mean_initializer = 'zeros', 
                                         moving_variance_initializer = 'ones',
-                                        use_constraint=use_constraint)(x)
+                                        use_constraint=use_constraint,
+                                        name = f'bn{i+1}')(x)
         # Append to activations
         activations += [x]
         
-        x = QQActivation(quantizer, 'relu', use_constraint=use_constraint)(x) 
+        x = QQActivation(quantizer, 'relu', use_constraint=use_constraint, name =f'act{i+1}')(x) 
         # Append to activations
         activations += [x]
 
         # Decoder block 
-        for _ in range(4):
+        for j in range(4):
 
             # First decoder layer
-            x = QQDense(quantizer, 128,
+            x = QQDense(quantizer, 10,
                             use_bias = use_bias,
                             kernel_quantizer = 'logit',
                             bias_quantizer = 'logit',
                             kernel_initializer = 'lecun_uniform',
                             bias_initializer = 'zeros',
-                            use_constraint=use_constraint)(x)
+                            use_constraint=use_constraint,
+                            name = f'fc{i+2+j}')(x)
+            # Append to activations
+            activations += [x]
+
+            # Add QQApplyAlpha
+            x = QQApplyAlpha(quantizer, reg_factor = alpha_reg_loss, name = f'alpha{i+2+j}')(x)
+
             # Append to activations
             activations += [x]
             
@@ -1432,13 +1454,16 @@ class AE(QModel):
                                             gamma_initializer = 'ones', 
                                             moving_mean_initializer = 'zeros', 
                                             moving_variance_initializer = 'ones',
-                                            use_constraint=use_constraint)(x)
+                                            use_constraint=use_constraint,
+                                            name = f'bn{i+2+j}')(x)
             # Append to activations
             activations += [x]
             
-            x = QQActivation(quantizer, 'relu', use_constraint=use_constraint)(x) 
+            x = QQActivation(quantizer, 'relu', use_constraint=use_constraint, name = f'act{i+2+j}')(x) 
             # Append to activations
             activations += [x]
+
+        n = i + j + 3
 
         # Output layer
         x = QQDense(quantizer, np.prod(in_shape),
@@ -1447,7 +1472,14 @@ class AE(QModel):
                         bias_quantizer = 'logit',
                         kernel_initializer = 'lecun_uniform',
                         bias_initializer = 'zeros',
-                        use_constraint=use_constraint)(x)
+                        use_constraint=use_constraint,
+                        name = f'fc{n}')(x)
+        # Append to activations
+        activations += [x]
+
+        # Add QQApplyAlpha
+        x = QQApplyAlpha(quantizer, reg_factor = alpha_reg_loss, name = f'alpha{n}')(x)
+
         # Append to activations
         activations += [x]
         
@@ -1457,8 +1489,12 @@ class AE(QModel):
 
         return ip, decoded, activations
     
-    def evaluate(self, x, y, **kwargs):
-        return super().evaluate(x, y, batch_size = 3, **kwargs)
+    def evaluate(self, x, y, batch_size = None, **kwargs):
+        try:
+            return super().evaluate(x, y, batch_size = 3, **kwargs)
+        except Exception as e:
+            print(f'Error evaluating model: {e}')
+            return None
 
     """ Evaluate and plot """
     def __evaluate(self, x, x_val, verbose=True, show = True, **kwargs):

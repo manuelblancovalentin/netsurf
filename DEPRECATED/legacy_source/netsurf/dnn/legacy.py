@@ -349,6 +349,9 @@ class MobileNetV1(QModel):
                             use_constraint=use_constraint)(x)
         # Append to activations
         activations += [x]
+
+        # QQApplyAlpha
+        x = QQApplyAlpha(quantizer)(x)
         
         out = QQSoftmax(quantizer, use_constraint=use_constraint)(x)
         # Append to activations

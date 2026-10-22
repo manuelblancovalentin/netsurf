@@ -22,6 +22,10 @@ keyword_spotting:
   in_shape: !!python/tuple [-1,49,10,1]
   out_shape: !!python/tuple [-1,49]
 
+vw_coco2014_96:
+  in_shape: !!python/tuple [-1,96,96,3]
+  out_shape: !!python/tuple [-1,2]
+
 ToyADMOS:
   in_shape: !!python/tuple [-1,320]
   out_shape: !!python/tuple [-1,320]

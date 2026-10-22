@@ -267,12 +267,22 @@ class Dataset:
         # Create a container showing the basic information summary for this summary 
         summary_ct = pg.Container("Summary", layout='vertical')
         # Create pandas dataframe 
+        skip = True
+        if isinstance(self.dataset['train'], tuple):
+            nsamples = [str(self.dataset[subset][0].shape[0]) for subset in self.dataset.keys()]
+            skip = False
+        elif isinstance(self.dataset['train'], keras.preprocessing.image.DirectoryIterator):
+            nsamples = [str(len(self.dataset[subset]) for subset in self.dataset.keys())]
+        elif isinstance(self.dataset['train'], tf.data.Dataset):
+            nsamples = [str(len(self.dataset[subset])) for subset in self.dataset.keys()]
+        else:
+            nsamples = ["N/A"] * len(self.dataset.keys())
         df = pd.DataFrame({'input_shape': [self.in_shape], 
                            'input_type': str(self.types['input']),
                            'output_shape': str(self.out_shape),
                            'output_type': [self.types['output']],
                            'subsets': "(" + ", ".join(map(str,list(self.dataset.keys()))) + ")",
-                           'samples': "(" + ", ".join([str(self.dataset[subset][0].shape[0]) for subset in self.dataset.keys()]) + ")",
+                           'samples': "(" + ", ".join(nsamples) + ")",
                            'normalizer stats (max,min)': f"({self.normalizer._data_max[0]}, {self.normalizer._data_min[0]})"
                            }).T
         
@@ -280,51 +290,54 @@ class Dataset:
         summary_ct.append(pg.Table.from_data(df))
 
         # Now plot distributions
-        fig, axs = plt.subplots(2, 2, figsize=(15, 15))
-        self.plot_data_distribution(subset = 'train', title = 'Train data distribution', axs = [axs[0][0], axs[0][1]], types = self.types)
-        self.plot_data_distribution(subset = 'validation', title = 'Validation data distribution', axs = [axs[1][0], axs[1][1]], types = self.types)
-
-        # Create a Container for this image 
-        data_dist_ct = pg.Container("Data distribution", layout='vertical')
-        data_dist_ct.append(pg.Image(fig, embed=True))
-
-        # If this is an image dataset, display some samples 
-        num_rows = 0
-        num_samples = 10
-        if self.types['input'] == 'img': num_rows += len(self.dataset.keys())
-        if self.types['output'] == 'img': num_rows += len(self.dataset.keys())
-
-        if num_rows > 0:
-            # Init figure
-            fig, axs = plt.subplots(num_rows, num_samples, figsize=self.get_figsize(num_rows, num_samples))
-            # Make sure axs is a list
-            if isinstance(axs, np.ndarray):
-                axs = list(axs)
-            if not isinstance(axs, (list, tuple)):
-                axs = [axs]
-
-            k = 0
-            for i, subset in enumerate(self.dataset.keys()):
-                if self.types['input'] == 'img':
-                    self.display_image_samples(subset = subset, index = 0, random = True, num_samples = num_samples, axs = axs[k],
-                                                cmap = self.cmap, show = False)
-                    k += 1
-                if self.types['output'] == 'img':
-                    self.display_image_samples(subset = subset, index = 1, random = True, num_samples = num_samples, axs = axs[k],
-                                                cmap = self.cmap, show = False)
-                    k += 1
-
-            # Create a container for this image
-            img_ct = pg.Container("Image samples", layout='vertical')
-            img_ct.append(pg.Image(fig, embed=True))
-            # close fig
-            plt.close(fig)
-
-        # Add to dataset_ct
         dataset_ct.append(summary_ct)
-        dataset_ct.append(data_dist_ct)
-        if num_rows > 0:
-            dataset_ct.append(img_ct)
+       
+        if not skip:
+            fig, axs = plt.subplots(2, 2, figsize=(15, 15))
+            self.plot_data_distribution(subset = 'train', title = 'Train data distribution', axs = [axs[0][0], axs[0][1]], types = self.types)
+            self.plot_data_distribution(subset = 'validation', title = 'Validation data distribution', axs = [axs[1][0], axs[1][1]], types = self.types)
+
+            # Create a Container for this image 
+            data_dist_ct = pg.Container("Data distribution", layout='vertical')
+            data_dist_ct.append(pg.Image(fig, embed=True))
+
+            # If this is an image dataset, display some samples 
+            num_rows = 0
+            num_samples = 10
+            if self.types['input'] == 'img': num_rows += len(self.dataset.keys())
+            if self.types['output'] == 'img': num_rows += len(self.dataset.keys())
+
+            if num_rows > 0:
+                # Init figure
+                fig, axs = plt.subplots(num_rows, num_samples, figsize=self.get_figsize(num_rows, num_samples))
+                # Make sure axs is a list
+                if isinstance(axs, np.ndarray):
+                    axs = list(axs)
+                if not isinstance(axs, (list, tuple)):
+                    axs = [axs]
+
+                k = 0
+                for i, subset in enumerate(self.dataset.keys()):
+                    if self.types['input'] == 'img':
+                        self.display_image_samples(subset = subset, index = 0, random = True, num_samples = num_samples, axs = axs[k],
+                                                    cmap = self.cmap, show = False)
+                        k += 1
+                    if self.types['output'] == 'img':
+                        self.display_image_samples(subset = subset, index = 1, random = True, num_samples = num_samples, axs = axs[k],
+                                                    cmap = self.cmap, show = False)
+                        k += 1
+
+                # Create a container for this image
+                img_ct = pg.Container("Image samples", layout='vertical')
+                img_ct.append(pg.Image(fig, embed=True))
+                # close fig
+                plt.close(fig)
+
+            # Add to dataset_ct
+            
+            dataset_ct.append(data_dist_ct)
+            if num_rows > 0:
+                dataset_ct.append(img_ct)
 
         return dataset_ct
         
@@ -786,8 +799,8 @@ class ToyADMOS(Dataset):
         }
 
         # Save yaml config
-        if not os.path.isfile(os.path.join(datasets_dir, "ToyADMOS", 'config.yml')):
-            with open(os.path.join(datasets_dir,"ToyADMOS", 'config.yml'), 'w') as outfile:
+        if not os.path.isfile(os.path.join(datasets_dir, "toyadmos", 'config.yml')):
+            with open(os.path.join(datasets_dir,"toyadmos", 'config.yml'), 'w') as outfile:
                 yaml.dump(yaml_config, outfile, default_flow_style=False)
 
         return yaml_config
@@ -839,6 +852,9 @@ class ToyADMOS(Dataset):
         # 02 generate melspectrogram
         y, sr = self.file_load(file_name)
         if method == "librosa":
+            import librosa
+            import librosa.core
+            import librosa.feature
             # 02a generate melspectrogram using librosa
             mel_spectrogram = librosa.feature.melspectrogram(y=y,
                                                             sr=sr,
@@ -909,6 +925,10 @@ class ToyADMOS(Dataset):
                         n_fft=1024,
                         hop_length=512,
                         power=2.0, **kwargs):
+
+        import librosa
+        import librosa.core
+        import librosa.feature
         """
         convert the file_list to a vector array.
         file_to_vector_array() is iterated, and the output vector array is concatenated.
@@ -950,11 +970,11 @@ class ToyADMOS(Dataset):
         os.makedirs(datasets_dir, exist_ok=True)
 
         # Download the dataset
-        output_dir = os.path.join(datasets_dir, "ToyADMOS")
+        output_dir = os.path.join(datasets_dir, "toyadmos")
         if not os.path.isdir(output_dir):
             output_file = os.path.join(datasets_dir, "anomaly_detection_data_train.zip")
             if not os.path.exists(output_file):
-                utils.download_file("https://zenodo.org/record/3678171/files/dev_data_ToyADMOS.zip?download=1", output_file)
+                utils.download_file("https://zenodo.org/records/3351307/files/ToyCar.7z.001?download=1", output_file)
 
             # Unzip the dataset
             with zipfile.ZipFile(output_file, 'r') as zip_ref:
@@ -964,11 +984,11 @@ class ToyADMOS(Dataset):
             os.remove(output_file)
         
         # Validation data
-        output_dir = os.path.join(datasets_dir, "ToyADMOS")
+        output_dir = os.path.join(datasets_dir, "toyadmos")
         if not os.path.isdir(output_dir):
             output_file = os.path.join(datasets_dir, "anomaly_detection_data_val.zip")
             if not os.path.exists(output_file):
-                utils.download_file("https://zenodo.org/record/3727685/files/eval_data_train_ToyADMOS.zip?download=1", output_file)
+                utils.download_file("https://zenodo.org/records/3351307/files/ToyCar.7z.001?download=1", output_file)
 
             # Unzip the dataset
             with zipfile.ZipFile(output_file, 'r') as zip_ref:
@@ -982,9 +1002,9 @@ class ToyADMOS(Dataset):
         yaml_config = self.build_yaml_config(datasets_dir = datasets_dir, **kwargs)
 
         # Load wav files into numpy arrays 
-        train_numpy_file = os.path.join(datasets_dir, "ToyADMOS", "train", "train_ds.npy")
+        train_numpy_file = os.path.join(datasets_dir, "toyadmos", "toycar_train_ds.npy")
         if not os.path.isfile(train_numpy_file):
-            training_list_path = os.path.abspath(os.path.join(datasets_dir, "ToyADMOS", "train", "*.wav"))
+            training_list_path = os.path.abspath(os.path.join(datasets_dir, "toyadmos", "ToyCar","*", "case1", "NormalSound_IND", "*.wav"))
             files = sorted(glob(training_list_path))
             train_ds = self.wav_to_numpy(files, **yaml_config)
             np.save(train_numpy_file, train_ds)
@@ -993,9 +1013,9 @@ class ToyADMOS(Dataset):
             netsurf.utils.log._custom('DATA', f"Loading train numpy wavs from {train_numpy_file}")
             train_ds = np.load(train_numpy_file)
 
-        test_numpy_file = os.path.join(datasets_dir, "ToyADMOS", "test", "test_ds.npy")
+        test_numpy_file = os.path.join(datasets_dir, "toyadmos", "toycar_val_ds.npy")
         if not os.path.isfile(test_numpy_file):
-            val_list_path = os.path.abspath(os.path.join(datasets_dir, "ToyADMOS", "test", "*.wav"))
+            val_list_path = os.path.abspath(os.path.join(datasets_dir, "toyadmos", "ToyCar","*", "case1", "AnomalousSound_IND", "*.wav"))
             files = sorted(glob(val_list_path))
             val_ds = self.wav_to_numpy(files, **yaml_config)
             np.save(test_numpy_file, val_ds)
@@ -1232,6 +1252,100 @@ class COCO(Dataset):
         # Store the dataset and statistics
         dataset = {'train': train_generator, 'validation': val_generator}
         return dataset
+
+
+
+""" coco dataset """
+class vw_coco2014_96(Dataset):
+    def __init__(self, quantizer: 'QuantizationScheme', **kwargs):
+        """ Init super """
+        super().__init__(quantizer, **kwargs)
+
+        # Build data
+        dataset = self.build_dataset(**kwargs)
+        types = {'input': 'img', 'output': '1d'}
+
+        # Now call super 
+        super().build_dataset(dataset, types = types, **kwargs)
+    
+    @property 
+    def len(self):
+        return len(self.dataset['train'])
+
+    @property
+    def in_shape(self):
+        return self.dataset['train'][0][0].shape[1:]
+    
+    @property
+    def out_shape(self):
+        return self.dataset['train'][0][1].shape[1:]
+    
+    @property
+    def _url(self):
+        return 'https://www.silabs.com/public/files/github/machine_learning/benchmarks/datasets/vw_coco2014_96.tar.gz'
+
+    """ Download subsets and uncompress """
+    def _download_and_uncompress(self, output_data_dir):
+
+        url = self._url
+
+        # Make sure we have write permission in this directory
+        if not os.access(".", os.W_OK):
+            raise ValueError("Cannot write to current directory. Aborting download of dataset")
+        
+        if not os.path.isdir(output_data_dir):
+            # Create output directory
+            os.makedirs(output_data_dir, exist_ok=True)
+
+            output_file = os.path.join(output_data_dir) + '.zip'
+            if not os.path.exists(output_file):
+                utils.download_file(url, output_file)
+
+            # Unzip the dataset
+            with zipfile.ZipFile(output_file, 'r') as zip_ref:
+                zip_ref.extractall(output_data_dir)
+            
+            # Remove zip file
+            os.remove(output_file)
+
+    """ Function to build the dataset """
+    def build_dataset(self, datasets_dir = "./datasets", verbose=True, **kwargs):
+        # Make sure we have write permission in this directory
+        if not os.access(".", os.W_OK):
+            raise ValueError("Cannot write to current directory. Aborting download of dataset")
+        
+        # Looking for people as wakeword, 2.5% area of image for a person, be careful with other parameters
+        output_dataset_dir = os.path.join(datasets_dir, 'vw_coco2014_96')
+        self._download_and_uncompress(output_dataset_dir)
+
+        validation_split = 0.1
+
+        datagen = tf.keras.preprocessing.image.ImageDataGenerator(
+            rotation_range=10,
+            width_shift_range=0.05,
+            height_shift_range=0.05,
+            zoom_range=.1,
+            horizontal_flip=True,
+            validation_split=validation_split,
+            rescale=1. / 255)
+        train_generator = datagen.flow_from_directory(
+            output_dataset_dir,
+            target_size=(96, 96),
+            batch_size=32,
+            subset='training',
+            color_mode='rgb')
+        val_generator = datagen.flow_from_directory(
+            output_dataset_dir,
+            target_size=(96, 96),
+            batch_size=32,
+            subset='validation',
+            color_mode='rgb')
+        
+        # Store the dataset and statistics
+        dataset = {'train': train_generator, 'validation': val_generator}
+        return dataset
+
+
 
 
 """ Human Activity recognition dataset """
@@ -2303,7 +2417,8 @@ def load(dataset, quantizer, **kwargs):
                 'dummy': dummy,
                 'autompg': AutoMPG,
                 'keyword_spotting': KeywordSpotting,
-                'smartpixel': SmartPixel} 
+                'smartpixel': SmartPixel,
+                'vw_coco2014_96': vw_coco2014_96, 'visual_wake_words': vw_coco2014_96, 'visual_wakeworks': vw_coco2014_96, 'vww': vw_coco2014_96} 
                 
     ds = options.get(dataset.lower(), None)(quantizer, **kwargs)
 

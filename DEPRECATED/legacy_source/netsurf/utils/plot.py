@@ -626,7 +626,12 @@ def plot_model_weights_pie(model, filepath = None, show = True, verbose = True):
 
 def plot_confusion_matrix(y, yhat, labels = None, filepath = None, show = True, verbose = True):
     # Get number of classes
-    n_classes = y.shape[1]
+    if y.ndim == 1:
+        # Convert to onehot
+        n_classes = np.max(y) + 1
+        y = np.eye(n_classes)[y]
+    else: 
+        n_classes = y.shape[1]
 
     if not isinstance(labels, list):
         labels = ['%i' % nr for nr in range(0, n_classes)]  # If you want to look at all the labels
@@ -687,8 +692,11 @@ def plot_confusion_matrix(y, yhat, labels = None, filepath = None, show = True, 
     # Set labels
     ax.set_xticks(np.arange(cm.shape[1]))
     ax.set_yticks(np.arange(cm.shape[0]))
-    ax.set_xticklabels(labels + ['Sensitivity'])
-    ax.set_yticklabels(labels + ['Precision'])
+    try:
+        ax.set_xticklabels(labels + ['Sensitivity'])
+        ax.set_yticklabels(labels + ['Precision'])
+    except:
+        print('Labels are not the same size as the confusion matrix')
 
     # Set title
     ax.set_title('Confusion matrix')
@@ -710,7 +718,12 @@ def plot_ROC(y, yhat, labels = None, filepath = None, show = True,
              ylim = None, xlim = None, xlog = True, ylog = False, verbose = True):
 
     # Get number of classes
-    n_classes = y.shape[1]
+    if y.ndim == 1:
+        # Convert to onehot
+        n_classes = np.max(y) + 1
+        y = np.eye(n_classes)[y]
+    else:
+        n_classes = y.shape[1]
 
     if not isinstance(labels, list):
         labels = ['%i' % nr for nr in range(0, n_classes)]  # If you want to look at all the labels
@@ -737,7 +750,7 @@ def plot_ROC(y, yhat, labels = None, filepath = None, show = True,
             tpr[label],
             label=f'{label}, AUC validation = {auc1[label]:3.2%})',
             linewidth=1.5,
-            c=colors[i],
+            c=colors[i%len(colors)],
             linestyle='solid',
         )
         #plt.plot(fpr_q[label], tpr_q[label], linewidth=1.5, c=colors[i], linestyle='dotted')

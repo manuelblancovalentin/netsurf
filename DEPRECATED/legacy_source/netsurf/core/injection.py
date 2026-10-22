@@ -568,7 +568,11 @@ class BitFlipInjector:
                 # Rank is subdf['rank'] + (b-Q.n-Q.s+1)/Q.m
                 subrank = subdf['rank'].to_numpy() + (b - Q.n - Q.s + 1)/Q.m
                 # Reshape to variable shape
-                subrank = subrank.reshape(vshape)
+                try:
+                    subrank = subrank.reshape(vshape)
+                except:
+                    # stop
+                    raise ValueError(f'Cannot reshape subrank {subrank.shape} to {vshape}')
                 # Normalize by total number of vars 
                 subrank = subrank/(total_num_params + (Q.m-1)/Q.m)
                 w_bits.append(tf.cast(subrank, v.dtype))

@@ -323,6 +323,19 @@ cifar10_resnet18:
         momentum: 0.9
 
 
+tinyml_visual_wake_words:
+  dataset: vw_coco2014_96
+  model: mobilenetv1
+  loss: categorical_crossentropy
+  type: classification
+  optimizer: adam
+  metrics:
+    - categorical_accuracy
+  sessions:
+    - batch_size: 50
+      epochs: 50
+      
+
 tinyml_anomaly_detection:
   dataset: ToyADMOS
   model: ae
@@ -334,8 +347,8 @@ tinyml_anomaly_detection:
     - R2Score
     - PearsonCorrelation
   sessions:
-    - batch_size: 40
-      epochs: 6
+    - batch_size: 100
+      epochs: 10
       
 tinyml_person_detection:
   dataset: PDCOCO

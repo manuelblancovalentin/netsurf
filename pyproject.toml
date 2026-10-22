@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netsurf"
+version = "2.0.0"
+description = "Deterministic fault-susceptibility and selective-protection research framework"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+license = {text = "Research software; licensing review pending"}
+authors = [{name = "Manuel Blanco Valentin"}]
+dependencies = ["numpy>=1.24,<2"]
+
+[project.optional-dependencies]
+test = ["pytest>=7,<9"]
+
+[project.scripts]
+netsurf = "netsurf.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["netsurf*"]
+exclude = ["DEPRECATED*", "tests*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
