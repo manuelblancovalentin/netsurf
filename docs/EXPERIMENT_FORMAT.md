@@ -1,9 +1,11 @@
 # Versioned experiments and result bundles
 
-Experiment TOML schemas `1.0.0` and `2.0.0` are supported user-authored
+Experiment TOML schemas `1.0.0`, `2.0.0`, and `3.0.0` are supported user-authored
 contracts. Version 1 preserves the historical adapter; version 2 adds explicit
 benchmark, quantization-backend, injectable-parameter, and persistent or
-per-inference fault semantics. The loader is strict: unknown fields,
+per-inference fault semantics. Version 3 adds explicit sample partitions,
+empirical candidate selection, versioned numerical estimators, composable
+ordering policies, multiple coverages, and separate ranking/fault seeds. The loader is strict: unknown fields,
 unsupported combinations, and unsupported schema or protocol versions fail
 before model loading.
 
@@ -40,3 +42,11 @@ Schema-2 runs include no- and full-protection controls. Estimator wall times are
 execution metadata and excluded from the stable scientific payload. Schema
 evolution must add a reader or explicit non-mutating migration; finalized
 bundles are never rewritten in place.
+
+Schema-3 bundles generate only applicable tables. Empirical studies use
+`empirical_bits.csv`, `estimator_predictions.csv`, and `ranking_metrics.csv`;
+protection studies use `trials.csv`, `protection_results.csv`,
+`paired_comparisons.csv`, and `mask_composition.csv`. Every study records
+`artifacts/sample_partitions.json`; sampled empirical populations also record
+the inclusion rule and conditional stratum probability. Column contracts and
+null semantics are defined in `netsurf/schemas/measurements/v3.schema.json`.

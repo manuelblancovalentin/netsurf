@@ -25,7 +25,8 @@
 
 ## Current bounded milestone
 
-Run `python -m tests.run` in the activated `netsurf` project. Use
-`netsurf doctor` before modern experiments, and follow the bounded preparation,
-single-ranker, comparison, and optional integration commands in
-`docs/REPRODUCIBILITY.md`. Do not retrain an existing write-once checkpoint.
+Run `python -m pytest -q` in the activated `netsurf` project. Use `netsurf
+doctor` before modern experiments, then follow the M3 bounded empirical and
+policy commands in `docs/REPRODUCIBILITY.md`. Do not retrain an existing
+write-once checkpoint, run an exhaustive 152,700-bit MNIST sweep, or promote a
+research estimator from a smoke result.

@@ -57,6 +57,15 @@ netsurf validate config/experiments/mnist_msb.toml
 netsurf run config/experiments/mnist_msb.toml
 netsurf run config/experiments/mnist_ranker_comparison.toml
 
+# M3: exact isolated-bit reference and composable ranking policies.
+netsurf run config/experiments/numpy_single_bit.toml
+netsurf run config/experiments/mnist_single_bit.toml
+netsurf run config/experiments/mnist_msb_policies.toml
+
+# Larger researcher-run M3 protocols (bounded, but not smoke tests).
+netsurf run config/experiments/mnist_estimator_comparison.toml
+netsurf run config/experiments/mnist_multi_coverage.toml
+
 # Use the run directory printed by either command.
 netsurf inspect workspace/runs/<experiment>/<run-id>
 netsurf report workspace/runs/<experiment>/<run-id> --plots
@@ -68,6 +77,11 @@ and writes an exact `q<6,2,1>` checkpoint under
 and biases are the injectable population: 25,450 scalars and 152,700 logical
 bits. MSB-first, seeded random, and first-order
 `abs(dL/dw * exact_bit_delta)` rankers are available independently or together.
+M3 additionally separates raw estimators, composable lexicographic ordering,
+and budget selection; records disjoint ranking, empirical-validation, and final
+evaluation samples; and supports exact isolated-bit damage, seeded Hutchinson
+diagonal curvature, per-example first order, and three explicitly versioned
+historical/qPolarGrad research variants.
 
 For generic schema-1 template operations retained from M1.5:
 

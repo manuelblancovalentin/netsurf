@@ -126,6 +126,75 @@ netsurf report workspace/runs/<experiment>/<run-id> \
   --output workspace/scratch/reports/<run-id> --plots
 ```
 
+## M3 empirical susceptibility and composable policies
+
+The following commands use the existing prepared checkpoint and never train:
+
+```bash
+netsurf validate config/experiments/numpy_single_bit.toml --resolved
+netsurf run config/experiments/numpy_single_bit.toml
+
+netsurf validate config/experiments/mnist_single_bit.toml
+netsurf run config/experiments/mnist_single_bit.toml
+
+netsurf validate config/experiments/mnist_msb_policies.toml
+netsurf run config/experiments/mnist_msb_policies.toml
+```
+
+The NumPy command exhausts all 102 bits and took under one second of scientific
+execution on Kona. Two independent finalized runs produced the identical
+scientific payload SHA-256
+`65e00c15cc833e72845525d4ebcd12781c1400befee2de8144c2339704193489`.
+Its validated overall Spearman correlations with exact positive loss damage
+were 0.342 for ordinary first order, 0.481 for per-example first-order
+magnitude, 0.471 for the exact diagonal second-order approximation, and 0.434
+for the 32-probe Hutchinson approximation. These are results for this 102-bit
+reference only.
+
+The bounded MNIST empirical template evaluates 96 candidates stratified by
+layer, parameter class, bit position, and first-order score quantile. It uses
+64 disjoint ranking samples and 64 disjoint empirical-validation samples. The
+validated run took about 21 seconds end to end and produced payload SHA-256
+`635df014d4468a4ebd5b316a87064a3aa78b11357c29e4e26894ff1ab5bbd454`.
+The output bundle is approximately 102 MB because it records all 152,700 scores
+for each configured estimator. The resulting correlations and top-k measures
+are explicitly sample-limited, not whole-network claims.
+
+The bounded MSB policy template uses six paired persistent-fault trials, 128
+final-evaluation samples, 10% and 1/6 coverages, two independent random ranking
+masks, and matched fault schedules. It took about 24 seconds and produced
+payload SHA-256
+`c4fb13979250e7d3759b9d751675c652d80a6c48c467b207e72f7822320f7f37`.
+At 1/6 coverage, every MSB-primary variant produced the identical 25,450-bit
+mask SHA-256
+`d2b98a858f2799840a697ac3c390df0cfe3fb31e24147842fe67e2ff29191045`;
+at 10%, tie-breaking changed the masks and observed outcomes.
+
+The more demanding user-run templates are:
+
+```bash
+netsurf run config/experiments/mnist_estimator_comparison.toml
+netsurf run config/experiments/mnist_multi_coverage.toml
+```
+
+The former raises the empirical sample to 192 candidates, ranking/empirical
+sample counts to 128, and Hutchinson probes to eight. A conservative estimate
+from the 96-candidate run is 30–60 seconds and roughly 120 MB on Kona CPU. The
+latter evaluates three policies at three coverages across 12 paired trials; a
+conservative estimate from the six-trial policy run is under two minutes and
+roughly 50 MB. These estimates are machine- and filesystem-dependent. Neither
+command is an exhaustive 152,700-bit susceptibility campaign.
+
+CPU-only TensorFlow can print informational messages that CUDA drivers are
+absent, including a failed `cuInit` probe. The validated runs still execute on
+CPU. These messages are not scientific failures; an actual TensorFlow exception
+or changed payload is. Use a fresh process and set the deterministic variables
+shown earlier in this document.
+
+Without `proj`, invoke the active environment's `python -m netsurf` or the
+installed `netsurf` entry point after following the Python 3.11 environment
+recipe above. Do not copy Kona's absolute environment path to another server.
+
 ## Historical M1.5 compatibility
 
 ### Canonical environment and installation

@@ -28,15 +28,23 @@ Acceptance criteria: exact checkpoint and held-out split; deterministic ranking/
 - [x] Persistent and sample-indexed per-inference replay with restoration.
 - [x] Schema-2 bundles, paired reports, plots, and repeated payload digests.
 
-## M2.1 — estimator validation study
+## M3 — estimator and composable-policy validation
 
-On a deliberately small network/subset, exhaustively inject individual bits. Compare rank correlations, top-k overlap, loss prediction calibration, and protection outcomes for gradient magnitude, first order, clean-activation qPolarGrad, recovered attacked-activation qPolarGrad, Hessian, and random. Resolve qPolarGrad theory only after these data exist.
+- [x] Exhaustive exact injection of all 102 NumPy-reference bits.
+- [x] Bounded stratified MNIST exact-bit measurements with explicit sample identities.
+- [x] Composable MSB-primary tie-breaking and complete-tier equivalence tests.
+- [x] Signed first-order, per-example magnitude, exact/Hutchinson diagonal curvature, and separately versioned qPolarGrad variants.
+- [x] Tied-rank quality metrics, paired permutation tests, Holm correction, mask composition, reports, and plots.
 
-## M3 — hardware equivalence and mapping
+Resolve qPolarGrad theory only after the M3 data are reviewed. A sampled MNIST
+study is not a whole-network top-k result, and isolated-bit ranking is not
+automatically an optimal multi-fault protection policy.
+
+## M4 — hardware equivalence and mapping
 
 Freeze one checkpoint and verify NetSuRF checkpoint → folded QKeras → HLS C simulation → RTL fixed-vector equivalence. Produce a machine-readable logical-bit-to-register map. Parse, hash, and validate zero/full plus selected intermediate Genus reports. At this boundary, create a project-owned Wolf flow copy/registry manifest and validate its Cadence compatibility path.
 
-## M4 — mitigation sequence
+## M5 — mitigation sequence
 
 1. Reconstruct register-storage TMR and voter guarantees.
 2. Add packed-word parity with an explicit detected-error action.

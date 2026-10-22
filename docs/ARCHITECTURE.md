@@ -38,6 +38,16 @@ FaultModel -> deterministic FaultSchedule -> InjectionEngine
 - `netsurf.quantization`: signed/unsigned fixed-point contract, saturating ties-to-even encoding, exact two's-complement XOR deltas.
 - `netsurf.identities`: immutable tensor and bit identities. Bit index zero is always the encoded LSB.
 - `netsurf.ranking`: score-only estimators for random, correct MSB, gradient magnitude, elementary first order, and recovered legacy qPolarGrad.
+- `netsurf.estimators_m3`: signed first/second-order predictions, per-example
+  magnitude, seeded Hutchinson curvature, and separately named qPolarGrad variants.
+- `netsurf.ordering`: deterministic lexicographic composition of bit
+  significance, layer direction, estimator score, canonical, reversed, and
+  seeded-random criteria.
+- `netsurf.empirical` and `netsurf.analysis_m3`: exact isolated-bit effects,
+  stratified candidate selection, tied-rank metrics, mask composition, paired
+  permutation tests, and multiplicity correction.
+- `netsurf.samples`: explicit sample indices, hashes, provenance, and
+  disjointness enforcement.
 - `netsurf.protection`: global, position-first, and greedy nonuniform-cost policies. The greedy policy explicitly makes no optimality claim.
 - `netsurf.faults`: explicit deterministic events, persistent and
   per-inference schedule generation, perfect-mask suppression, and exact
@@ -55,6 +65,8 @@ FaultModel -> deterministic FaultSchedule -> InjectionEngine
 - `netsurf.experiment_config`: strict versioned TOML loading and executable validation.
 - `netsurf.adapters.protocol`: framework-neutral benchmark/model adapter contract; the registry imports TensorFlow only when explicitly requested.
 - `netsurf.experiment_engine`: benchmark-neutral estimator, policy, schedule, trial, and aggregation orchestration.
+- `netsurf.study_config`, `netsurf.study_engine`, and `netsurf.study_bundle`:
+  strict schema-3 empirical/protection protocols and applicable immutable tables.
 - `netsurf.result_bundle`: atomic staging, write-once finalization, checksums, typed reading, and corruption detection.
 - `netsurf.reporting` and `netsurf.plotting`: presentation derived only from saved measurements.
 - `netsurf.api` and `netsurf.__main__`: one public engine exposed to scripts, notebooks, and the CLI.
@@ -91,7 +103,8 @@ tools, not part of this benchmark's numerical claim.
 
 ## Deferred interfaces
 
-Activation injection, Hessian estimation, new qPolarGrad theory, mitigation
+Activation injection, an accepted new qPolarGrad theory, mitigation
 implementations, HLS/RTL export, logical-to-physical mapping, and Wolf hardware
-execution remain deferred. Exhaustive single-bit validation is implemented for
-the NumPy reference but not for the 152,700-bit MNIST population.
+execution remain deferred. Exact Hessian-diagonal validation is implemented
+only for the tractable NumPy reference; MNIST uses configurable stochastic HVP
+probes and explicitly sampled empirical candidates, not a 152,700-bit exhaustive claim.

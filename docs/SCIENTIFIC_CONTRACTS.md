@@ -21,10 +21,25 @@ exhausts every parameter bit through model inference.
 An estimator maps bit identities to scalar scores. It does not choose protected bits. A policy combines scores, ordering constraints, costs, and a budget to produce an immutable mask.
 
 - `first_order_gradient_delta`: `abs(dL/dw * delta(w,k))`.
+- Its signed prediction is retained separately as `dL/dw * delta(w,k)`.
+- `per_sample_first_order_magnitude` is
+  `mean_x(abs(dell_x/dw * delta(w,k)))`; it is not the absolute value of the
+  mean gradient.
+- `exact_diagonal_second_order` and `hutchinson_diagonal_second_order` rank
+  the magnitude of `g*delta + 0.5*H_bb*delta^2`. The latter estimates the
+  diagonal with seeded Rademacher HVP probes and reports probe diagnostics.
 - `legacy_qpolargrad`: `abs(P(w,k) * dL/dw)`, where dense-kernel `P` is mean input activation times bit delta. In the recovered runtime, downstream layer inputs come from a global all-bit attack. The v2 implementation reproduces the first-call attacked activation source but eliminates accidental persistent `*_N` accumulation.
+- `clean_activation_qpolargrad` and `uncancelled_activation_drift` are distinct
+  research candidates, not silent corrections of the historical method.
 - `msb_first`: encoded bit index descending. At exactly one bit per scalar, a position-first policy must produce the same mask as correct MSB-first.
 
 No current estimator is claimed globally optimal.
+
+M3 ordering is lexicographic. A later criterion cannot cross a primary tier.
+`msb+ordered`, `msb+reversed`, seeded `msb+random`, input/output layer order,
+and `msb+gradient` all prioritize encoded bit significance. Therefore their
+masks are exactly equal at complete tier boundaries such as 1/6 coverage for
+six-bit parameters, while partial-tier masks may differ.
 
 ## Fault model
 
@@ -39,7 +54,12 @@ This probability is a logical BER parameter, not fluence, cross-section, FIT, SE
 
 ## Statistics
 
-Trial results are independent across explicitly recorded seeds. Policy comparisons are paired by schedule. Reports include trial count, sample mean, sample standard deviation, standard error, and a two-sided Student-t 95% interval. Accuracy intervals are clipped to its physical `[0,1]` range. These intervals characterize the bounded simulation only.
+Trial results are independent across explicitly recorded seeds. Policy comparisons are paired by schedule. Reports include trial count, sample mean, sample standard deviation, standard error, and the configured two-sided Student-t interval. Accuracy intervals are clipped to its physical `[0,1]` range. M3 paired comparisons use a two-sided sign-flip permutation test and Holm correction within each reported metric family. Ranking-mask random seeds and fault-schedule seeds are separate factors. These summaries characterize the bounded simulation only.
+
+Confirmatory M3 studies use explicitly disjoint training, ranking/calibration,
+empirical-validation, and final-evaluation roles. Exact indices and label-bound
+sample hashes are recorded. A configuration requiring independence fails when
+source split/index pairs overlap.
 
 ## Result immutability
 
