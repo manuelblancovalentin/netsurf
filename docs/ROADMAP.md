@@ -40,6 +40,18 @@ Resolve qPolarGrad theory only after the M3 data are reviewed. A sampled MNIST
 study is not a whole-network top-k result, and isolated-bit ranking is not
 automatically an optimal multi-fault protection policy.
 
+## M3.1 — researcher-driven estimator validation
+
+- [x] Add positive per-example first-order damage with shared Jacobian work.
+- [x] Add signed/nonnegative activation-cancellation controls for qPolarGrad.
+- [x] Add uniform candidate sampling and independently controlled replication
+  factors, including aliased Hutchinson probe-count series.
+- [x] Add schema-3.1 bundles, aggregate reports, and multi-logical-BER studies
+  while preserving schema-3.0 payload compatibility.
+
+The next activity is researcher-run configuration studies and scientific
+review, not another estimator redesign.
+
 ## M4 — hardware equivalence and mapping
 
 Freeze one checkpoint and verify NetSuRF checkpoint → folded QKeras → HLS C simulation → RTL fixed-vector equivalence. Produce a machine-readable logical-bit-to-register map. Parse, hash, and validate zero/full plus selected intermediate Genus reports. At this boundary, create a project-owned Wolf flow copy/registry manifest and validate its Cadence compatibility path.

@@ -20,8 +20,24 @@ Schema-3 M3 studies are intentionally separate protocols:
 - `mnist_msb_policies.toml`: partial/full-tier MSB tie-breaking comparison.
 - `mnist_estimator_comparison.toml`: larger empirical estimator study.
 - `mnist_multi_coverage.toml`: bounded matched protection curves.
+- `numpy_qpolar_cancellation.toml`: exhaustive signed-activation cancellation
+  control; switch its documented dataset path for the matched nonnegative
+  control.
+- `mnist_estimator_uniform.toml`: uniform-without-replacement comparison of
+  mean-gradient, absolute per-example, positive per-example, and Hessian
+  estimators.
+- `mnist_estimator_replicated.toml`: independent candidate/sample replications
+  and aliased 2/4/8-probe Hutchinson variants.
+- `mnist_multi_coverage_ber.toml`: existing policies across several protection
+  fractions and logical-BER conditions.
 
 Ranking/calibration, empirical-validation, and final-evaluation partitions are
 explicit and disjoint. Multiple `msb+random` policy entries need distinct names
 and seeds; their ranking-mask variability is not interchangeable with repeated
 fault schedules using one fixed mask.
+
+The four M3.1 templates use schema `3.1.0`. The researcher can change candidate
+`count`/`seed`, estimator `probes`/`seed`, sample counts, replication strides,
+protection `coverages`/`probabilities`, and execution `trials` without editing
+NetSuRF source. Unsupported estimator, adapter, partition, and schema
+combinations fail before result creation.

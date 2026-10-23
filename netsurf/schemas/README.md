@@ -19,6 +19,13 @@ and paired multiplicity-adjusted comparisons. Manifest and summary remain at
 `1.0.0`; schema-3-specific fields are additive and identified by the resolved
 experiment version.
 
+Experiment and measurement `3.1.0` add uniform candidate sampling, aliased
+estimator instances, positive per-example first-order damage, explicit
+independent-replication seed/offset strides, replication-labelled tables and
+aggregates, pairwise estimator-order diagnostics, and multiple logical-BER
+conditions. The schema-3.0 reader and serialization path are retained; its
+validated scientific digest is unchanged.
+
 The Python validators enforce the executable subset and load these documents as
 the machine-readable field contract. Breaking changes require a new schema file
 and reader; migrations must write a new bundle.

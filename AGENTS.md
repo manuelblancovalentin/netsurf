@@ -26,7 +26,8 @@
 ## Current bounded milestone
 
 Run `python -m pytest -q` in the activated `netsurf` project. Use `netsurf
-doctor` before modern experiments, then follow the M3 bounded empirical and
-policy commands in `docs/REPRODUCIBILITY.md`. Do not retrain an existing
+doctor` before modern experiments, then follow the M3.1 researcher-run
+configurations in `docs/REPRODUCIBILITY.md`. Do not retrain an existing
 write-once checkpoint, run an exhaustive 152,700-bit MNIST sweep, or promote a
-research estimator from a smoke result.
+research estimator from a smoke result. Software development stops after
+M3.1 unless a validated experiment exposes a concrete defect.

@@ -185,11 +185,63 @@ conservative estimate from the six-trial policy run is under two minutes and
 roughly 50 MB. These estimates are machine- and filesystem-dependent. Neither
 command is an exhaustive 152,700-bit susceptibility campaign.
 
-CPU-only TensorFlow can print informational messages that CUDA drivers are
-absent, including a failed `cuInit` probe. The validated runs still execute on
-CPU. These messages are not scientific failures; an actual TensorFlow exception
-or changed payload is. Use a fresh process and set the deterministic variables
-shown earlier in this document.
+## M3.1 researcher-driven estimator studies
+
+Validate before launching:
+
+```bash
+netsurf doctor
+netsurf validate config/experiments/numpy_qpolar_cancellation.toml --resolved
+netsurf validate config/experiments/mnist_estimator_uniform.toml --resolved
+netsurf validate config/experiments/mnist_estimator_replicated.toml --resolved
+netsurf validate config/experiments/mnist_multi_coverage_ber.toml --resolved
+```
+
+Run only the desired protocol:
+
+```bash
+netsurf run config/experiments/numpy_qpolar_cancellation.toml
+netsurf run config/experiments/mnist_estimator_uniform.toml
+netsurf run config/experiments/mnist_estimator_replicated.toml
+netsurf run config/experiments/mnist_multi_coverage_ber.toml
+```
+
+The controlled NumPy experiment exhausts all 102 bits. On Kona its three
+qPolarGrad estimator calls took about 0.003 seconds in total; the full CLI run,
+including bundle plots and checksums, completed in about two seconds. Its
+scientific payload SHA-256 is
+`56c509f8f237a9833444c9ec1d94ea7db3ad052fec464be0514a6acedc9e68db`.
+For the signed profile, clean signed-mean versus magnitude-before-mean scores
+had Spearman 0.831830; 93 of 102 average ranks changed and top-10 overlap was
+9. The matched nonnegative profile produced identical scores and order. These
+are controlled-reference observations, not evidence of MNIST protection
+superiority.
+
+The uniform MNIST template uses 96 exact injected candidates and is expected to
+be comparable to the validated 96-candidate M3 run: tens of seconds for
+scientific execution and roughly 100–150 MB because full-network score tables
+are retained. The replicated template uses 3 × 48 exact candidates and 2-, 4-,
+and 8-probe Hessian variants per replication. Empirical injection work scales
+approximately with candidate count times empirical sample count; Hutchinson
+work scales with total probes times ranking sample count. From the bounded M3
+measurements, reserve several CPU minutes and roughly 300–500 MB for that
+template, then refine the estimate from its first replication. The multi-BER
+template evaluates three times the logical-BER conditions of the corresponding
+single-BER design; reserve up to several minutes and approximately 150 MB.
+These are planning estimates, not performance guarantees.
+
+Candidate count, sample counts, Hutchinson probes, replication count/strides,
+coverage, logical-BER conditions, and trial count are all TOML fields. Each run
+prints its unique immutable directory. `replication_aggregate.csv` reports
+candidate/sample replication dispersion separately from per-probe diagnostics
+and fault-trial statistics.
+
+CPU-only TensorFlow's CUDA-driver and `cuInit` messages are benign. NetSuRF's
+own lazy import suppresses this TensorFlow 2.21 pre-absl chatter by default;
+`NETSURF_TF_IMPORT_QUIET=0` restores it for debugging. Direct user imports of
+TensorFlow occur outside that wrapper and may still print it. NumPy is not the
+source of these messages. An actual Python exception or changed payload is a
+failure; use a fresh process when changing deterministic environment settings.
 
 Without `proj`, invoke the active environment's `python -m netsurf` or the
 installed `netsurf` entry point after following the Python 3.11 environment

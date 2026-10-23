@@ -1,6 +1,6 @@
 # Versioned experiments and result bundles
 
-Experiment TOML schemas `1.0.0`, `2.0.0`, and `3.0.0` are supported user-authored
+Experiment TOML schemas `1.0.0`, `2.0.0`, `3.0.0`, and `3.1.0` are supported user-authored
 contracts. Version 1 preserves the historical adapter; version 2 adds explicit
 benchmark, quantization-backend, injectable-parameter, and persistent or
 per-inference fault semantics. Version 3 adds explicit sample partitions,
@@ -49,4 +49,24 @@ protection studies use `trials.csv`, `protection_results.csv`,
 `paired_comparisons.csv`, and `mask_composition.csv`. Every study records
 `artifacts/sample_partitions.json`; sampled empirical populations also record
 the inclusion rule and conditional stratum probability. Column contracts and
-null semantics are defined in `netsurf/schemas/measurements/v3.schema.json`.
+null semantics are defined in `netsurf/schemas/measurements/v3.schema.json`
+and `v3_1.schema.json` for their respective versions.
+
+Schema `3.1.0` is additive. It adds:
+
+- `candidates.strategy = "uniform"` for uniform sampling without replacement;
+- estimator `result_name`, allowing independently recorded probe-count
+  variants of the same estimator definition;
+- `per_sample_positive_damage`;
+- `[replications]` with `count`, `candidate_seed_stride`,
+  `hutchinson_seed_stride`, `sample_offset_stride`, and `fault_seed_stride`;
+- optional `protection.probabilities` for multiple logical-BER conditions.
+
+The base candidate, estimator, and fault seeds are advanced by their respective
+stride times the zero-based replication index. The sample offset is advanced
+the same way. A benchmark rejects offsets its declared partitions cannot
+support. Each selected identity, inclusion rule, sampling probability, probe
+seed/count, partition index/hash, and fault schedule is serialized. Replicated
+tables add a `replication` column and aggregate rows use a configured
+replication—not an inference—as the statistical unit. Runtime is reportable
+execution metadata and never enters the scientific payload hash.

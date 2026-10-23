@@ -25,6 +25,11 @@ An estimator maps bit identities to scalar scores. It does not choose protected 
 - `per_sample_first_order_magnitude` is
   `mean_x(abs(dell_x/dw * delta(w,k)))`; it is not the absolute value of the
   mean gradient.
+- `per_sample_positive_damage` is
+  `mean_x(max(0, dell_x/dw * delta(w,k)))`. It is a positive-part,
+  per-example first-order approximation, not an exact aggregate loss change.
+  When both per-example estimators are requested, they share one gradient
+  Jacobian. Their reported shared runtime must not be summed.
 - `exact_diagonal_second_order` and `hutchinson_diagonal_second_order` rank
   the magnitude of `g*delta + 0.5*H_bb*delta^2`. The latter estimates the
   diagonal with seeded Rademacher HVP probes and reports probe diagnostics.
@@ -55,6 +60,14 @@ This probability is a logical BER parameter, not fluence, cross-section, FIT, SE
 ## Statistics
 
 Trial results are independent across explicitly recorded seeds. Policy comparisons are paired by schedule. Reports include trial count, sample mean, sample standard deviation, standard error, and the configured two-sided Student-t interval. Accuracy intervals are clipped to its physical `[0,1]` range. M3 paired comparisons use a two-sided sign-flip permutation test and Holm correction within each reported metric family. Ranking-mask random seeds and fault-schedule seeds are separate factors. These summaries characterize the bounded simulation only.
+
+Schema-3.1 replications record candidate-sampling, Hutchinson-probe,
+sample-partition, and fault-schedule randomization separately. Dispersion over
+candidate samples is not probe uncertainty and neither is fault-trial
+uncertainty. Uniform-without-replacement candidate results remain
+sample-limited unless the full eligible population is selected. Stratified
+candidate results additionally require their recorded conditional inclusion
+probabilities and cannot be described as unbiased whole-network top-k recall.
 
 Confirmatory M3 studies use explicitly disjoint training, ranking/calibration,
 empirical-validation, and final-evaluation roles. Exact indices and label-bound

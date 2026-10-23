@@ -66,6 +66,13 @@ netsurf run config/experiments/mnist_msb_policies.toml
 netsurf run config/experiments/mnist_estimator_comparison.toml
 netsurf run config/experiments/mnist_multi_coverage.toml
 
+# M3.1: cancellation control, uniform sampling, independent replications,
+# and a multi-coverage/multi-logical-BER protection design.
+netsurf run config/experiments/numpy_qpolar_cancellation.toml
+netsurf run config/experiments/mnist_estimator_uniform.toml
+netsurf run config/experiments/mnist_estimator_replicated.toml
+netsurf run config/experiments/mnist_multi_coverage_ber.toml
+
 # Use the run directory printed by either command.
 netsurf inspect workspace/runs/<experiment>/<run-id>
 netsurf report workspace/runs/<experiment>/<run-id> --plots
@@ -82,6 +89,15 @@ and budget selection; records disjoint ranking, empirical-validation, and final
 evaluation samples; and supports exact isolated-bit damage, seeded Hutchinson
 diagonal curvature, per-example first order, and three explicitly versioned
 historical/qPolarGrad research variants.
+Schema 3.1 additionally provides uniform candidate sampling, the separately
+versioned positive per-example score, independent replication controls,
+multiple Hutchinson probe-count aliases, and multiple logical-BER conditions.
+
+NetSuRF's lazy TensorFlow import suppresses TensorFlow 2.21's native pre-absl
+CPU/GPU discovery chatter by default. Set `NETSURF_TF_IMPORT_QUIET=0` to expose
+it when debugging, and optionally set `NETSURF_TF_CPP_MIN_LOG_LEVEL` to choose
+TensorFlow's normal C++ log threshold. This affects console presentation only;
+it does not enable a GPU, change inference, or suppress Python exceptions.
 
 For generic schema-1 template operations retained from M1.5:
 

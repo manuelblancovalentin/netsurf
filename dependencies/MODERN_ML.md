@@ -30,8 +30,16 @@ netsurf doctor
 python -m pytest -q
 ```
 
-CPU-only TensorFlow messages saying that CUDA drivers are absent are expected
-on a CPU run. The MNIST adapter disables oneDNN graph rewrites and GPU exposure
+CPU-only TensorFlow messages saying that CUDA drivers are absent are benign on
+a CPU run. NetSuRF suppresses TensorFlow 2.21's native pre-absl import chatter
+inside its own lazy import path because those messages bypass the ordinary C++
+log threshold. Set `NETSURF_TF_IMPORT_QUIET=0` to show it for diagnosis;
+`NETSURF_TF_CPP_MIN_LOG_LEVEL` controls normal TensorFlow C++ logging. Python
+import exceptions are never swallowed. A direct user `import tensorflow`
+occurs outside this wrapper and may still print the native messages. NumPy does
+not produce these CUDA diagnostics.
+
+The MNIST adapter disables oneDNN graph rewrites and GPU exposure
 before TensorFlow import because cross-process last-bit drift was observed in
 losses and gradients otherwise. If TensorFlow was already imported with a
 conflicting environment, the adapter fails and asks for a fresh process rather
