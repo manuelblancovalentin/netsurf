@@ -1,0 +1,73 @@
+schema_version = "3.1.0"
+scientific_protocol = "estimator-validation/v1"
+policies = []
+
+[experiment]
+name = "numpy_qpolar_signed_cancellation"
+description = "Controlled signed-activation reference for qPolarGrad aggregation cancellation."
+objective = "Compare signed-mean and magnitude-before-mean activation drift, exact scores, rankings, and isolated bit effects."
+
+[benchmark]
+adapter = "numpy_activation_cancellation"
+id = "numpy_activation_cancellation_signed-v1"
+checkpoint = "../../netsurf/benchmarks/data/numpy_reference_checkpoint.json"
+# Change only this path to numpy_activation_nonnegative_dataset.json for the
+# matched profile that prohibits sign cancellation.
+dataset = "../../netsurf/benchmarks/data/numpy_activation_signed_dataset.json"
+split = "fixed_disjoint_control"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 4
+empirical_count = 4
+evaluation_count = 4
+require_disjoint = true
+
+[candidates]
+strategy = "all"
+count = 102
+seed = 32100
+score_quantiles = 4
+
+[[estimators]]
+name = "legacy_qpolargrad"
+implementation_version = "recovered-dense-first-call/v1"
+
+[[estimators]]
+name = "clean_activation_qpolargrad"
+implementation_version = "clean-dense-mean-cancelled/v1"
+
+[[estimators]]
+name = "uncancelled_activation_drift"
+implementation_version = "clean-dense-mean-absolute/v1"
+
+[protection]
+coverages = []
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.0
+
+[execution]
+trials = 1
+confidence = 0.95
+fault_seed = 950000
+permutation_seed = 951000
+
+[replications]
+count = 1
+candidate_seed_stride = 0
+hutchinson_seed_stride = 0
+sample_offset_stride = 0
+fault_seed_stride = 0
+
+[output]
+root = ""
+report = true
+plots = true

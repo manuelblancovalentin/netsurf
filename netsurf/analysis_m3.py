@@ -103,6 +103,35 @@ def ranking_quality(
     return tuple(rows)
 
 
+def estimator_agreement(estimator_outputs) -> tuple[dict[str, object], ...]:
+    """Pairwise raw-score and rank-order diagnostics on the full population."""
+
+    rows = []
+    for left, right in itertools.combinations(estimator_outputs, 2):
+        identities = tuple(sorted(left.scores))
+        if set(identities) != set(right.scores):
+            raise ValueError("estimator populations differ")
+        left_scores = [float(left.scores[value]) for value in identities]
+        right_scores = [float(right.scores[value]) for value in identities]
+        left_ranks, right_ranks = _average_ranks(left_scores), _average_ranks(right_scores)
+        left_order = sorted(identities, key=lambda value: (-float(left.scores[value]), value))
+        right_order = sorted(identities, key=lambda value: (-float(right.scores[value]), value))
+        k = min(10, len(identities))
+        rows.append({
+            "left": left.name,
+            "right": right.name,
+            "candidate_count": len(identities),
+            "spearman": spearman(left_scores, right_scores),
+            "identical_scores": bool(np.array_equal(left_scores, right_scores)),
+            "identical_order": left_order == right_order,
+            "changed_average_rank_count": int(np.sum(left_ranks != right_ranks)),
+            "maximum_average_rank_shift": float(np.max(np.abs(left_ranks - right_ranks))),
+            "top_10_overlap": len(set(left_order[:k]) & set(right_order[:k])),
+            "top_10_recall": len(set(left_order[:k]) & set(right_order[:k])) / k,
+        })
+    return tuple(rows)
+
+
 def mask_composition(
     masks: Mapping[str, Sequence[BitIdentity]],
     universe: Sequence[BitIdentity],

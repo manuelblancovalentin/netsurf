@@ -52,7 +52,7 @@ class NumpyReferenceAdapter:
             raise ValueError(f"count must be in [1,{len(self._labels)}]")
         return self._inputs[:count].copy(), self._labels[:count].copy()
 
-    def sample_partition(self, role: str, count: int):
+    def sample_partition(self, role: str, count: int, *, offset: int = 0):
         self._require_loaded()
         available = {
             "ranking": (0, 4),
@@ -61,6 +61,8 @@ class NumpyReferenceAdapter:
         }
         if role not in available:
             raise ValueError(f"unsupported M3 sample role: {role}")
+        if offset != 0:
+            raise ValueError("numpy_reference has fixed partitions and supports offset=0 only")
         if not 1 <= count <= len(available[role]):
             raise ValueError(f"{role} count must be in [1,{len(available[role])}]")
         indices = available[role][:count]
@@ -105,6 +107,13 @@ class NumpyReferenceAdapter:
         hidden = np.maximum(hidden_pre, 0.0)
         logits = hidden @ self._values["dense1/kernel"] + self._values["dense1/bias"]
         return hidden, logits
+
+    def clean_activations(self, inputs: np.ndarray) -> dict[str, np.ndarray]:
+        """Return explicit clean inputs to each dense layer."""
+
+        inputs = np.asarray(inputs, dtype=np.float64)
+        hidden, _ = self._forward(inputs)
+        return {"dense0": inputs.copy(), "dense1": hidden.copy()}
 
     def evaluate(self, inputs: np.ndarray, labels: np.ndarray, *, batch_size: int = 256) -> Evaluation:
         _, logits = self._forward(np.asarray(inputs, dtype=np.float64))
@@ -175,6 +184,7 @@ class NumpyReferenceAdapter:
             offset += size
         return result
 
+
     def polar_impacts(self, inputs: np.ndarray, *, activation_source: str):
         inputs = np.asarray(inputs, dtype=np.float64)
         clean_hidden, _ = self._forward(inputs)
@@ -220,3 +230,30 @@ class NumpyReferenceAdapter:
         if any(not np.array_equal(original[name], self._values[name]) for name in original):
             raise RuntimeError("state changed during exhaustive injection")
         return result
+
+
+class NumpyActivationCancellationAdapter(NumpyReferenceAdapter):
+    """Reference adapter with four-sample disjoint controlled partitions."""
+
+    def sample_partition(self, role: str, count: int, *, offset: int = 0):
+        self._require_loaded()
+        available = {
+            "ranking": tuple(range(0, 4)),
+            "empirical_validation": tuple(range(4, 8)),
+            "evaluation": tuple(range(8, 12)),
+        }
+        if role not in available:
+            raise ValueError(f"unsupported M3 sample role: {role}")
+        if offset != 0:
+            raise ValueError("activation control has fixed partitions and supports offset=0 only")
+        if not 1 <= count <= len(available[role]):
+            raise ValueError(f"{role} count must be in [1,{len(available[role])}]")
+        indices = available[role][:count]
+        inputs = self._inputs[list(indices)].copy()
+        labels = self._labels[list(indices)].copy()
+        partition = SamplePartition(
+            role, "packaged_activation_control", indices,
+            sample_identity_digest("packaged_activation_control", indices, labels),
+            "controlled activation-cancellation reference partition",
+        )
+        return inputs, labels, partition

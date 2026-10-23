@@ -1,0 +1,92 @@
+schema_version = "3.1.0"
+scientific_protocol = "estimator-validation/v1"
+policies = []
+
+[experiment]
+name = "mnist_estimator_replicated_bounded"
+description = "Three independent candidate/sample replications with a Hutchinson probe-count series."
+objective = "Separate candidate-sample dispersion from probe-seed and runtime diagnostics."
+
+[benchmark]
+adapter = "mnist_quantized"
+id = "mnist_dense32_q621-v1"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "m3_explicit_disjoint_partitions"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 32
+empirical_count = 32
+evaluation_count = 64
+require_disjoint = true
+
+[candidates]
+strategy = "uniform"
+count = 48
+seed = 32300
+score_quantiles = 4
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+
+[[estimators]]
+name = "per_sample_first_order_magnitude"
+implementation_version = "mean-absolute-per-example-gradient-times-exact-delta/v1"
+
+[[estimators]]
+name = "per_sample_positive_damage"
+implementation_version = "mean-positive-per-example-gradient-times-exact-delta/v1"
+
+[[estimators]]
+name = "hutchinson_diagonal_second_order"
+result_name = "hutchinson_p2"
+implementation_version = "rademacher-hvp-diagonal/v1"
+seed = 32310
+probes = 2
+
+[[estimators]]
+name = "hutchinson_diagonal_second_order"
+result_name = "hutchinson_p4"
+implementation_version = "rademacher-hvp-diagonal/v1"
+seed = 32320
+probes = 4
+
+[[estimators]]
+name = "hutchinson_diagonal_second_order"
+result_name = "hutchinson_p8"
+implementation_version = "rademacher-hvp-diagonal/v1"
+seed = 32330
+probes = 8
+
+[protection]
+coverages = []
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.0
+
+[execution]
+trials = 1
+confidence = 0.95
+fault_seed = 954000
+permutation_seed = 955000
+
+[replications]
+count = 3
+candidate_seed_stride = 1
+hutchinson_seed_stride = 100
+sample_offset_stride = 32
+fault_seed_stride = 1000
+
+[output]
+root = ""
+report = true
+plots = true

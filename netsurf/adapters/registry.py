@@ -19,6 +19,14 @@ def create_adapter(
             configuration.benchmark.dataset,
             codec,
         )
+    if name == "numpy_activation_cancellation":
+        from .numpy_reference import NumpyActivationCancellationAdapter
+
+        return NumpyActivationCancellationAdapter(
+            configuration.benchmark.checkpoint,
+            configuration.benchmark.dataset,
+            codec,
+        )
     if name == "mnist_quantized":
         from .mnist_quantized import MnistQuantizedAdapter
 

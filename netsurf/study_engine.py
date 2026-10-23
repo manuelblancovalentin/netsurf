@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from typing import Any, Mapping, Sequence
 
 import numpy as np
 
 from .adapters.registry import create_adapter
-from .analysis_m3 import mask_composition, paired_policy_comparisons, ranking_quality
-from .empirical import SingleBitMeasurement, measure_single_bits, select_all, stratified_candidates
-from .estimators_m3 import EstimatorOutput, compute_estimator
+from .analysis_m3 import estimator_agreement, mask_composition, paired_policy_comparisons, ranking_quality
+from .empirical import SingleBitMeasurement, measure_single_bits, select_all, stratified_candidates, uniform_candidates
+from .estimators_m3 import EstimatorOutput, compute_estimators
 from .experiment_engine import TrialMeasurement, _arrays_digest, _evaluate_faulted
 from .faults import FaultModel, FaultSchedule
 from .identities import BitIdentity
@@ -21,10 +21,7 @@ from .quantization import BitCodec, FixedPointFormat
 from .ranking import Ranking
 from .samples import SamplePartition, require_disjoint
 from .statistics import summarize
-from .study_config import StudyConfiguration
-
-
-M3_MEASUREMENT_SCHEMA_VERSION = "3.0.0"
+from .study_config import StudyConfiguration, StudyReplications
 
 
 @dataclass(frozen=True)
@@ -35,6 +32,7 @@ class StudyOutcome:
     estimator_outputs: tuple[EstimatorOutput, ...]
     empirical_measurements: tuple[SingleBitMeasurement, ...]
     ranking_metrics: tuple[Mapping[str, Any], ...]
+    estimator_agreement: tuple[Mapping[str, Any], ...]
     trials: tuple[TrialMeasurement, ...]
     protection_results: tuple[Mapping[str, Any], ...]
     paired_comparisons: Mapping[str, Any]
@@ -43,6 +41,9 @@ class StudyOutcome:
     protection_masks: Mapping[str, tuple[tuple[Any, ...], ...]]
     fault_schedules: tuple[Mapping[str, Any], ...]
     candidate_selection: tuple[Mapping[str, Any], ...]
+    replication_name: str = "replication_0"
+    replication_aggregate: tuple[Mapping[str, Any], ...] = ()
+    replications: tuple["StudyOutcome", ...] = ()
 
     @property
     def scientific_payload_sha256(self) -> str:
@@ -101,15 +102,18 @@ def _summaries(rows: Sequence[TrialMeasurement], masks: Mapping[str, ProtectionM
     return tuple(result)
 
 
-def execute_study(configuration: StudyConfiguration, *, adapter=None) -> StudyOutcome:
+def _execute_single_study(
+    configuration: StudyConfiguration, *, adapter=None,
+    replication_name: str = "replication_0", sample_offset: int = 0,
+) -> StudyOutcome:
     """Execute a validated M3 study without writing any files."""
 
     codec = BitCodec(FixedPointFormat.parse(configuration.benchmark.quantization))
     benchmark = adapter or create_adapter(configuration, codec)
     benchmark.load()
-    ranking_x, ranking_y, ranking_partition = benchmark.sample_partition("ranking", configuration.samples.ranking_count)
-    empirical_x, empirical_y, empirical_partition = benchmark.sample_partition("empirical_validation", configuration.samples.empirical_count)
-    evaluation_x, evaluation_y, evaluation_partition = benchmark.sample_partition("evaluation", configuration.samples.evaluation_count)
+    ranking_x, ranking_y, ranking_partition = benchmark.sample_partition("ranking", configuration.samples.ranking_count, offset=sample_offset)
+    empirical_x, empirical_y, empirical_partition = benchmark.sample_partition("empirical_validation", configuration.samples.empirical_count, offset=sample_offset)
+    evaluation_x, evaluation_y, evaluation_partition = benchmark.sample_partition("evaluation", configuration.samples.evaluation_count, offset=sample_offset)
     partitions = {"ranking": ranking_partition, "empirical_validation": empirical_partition, "evaluation": evaluation_partition}
     if configuration.samples.require_disjoint:
         require_disjoint(tuple(partitions.values()))
@@ -119,22 +123,24 @@ def execute_study(configuration: StudyConfiguration, *, adapter=None) -> StudyOu
     if len(set(identities)) != len(identities):
         raise RuntimeError("eligible bit identities are not unique")
     outputs: list[EstimatorOutput] = []
+    advanced_specifications = tuple(
+        value for value in configuration.estimators if value.name not in {"msb_first", "random"}
+    )
+    advanced_outputs = iter(compute_estimators(
+        advanced_specifications, benchmark, ranking_x, ranking_y, identities, codec,
+    ))
     for specification in configuration.estimators:
-        output = (
-            _basic_estimator(specification.name, identities, seed=specification.seed)
-            if specification.name in {"msb_first", "random"}
-            else compute_estimator(
-                specification.name, benchmark, ranking_x, ranking_y, identities, codec,
-                seed=specification.seed, probes=specification.probes,
-            )
-        )
+        output = _basic_estimator(specification.name, identities, seed=specification.seed) if specification.name in {"msb_first", "random"} else next(advanced_outputs)
         if output.implementation_version != specification.implementation_version:
             raise ValueError(
                 f"estimator {specification.name} implementation version mismatch: "
                 f"configuration requested {specification.implementation_version!r}, code provides {output.implementation_version!r}"
             )
+        if output.name != specification.result_name:
+            output = replace(output, name=specification.result_name, metadata={**output.metadata, "estimator_definition": specification.name})
         outputs.append(output)
     by_name = {output.name: output for output in outputs}
+    agreement = estimator_agreement(outputs)
 
     empirical: tuple[SingleBitMeasurement, ...] = ()
     candidate_rows: tuple[Mapping[str, Any], ...] = ()
@@ -142,6 +148,10 @@ def execute_study(configuration: StudyConfiguration, *, adapter=None) -> StudyOu
     if configuration.study_type in {"single_bit", "estimator_validation"}:
         if configuration.candidates.strategy == "all":
             candidates = select_all(identities)
+        elif configuration.candidates.strategy == "uniform":
+            candidates = uniform_candidates(
+                identities, configuration.candidates.count, seed=configuration.candidates.seed,
+            )
         else:
             score_output = by_name.get(configuration.candidates.score_estimator or "")
             candidates = stratified_candidates(
@@ -178,34 +188,48 @@ def execute_study(configuration: StudyConfiguration, *, adapter=None) -> StudyOu
                 name = f"{policy.name}@{coverage:.6f}"
                 mask = ProtectionPolicy.ordered(ordering, coverage)
                 masks[name] = ProtectionMask(name, mask.protected, mask.universe_size, mask.budget, {**mask.metadata, "prespecified": policy.prespecified})
-        fault_model = FaultModel(
-            target=configuration.fault.target, location=configuration.fault.location,
-            persistence=configuration.fault.persistence, distribution=configuration.fault.distribution,
-            probability=configuration.fault.probability,
-        )
+        probabilities = configuration.protection.probabilities or (configuration.fault.probability,)
+        multi_ber = len(probabilities) > 1
+        evaluation_masks = {
+            (f"ber={probability:.8g}/{name}" if multi_ber else name): mask
+            for probability in probabilities for name, mask in masks.items()
+        }
         state_before = _arrays_digest(benchmark.values())
-        for trial in range(configuration.execution.trials):
-            schedule = FaultSchedule.generate(
-                fault_model, identities, seed=configuration.execution.fault_seed + trial,
-                inference_count=configuration.samples.evaluation_count,
+        for probability_index, probability in enumerate(probabilities):
+            fault_model = FaultModel(
+                target=configuration.fault.target, location=configuration.fault.location,
+                persistence=configuration.fault.persistence, distribution=configuration.fault.distribution,
+                probability=probability,
             )
-            schedules.append(schedule)
-            for name, mask in masks.items():
-                accuracy, loss, accounting = _evaluate_faulted(benchmark, evaluation_x, evaluation_y, original, schedule, mask, codec)
-                trial_rows.append(TrialMeasurement(
-                    trial, name, schedule.digest(), accuracy, loss, accounting.schedule_hash,
-                    accounting.proposed_events, accounting.applied_events,
-                    accounting.suppressed_events, accounting.unique_applied_bits,
-                ))
+            for trial in range(configuration.execution.trials):
+                schedule = FaultSchedule.generate(
+                    fault_model, identities,
+                    seed=configuration.execution.fault_seed + probability_index * configuration.execution.trials + trial,
+                    inference_count=configuration.samples.evaluation_count,
+                )
+                schedules.append(schedule)
+                for name, mask in masks.items():
+                    condition_name = f"ber={probability:.8g}/{name}" if multi_ber else name
+                    accuracy, loss, accounting = _evaluate_faulted(benchmark, evaluation_x, evaluation_y, original, schedule, mask, codec)
+                    trial_rows.append(TrialMeasurement(
+                        trial, condition_name, schedule.digest(), accuracy, loss, accounting.schedule_hash,
+                        accounting.proposed_events, accounting.applied_events,
+                        accounting.suppressed_events, accounting.unique_applied_bits,
+                    ))
         if _arrays_digest(benchmark.values()) != state_before:
             raise RuntimeError("model state was not restored after protection trials")
-        protection_results = _summaries(trial_rows, masks, configuration.execution.confidence)
-        accuracy_vectors = {name: [row.accuracy for row in trial_rows if row.policy == name] for name in masks}
-        loss_vectors = {name: [row.categorical_crossentropy for row in trial_rows if row.policy == name] for name in masks}
+        protection_results = _summaries(trial_rows, evaluation_masks, configuration.execution.confidence)
+        accuracy_comparisons, loss_comparisons = {}, {}
+        for probability in probabilities:
+            names = [f"ber={probability:.8g}/{name}" if multi_ber else name for name in masks]
+            accuracy_vectors = {name: [row.accuracy for row in trial_rows if row.policy == name] for name in names}
+            loss_vectors = {name: [row.categorical_crossentropy for row in trial_rows if row.policy == name] for name in names}
+            accuracy_comparisons.update(paired_policy_comparisons(accuracy_vectors, confidence=configuration.execution.confidence, seed=configuration.execution.permutation_seed))
+            loss_comparisons.update(paired_policy_comparisons(loss_vectors, confidence=configuration.execution.confidence, seed=configuration.execution.permutation_seed))
         comparisons = {
-            "accuracy": paired_policy_comparisons(accuracy_vectors, confidence=configuration.execution.confidence, seed=configuration.execution.permutation_seed),
-            "categorical_crossentropy": paired_policy_comparisons(loss_vectors, confidence=configuration.execution.confidence, seed=configuration.execution.permutation_seed),
-            "multiplicity": "Holm adjustment within each reported metric family",
+            "accuracy": accuracy_comparisons,
+            "categorical_crossentropy": loss_comparisons,
+            "multiplicity": "Holm adjustment within each BER and reported metric family",
         }
         compositions = mask_composition({name: tuple(mask.protected) for name, mask in masks.items()}, identities)
 
@@ -214,16 +238,20 @@ def execute_study(configuration: StudyConfiguration, *, adapter=None) -> StudyOu
         for output in outputs
     }
     exact_masks = {name: tuple((identity.parameter, identity.flat_index, identity.bit_index) for identity in sorted(mask.protected)) for name, mask in masks.items()}
-    exact_schedules = tuple({
+    exact_schedules = tuple(({
         "trial": trial, "seed": schedule.seed, "sha256": schedule.digest(),
         "events": tuple((event.inference_index, event.bit.parameter, event.bit.flat_index, event.bit.bit_index) for event in schedule.events),
-    } for trial, schedule in enumerate(schedules))
+    } if configuration.schema_version == "3.0.0" else {
+        "schedule_index": trial, "seed": schedule.seed, "logical_ber": schedule.model.probability, "sha256": schedule.digest(),
+        "events": tuple((event.inference_index, event.bit.parameter, event.bit.flat_index, event.bit.bit_index) for event in schedule.events),
+    }) for trial, schedule in enumerate(schedules))
     clean = benchmark.evaluate(evaluation_x, evaluation_y)
     quantized = benchmark.quantized_values()
     empirical_payload = [{key: value for key, value in measurement.to_dict().items() if key != "runtime_seconds"} for measurement in empirical]
     metric_payload = [{key: value for key, value in row.items() if key != "runtime_seconds"} for row in metrics]
     scientific_payload = _finite({
         "schema": "netsurf-m3-study/v1",
+        "replication": {"name": replication_name, "sample_offset": sample_offset},
         "scientific_protocol": configuration.scientific_protocol,
         "benchmark": {
             "id": configuration.benchmark.id,
@@ -238,6 +266,7 @@ def execute_study(configuration: StudyConfiguration, *, adapter=None) -> StudyOu
         "candidate_selection": list(candidate_rows),
         "empirical_measurements": empirical_payload,
         "ranking_metrics": metric_payload,
+        "estimator_agreement": list(agreement),
         "clean_evaluation": asdict(clean),
         "fault_model": asdict(FaultModel(configuration.fault.target, configuration.fault.location, configuration.fault.persistence, configuration.fault.distribution, configuration.fault.probability)),
         "protection_results": list(protection_results),
@@ -249,14 +278,100 @@ def execute_study(configuration: StudyConfiguration, *, adapter=None) -> StudyOu
         "checks": {
             "partitions_disjoint": configuration.samples.require_disjoint,
             "model_state_restored": _arrays_digest(benchmark.values()) == _arrays_digest(original),
-            "matched_schedules": all(len({row.schedule_sha256 for row in trial_rows if row.trial == trial}) == 1 for trial in range(configuration.execution.trials)) if trial_rows else "not_applicable",
+            "matched_schedules": all(
+                len({row.schedule_sha256 for row in trial_rows if row.trial == trial and (not (configuration.protection.probabilities and len(configuration.protection.probabilities) > 1) or row.policy.startswith(f"ber={probability:.8g}/"))}) == 1
+                for probability in (configuration.protection.probabilities or (configuration.fault.probability,))
+                for trial in range(configuration.execution.trials)
+            ) if trial_rows else "not_applicable",
             "quantized_state_exact": all(np.array_equal(original[name], quantized[name]) for name in original),
         },
     })
+    if configuration.schema_version == "3.0.0":
+        # Preserve the established schema-3.0 scientific payload digest.
+        scientific_payload.pop("estimator_agreement", None)
+        scientific_payload.pop("replication", None)
+    else:
+        scientific_payload["fault_model"]["evaluated_probabilities"] = list(
+            configuration.protection.probabilities or (configuration.fault.probability,)
+        )
     if _arrays_digest(benchmark.values()) != _arrays_digest(original):
         raise RuntimeError("model state changed during study")
     return StudyOutcome(
         configuration, scientific_payload, partitions, tuple(outputs), empirical, tuple(_finite(metrics)),
-        tuple(trial_rows), tuple(_finite(protection_results)), _finite(comparisons), tuple(_finite(compositions)),
+        tuple(_finite(agreement)), tuple(trial_rows), tuple(_finite(protection_results)), _finite(comparisons), tuple(_finite(compositions)),
         exact_rankings, exact_masks, exact_schedules, candidate_rows,
+        replication_name,
+    )
+
+
+def _aggregate_replication_metrics(outcomes: Sequence[StudyOutcome]):
+    rows = []
+    metric_names = (
+        "spearman_positive_damage", "spearman_absolute_change",
+        "kendall_positive_damage", "top_5_recall", "top_10_recall",
+        "top_20_recall", "zero_score_fraction", "tied_score_fraction",
+    )
+    keys = sorted({(row["estimator"], row["scope"]) for outcome in outcomes for row in outcome.ranking_metrics})
+    for estimator, scope in keys:
+        selected = [row for outcome in outcomes for row in outcome.ranking_metrics if row["estimator"] == estimator and row["scope"] == scope]
+        for metric in metric_names:
+            values = np.asarray([row[metric] for row in selected if row.get(metric) is not None], dtype=np.float64)
+            if not len(values):
+                continue
+            rows.append({
+                "estimator": estimator, "scope": scope, "metric": metric,
+                "replication_count": len(values), "mean": float(np.mean(values)),
+                "standard_deviation": float(np.std(values, ddof=1)) if len(values) > 1 else 0.0,
+                "minimum": float(np.min(values)), "maximum": float(np.max(values)),
+                "statistical_unit": "independent configured replication",
+            })
+    runtime_keys = sorted({output.name for outcome in outcomes for output in outcome.estimator_outputs})
+    for estimator in runtime_keys:
+        values = np.asarray([output.runtime_seconds for outcome in outcomes for output in outcome.estimator_outputs if output.name == estimator], dtype=np.float64)
+        rows.append({
+            "estimator": estimator, "scope": "execution", "metric": "runtime_seconds",
+            "replication_count": len(values), "mean": float(np.mean(values)),
+            "standard_deviation": float(np.std(values, ddof=1)) if len(values) > 1 else 0.0,
+            "minimum": float(np.min(values)), "maximum": float(np.max(values)),
+            "statistical_unit": "independent configured replication",
+        })
+    return tuple(rows)
+
+
+def execute_study(configuration: StudyConfiguration, *, adapter=None) -> StudyOutcome:
+    """Execute one or more explicit replications through the same study engine."""
+
+    plan = configuration.replications
+    if plan.count == 1:
+        return _execute_single_study(configuration, adapter=adapter)
+    if adapter is not None:
+        raise ValueError("injecting one adapter instance is unsupported for replicated studies")
+    outcomes = []
+    for index in range(plan.count):
+        estimators = tuple(replace(value, seed=value.seed + index * plan.hutchinson_seed_stride) for value in configuration.estimators)
+        child_config = replace(
+            configuration,
+            candidates=replace(configuration.candidates, seed=configuration.candidates.seed + index * plan.candidate_seed_stride),
+            estimators=estimators,
+            execution=replace(configuration.execution, fault_seed=configuration.execution.fault_seed + index * plan.fault_seed_stride),
+            replications=StudyReplications(1, 0, 0, 0, 0),
+        )
+        outcomes.append(_execute_single_study(
+            child_config, replication_name=f"replication_{index}",
+            sample_offset=index * plan.sample_offset_stride,
+        ))
+    aggregate = _aggregate_replication_metrics(outcomes)
+    primary = outcomes[0]
+    payload = {
+        "schema": "netsurf-m3-replicated-study/v1",
+        "scientific_protocol": configuration.scientific_protocol,
+        "replication_plan": asdict(plan),
+        "replications": [outcome.scientific_payload for outcome in outcomes],
+        # Wall-clock runtime is reported, but is intentionally excluded from
+        # the reproducibility-critical scientific digest.
+        "replication_aggregate": [row for row in aggregate if row["metric"] != "runtime_seconds"],
+    }
+    return replace(
+        primary, configuration=configuration, scientific_payload=_finite(payload),
+        replication_aggregate=tuple(_finite(aggregate)), replications=tuple(outcomes),
     )

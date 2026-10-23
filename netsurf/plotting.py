@@ -237,13 +237,26 @@ def plot_study_results(
         plt.close(figure)
         generated.append(destination)
     if trial_rows:
-        policies = sorted({str(row["policy"]) for row in trial_rows if row["policy"] not in {"no_protection", "full_protection"}})
-        baseline = {int(row["trial"]): float(row["accuracy"]) for row in trial_rows if row["policy"] == "no_protection"}
-        if baseline and policies:
+        def condition_and_policy(value: str) -> tuple[str, str]:
+            return tuple(value.rsplit("/", 1)) if value.startswith("ber=") else ("", value)
+
+        baselines = {
+            (condition_and_policy(str(row["policy"]))[0], int(row["trial"])): float(row["accuracy"])
+            for row in trial_rows if condition_and_policy(str(row["policy"]))[1] == "no_protection"
+        }
+        policies = sorted({
+            str(row["policy"]) for row in trial_rows
+            if condition_and_policy(str(row["policy"]))[1] not in {"no_protection", "full_protection"}
+        })
+        if baselines and policies:
             destination = output / "paired_accuracy_differences.png"
             figure, axis = plt.subplots(figsize=(max(7.0, len(policies) * 1.0), 4.8))
             for index, policy in enumerate(policies):
-                differences = [float(row["accuracy"]) - baseline[int(row["trial"])] for row in trial_rows if row["policy"] == policy]
+                condition, _ = condition_and_policy(policy)
+                differences = [
+                    float(row["accuracy"]) - baselines[(condition, int(row["trial"]))]
+                    for row in trial_rows if row["policy"] == policy
+                ]
                 axis.scatter([index] * len(differences), differences, s=18, alpha=0.7)
             axis.axhline(0.0, color="black", linewidth=1)
             axis.set_xticks(range(len(policies)), policies, rotation=30, ha="right")

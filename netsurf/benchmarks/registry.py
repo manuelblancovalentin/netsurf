@@ -50,18 +50,28 @@ class BenchmarkDescriptor:
 
 
 _REGISTRY = {
+    "numpy_activation_cancellation": BenchmarkDescriptor(
+        "numpy_activation_cancellation", "numpy_activation_cancellation",
+        "controlled signed-activation two-class classification",
+        "2 inputs -> quantized Dense(3) -> ReLU -> quantized Dense(2) logits", 17,
+        "q<6,2,1>", "netsurf_bitcodec_v1", "packaged signed or nonnegative 12-sample controls",
+        "packaged deterministic JSON parameters",
+        ("legacy_qpolargrad", "clean_activation_qpolargrad", "uncancelled_activation_drift", "first_order_gradient_delta", "per_sample_first_order_magnitude", "per_sample_positive_damage", "exact_diagonal_second_order", "hutchinson_diagonal_second_order"),
+        ("weight",), ("persistent_trial", "per_inference"), (),
+        "scientifically controlled unit benchmark", (), False,
+    ),
     "numpy_reference": BenchmarkDescriptor(
         "numpy_reference", "numpy_reference", "two-class fixed synthetic classification",
         "2 inputs -> quantized Dense(3) -> ReLU -> quantized Dense(2) logits", 17,
         "q<6,2,1>", "netsurf_bitcodec_v1", "packaged fixed 8-sample dataset",
-        "packaged deterministic JSON parameters", ("msb_first", "random", "first_order_gradient_delta"),
+        "packaged deterministic JSON parameters", ("msb_first", "random", "first_order_gradient_delta", "per_sample_first_order_magnitude", "per_sample_positive_damage", "exact_diagonal_second_order", "hutchinson_diagonal_second_order"),
         ("weight",), ("persistent_trial", "per_inference"), (), "scientifically validated", (), False,
     ),
     "mnist_quantized": BenchmarkDescriptor(
         "mnist_quantized", "mnist_quantized", "MNIST 10-class image classification",
         "Flatten(28x28) -> Dense(32) -> ReLU -> Dense(10) logits", 25450,
         "q<6,2,1>", "netsurf_bitcodec_v1 over Keras-trained parameters", "/ml/datasets/mnist/mnist.npz",
-        "workspace/benchmarks/mnist_quantized/checkpoint.npz", ("msb_first", "random", "first_order_gradient_delta"),
+        "workspace/benchmarks/mnist_quantized/checkpoint.npz", ("msb_first", "random", "first_order_gradient_delta", "per_sample_first_order_magnitude", "per_sample_positive_damage", "hutchinson_diagonal_second_order", "legacy_qpolargrad", "clean_activation_qpolargrad", "uncancelled_activation_drift"),
         ("weight",), ("persistent_trial", "per_inference"), ("hls4ml Vitis: planned validation", "hls4ml Catapult: dense path only, planned validation"),
         "bounded software integration validated; hardware equivalence not validated", ("tensorflow", "keras"), True,
     ),

@@ -13,7 +13,8 @@ from .paths import workspace_root
 from .quantization import FixedPointFormat
 
 
-STUDY_SCHEMA_VERSION = "3.0.0"
+STUDY_SCHEMA_VERSION = "3.1.0"
+SUPPORTED_STUDY_SCHEMA_VERSIONS = {"3.0.0", STUDY_SCHEMA_VERSION}
 SUPPORTED_PROTOCOLS = {
     "single-bit-susceptibility/v1": "single_bit",
     "estimator-validation/v1": "estimator_validation",
@@ -26,6 +27,7 @@ SUPPORTED_ESTIMATORS = {
     "gradient_magnitude",
     "first_order_gradient_delta",
     "per_sample_first_order_magnitude",
+    "per_sample_positive_damage",
     "exact_diagonal_second_order",
     "hutchinson_diagonal_second_order",
     "legacy_qpolargrad",
@@ -38,6 +40,7 @@ ESTIMATOR_IMPLEMENTATION_VERSIONS = {
     "gradient_magnitude": "absolute-mean-loss-gradient/v2",
     "first_order_gradient_delta": "signed-gradient-times-exact-delta/v2",
     "per_sample_first_order_magnitude": "mean-absolute-per-example-gradient-times-exact-delta/v1",
+    "per_sample_positive_damage": "mean-positive-per-example-gradient-times-exact-delta/v1",
     "exact_diagonal_second_order": "finite-difference-exact-diagonal/v1",
     "hutchinson_diagonal_second_order": "rademacher-hvp-diagonal/v1",
     "legacy_qpolargrad": "recovered-dense-first-call/v1",
@@ -73,6 +76,7 @@ class StudyEstimator:
     implementation_version: str
     seed: int
     probes: int
+    result_name: str
 
 
 @dataclass(frozen=True)
@@ -88,6 +92,7 @@ class StudyPolicy:
 class StudyProtection:
     coverages: tuple[float, ...]
     mitigation_model: str
+    probabilities: tuple[float, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -96,6 +101,15 @@ class StudyExecution:
     confidence: float
     fault_seed: int
     permutation_seed: int
+
+
+@dataclass(frozen=True)
+class StudyReplications:
+    count: int
+    candidate_seed_stride: int
+    hutchinson_seed_stride: int
+    sample_offset_stride: int
+    fault_seed_stride: int
 
 
 @dataclass(frozen=True)
@@ -114,6 +128,7 @@ class StudyConfiguration:
     protection: StudyProtection
     fault: FaultConfiguration
     execution: StudyExecution
+    replications: StudyReplications
     output: OutputConfiguration
     source_path: Path
     source_text: str
@@ -133,6 +148,7 @@ class StudyConfiguration:
             "protection": asdict(self.protection),
             "fault": asdict(self.fault),
             "execution": asdict(self.execution),
+            "replications": asdict(self.replications),
             "output": {"root": str(self.output.root), "report": self.output.report, "plots": self.output.plots},
         }
 
@@ -164,12 +180,14 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
         document = tomllib.loads(text)
     except (OSError, tomllib.TOMLDecodeError) as error:
         raise StudyConfigurationError(f"cannot load study configuration {source}: {error}") from error
-    if document.get("schema_version") != STUDY_SCHEMA_VERSION:
-        raise StudyConfigurationError(f"schema-3 study requires schema_version={STUDY_SCHEMA_VERSION!r}")
+    schema_version = document.get("schema_version")
+    if schema_version not in SUPPORTED_STUDY_SCHEMA_VERSIONS:
+        raise StudyConfigurationError(f"unsupported schema-3 study version: {schema_version!r}")
     protocol = document.get("scientific_protocol")
     if protocol not in SUPPORTED_PROTOCOLS:
         raise StudyConfigurationError(f"unsupported schema-3 protocol: {protocol!r}")
-    _keys(document, {"schema_version", "scientific_protocol", "experiment", "benchmark", "samples", "candidates", "estimators", "policies", "protection", "fault", "execution", "output"}, set(), "root")
+    optional_root = {"replications"} if schema_version == "3.1.0" else set()
+    _keys(document, {"schema_version", "scientific_protocol", "experiment", "benchmark", "samples", "candidates", "estimators", "policies", "protection", "fault", "execution", "output"}, optional_root, "root")
 
     experiment = _table(document, "experiment")
     _keys(experiment, {"name", "description", "objective"}, set(), "experiment")
@@ -178,8 +196,8 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
 
     benchmark = _table(document, "benchmark")
     _keys(benchmark, {"adapter", "id", "checkpoint", "dataset", "split", "quantization", "quantization_backend", "injectable_parameters"}, set(), "benchmark")
-    if benchmark["adapter"] not in {"numpy_reference", "mnist_quantized"}:
-        raise StudyConfigurationError("schema-3 supports numpy_reference and mnist_quantized only")
+    if benchmark["adapter"] not in {"numpy_reference", "numpy_activation_cancellation", "mnist_quantized"}:
+        raise StudyConfigurationError("unsupported schema-3 benchmark adapter")
     checkpoint, dataset = _path(str(benchmark["checkpoint"]), source), _path(str(benchmark["dataset"]), source)
     if check_inputs and (not checkpoint.is_file() or not dataset.is_file()):
         raise StudyConfigurationError(f"missing checkpoint or dataset: {checkpoint}, {dataset}")
@@ -198,13 +216,15 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
 
     candidates = _table(document, "candidates")
     _keys(candidates, {"strategy", "count", "seed", "score_quantiles"}, {"score_estimator"}, "candidates")
-    if candidates["strategy"] not in {"all", "stratified"}:
-        raise StudyConfigurationError("candidates.strategy must be all or stratified")
+    if candidates["strategy"] not in {"all", "uniform", "stratified"}:
+        raise StudyConfigurationError("candidates.strategy must be all, uniform, or stratified")
     if not isinstance(candidates["count"], int) or candidates["count"] < 1:
         raise StudyConfigurationError("candidates.count must be positive")
     if not isinstance(candidates["score_quantiles"], int) or candidates["score_quantiles"] < 1:
         raise StudyConfigurationError("candidates.score_quantiles must be positive")
     score_estimator = candidates.get("score_estimator")
+    if schema_version == "3.0.0" and candidates["strategy"] == "uniform":
+        raise StudyConfigurationError("uniform candidate sampling requires schema_version='3.1.0'")
 
     raw_estimators = document["estimators"]
     if not isinstance(raw_estimators, list) or not raw_estimators:
@@ -213,9 +233,11 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
     for index, value in enumerate(raw_estimators):
         if not isinstance(value, dict):
             raise StudyConfigurationError(f"estimators[{index}] must be a table")
-        _keys(value, {"name", "implementation_version"}, {"seed", "probes"}, f"estimators[{index}]")
+        _keys(value, {"name", "implementation_version"}, {"seed", "probes", "result_name"} if schema_version == "3.1.0" else {"seed", "probes"}, f"estimators[{index}]")
         if value["name"] not in SUPPORTED_ESTIMATORS:
             raise StudyConfigurationError(f"unsupported estimator: {value['name']}")
+        if schema_version == "3.0.0" and value["name"] == "per_sample_positive_damage":
+            raise StudyConfigurationError("per_sample_positive_damage requires schema_version='3.1.0'")
         expected_version = ESTIMATOR_IMPLEMENTATION_VERSIONS[value["name"]]
         if value["implementation_version"] != expected_version:
             raise StudyConfigurationError(
@@ -223,12 +245,13 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
             )
         if int(value.get("probes", 16)) < 1:
             raise StudyConfigurationError("estimator probes must be positive")
-        if value["name"] == "exact_diagonal_second_order" and benchmark["adapter"] != "numpy_reference":
-            raise StudyConfigurationError("exact diagonal Hessian is restricted to numpy_reference")
-        estimators.append(StudyEstimator(str(value["name"]), str(value["implementation_version"]), int(value.get("seed", 0)), int(value.get("probes", 16))))
-    estimator_names = {value.name for value in estimators}
+        if value["name"] == "exact_diagonal_second_order" and benchmark["adapter"] not in {"numpy_reference", "numpy_activation_cancellation"}:
+            raise StudyConfigurationError("exact diagonal Hessian is restricted to NumPy reference adapters")
+        result_name = str(value.get("result_name", value["name"]))
+        estimators.append(StudyEstimator(str(value["name"]), str(value["implementation_version"]), int(value.get("seed", 0)), int(value.get("probes", 16)), result_name))
+    estimator_names = {value.result_name for value in estimators}
     if len(estimator_names) != len(estimators):
-        raise StudyConfigurationError("estimator names must be unique; vary policy seeds in policies, not duplicate estimators")
+        raise StudyConfigurationError("estimator result_name values must be unique")
     if score_estimator is not None and score_estimator not in estimator_names:
         raise StudyConfigurationError("candidate score_estimator must be one of the configured estimators")
 
@@ -257,12 +280,15 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
         raise StudyConfigurationError("protection protocols require at least one policy")
 
     protection = _table(document, "protection")
-    _keys(protection, {"coverages", "mitigation_model"}, set(), "protection")
+    _keys(protection, {"coverages", "mitigation_model"}, {"probabilities"} if schema_version == "3.1.0" else set(), "protection")
     coverages = tuple(float(value) for value in protection["coverages"])
     if SUPPORTED_PROTOCOLS[protocol] == "protection" and (not coverages or any(not 0 <= value <= 1 for value in coverages)):
         raise StudyConfigurationError("protection protocols require coverages in [0,1]")
     if protection["mitigation_model"] != "perfect_event_suppression":
         raise StudyConfigurationError("only perfect_event_suppression is implemented")
+    probabilities = tuple(float(value) for value in protection.get("probabilities", []))
+    if any(not 0.0 <= value <= 1.0 for value in probabilities):
+        raise StudyConfigurationError("protection.probabilities must be in [0,1]")
 
     fault = _table(document, "fault")
     _keys(fault, {"target", "location", "persistence", "distribution", "probability"}, set(), "fault")
@@ -278,18 +304,32 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
     if int(execution["trials"]) < 1 or not 0 < float(execution["confidence"]) < 1:
         raise StudyConfigurationError("invalid execution trials or confidence")
 
+    raw_replications = document.get("replications", {})
+    if not isinstance(raw_replications, dict):
+        raise StudyConfigurationError("replications must be a table")
+    if raw_replications:
+        _keys(raw_replications, {"count", "candidate_seed_stride", "hutchinson_seed_stride", "sample_offset_stride", "fault_seed_stride"}, set(), "replications")
+    replications = StudyReplications(
+        int(raw_replications.get("count", 1)), int(raw_replications.get("candidate_seed_stride", 0)),
+        int(raw_replications.get("hutchinson_seed_stride", 0)), int(raw_replications.get("sample_offset_stride", 0)),
+        int(raw_replications.get("fault_seed_stride", 0)),
+    )
+    if replications.count < 1 or any(value < 0 for value in asdict(replications).values()):
+        raise StudyConfigurationError("replication count must be positive and strides nonnegative")
+
     output = _table(document, "output")
     _keys(output, {"report", "plots"}, {"root"}, "output")
     root = workspace_root() / "runs" if output.get("root", "") == "" else _path(str(output["root"]), source)
 
     return StudyConfiguration(
-        STUDY_SCHEMA_VERSION, str(protocol), SUPPORTED_PROTOCOLS[protocol], str(experiment["name"]),
+        str(schema_version), str(protocol), SUPPORTED_PROTOCOLS[protocol], str(experiment["name"]),
         str(experiment["description"]), str(experiment["objective"]),
         BenchmarkConfiguration(str(benchmark["adapter"]), str(benchmark["id"]), checkpoint, dataset, str(benchmark["split"]), int(samples["evaluation_count"]), int(samples["ranking_count"]), str(benchmark["quantization"]), str(benchmark["quantization_backend"]), tuple(map(str, injectables))),
         StudySamples(int(samples["ranking_count"]), int(samples["empirical_count"]), int(samples["evaluation_count"]), bool(samples["require_disjoint"])),
         CandidateConfiguration(str(candidates["strategy"]), int(candidates["count"]), int(candidates["seed"]), None if score_estimator is None else str(score_estimator), int(candidates["score_quantiles"])),
-        tuple(estimators), tuple(policies), StudyProtection(coverages, str(protection["mitigation_model"])),
+        tuple(estimators), tuple(policies), StudyProtection(coverages, str(protection["mitigation_model"]), probabilities),
         FaultConfiguration(str(fault["target"]), str(fault["location"]), str(fault["persistence"]), str(fault["distribution"]), float(fault["probability"])),
         StudyExecution(int(execution["trials"]), float(execution["confidence"]), int(execution["fault_seed"]), int(execution["permutation_seed"])),
+        replications,
         OutputConfiguration(root.resolve(), bool(output["report"]), bool(output["plots"])), source, text,
     )

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/measurements/v3_1.schema.json",
+  "title": "NetSuRF M3.1 replicated estimator measurements",
+  "schema_version": "3.1.0",
+  "null_representation": "empty CSV field for explicitly nullable values",
+  "tables": {
+    "empirical_bits.csv": {"replication_column": "present when count > 1", "sampling": "inclusion_rule and sampling_probability identify all, uniform, or conditional-stratified selection"},
+    "estimator_predictions.csv": {"replication_column": "present when count > 1", "semantics": "raw score and optional signed prediction"},
+    "ranking_metrics.csv": {"replication_column": "present when count > 1", "scopes": ["overall", "layer:<name>", "bit:<index>"]},
+    "estimator_agreement.csv": {"semantics": "pairwise score correlation, exact score/order equality, rank shifts, and top-10 overlap"},
+    "replication_aggregate.csv": {"independent_unit": "configured replication", "columns": ["schema_version", "estimator", "scope", "metric", "replication_count", "mean", "standard_deviation", "minimum", "maximum", "statistical_unit"]},
+    "trials.csv": {"independent_unit": "fault schedule within replication and logical-BER condition; policy labels encode BER for multi-BER studies"},
+    "estimator_runtime.csv": {"replication_column": "present when count > 1", "warning": "shared per-example Jacobian time is repeated for dependent estimator rows and must not be summed"}
+  }
+}

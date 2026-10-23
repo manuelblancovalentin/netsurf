@@ -22,7 +22,7 @@ def load_configuration(path: str | Path):
     source = Path(path).expanduser().resolve()
     with source.open("rb") as stream:
         version = tomllib.load(stream).get("schema_version")
-    if version == "3.0.0":
+    if version in {"3.0.0", "3.1.0"}:
         return load_study(source)
     return load_experiment(source)
 
@@ -51,7 +51,7 @@ def regenerate_report(
     destination = Path(output).expanduser().resolve()
     destination.mkdir(parents=True, exist_ok=True)
     figures: tuple[str, ...] = ()
-    is_study = result.resolved_config.get("schema_version") == "3.0.0"
+    is_study = result.resolved_config.get("schema_version") in {"3.0.0", "3.1.0"}
     if plots and is_study:
         def rows(name):
             path = result.path / "measurements" / name
@@ -59,10 +59,22 @@ def regenerate_report(
                 return ()
             with path.open(newline="", encoding="utf-8") as stream:
                 return tuple(dict(row) for row in csv.DictReader(stream))
+        empirical_rows = rows("empirical_bits.csv")
+        prediction_rows = rows("estimator_predictions.csv")
+        trial_rows = rows("trials.csv")
+        # A bundle-level plot depicts one coherent replication; aggregate
+        # dispersion is already reported from replication_aggregate.csv.
+        # Never join identical bit identities across different replications.
+        if any("replication" in row for row in empirical_rows + prediction_rows + trial_rows):
+            names = sorted({row.get("replication", "") for row in empirical_rows + prediction_rows + trial_rows})
+            selected = names[0]
+            empirical_rows = tuple(row for row in empirical_rows if row.get("replication") == selected)
+            prediction_rows = tuple(row for row in prediction_rows if row.get("replication") == selected)
+            trial_rows = tuple(row for row in trial_rows if row.get("replication") == selected)
         generated = plot_study_results(
             result.summary, destination / "plots",
-            empirical_rows=rows("empirical_bits.csv"), prediction_rows=rows("estimator_predictions.csv"),
-            trial_rows=rows("trials.csv"),
+            empirical_rows=empirical_rows, prediction_rows=prediction_rows,
+            trial_rows=trial_rows,
         )
         figures = tuple(path.relative_to(destination).as_posix() for path in generated)
     elif plots:

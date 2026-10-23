@@ -65,6 +65,23 @@ def select_all(identities: Sequence[BitIdentity]) -> tuple[CandidateSelection, .
     return tuple(CandidateSelection(value, "all", 1.0) for value in identities)
 
 
+def uniform_candidates(
+    identities: Sequence[BitIdentity], count: int, *, seed: int
+) -> tuple[CandidateSelection, ...]:
+    """Uniform sample without replacement from the complete eligible population."""
+
+    universe = tuple(sorted(identities))
+    if not 1 <= count <= len(universe):
+        raise ValueError("candidate count must be within the eligible population")
+    generator = np.random.default_rng(int(seed))
+    selected = generator.choice(len(universe), size=count, replace=False)
+    probability = count / len(universe)
+    return tuple(
+        CandidateSelection(universe[int(index)], "uniform_without_replacement", probability)
+        for index in selected
+    )
+
+
 def stratified_candidates(
     identities: Sequence[BitIdentity],
     count: int,

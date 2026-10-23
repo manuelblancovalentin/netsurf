@@ -71,25 +71,51 @@ def gradient_magnitude(adapter, inputs, labels, identities) -> EstimatorOutput:
     )
 
 
-def per_sample_first_order(adapter, inputs, labels, identities, codec: BitCodec) -> EstimatorOutput:
+def per_sample_first_order_family(
+    adapter, inputs, labels, identities, codec: BitCodec, *, requested: Sequence[str]
+) -> Mapping[str, EstimatorOutput]:
+    """Compute absolute and positive per-example scores from one Jacobian."""
+
+    supported = {"per_sample_first_order_magnitude", "per_sample_positive_damage"}
+    unknown = set(requested) - supported
+    if unknown:
+        raise ValueError(f"unsupported per-example first-order variants: {sorted(unknown)}")
     started = perf_counter()
     gradients = adapter.per_example_gradients(inputs, labels)
     deltas = _deltas(adapter.values(), codec)
-    scores = {}
+    absolute_scores, positive_scores = {}, {}
     for identity in identities:
         per_example = gradients[identity.parameter].reshape(len(labels), -1)[:, identity.flat_index]
-        scores[identity] = float(np.mean(np.abs(per_example * _bit_value(deltas, identity))))
-    return EstimatorOutput(
-        "per_sample_first_order_magnitude",
-        "mean-absolute-per-example-gradient-times-exact-delta/v1",
-        scores,
-        None,
-        perf_counter() - started,
-        {
-            "expression": "mean_x(abs(dell_x/dw * delta_b))",
-            "warning": "distinct from abs(mean_x(dell_x/dw) * delta_b)",
-        },
-    )
+        changes = per_example * _bit_value(deltas, identity)
+        absolute_scores[identity] = float(np.mean(np.abs(changes)))
+        positive_scores[identity] = float(np.mean(np.maximum(0.0, changes)))
+    elapsed = perf_counter() - started
+    shared = {
+        "shared_computation": "one per-example gradient Jacobian and one exact-delta matrix",
+        "runtime_accounting": "shared wall time repeated for dependent rows; do not sum",
+    } if len(requested) > 1 else {}
+    outputs = {
+        "per_sample_first_order_magnitude": EstimatorOutput(
+            "per_sample_first_order_magnitude",
+            "mean-absolute-per-example-gradient-times-exact-delta/v1",
+            absolute_scores, None, elapsed,
+            {**shared, "expression": "mean_x(abs(dell_x/dw * delta_b))", "warning": "distinct from abs(mean_x(dell_x/dw) * delta_b)"},
+        ),
+        "per_sample_positive_damage": EstimatorOutput(
+            "per_sample_positive_damage",
+            "mean-positive-per-example-gradient-times-exact-delta/v1",
+            positive_scores, None, elapsed,
+            {**shared, "expression": "mean_x(max(0, dell_x/dw * delta_b))", "warning": "first-order positive per-example approximation; not exact aggregate loss damage"},
+        ),
+    }
+    return {name: outputs[name] for name in requested}
+
+
+def per_sample_first_order(adapter, inputs, labels, identities, codec: BitCodec) -> EstimatorOutput:
+    return per_sample_first_order_family(
+        adapter, inputs, labels, identities, codec,
+        requested=("per_sample_first_order_magnitude",),
+    )["per_sample_first_order_magnitude"]
 
 
 def qpolargrad(adapter, inputs, labels, identities, codec: BitCodec, *, variant: str) -> EstimatorOutput:
@@ -240,6 +266,11 @@ def compute_estimator(
         return gradient_magnitude(adapter, inputs, labels, identities)
     if name == "per_sample_first_order_magnitude":
         return per_sample_first_order(adapter, inputs, labels, identities, codec)
+    if name == "per_sample_positive_damage":
+        return per_sample_first_order_family(
+            adapter, inputs, labels, identities, codec,
+            requested=("per_sample_positive_damage",),
+        )["per_sample_positive_damage"]
     if name in {"legacy_qpolargrad", "clean_activation_qpolargrad", "uncancelled_activation_drift"}:
         return qpolargrad(adapter, inputs, labels, identities, codec, variant=name)
     if name == "exact_diagonal_second_order":
@@ -247,3 +278,25 @@ def compute_estimator(
     if name == "hutchinson_diagonal_second_order":
         return hutchinson_second_order(adapter, inputs, labels, identities, codec, probes=probes, seed=seed)
     raise ValueError(f"unsupported M3 estimator: {name}")
+
+
+def compute_estimators(specifications, adapter, inputs, labels, identities, codec: BitCodec):
+    """Compute configured estimators while sharing per-example gradients."""
+
+    family_names = {
+        specification.name for specification in specifications
+        if specification.name in {"per_sample_first_order_magnitude", "per_sample_positive_damage"}
+    }
+    family = per_sample_first_order_family(
+        adapter, inputs, labels, identities, codec, requested=tuple(sorted(family_names))
+    ) if family_names else {}
+    result = []
+    for specification in specifications:
+        output = family.get(specification.name)
+        if output is None:
+            output = compute_estimator(
+                specification.name, adapter, inputs, labels, identities, codec,
+                seed=specification.seed, probes=specification.probes,
+            )
+        result.append(output)
+    return tuple(result)

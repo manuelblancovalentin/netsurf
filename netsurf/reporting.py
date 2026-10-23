@@ -114,11 +114,23 @@ def render_study_report(summary: Mapping[str, Any], resolved: Mapping[str, Any],
                 f"{show(row['top_10_recall'])} | {show(row['zero_score_fraction'])} | {row['runtime_seconds']:.6f} |"
             )
         if summary.get("sample_limited"):
-            lines.extend(["", "These metrics are sample-limited to the recorded stratified candidate set and are not whole-network top-k claims."])
+            lines.extend(["", "These metrics are sample-limited to the recorded candidate set and are not whole-network top-k claims. Consult the saved inclusion rule and probabilities for the sampling design."])
+    agreement = summary.get("estimator_agreement", [])
+    qpolar_agreement = [row for row in agreement if {row["left"], row["right"]} == {"clean_activation_qpolargrad", "uncancelled_activation_drift"}]
+    if qpolar_agreement:
+        row = qpolar_agreement[0]
+        lines.extend([
+            "", "## Activation-drift aggregation diagnostic", "",
+            f"Clean signed-mean and magnitude-before-mean qPolarGrad scores have Spearman `{row['spearman']}`; `{row['changed_average_rank_count']}` of `{row['candidate_count']}` candidates changed average rank, with maximum shift `{row['maximum_average_rank_shift']}`.",
+            f"Exact score equality: `{row['identical_scores']}`; exact deterministic order equality: `{row['identical_order']}`.",
+            "Different scores need not imply different orderings; both are recorded explicitly.",
+        ])
     if summary.get("protection_results"):
+        probabilities = resolved["protection"].get("probabilities") or [resolved["fault"]["probability"]]
+        probability_text = ", ".join(str(value) for value in probabilities)
         lines.extend([
             "", "## Matched protection experiment", "",
-            f"Logical BER `{resolved['fault']['probability']}` with persistence `{resolved['fault']['persistence']}` was evaluated in `{summary['trial_count']}` independent fault trials.",
+            f"Logical BER condition(s) `{probability_text}` with persistence `{resolved['fault']['persistence']}` were each evaluated in `{summary['trial_count']}` independent fault trials.",
             "All policies used the same underlying schedule within each trial. Protection means ideal logical event suppression, not ECC or TMR hardware.",
             "", f"| Policy and coverage | Protected bits | Accuracy mean | {100 * resolved['execution']['confidence']:.1f}% CI | Loss mean | Minimum accuracy (trial) |",
             "|---|---:|---:|---:|---:|---:|",
@@ -140,6 +152,19 @@ def render_study_report(summary: Mapping[str, Any], resolved: Mapping[str, Any],
         for name, runtime in summary["estimator_runtimes_seconds"].items():
             lines.append(f"| {name} | {runtime:.6f} |")
         lines.extend(["", "Wall-clock time is execution metadata and is excluded from the scientific payload digest."])
+    if summary.get("replication_count", 1) > 1:
+        lines.extend([
+            "", "## Independent replications", "",
+            f"This bundle contains `{summary['replication_count']}` explicitly seeded replications. Candidate sampling, Hessian probes, sample offsets, and fault seeds remain recorded as separate factors.",
+            "", "| Estimator | Scope | Metric | Mean | Standard deviation | Replications |",
+            "|---|---|---|---:|---:|---:|",
+        ])
+        for row in summary.get("replication_aggregate", []):
+            if row["scope"] == "overall" or row["metric"] == "runtime_seconds":
+                lines.append(f"| {row['estimator']} | {row['scope']} | {row['metric']} | {row['mean']:.6f} | {row['standard_deviation']:.6f} | {row['replication_count']} |")
+        lines.extend([
+            "", "Dispersion across candidate samples is not fault-trial uncertainty or Hutchinson probe uncertainty. Per-layer and per-bit-position replication summaries are stored in `measurements/replication_aggregate.csv`.",
+        ])
     if figure_paths:
         lines.extend(["", "## Figures", ""])
         for path in figure_paths:

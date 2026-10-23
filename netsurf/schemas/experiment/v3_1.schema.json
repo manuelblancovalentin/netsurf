@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/experiment/v3_1.schema.json",
+  "title": "NetSuRF M3.1 replicated susceptibility and multi-condition study",
+  "type": "object",
+  "required": ["schema_version", "scientific_protocol", "experiment", "benchmark", "samples", "candidates", "estimators", "policies", "protection", "fault", "execution", "output"],
+  "properties": {
+    "schema_version": {"const": "3.1.0"},
+    "scientific_protocol": {"enum": ["single-bit-susceptibility/v1", "estimator-validation/v1", "ranking-policy-comparison/v1", "multi-coverage-protection/v1"]},
+    "experiment": {"type": "object"},
+    "benchmark": {"type": "object"},
+    "samples": {"type": "object"},
+    "candidates": {
+      "type": "object",
+      "properties": {"strategy": {"enum": ["all", "uniform", "stratified"]}, "count": {"type": "integer", "minimum": 1}, "seed": {"type": "integer"}, "score_estimator": {"type": "string"}, "score_quantiles": {"type": "integer", "minimum": 1}}
+    },
+    "estimators": {
+      "type": "array", "minItems": 1,
+      "items": {"type": "object", "required": ["name", "implementation_version"], "properties": {"name": {"type": "string"}, "implementation_version": {"type": "string"}, "result_name": {"type": "string"}, "seed": {"type": "integer"}, "probes": {"type": "integer", "minimum": 1}}}
+    },
+    "policies": {"type": "array"},
+    "protection": {"type": "object", "properties": {"coverages": {"type": "array", "items": {"type": "number", "minimum": 0, "maximum": 1}}, "probabilities": {"type": "array", "items": {"type": "number", "minimum": 0, "maximum": 1}}, "mitigation_model": {"const": "perfect_event_suppression"}}},
+    "fault": {"type": "object"},
+    "execution": {"type": "object"},
+    "replications": {"type": "object", "required": ["count", "candidate_seed_stride", "hutchinson_seed_stride", "sample_offset_stride", "fault_seed_stride"], "properties": {"count": {"type": "integer", "minimum": 1}, "candidate_seed_stride": {"type": "integer", "minimum": 0}, "hutchinson_seed_stride": {"type": "integer", "minimum": 0}, "sample_offset_stride": {"type": "integer", "minimum": 0}, "fault_seed_stride": {"type": "integer", "minimum": 0}}, "additionalProperties": false},
+    "output": {"type": "object"}
+  },
+  "additionalProperties": false
+}
