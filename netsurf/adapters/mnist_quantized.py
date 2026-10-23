@@ -43,6 +43,12 @@ def _configure_tensorflow_runtime() -> None:
         "TF_DETERMINISTIC_OPS": "1",
         "CUDA_VISIBLE_DEVICES": "-1",
     }
+    # TensorFlow 2.21 probes CUDA even for the validated CPU-only workflow and
+    # emits native pre-absl INFO/ERROR lines when no driver is installed.  This
+    # controls only native log verbosity; Python exceptions remain visible.
+    os.environ.setdefault(
+        "TF_CPP_MIN_LOG_LEVEL", os.environ.get("NETSURF_TF_CPP_MIN_LOG_LEVEL", "3")
+    )
     initialized = "tensorflow" in sys.modules or "keras" in sys.modules
     conflicts = {
         name: os.environ.get(name)
@@ -60,8 +66,36 @@ def _configure_tensorflow_runtime() -> None:
 _configure_tensorflow_runtime()
 
 
+def _import_ml_runtime():
+    """Import Keras/TensorFlow while optionally silencing native startup probes.
+
+    TensorFlow 2.21 writes CUDA discovery messages directly to file descriptor
+    2 before absl logging is initialized, so ``TF_CPP_MIN_LOG_LEVEL`` cannot
+    suppress all of them.  The redirection is limited to the first import and
+    always restored; import exceptions are re-raised normally afterwards.
+    Set ``NETSURF_TF_IMPORT_QUIET=0`` to retain the native diagnostics.
+    """
+
+    quiet = os.environ.get("NETSURF_TF_IMPORT_QUIET", "1") != "0"
+    if quiet and "tensorflow" not in sys.modules:
+        saved_stderr = os.dup(2)
+        null_stderr = os.open(os.devnull, os.O_WRONLY)
+        try:
+            os.dup2(null_stderr, 2)
+            import keras
+            import tensorflow as tf
+        finally:
+            os.dup2(saved_stderr, 2)
+            os.close(saved_stderr)
+            os.close(null_stderr)
+    else:
+        import keras
+        import tensorflow as tf
+    return keras, tf
+
+
 def _keras_model():
-    import keras
+    keras, _ = _import_ml_runtime()
 
     inputs = keras.Input(shape=(28, 28, 1), name="image")
     value = keras.layers.Flatten(name="flatten")(inputs)
@@ -79,8 +113,7 @@ def prepare_checkpoint(*, epochs: int = 3, train_samples: int = 20_000, seed: in
 
     if epochs < 1 or not 1 <= train_samples <= 50_000:
         raise ValueError("epochs must be positive and train_samples must be in [1,50000]")
-    import keras
-    import tensorflow as tf
+    keras, tf = _import_ml_runtime()
 
     tf.keras.utils.set_random_seed(seed)
     tf.config.experimental.enable_op_determinism()
@@ -178,7 +211,7 @@ class MnistQuantizedAdapter:
             raise ValueError(f"requested {count} {role} samples, found {len(labels)}")
         return _normalize(images), labels.astype(np.int64)
 
-    def sample_partition(self, role: str, count: int):
+    def sample_partition(self, role: str, count: int, *, offset: int = 0):
         self._require_loaded()
         definitions = {
             "ranking": ("x_train", 50_000, 52_500, "training tail reserved for ranking/calibration"),
@@ -188,9 +221,9 @@ class MnistQuantizedAdapter:
         if role not in definitions:
             raise ValueError(f"unsupported M3 sample role: {role}")
         source_name, start, stop, provenance = definitions[role]
-        if not 1 <= count <= stop - start:
-            raise ValueError(f"{role} count must be in [1,{stop-start}]")
-        indices = tuple(range(start, start + count))
+        if offset < 0 or not 1 <= count or start + offset + count > stop:
+            raise ValueError(f"{role} offset/count must fit within {stop-start} reserved samples")
+        indices = tuple(range(start + offset, start + offset + count))
         with np.load(self.dataset_path) as data:
             images = data[source_name][list(indices)]
             labels = data["y_train" if source_name == "x_train" else "y_test"][list(indices)].astype(np.int64)
@@ -230,14 +263,14 @@ class MnistQuantizedAdapter:
 
     @staticmethod
     def _forward_tensor(inputs, values):
-        import tensorflow as tf
+        _, tf = _import_ml_runtime()
 
         flat = tf.reshape(inputs, (tf.shape(inputs)[0], 784))
         hidden = tf.nn.relu(tf.linalg.matmul(flat, values["dense0/kernel"]) + values["dense0/bias"])
         return tf.linalg.matmul(hidden, values["dense1/kernel"]) + values["dense1/bias"]
 
     def evaluate(self, inputs: np.ndarray, labels: np.ndarray, *, batch_size: int = 256) -> Evaluation:
-        import tensorflow as tf
+        _, tf = _import_ml_runtime()
 
         values = {name: tf.convert_to_tensor(value) for name, value in self._values.items()}
         logits = self._forward_tensor(tf.convert_to_tensor(inputs), values)
@@ -246,14 +279,14 @@ class MnistQuantizedAdapter:
         return Evaluation(float(accuracy.numpy()), float(tf.reduce_mean(losses).numpy()), len(labels))
 
     def predict_classes(self, inputs: np.ndarray) -> np.ndarray:
-        import tensorflow as tf
+        _, tf = _import_ml_runtime()
 
         values = {name: tf.convert_to_tensor(value) for name, value in self._values.items()}
         logits = self._forward_tensor(tf.convert_to_tensor(inputs), values)
         return tf.argmax(logits, axis=1, output_type=tf.int64).numpy()
 
     def gradients(self, inputs: np.ndarray, labels: np.ndarray) -> dict[str, np.ndarray]:
-        import tensorflow as tf
+        _, tf = _import_ml_runtime()
 
         variables = {name: tf.Variable(value, trainable=True, name=name.replace("/", "_")) for name, value in self._values.items()}
         with tf.GradientTape() as tape:
@@ -263,7 +296,7 @@ class MnistQuantizedAdapter:
         return {name: gradient.numpy().copy() for name, gradient in zip(variables, gradients)}
 
     def per_example_gradients(self, inputs: np.ndarray, labels: np.ndarray) -> dict[str, np.ndarray]:
-        import tensorflow as tf
+        _, tf = _import_ml_runtime()
 
         variables = {name: tf.Variable(value, trainable=True, name=name.replace("/", "_")) for name, value in self._values.items()}
         with tf.GradientTape() as tape:
@@ -273,7 +306,7 @@ class MnistQuantizedAdapter:
         return {name: value.numpy().copy() for name, value in zip(variables, jacobians)}
 
     def hessian_vector_product(self, inputs, labels, vectors):
-        import tensorflow as tf
+        _, tf = _import_ml_runtime()
 
         variables = {name: tf.Variable(value, trainable=True, name=name.replace("/", "_")) for name, value in self._values.items()}
         with tf.GradientTape() as outer:
@@ -289,7 +322,7 @@ class MnistQuantizedAdapter:
         return {name: value.numpy().copy() for name, value in zip(variables, hvp)}
 
     def polar_impacts(self, inputs: np.ndarray, *, activation_source: str):
-        import tensorflow as tf
+        _, tf = _import_ml_runtime()
 
         flat = tf.reshape(tf.convert_to_tensor(inputs), (len(inputs), 784)).numpy()
         values = self.values()
