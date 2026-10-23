@@ -5,6 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
+from .derived_analysis import normalize_trials
+from .statistics import summarize
+
 
 class PlottingDependencyError(RuntimeError):
     """The optional plotting backend is unavailable."""
@@ -169,7 +172,7 @@ def plot_study_results(
         figure.savefig(destination, dpi=160)
         plt.close(figure)
         generated.append(destination)
-    if summary.get("protection_results"):
+    if summary.get("protection_results") and not trial_rows:
         results = summary["protection_results"]
         destination = output / "accuracy_by_policy_coverage.png"
         names = [row["policy"] for row in results]
@@ -201,6 +204,111 @@ def plot_study_results(
         figure.savefig(destination, dpi=160)
         plt.close(figure)
         generated.append(destination)
+    if trial_rows and summary.get("protection_results"):
+        pooled = summary["protection_results"]
+        default_ber = next((row.get("logical_ber") for row in pooled if row.get("logical_ber") is not None), None)
+        rows = normalize_trials(trial_rows, default_ber=default_ber)
+        bers = sorted({row["logical_ber"] for row in rows})
+        policies = sorted({row["ranking_policy"] for row in rows if row["ranking_policy"] not in {"no_protection", "full_protection"}})
+        coverages = sorted({row["coverage"] for row in rows if row["ranking_policy"] not in {"no_protection", "full_protection"}})
+
+        for ber in bers:
+            destination = output / f"accuracy_vs_coverage_ber_{ber:.0e}.png"
+            figure, axis = plt.subplots(figsize=(7.2, 4.8))
+            for policy in policies:
+                selected = [row for row in pooled if row["logical_ber"] == ber and row["policy"] == policy]
+                selected.sort(key=lambda row: row["coverage"])
+                if not selected:
+                    continue
+                means = [row["accuracy"]["mean"] for row in selected]
+                low = [mean - row["accuracy"]["confidence_interval"][0] for mean, row in zip(means, selected)]
+                high = [row["accuracy"]["confidence_interval"][1] - mean for mean, row in zip(means, selected)]
+                axis.errorbar([row["coverage"] for row in selected], means, yerr=[low, high], marker="o", capsize=3, label=policy)
+            for control, style in (("no_protection", "--"), ("full_protection", ":")):
+                selected = next((row for row in pooled if row["logical_ber"] == ber and row["policy"] == control), None)
+                if selected:
+                    axis.axhline(selected["accuracy"]["mean"], linestyle=style, linewidth=1.2, label=f"{control} (n={selected['fault_realization_count']})")
+            axis.set(xlabel="Protected eligible bits (fraction)", ylabel="Mean classification accuracy", title=f"Accuracy versus protection coverage — logical BER {ber:.1e}", ylim=(0.0, 1.0))
+            axis.grid(alpha=0.25); axis.legend(fontsize="small")
+            figure.tight_layout(); figure.savefig(destination, dpi=160); plt.close(figure); generated.append(destination)
+
+        if len(bers) > 1:
+            for coverage in coverages:
+                destination = output / f"accuracy_vs_ber_coverage_{coverage:.6f}.png"
+                figure, axis = plt.subplots(figsize=(7.2, 4.8))
+                for policy in policies:
+                    selected = [row for row in pooled if row["policy"] == policy and abs(row["coverage"] - coverage) < 1e-9]
+                    selected.sort(key=lambda row: row["logical_ber"])
+                    if not selected:
+                        continue
+                    means = [row["accuracy"]["mean"] for row in selected]
+                    errors = [[mean - row["accuracy"]["confidence_interval"][0] for mean, row in zip(means, selected)], [row["accuracy"]["confidence_interval"][1] - mean for mean, row in zip(means, selected)]]
+                    axis.errorbar([row["logical_ber"] for row in selected], means, yerr=errors, marker="o", capsize=3, label=policy)
+                unprotected = sorted((row for row in pooled if row["policy"] == "no_protection"), key=lambda row: row["logical_ber"])
+                if unprotected:
+                    means = [row["accuracy"]["mean"] for row in unprotected]
+                    errors = [[mean - row["accuracy"]["confidence_interval"][0] for mean, row in zip(means, unprotected)], [row["accuracy"]["confidence_interval"][1] - mean for mean, row in zip(means, unprotected)]]
+                    axis.errorbar([row["logical_ber"] for row in unprotected], means, yerr=errors, marker="x", linestyle="--", capsize=3, label="no protection")
+                clean = summary.get("clean_evaluation", {}).get("accuracy")
+                if clean is not None:
+                    axis.axhline(clean, color="black", linewidth=1, linestyle=":", label="clean deterministic reference")
+                axis.set_xscale("log"); axis.set_ylim(0.0, 1.0)
+                axis.set(xlabel="Logical bit-flip probability (BER)", ylabel="Mean classification accuracy", title=f"Accuracy versus logical BER — coverage {coverage:.1%}")
+                axis.grid(alpha=0.25); axis.legend(fontsize="small")
+                figure.tight_layout(); figure.savefig(destination, dpi=160); plt.close(figure); generated.append(destination)
+
+        for ber in bers:
+            selected_conditions = sorted({row["condition"] for row in rows if row["logical_ber"] == ber})
+            accuracy_values = [[row["accuracy"] for row in rows if row["logical_ber"] == ber and row["condition"] == condition] for condition in selected_conditions]
+            destination = output / f"trial_accuracy_distributions_ber_{ber:.0e}.png"
+            figure, axis = plt.subplots(figsize=(max(8.0, len(selected_conditions) * 0.65), 5.2))
+            axis.boxplot(accuracy_values, tick_labels=selected_conditions, showfliers=True)
+            axis.set_ylim(0.0, 1.0); axis.set_ylabel("Trial classification accuracy")
+            axis.set_title(f"Fault-trial accuracy distributions — logical BER {ber:.1e}")
+            axis.tick_params(axis="x", rotation=45); axis.grid(axis="y", alpha=0.25)
+            figure.tight_layout(); figure.savefig(destination, dpi=160); plt.close(figure); generated.append(destination)
+
+            loss_values = [[row["categorical_crossentropy"] for row in rows if row["logical_ber"] == ber and row["condition"] == condition] for condition in selected_conditions]
+            destination = output / f"trial_loss_distributions_ber_{ber:.0e}.png"
+            figure, axis = plt.subplots(figsize=(max(8.0, len(selected_conditions) * 0.65), 5.2))
+            axis.boxplot(loss_values, tick_labels=selected_conditions, showfliers=True)
+            if all(value > 0 for group in loss_values for value in group):
+                axis.set_yscale("log")
+            axis.set_ylabel("Categorical cross-entropy (log scale when positive)")
+            axis.set_title(f"Fault-trial loss distributions — logical BER {ber:.1e}; outliers shown")
+            axis.tick_params(axis="x", rotation=45); axis.grid(axis="y", alpha=0.25)
+            figure.tight_layout(); figure.savefig(destination, dpi=160); plt.close(figure); generated.append(destination)
+
+        preferred = (("gradient_global", "msb+gradient"), ("gradient_global", "msb+ordered"))
+        paired_sets = []
+        indexed = {(row["replication"], row["logical_ber"], row["coverage"], row["ranking_policy"], row["trial"], row["schedule_sha256"]): row for row in rows}
+        for ber in bers:
+            for coverage in coverages:
+                for left, right in preferred:
+                    left_rows = [row for row in rows if row["logical_ber"] == ber and row["coverage"] == coverage and row["ranking_policy"] == left]
+                    values = []
+                    for row in left_rows:
+                        match = indexed.get((row["replication"], ber, coverage, right, row["trial"], row["schedule_sha256"]))
+                        if match is not None:
+                            values.append(row["accuracy"] - match["accuracy"])
+                    if values:
+                        paired_sets.append((f"{left}−{right}\nBER {ber:.0e}, cov {coverage:.1%}", values))
+        if paired_sets:
+            destination = output / "paired_policy_accuracy_differences.png"
+            figure, axis = plt.subplots(figsize=(max(8.0, len(paired_sets) * 0.8), 5.2))
+            axis.boxplot([values for _, values in paired_sets], tick_labels=[name for name, _ in paired_sets], showfliers=True)
+            estimates = [summarize(values, bounds=(-1.0, 1.0)) for _, values in paired_sets]
+            means = [value.mean for value in estimates]
+            axis.errorbar(
+                range(1, len(estimates) + 1), means,
+                yerr=[[mean - value.confidence_interval[0] for mean, value in zip(means, estimates)], [value.confidence_interval[1] - mean for mean, value in zip(means, estimates)]],
+                fmt="D", color="black", capsize=3, label="mean and 95% CI",
+            )
+            axis.axhline(0.0, color="black", linewidth=1)
+            axis.set_ylabel("Paired trial accuracy difference"); axis.set_title("Prespecified paired policy differences (matched schedules)")
+            axis.tick_params(axis="x", rotation=45); axis.grid(axis="y", alpha=0.25); axis.legend(fontsize="small")
+            figure.tight_layout(); figure.savefig(destination, dpi=160); plt.close(figure); generated.append(destination)
+
     composition = summary.get("mask_composition", [])
     bit_rows = [row for row in composition if row["dimension"] == "bit_position" and row["policy"] not in {"no_protection", "full_protection"}]
     if bit_rows:
@@ -236,7 +344,7 @@ def plot_study_results(
         figure.savefig(destination, dpi=160)
         plt.close(figure)
         generated.append(destination)
-    if trial_rows:
+    if trial_rows and not summary.get("protection_results"):
         def condition_and_policy(value: str) -> tuple[str, str]:
             return tuple(value.rsplit("/", 1)) if value.startswith("ber=") else ("", value)
 

@@ -15,7 +15,7 @@ from .faults import FaultModel, FaultSchedule, apply_per_inference_schedule, app
 from .identities import BitIdentity
 from .manifests import digest_object, sha256_file
 from .protection import ProtectionMask, ProtectionPolicy
-from .progress import ProgressTracker, experiment_operation_count
+from .progress import ProgressTracker, experiment_operation_plan
 from .quantization import BitCodec, FixedPointFormat
 from .ranking import (
     FirstOrderEstimator,
@@ -225,7 +225,7 @@ def execute_experiment(
 
     own_tracker = _tracker is None
     tracker = _tracker or ProgressTracker(
-        configuration.name, experiment_operation_count(configuration), progress
+        configuration.name, experiment_operation_plan(configuration), progress
     )
     tracker.update("Model loading")
     codec = BitCodec(FixedPointFormat.parse(configuration.benchmark.quantization))

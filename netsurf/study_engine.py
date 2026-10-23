@@ -17,7 +17,7 @@ from .identities import BitIdentity
 from .manifests import digest_object, sha256_file
 from .ordering import compose_ordering
 from .protection import ProtectionMask, ProtectionPolicy
-from .progress import ProgressTracker, study_operation_count
+from .progress import ProgressTracker, study_operation_plan
 from .quantization import BitCodec, FixedPointFormat
 from .ranking import Ranking
 from .samples import SamplePartition, require_disjoint
@@ -429,7 +429,7 @@ def execute_study(
     plan = configuration.replications
     own_tracker = _tracker is None
     tracker = _tracker or ProgressTracker(
-        configuration.name, study_operation_count(configuration), progress
+        configuration.name, study_operation_plan(configuration), progress
     )
     if plan.count == 1:
         outcome = _execute_single_study(

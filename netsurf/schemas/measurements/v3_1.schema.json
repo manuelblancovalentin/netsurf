@@ -11,6 +11,11 @@
     "estimator_agreement.csv": {"semantics": "pairwise score correlation, exact score/order equality, rank shifts, and top-10 overlap"},
     "replication_aggregate.csv": {"independent_unit": "configured replication", "columns": ["schema_version", "estimator", "scope", "metric", "replication_count", "mean", "standard_deviation", "minimum", "maximum", "statistical_unit"]},
     "trials.csv": {"independent_unit": "fault schedule within replication and logical-BER condition; policy labels encode BER for multi-BER studies"},
+    "protection_results.csv": {"aggregation": "all completed replications pooled by logical BER, coverage, and policy", "interval": "fault-realization variation conditional on recorded model, dataset, and ranking masks", "statistics": ["mean", "standard_deviation", "standard_error", "confidence_interval", "median", "5th_percentile", "minimum"]},
+    "replication_protection_results.csv": {"aggregation": "within each explicit replication", "purpose": "preserves ranking-mask/sample replication separately from pooled fault randomness"},
+    "paired_comparisons.csv": {"pair_identity": ["replication", "logical_ber", "trial", "schedule_sha256"], "test": "two-sided paired sign-flip mean test with Holm adjustment within BER and metric"},
+    "paired_differences.csv": {"semantics": "raw per-fault-realization paired differences used by comparisons and plots"},
+    "paired_replication_summaries.csv": {"aggregation": "paired effects within each explicit replication"},
     "estimator_runtime.csv": {"replication_column": "present when count > 1", "warning": "shared per-example Jacobian time is repeated for dependent estimator rows and must not be summed"}
   }
 }

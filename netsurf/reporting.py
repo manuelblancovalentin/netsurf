@@ -130,23 +130,59 @@ def render_study_report(summary: Mapping[str, Any], resolved: Mapping[str, Any],
         probability_text = ", ".join(str(value) for value in probabilities)
         lines.extend([
             "", "## Matched protection experiment", "",
-            f"Logical BER condition(s) `{probability_text}` with persistence `{resolved['fault']['persistence']}` were each evaluated in `{summary['trial_count']}` independent fault trials.",
+            f"Logical BER condition(s) `{probability_text}` with persistence `{resolved['fault']['persistence']}` were each evaluated in `{summary.get('pooled_fault_trial_count', summary['trial_count'])}` pooled fault realizations across `{summary.get('replication_count', 1)}` replication(s).",
             "All policies used the same underlying schedule within each trial. Protection means ideal logical event suppression, not ECC or TMR hardware.",
-            "", f"| Policy and coverage | Protected bits | Accuracy mean | {100 * resolved['execution']['confidence']:.1f}% CI | Loss mean | Minimum accuracy (trial) |",
-            "|---|---:|---:|---:|---:|---:|",
+            f"The confidence intervals describe {summary.get('interval_interpretation', 'fault-trial variability conditional on the recorded experiment')}.",
+            "", f"| BER | Policy | Coverage | n | Mean accuracy | SD | {100 * resolved['execution']['confidence']:.1f}% CI | Median | 5th percentile | Minimum | Mean loss |",
+            "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
         ])
         for result in summary["protection_results"]:
             accuracy = result["accuracy"]
             interval = accuracy["confidence_interval"]
             lines.append(
-                f"| {result['policy']} | {result['protected_bits']} | {accuracy['mean']:.6f} | "
-                f"[{interval[0]:.6f}, {interval[1]:.6f}] | {result['categorical_crossentropy']['mean']:.6f} | "
-                f"{result['minimum_accuracy']:.6f} ({result['minimum_accuracy_trial']}) |"
+                f"| {result.get('logical_ber', resolved['fault']['probability']):.8g} | {result.get('policy', result.get('condition'))} | {result.get('coverage', 0.0):.6f} | "
+                f"{result.get('fault_realization_count', accuracy['count'])} | {accuracy['mean']:.6f} | {accuracy['standard_deviation']:.6f} | "
+                f"[{interval[0]:.6f}, {interval[1]:.6f}] | {accuracy.get('median', accuracy['mean']):.6f} | "
+                f"{accuracy.get('quantile_05', accuracy['mean']):.6f} | {accuracy.get('minimum', accuracy['mean']):.6f} | "
+                f"{result['categorical_crossentropy']['mean']:.6f} |"
             )
         lines.extend([
-            "", "Paired effect sizes, two-sided paired sign-flip permutation tests, and Holm-adjusted p-values are stored in `measurements/paired_comparisons.csv`.",
-            "No superiority claim is made automatically from point estimates or marginal confidence intervals.",
+            "", "### Paired policy comparisons", "",
+            "Pairs are matched by replication, logical BER, trial, and shared schedule SHA-256. Holm adjustment is applied within each BER and metric family.", "",
+            "| BER | Coverage | Metric | Comparison | Matched pairs | Mean difference | 95% CI | Raw p | Holm p |",
+            "|---:|---:|---|---|---:|---:|---:|---:|---:|",
         ])
+        for comparison in summary.get("paired_comparisons", []):
+            difference = comparison["difference"]
+            interval = difference["confidence_interval"]
+            lines.append(
+                f"| {comparison['logical_ber']:.8g} | {comparison['coverage']:.6f} | {comparison['metric']} | "
+                f"{comparison['left']} − {comparison['right']} | {comparison['matched_pairs']} | {difference['mean']:.6f} | "
+                f"[{interval[0]:.6f}, {interval[1]:.6f}] | {comparison['p_value_raw']:.6g} | {comparison['p_value_holm']:.6g} |"
+            )
+        lines.extend([
+            "", "Full pooled, replication-level, and per-pair values are stored in `measurements/protection_results.csv`, `measurements/replication_protection_results.csv`, `measurements/paired_comparisons.csv`, `measurements/paired_replication_summaries.csv`, and `measurements/paired_differences.csv`.",
+            "No superiority claim is made automatically from point estimates or marginal confidence intervals.",
+            "", "### Fault multiplicity", "",
+            "Event counts are measured from the saved schedules and protection accounting; brackets show empirical 5th–95th percentiles.", "",
+            "| BER | Policy | Coverage | Proposed events | Applied events | Suppressed events | Unique applied bits |",
+            "|---:|---|---:|---:|---:|---:|---:|",
+        ])
+        for result in summary["protection_results"]:
+            def event_cell(name):
+                value = result[name]
+                return f"{value['mean']:.2f} [{value['quantile_05']:.0f}, {value['quantile_95']:.0f}]"
+            lines.append(
+                f"| {result['logical_ber']:.8g} | {result['policy']} | {result['coverage']:.6f} | "
+                f"{event_cell('proposed_events')} | {event_cell('applied_events')} | {event_cell('suppressed_events')} | {event_cell('unique_applied_bits')} |"
+            )
+        if str(summary.get("benchmark_id", "")).startswith("mnist"):
+            near_chance = [result for result in summary["protection_results"] if result["accuracy"]["mean"] <= 0.15]
+            if near_chance:
+                labels = ", ".join(f"BER {row['logical_ber']:.3g}/{row['condition']}" for row in near_chance)
+                lines.extend([
+                    "", f"Exploratory saturation flag: `{labels}` have mean accuracy within five percentage points of uniform 10-class chance accuracy (0.10). This descriptive flag is not a hard accuracy floor or a physical reliability threshold.",
+                ])
     if summary.get("estimator_runtimes_seconds"):
         lines.extend(["", "## Estimator execution time", "", "| Estimator | Wall time (seconds) |", "|---|---:|"])
         for name, runtime in summary["estimator_runtimes_seconds"].items():
@@ -165,6 +201,18 @@ def render_study_report(summary: Mapping[str, Any], resolved: Mapping[str, Any],
         lines.extend([
             "", "Dispersion across candidate samples is not fault-trial uncertainty or Hutchinson probe uncertainty. Per-layer and per-bit-position replication summaries are stored in `measurements/replication_aggregate.csv`.",
         ])
+        if summary.get("replication_protection_results"):
+            lines.extend([
+                "", "### Replication-level protection summaries", "",
+                "These rows preserve between-replication variation separately from pooled fault-trial uncertainty. Identical masks across replications do not constitute independent ranking-mask samples.", "",
+                "| Replication | BER | Policy | Coverage | Trials | Mean accuracy | SD | Minimum |",
+                "|---|---:|---|---:|---:|---:|---:|---:|",
+            ])
+            for row in summary["replication_protection_results"]:
+                lines.append(
+                    f"| {row['replication']} | {row['logical_ber']:.8g} | {row['policy']} | {row['coverage']:.6f} | "
+                    f"{row['fault_realization_count']} | {row['accuracy']['mean']:.6f} | {row['accuracy']['standard_deviation']:.6f} | {row['accuracy']['minimum']:.6f} |"
+                )
     if figure_paths:
         lines.extend(["", "## Figures", ""])
         for path in figure_paths:

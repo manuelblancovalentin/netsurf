@@ -1,10 +1,10 @@
-"""Dependency-free presentation events for long-running experiments."""
+"""Presentation-only progress events for long-running experiments."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from time import monotonic
-from typing import Callable, TextIO
+from typing import Callable, Mapping, TextIO
 import sys
 
 
@@ -27,6 +27,8 @@ class ProgressEvent:
     mean_loss: float | None = None
     failed: bool = False
     message: str | None = None
+    work_class: str | None = None
+    remaining_work: tuple[tuple[str, int], ...] = ()
 
 
 ProgressCallback = Callable[[ProgressEvent], None]
@@ -35,22 +37,28 @@ ProgressCallback = Callable[[ProgressEvent], None]
 class ProgressTracker:
     """Count declared operations without entering scientific serialization."""
 
-    def __init__(self, experiment: str, total: int, callback: ProgressCallback | None):
+    def __init__(self, experiment: str, total: int | Mapping[str, int], callback: ProgressCallback | None):
         self.experiment = experiment
-        self.total = max(1, int(total))
+        self.remaining = dict(total) if isinstance(total, Mapping) else {}
+        self.total = max(1, sum(self.remaining.values()) if self.remaining else int(total))
         self.completed = 0
         self.callback = callback
         self._last: ProgressEvent | None = None
 
     def adjust_total(self, delta: int) -> None:
         self.total = max(self.completed + 1, self.total + int(delta))
+        if self.remaining:
+            self.remaining["Empirical bit injection"] = self.remaining.get("Empirical bit injection", 0) + int(delta)
 
     def update(self, stage: str, *, advance: int = 0, **context) -> None:
         self.completed += int(advance)
         if self.completed > self.total:
             raise RuntimeError("progress accounting exceeded its declared operation total")
+        if self.remaining and advance:
+            self.remaining[stage] = max(0, self.remaining.get(stage, 0) - int(advance))
         event = ProgressEvent(
-            self.experiment, stage, self.completed, self.total, **context
+            self.experiment, stage, self.completed, self.total,
+            work_class=stage, remaining_work=tuple(sorted(self.remaining.items())), **context
         )
         self._last = event
         if self.callback is not None:
@@ -85,7 +93,7 @@ class ProgressTracker:
 
 
 class LiveProgressReporter:
-    """Render compact interactive output with a plain redirected fallback."""
+    """Render a responsive Rich live view or sparse redirected records."""
 
     def __init__(
         self,
@@ -94,15 +102,37 @@ class LiveProgressReporter:
         refresh_seconds: float = 1.0,
         clock: Callable[[], float] = monotonic,
         interactive: bool | None = None,
+        width: int | None = None,
     ):
         self.stream = stream or sys.stderr
         self.refresh_seconds = float(refresh_seconds)
         self.clock = clock
         self.interactive = self.stream.isatty() if interactive is None else interactive
+        self.width = width
         self.started = self.clock()
         self.last_rendered = -float("inf")
         self.last_stage: str | None = None
-        self.stage_started = self.started
+        self.last_event_time = self.started
+        self.class_rates: dict[str, float] = {}
+        self.smoothed_eta: float | None = None
+        self._live = None
+        self._console = None
+        self._rich_available = False
+        if self.interactive:
+            try:
+                from rich.console import Console
+                from rich.live import Live
+
+                self._console = Console(file=self.stream, width=width, force_terminal=True)
+                self._live = Live(console=self._console, refresh_per_second=max(1, int(round(1 / max(self.refresh_seconds, 0.1)))), transient=False, auto_refresh=False)
+                self._rich_available = True
+            except ImportError:
+                self.interactive = False
+                self.stream.write(
+                    "NetSuRF: Rich live progress is unavailable; using plain output. "
+                    "Environment owner command: python -m pip install 'rich>=13,<16'\n"
+                )
+                self.stream.flush()
 
     @staticmethod
     def _duration(seconds: float) -> str:
@@ -111,14 +141,41 @@ class LiveProgressReporter:
         minutes, seconds = divmod(remainder, 60)
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}" if hours else f"{minutes:02d}:{seconds:02d}"
 
+    def _observe(self, event: ProgressEvent, now: float) -> None:
+        previous = getattr(self, "_previous", None)
+        if previous is not None and event.completed > previous.completed:
+            units = event.completed - previous.completed
+            duration = max(0.0, now - self.last_event_time) / units
+            name = event.work_class or event.stage
+            prior = self.class_rates.get(name)
+            self.class_rates[name] = duration if prior is None else 0.25 * duration + 0.75 * prior
+        if previous is None or event.completed != previous.completed:
+            self.last_event_time = now
+        self._previous = event
+
+    def _eta_seconds(self, event: ProgressEvent, now: float) -> float | None:
+        if event.completed >= event.total:
+            return 0.0
+        remaining = dict(event.remaining_work)
+        if not remaining:
+            if event.completed < 2:
+                return None
+            elapsed = max(0.0, now - self.started)
+            estimate = elapsed / event.completed * (event.total - event.completed)
+        else:
+            known = sum(count for name, count in remaining.items() if name in self.class_rates)
+            total = sum(remaining.values())
+            if known == 0 or known / max(1, total) < 0.8:
+                return None
+            estimate = sum(self.class_rates[name] * count for name, count in remaining.items() if name in self.class_rates)
+        self.smoothed_eta = estimate if self.smoothed_eta is None else 0.30 * estimate + 0.70 * self.smoothed_eta
+        return self.smoothed_eta
+
     def _eta(self, event: ProgressEvent, now: float) -> str:
-        if (
-            event.stage_completed is None or event.stage_total is None
-            or event.stage_completed < 2 or event.stage_completed >= event.stage_total
-        ):
-            return "calculating..."
-        rate = (now - self.stage_started) / event.stage_completed
-        return f"~{self._duration(rate * (event.stage_total - event.stage_completed))} (stage)"
+        if event.completed >= event.total:
+            return f"Completed in {self._duration(now - self.started)}"
+        estimate = self._eta_seconds(event, now)
+        return "Estimating..." if estimate is None else self._duration(estimate)
 
     def _line(self, event: ProgressEvent, now: float) -> str:
         fraction = 1.0 if event.total == 0 else min(1.0, event.completed / event.total)
@@ -148,23 +205,56 @@ class LiveProgressReporter:
             f"{suffix} | elapsed {self._duration(now - self.started)} | ETA {self._eta(event, now)}{failure}"
         )
 
+    def _renderable(self, event: ProgressEvent, now: float):
+        from rich.console import Group
+        from rich.progress import BarColumn, Progress, TaskProgressColumn
+        from rich.table import Table
+        from rich.text import Text
+
+        progress = Progress(BarColumn(bar_width=None), TaskProgressColumn(), expand=True)
+        progress.add_task("Overall", total=max(1, event.total), completed=min(event.completed, event.total))
+        header = Text(f"NetSuRF — {event.experiment}", style="bold", overflow="ellipsis", no_wrap=True)
+        stage = Text(f"Stage: {event.stage}", overflow="ellipsis", no_wrap=True)
+        timing = Table.grid(expand=True)
+        timing.add_column(); timing.add_column(justify="right")
+        timing.add_row(f"Elapsed: {self._duration(now - self.started)}", self._eta(event, now))
+        details = Table.grid(padding=(0, 1))
+        details.add_column(style="dim", no_wrap=True); details.add_column(overflow="ellipsis", no_wrap=True)
+        if event.replication is not None:
+            details.add_row("Replication", f"{event.replication} / {event.replications}")
+        if event.logical_ber is not None:
+            details.add_row("BER", f"{event.logical_ber:.3g}")
+        if event.coverage is not None:
+            details.add_row("Protection", f"{event.coverage:.1%}")
+        if event.policy is not None:
+            details.add_row("Policy", event.policy)
+        if event.trial is not None:
+            details.add_row("Trial", f"{event.trial} / {event.trials}")
+        if event.mean_accuracy is not None or event.mean_loss is not None:
+            details.add_row("Mean accuracy", "—" if event.mean_accuracy is None else f"{event.mean_accuracy:.2%}")
+            details.add_row("Mean loss", "—" if event.mean_loss is None else f"{event.mean_loss:.4g}")
+        if event.failed and event.message:
+            details.add_row("Error", event.message)
+        return Group(header, stage, progress, timing, details)
+
     def __call__(self, event: ProgressEvent) -> None:
         now = self.clock()
+        self._observe(event, now)
         stage_changed = event.stage != self.last_stage
         if stage_changed:
-            self.stage_started = now
             self.last_stage = event.stage
         final = event.failed or event.completed >= event.total
         if not (stage_changed or final or now - self.last_rendered >= self.refresh_seconds):
             return
-        line = self._line(event, now)
-        if self.interactive:
-            self.stream.write("\r\x1b[2K" + line)
+        if self.interactive and self._rich_available:
+            if not self._live.is_started:
+                self._live.start(refresh=True)
+            self._live.update(self._renderable(event, now), refresh=True)
             if final:
-                self.stream.write("\n")
+                self._live.stop()
         else:
-            self.stream.write(line + "\n")
-        self.stream.flush()
+            self.stream.write(self._line(event, now) + "\n")
+            self.stream.flush()
         self.last_rendered = now
 
 
@@ -186,8 +276,39 @@ def study_operation_count(configuration, *, include_bundle: bool = False) -> int
     return total + int(include_bundle)
 
 
+def study_operation_plan(configuration, *, include_bundle: bool = False) -> dict[str, int]:
+    """Return actual planned operation counts by measurable work class."""
+    replications = configuration.replications.count
+    plan = {"Model loading": replications, "Sample loading": replications, "Estimator computation": replications,
+            "Clean evaluation": replications, "Scientific payload": replications}
+    if configuration.study_type in {"single_bit", "estimator_validation"}:
+        plan.update({"Candidate selection": replications, "Empirical bit injection": replications * (configuration.candidates.count + 1), "Ranking analysis": replications})
+    else:
+        probabilities = len(configuration.protection.probabilities) or 1
+        masks = 2 + len(configuration.policies) * len(configuration.protection.coverages)
+        plan.update({"Protection-mask construction": replications,
+                     "Fault evaluation": replications * probabilities * configuration.execution.trials * (1 + masks),
+                     "Statistical aggregation": replications})
+    if replications > 1:
+        plan["Replication aggregation"] = 1
+    if include_bundle:
+        plan["Result bundle generation"] = 1
+    return plan
+
+
 def experiment_operation_count(configuration, *, include_bundle: bool = False) -> int:
     masks = len(configuration.estimators) + (2 if configuration.schema_version == "2.0.0" else 0)
     total = 5  # model, data, clean baseline, estimator/masks, payload aggregation
     total += configuration.execution.trials * (1 + masks)
     return total + int(include_bundle)
+
+
+def experiment_operation_plan(configuration, *, include_bundle: bool = False) -> dict[str, int]:
+    masks = len(configuration.estimators) + (2 if configuration.schema_version == "2.0.0" else 0)
+    plan = {"Model loading": 1, "Sample loading": 1, "Clean evaluation": 1,
+            "Estimator and mask construction": 1,
+            "Fault evaluation": configuration.execution.trials * (1 + masks),
+            "Scientific aggregation": 1}
+    if include_bundle:
+        plan["Result bundle generation"] = 1
+    return plan

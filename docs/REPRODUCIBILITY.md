@@ -236,14 +236,51 @@ prints its unique immutable directory. `replication_aggregate.csv` reports
 candidate/sample replication dispersion separately from per-probe diagnostics
 and fault-trial statistics.
 
-Interactive `netsurf run` commands show a compact progress line on stderr.
+Interactive `netsurf run` commands show a compact Rich live view on stderr.
 Redirected execution remains quiet by default; `--progress` forces periodic
 plain-text lines without ANSI escapes, and `--no-progress` disables reporting.
 The final result-directory JSON remains on stdout. Progress counts completed
 coarse operations: shared schedule creation, actual mask evaluations, empirical
-bit injections, and declared setup/analysis stages. It does not extrapolate a
-constant whole-experiment rate across model loading, Hessian work, fault
-evaluation, and report generation.
+bit injections, and declared setup/analysis stages. The displayed ETA is for
+the complete declared run, uses a monotonic clock and operation-specific
+observed rates, and remains `Estimating...` until enough remaining work is
+characterized.
+
+Schema-3.1 protection reporting pools every configured replication by logical
+BER, coverage, and policy. Pairing uses the exact `(replication, logical BER,
+trial, schedule SHA-256)` identity. `protection_results.csv` reports pooled
+fault-realization statistics, while `replication_protection_results.csv`
+preserves within-replication summaries and `paired_differences.csv` retains raw
+matched effects. These intervals remain conditional on the recorded model,
+dataset, and masks; repeated fault schedules under one mask are not independent
+ranking-mask samples.
+
+To derive corrected presentation artifacts from an older finalized bundle
+without modifying it:
+
+```bash
+netsurf report workspace/runs/<experiment>/<run-id> \
+  --output workspace/scratch/derived/<run-id> --plots
+```
+
+The destination contains `derived_summary.json`, derived measurement tables,
+plots, and `report.md`. The source bundle and scientific payload hash remain
+unchanged. A replicated archive lacking explicit replication identities is
+rejected instead of guessed.
+
+The maintained wide stress configuration is ready for researcher execution:
+
+```bash
+netsurf validate config/experiments/mnist_policy_ber_wide_v1.toml
+netsurf run config/experiments/mnist_policy_ber_wide_v1.toml
+```
+
+It declares 800 fault schedules and 11,200 mask/control evaluations across five
+replications (12,037 total progress operations including setup and
+finalization). BER values through 0.1 are logical stress conditions, not a
+physical SEU-rate model. Relative to the two-BER source design,
+fault-evaluation work is approximately doubled; actual runtime is refined live
+from completed operations.
 
 CPU-only TensorFlow's CUDA-driver and `cuInit` messages are benign. NetSuRF's
 own lazy import suppresses this TensorFlow 2.21 pre-absl chatter by default;

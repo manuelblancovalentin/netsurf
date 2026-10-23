@@ -26,8 +26,8 @@
 ## Current bounded milestone
 
 Run `python -m pytest -q` in the activated `netsurf` project. Use `netsurf
-doctor` before modern experiments, then follow the M3.1 researcher-run
+doctor` before modern experiments, then follow the M3.2 researcher-run
 configurations in `docs/REPRODUCIBILITY.md`. Do not retrain an existing
 write-once checkpoint, run an exhaustive 152,700-bit MNIST sweep, or promote a
-research estimator from a smoke result. Software development stops after
-M3.1 unless a validated experiment exposes a concrete defect.
+research estimator from a smoke result. Replicated reports must aggregate all
+saved trial rows and preserve fault-trial versus ranking-mask replication.

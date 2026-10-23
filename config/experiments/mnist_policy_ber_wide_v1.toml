@@ -1,0 +1,85 @@
+schema_version = "3.1.0"
+scientific_protocol = "multi-coverage-protection/v1"
+
+[experiment]
+name = "mnist_policy_ber_wide_v1"
+description = "Replicated broad logical fault-stress study of MSB and gradient protection policies."
+objective = "Explore protection benefit and saturation across a wide logical BER range; this is not a physically calibrated radiation-reliability study."
+
+[benchmark]
+adapter = "mnist_quantized"
+id = "mnist_dense32_q621-v1"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "m3_explicit_disjoint_partitions"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 512
+empirical_count = 32
+evaluation_count = 1024
+require_disjoint = true
+
+[candidates]
+strategy = "uniform"
+count = 32
+seed = 32400
+score_quantiles = 4
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "encoded-bit-index/v1"
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+
+[[policies]]
+name = "msb+ordered"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "canonical"]
+prespecified = true
+
+[[policies]]
+name = "msb+gradient"
+estimator = "first_order_gradient_delta"
+priority = ["bit_significance_desc", "estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "gradient_global"
+estimator = "first_order_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[protection]
+coverages = [0.05, 0.10, 0.16666666666666666, 0.25]
+probabilities = [0.0001, 0.001, 0.01, 0.1]
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.001
+
+[execution]
+trials = 40
+confidence = 0.95
+fault_seed = 956000
+permutation_seed = 957000
+
+[replications]
+count = 5
+candidate_seed_stride = 0
+hutchinson_seed_stride = 0
+sample_offset_stride = 0
+fault_seed_stride = 100000
+
+[output]
+root = ""
+report = true
+plots = true

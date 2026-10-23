@@ -68,6 +68,9 @@ FaultModel -> deterministic FaultSchedule -> InjectionEngine
 - `netsurf.study_config`, `netsurf.study_engine`, and `netsurf.study_bundle`:
   strict schema-3 empirical/protection protocols and applicable immutable tables.
 - `netsurf.result_bundle`: atomic staging, write-once finalization, checksums, typed reading, and corruption detection.
+- `netsurf.derived_analysis`: presentation-only pooled and replication-level
+  protection statistics reconstructed from immutable trial rows using exact
+  replication/BER/trial/schedule identities.
 - `netsurf.reporting` and `netsurf.plotting`: presentation derived only from saved measurements.
 - `netsurf.api` and `netsurf.__main__`: one public engine exposed to scripts, notebooks, and the CLI.
 - `netsurf.milestone`: retained historical compatibility workflow; new work uses versioned experiment configurations.

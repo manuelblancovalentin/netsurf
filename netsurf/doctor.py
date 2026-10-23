@@ -33,7 +33,7 @@ def doctor_report() -> dict[str, Any]:
     except OSError as error:
         warning = str(error)
     packages = {name: _version(name) for name in (
-        "numpy", "tensorflow", "keras", "HGQ2", "hls4ml", "matplotlib", "scipy", "pytest"
+        "numpy", "tensorflow", "keras", "HGQ2", "hls4ml", "matplotlib", "scipy", "pytest", "rich"
     )}
     warnings = []
     if packages["tensorflow"] is None or packages["keras"] is None:
@@ -42,6 +42,8 @@ def doctor_report() -> dict[str, Any]:
         warnings.append("HGQ2 quantization/HLS exploration unavailable")
     if packages["matplotlib"] is None:
         warnings.append("plot generation unavailable")
+    if packages["rich"] is None:
+        warnings.append("Rich live progress unavailable; install with: python -m pip install 'rich>=13,<16'")
     if not writable:
         warnings.append(f"workspace is not writable: {warning}")
     return {

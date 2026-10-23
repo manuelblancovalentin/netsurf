@@ -7,6 +7,7 @@ from pathlib import Path
 import uuid
 
 from . import __version__
+from .derived_analysis import derive_protection_analysis
 from .experiment_config import MANIFEST_SCHEMA_VERSION, SUMMARY_SCHEMA_VERSION
 from .manifests import git_provenance, runtime_provenance, sha256_file
 from .plotting import plot_study_results
@@ -15,7 +16,40 @@ from .result_bundle import ResultBundleError, _inventory, _write_bytes, _write_c
 from .study_engine import StudyOutcome
 
 
-def _summary(outcome: StudyOutcome):
+def _trial_rows(outcome: StudyOutcome):
+    members = outcome.replications or (outcome,)
+    replicated = bool(outcome.replications)
+    rows = []
+    for member in members:
+        mask_by_condition = {str(value["policy"]): value for value in member.protection_results}
+        for value in member.trials:
+            row = {
+                **({"replication": member.replication_name} if replicated else {}),
+                **value.to_dict(),
+            }
+            mask = mask_by_condition.get(value.policy)
+            if mask:
+                row["ranking_mask_sha256"] = mask.get("mask_sha256")
+                row["protected_bits"] = mask.get("protected_bits")
+                row["realized_coverage"] = mask.get("coverage")
+            rows.append(row)
+    return tuple(rows)
+
+
+def _derived_protection(outcome: StudyOutcome):
+    rows = _trial_rows(outcome)
+    if not rows:
+        return None
+    config = outcome.configuration
+    return derive_protection_analysis(
+        rows, confidence=config.execution.confidence,
+        permutation_seed=config.execution.permutation_seed,
+        default_ber=(config.protection.probabilities or (config.fault.probability,))[0],
+        expected_replications=config.replications.count,
+    )
+
+
+def _summary(outcome: StudyOutcome, derived=None):
     members = outcome.replications or (outcome,)
     primary = members[0]
     payload = primary.scientific_payload
@@ -28,14 +62,20 @@ def _summary(outcome: StudyOutcome):
         "experiment_name": outcome.configuration.name,
         "benchmark_id": outcome.configuration.benchmark.id,
         "eligible_bits": payload["benchmark"]["eligible_bits"],
-        "trial_count": outcome.configuration.execution.trials if outcome.trials else 0,
+        "trial_count": outcome.configuration.execution.trials if primary.trials else 0,
+        "trial_count_per_replication": outcome.configuration.execution.trials if primary.trials else 0,
+        "pooled_fault_trial_count": max((row["fault_realization_count"] for row in (derived or {}).get("pooled", [])), default=0),
         "clean_evaluation": payload["clean_evaluation"],
         "empirical_candidate_count": len(primary.empirical_measurements),
         "sample_limited": any(value.sampling_probability < 1.0 for value in primary.empirical_measurements),
         "ranking_metrics_overall": overall,
         "estimator_agreement": list(outcome.estimator_agreement),
-        "protection_results": list(outcome.protection_results),
-        "paired_comparisons": outcome.paired_comparisons,
+        "protection_results": list((derived or {}).get("pooled", outcome.protection_results)),
+        "replication_protection_results": list((derived or {}).get("replications", [])),
+        "paired_comparisons": list((derived or {}).get("paired", [])) if derived else outcome.paired_comparisons,
+        "paired_replication_summaries": list((derived or {}).get("paired_replications", [])),
+        "statistical_unit": None if not derived else derived["statistical_unit"],
+        "interval_interpretation": None if not derived else derived["interval_interpretation"],
         "mask_composition": list(outcome.composition),
         "estimator_runtimes_seconds": runtimes,
         "replication_count": len(members),
@@ -84,7 +124,8 @@ def create_study_bundle(outcome: StudyOutcome, *, repository_root: Path, run_id:
     resolved = config.resolved_document()
     _write_json(staging / "resolved_config.json", resolved)
     _write_json(staging / "scientific_payload.json", outcome.scientific_payload)
-    summary = _summary(outcome)
+    derived = _derived_protection(outcome)
+    summary = _summary(outcome, derived)
     _write_json(staging / "summary.json", summary)
     _write_json(staging / "artifacts/sample_partitions.json", ({member.replication_name: {name: value.to_dict() for name, value in member.partitions.items()} for member in members} if replicated else {name: value.to_dict() for name, value in outcome.partitions.items()}))
     _write_json(staging / "artifacts/candidate_selection.json", ({member.replication_name: list(member.candidate_selection) for member in members} if replicated else list(outcome.candidate_selection)))
@@ -115,35 +156,62 @@ def create_study_bundle(outcome: StudyOutcome, *, repository_root: Path, run_id:
         fields = ["schema_version", "trial", "policy", "schedule_sha256", "accuracy", "categorical_crossentropy", "schedule_hash", "proposed_events", "applied_events", "suppressed_events", "unique_applied_bits"]
         if replicated:
             fields.insert(1, "replication")
-        _write_csv(staging / "measurements/trials.csv", fields, ({"schema_version": measurement_version, **({"replication": member.replication_name} if replicated else {}), **row.to_dict()} for member in members for row in member.trials))
-    if outcome.protection_results:
-        fields = ["schema_version", "policy", "protected_bits", "coverage", "mask_sha256", "accuracy_mean", "accuracy_ci_low", "accuracy_ci_high", "loss_mean", "loss_ci_low", "loss_ci_high", "mean_applied_events", "mean_suppressed_events", "minimum_accuracy", "minimum_accuracy_trial"]
-        rows = []
-        for value in outcome.protection_results:
-            rows.append({
-                "schema_version": measurement_version, "policy": value["policy"],
-                "protected_bits": value["protected_bits"], "coverage": value["coverage"], "mask_sha256": value["mask_sha256"],
-                "accuracy_mean": value["accuracy"]["mean"], "accuracy_ci_low": value["accuracy"]["confidence_interval"][0], "accuracy_ci_high": value["accuracy"]["confidence_interval"][1],
-                "loss_mean": value["categorical_crossentropy"]["mean"], "loss_ci_low": value["categorical_crossentropy"]["confidence_interval"][0], "loss_ci_high": value["categorical_crossentropy"]["confidence_interval"][1],
-                "mean_applied_events": value["mean_applied_events"], "mean_suppressed_events": value["mean_suppressed_events"],
-                "minimum_accuracy": value["minimum_accuracy"], "minimum_accuracy_trial": value["minimum_accuracy_trial"],
-            })
-        _write_csv(staging / "measurements/protection_results.csv", fields, rows)
+        _write_csv(staging / "measurements/trials.csv", fields, ({"schema_version": measurement_version, **{key: value for key, value in row.items() if key in fields and key != "schema_version"}} for row in _trial_rows(outcome)))
+    if derived:
+        def aggregate_row(value, replication=None):
+            accuracy, loss = value["accuracy"], value["categorical_crossentropy"]
+            return {
+                "schema_version": measurement_version, **({"replication": replication} if replication else {}),
+                "logical_ber": value["logical_ber"], "condition": value["condition"], "policy": value["policy"],
+                "coverage": value["coverage"], "realized_coverage": value["realized_coverage"], "protected_bits": value["protected_bits"], "mask_sha256": value["ranking_mask_sha256"], "trial_count": value["trial_count"],
+                "fault_realization_count": value["fault_realization_count"], "replication_count": value["replication_count"],
+                "ranking_mask_count": value["ranking_mask_count"],
+                "accuracy_mean": accuracy["mean"], "accuracy_standard_deviation": accuracy["standard_deviation"],
+                "accuracy_standard_error": accuracy["standard_error"], "accuracy_ci_low": accuracy["confidence_interval"][0],
+                "accuracy_ci_high": accuracy["confidence_interval"][1], "accuracy_median": accuracy["median"],
+                "accuracy_quantile_05": accuracy["quantile_05"], "accuracy_minimum": accuracy["minimum"],
+                "loss_mean": loss["mean"], "loss_standard_deviation": loss["standard_deviation"],
+                "loss_standard_error": loss["standard_error"], "loss_ci_low": loss["confidence_interval"][0],
+                "loss_ci_high": loss["confidence_interval"][1], "loss_median": loss["median"],
+                "loss_quantile_05": loss["quantile_05"], "loss_maximum": loss["maximum"],
+                "mean_proposed_events": value["proposed_events"]["mean"], "proposed_events_q05": value["proposed_events"]["quantile_05"], "proposed_events_q95": value["proposed_events"]["quantile_95"],
+                "mean_applied_events": value["applied_events"]["mean"], "applied_events_q05": value["applied_events"]["quantile_05"], "applied_events_q95": value["applied_events"]["quantile_95"],
+                "mean_suppressed_events": value["suppressed_events"]["mean"], "suppressed_events_q05": value["suppressed_events"]["quantile_05"], "suppressed_events_q95": value["suppressed_events"]["quantile_95"],
+                "mean_unique_applied_bits": value["unique_applied_bits"]["mean"], "unique_applied_bits_q05": value["unique_applied_bits"]["quantile_05"], "unique_applied_bits_q95": value["unique_applied_bits"]["quantile_95"],
+            }
+        aggregate_fields = [
+            "schema_version", "logical_ber", "condition", "policy", "coverage", "realized_coverage", "protected_bits", "mask_sha256", "trial_count", "fault_realization_count",
+            "replication_count", "ranking_mask_count", "accuracy_mean", "accuracy_standard_deviation", "accuracy_standard_error",
+            "accuracy_ci_low", "accuracy_ci_high", "accuracy_median", "accuracy_quantile_05", "accuracy_minimum",
+            "loss_mean", "loss_standard_deviation", "loss_standard_error", "loss_ci_low", "loss_ci_high", "loss_median",
+            "loss_quantile_05", "loss_maximum", "mean_proposed_events", "proposed_events_q05", "proposed_events_q95",
+            "mean_applied_events", "applied_events_q05", "applied_events_q95", "mean_suppressed_events", "suppressed_events_q05", "suppressed_events_q95",
+            "mean_unique_applied_bits", "unique_applied_bits_q05", "unique_applied_bits_q95",
+        ]
+        _write_csv(staging / "measurements/protection_results.csv", aggregate_fields, (aggregate_row(value) for value in derived["pooled"]))
+        _write_csv(staging / "measurements/replication_protection_results.csv", ["schema_version", "replication", *aggregate_fields[1:]], (aggregate_row(value, value["replication"]) for value in derived["replications"]))
     if outcome.composition:
         fields = ["schema_version", "policy", "dimension", "category", "protected_count", "protected_fraction_of_mask", "coverage_within_category", "eligible_count"]
         _write_csv(staging / "measurements/mask_composition.csv", fields, ({"schema_version": measurement_version, **row} for row in outcome.composition))
-    if outcome.paired_comparisons:
-        fields = ["schema_version", "metric", "comparison", "left", "right", "mean_difference", "ci_low", "ci_high", "p_value_raw", "p_value_holm", "test"]
-        rows = []
-        for metric in ("accuracy", "categorical_crossentropy"):
-            for name, value in outcome.paired_comparisons.get(metric, {}).items():
-                rows.append({
-                    "schema_version": measurement_version, "metric": metric, "comparison": name,
-                    "left": value["left"], "right": value["right"], "mean_difference": value["difference"]["mean"],
-                    "ci_low": value["difference"]["confidence_interval"][0], "ci_high": value["difference"]["confidence_interval"][1],
-                    "p_value_raw": value["p_value_raw"], "p_value_holm": value["p_value_holm"], "test": value["permutation_test"],
-                })
-        _write_csv(staging / "measurements/paired_comparisons.csv", fields, rows)
+    if derived and derived["paired"]:
+        paired_fields = ["schema_version", "logical_ber", "coverage", "metric", "comparison", "left", "right", "matched_pairs", "mean_difference", "standard_deviation", "ci_low", "ci_high", "p_value_raw", "p_value_holm", "test", "pairing_identity", "multiplicity_family"]
+        _write_csv(staging / "measurements/paired_comparisons.csv", paired_fields, ({
+            "schema_version": measurement_version, "logical_ber": value["logical_ber"], "coverage": value["coverage"],
+            "metric": value["metric"], "comparison": value["comparison"], "left": value["left"], "right": value["right"],
+            "matched_pairs": value["matched_pairs"], "mean_difference": value["difference"]["mean"],
+            "standard_deviation": value["difference"]["standard_deviation"], "ci_low": value["difference"]["confidence_interval"][0],
+            "ci_high": value["difference"]["confidence_interval"][1], "p_value_raw": value["p_value_raw"],
+            "p_value_holm": value["p_value_holm"], "test": value["permutation_test"],
+            "pairing_identity": value["pairing_identity"], "multiplicity_family": value["multiplicity_family"],
+        } for value in derived["paired"]))
+        _write_csv(staging / "measurements/paired_differences.csv", ["schema_version", "logical_ber", "coverage", "metric", "comparison", "left", "right", "replication", "trial", "schedule_sha256", "difference"], ({"schema_version": measurement_version, **value} for value in derived["paired_differences"]))
+        _write_csv(staging / "measurements/paired_replication_summaries.csv", ["schema_version", "replication", "logical_ber", "coverage", "metric", "comparison", "left", "right", "matched_pairs", "mean_difference", "standard_deviation", "ci_low", "ci_high"], ({
+            "schema_version": measurement_version, "replication": value["replication"], "logical_ber": value["logical_ber"],
+            "coverage": value["coverage"], "metric": value["metric"], "comparison": value["comparison"],
+            "left": value["left"], "right": value["right"], "matched_pairs": value["matched_pairs"],
+            "mean_difference": value["difference"]["mean"], "standard_deviation": value["difference"]["standard_deviation"],
+            "ci_low": value["difference"]["confidence_interval"][0], "ci_high": value["difference"]["confidence_interval"][1],
+        } for value in derived["paired_replications"]))
     runtime_fields = ["schema_version", "estimator", "implementation_version", "runtime_seconds"]
     if replicated:
         runtime_fields.insert(1, "replication")
@@ -161,7 +229,7 @@ def create_study_bundle(outcome: StudyOutcome, *, repository_root: Path, run_id:
         generated = plot_study_results(
             summary, staging / "plots", empirical_rows=empirical_rows,
             prediction_rows=prediction_rows,
-            trial_rows=tuple(value.to_dict() for value in members[0].trials),
+            trial_rows=_trial_rows(outcome),
         )
         figures = tuple(path.relative_to(staging).as_posix() for path in generated)
     if config.output.report:

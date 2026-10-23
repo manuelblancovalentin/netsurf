@@ -87,15 +87,20 @@ lines when redirected, or `--no-progress` to disable presentation entirely:
 netsurf run config/experiments/mnist_policy_ber_replication_v1.toml
 netsurf run config/experiments/mnist_policy_ber_replication_v1.toml --no-progress
 netsurf run config/experiments/mnist_policy_ber_replication_v1.toml --progress 2>progress.log
+netsurf validate config/experiments/mnist_policy_ber_wide_v1.toml
+netsurf run config/experiments/mnist_policy_ber_wide_v1.toml
 ```
 
-The counter advances only after declared operations actually complete. Shared
+The Rich display updates in place, adapts to terminal width, and reports an
+overall experiment ETA from measured operation classes. The counter advances
+only after declared operations actually complete. Shared
 fault schedules are counted once, while every model evaluation under a control
 or protection mask is counted separately. Setup, estimator, empirical-bit,
-statistical, and bundle stages are also explicit. ETA is based only on repeated
-operations observed in the current stage and remains `calculating...` when the
-timing evidence is insufficient. Progress timing is never serialized into the
-scientific payload.
+statistical, and bundle stages are also explicit. ETA remains `Estimating...`
+until enough remaining work has a measured rate and changes to `Completed in
+MM:SS` at completion. Progress timing is never serialized into the scientific
+payload. If Rich is unavailable, NetSuRF retains compact plain output; the
+environment owner can install it with `python -m pip install 'rich>=13,<16'`.
 
 The preparation step trains `Flatten(28x28) -> Dense(32, ReLU) -> Dense(10)`
 and writes an exact `q<6,2,1>` checkpoint under

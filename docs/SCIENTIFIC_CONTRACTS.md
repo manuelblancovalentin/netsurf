@@ -74,6 +74,14 @@ empirical-validation, and final-evaluation roles. Exact indices and label-bound
 sample hashes are recorded. A configuration requiring independence fails when
 source split/index pairs overlap.
 
+Replicated protection summaries pool all recorded fault realizations only after
+matching their complete replication, logical-BER, trial, and schedule identity.
+Pooled confidence intervals describe fault randomness conditional on the
+recorded model, data, and masks. Replication-level summaries are reported
+separately; identical masks across replications are not independent ranking-mask
+samples. Presentation-only reanalysis of a finalized bundle is written to a
+separate destination and cannot alter its scientific payload hash.
+
 ## Result immutability
 
 A finalized run contains a manifest, scientific payload, trial records, exact ranking scores, exact protection-mask identities, exact fault events, a human-readable report, and `FINALIZED` digest. Files are created exclusively and made read-only. Hashes of the exact artifacts are embedded in the scientific payload. A repeated run must produce the same canonical scientific-payload SHA-256; timestamps and run paths are excluded from that digest.
