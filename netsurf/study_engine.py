@@ -17,6 +17,7 @@ from .identities import BitIdentity
 from .manifests import digest_object, sha256_file
 from .ordering import compose_ordering
 from .protection import ProtectionMask, ProtectionPolicy
+from .progress import ProgressTracker, study_operation_count
 from .quantization import BitCodec, FixedPointFormat
 from .ranking import Ranking
 from .samples import SamplePartition, require_disjoint
@@ -105,24 +106,36 @@ def _summaries(rows: Sequence[TrialMeasurement], masks: Mapping[str, ProtectionM
 def _execute_single_study(
     configuration: StudyConfiguration, *, adapter=None,
     replication_name: str = "replication_0", sample_offset: int = 0,
+    tracker: ProgressTracker | None = None, replication_index: int = 1,
+    replication_count: int = 1,
 ) -> StudyOutcome:
     """Execute a validated M3 study without writing any files."""
 
     codec = BitCodec(FixedPointFormat.parse(configuration.benchmark.quantization))
+    context = {"replication": replication_index, "replications": replication_count}
+    if tracker is not None:
+        tracker.update("Model loading", **context)
     benchmark = adapter or create_adapter(configuration, codec)
     benchmark.load()
+    if tracker is not None:
+        tracker.update("Model loading", advance=1, **context)
+        tracker.update("Sample loading", **context)
     ranking_x, ranking_y, ranking_partition = benchmark.sample_partition("ranking", configuration.samples.ranking_count, offset=sample_offset)
     empirical_x, empirical_y, empirical_partition = benchmark.sample_partition("empirical_validation", configuration.samples.empirical_count, offset=sample_offset)
     evaluation_x, evaluation_y, evaluation_partition = benchmark.sample_partition("evaluation", configuration.samples.evaluation_count, offset=sample_offset)
     partitions = {"ranking": ranking_partition, "empirical_validation": empirical_partition, "evaluation": evaluation_partition}
     if configuration.samples.require_disjoint:
         require_disjoint(tuple(partitions.values()))
+    if tracker is not None:
+        tracker.update("Sample loading", advance=1, **context)
 
     original = benchmark.values()
     identities = tuple(benchmark.bit_identities())
     if len(set(identities)) != len(identities):
         raise RuntimeError("eligible bit identities are not unique")
     outputs: list[EstimatorOutput] = []
+    if tracker is not None:
+        tracker.update("Estimator computation", **context)
     advanced_specifications = tuple(
         value for value in configuration.estimators if value.name not in {"msb_first", "random"}
     )
@@ -141,11 +154,15 @@ def _execute_single_study(
         outputs.append(output)
     by_name = {output.name: output for output in outputs}
     agreement = estimator_agreement(outputs)
+    if tracker is not None:
+        tracker.update("Estimator computation", advance=1, **context)
 
     empirical: tuple[SingleBitMeasurement, ...] = ()
     candidate_rows: tuple[Mapping[str, Any], ...] = ()
     metrics: tuple[Mapping[str, Any], ...] = ()
     if configuration.study_type in {"single_bit", "estimator_validation"}:
+        if tracker is not None:
+            tracker.update("Candidate selection", **context)
         if configuration.candidates.strategy == "all":
             candidates = select_all(identities)
         elif configuration.candidates.strategy == "uniform":
@@ -164,11 +181,34 @@ def _execute_single_study(
             "bit_index": value.identity.bit_index, "inclusion_rule": value.inclusion_rule,
             "sampling_probability": value.sampling_probability, "score_quantile": value.score_quantile,
         } for value in candidates)
+        if tracker is not None:
+            tracker.adjust_total(len(candidates) - configuration.candidates.count)
+            tracker.update("Candidate selection", advance=1, **context)
+
+        def empirical_progress(index, total, measurement):
+            if tracker is None:
+                return
+            stage_completed = index + 1
+            tracker.update(
+                "Empirical bit injection", advance=1,
+                stage_completed=stage_completed, stage_total=total + 1, **context,
+            )
+
+        if tracker is not None:
+            tracker.update(
+                "Empirical bit injection", stage_completed=0,
+                stage_total=len(candidates) + 1, **context,
+            )
         empirical = measure_single_bits(
             benchmark, empirical_x, empirical_y, candidates, codec,
             evaluation_sample_sha256=empirical_partition.sample_sha256,
+            progress=empirical_progress,
         )
+        if tracker is not None:
+            tracker.update("Ranking analysis", **context)
         metrics = ranking_quality(empirical, outputs)
+        if tracker is not None:
+            tracker.update("Ranking analysis", advance=1, **context)
 
     trial_rows: list[TrialMeasurement] = []
     masks: dict[str, ProtectionMask] = {}
@@ -177,6 +217,8 @@ def _execute_single_study(
     protection_results: tuple[Mapping[str, Any], ...] = ()
     comparisons: Mapping[str, Any] = {}
     if configuration.study_type == "protection":
+        if tracker is not None:
+            tracker.update("Protection-mask construction", **context)
         universe = frozenset(identities)
         masks["no_protection"] = ProtectionMask("control_none", frozenset(), len(identities), 0.0, {"control": True})
         masks["full_protection"] = ProtectionMask("control_full", universe, len(identities), float(len(identities)), {"control": True})
@@ -194,7 +236,14 @@ def _execute_single_study(
             (f"ber={probability:.8g}/{name}" if multi_ber else name): mask
             for probability in probabilities for name, mask in masks.items()
         }
+        if tracker is not None:
+            tracker.update("Protection-mask construction", advance=1, **context)
         state_before = _arrays_digest(benchmark.values())
+        fault_stage_total = len(probabilities) * configuration.execution.trials * (1 + len(masks))
+        fault_stage_completed = 0
+        running: dict[str, list[tuple[float, float]]] = {}
+        if tracker is not None:
+            tracker.update("Fault evaluation", stage_completed=0, stage_total=fault_stage_total, **context)
         for probability_index, probability in enumerate(probabilities):
             fault_model = FaultModel(
                 target=configuration.fault.target, location=configuration.fault.location,
@@ -208,6 +257,14 @@ def _execute_single_study(
                     inference_count=configuration.samples.evaluation_count,
                 )
                 schedules.append(schedule)
+                fault_stage_completed += 1
+                if tracker is not None:
+                    tracker.update(
+                        "Fault evaluation", advance=1,
+                        stage_completed=fault_stage_completed, stage_total=fault_stage_total,
+                        logical_ber=probability, policy="schedule",
+                        trial=trial + 1, trials=configuration.execution.trials, **context,
+                    )
                 for name, mask in masks.items():
                     condition_name = f"ber={probability:.8g}/{name}" if multi_ber else name
                     accuracy, loss, accounting = _evaluate_faulted(benchmark, evaluation_x, evaluation_y, original, schedule, mask, codec)
@@ -216,8 +273,23 @@ def _execute_single_study(
                         accounting.proposed_events, accounting.applied_events,
                         accounting.suppressed_events, accounting.unique_applied_bits,
                     ))
+                    running.setdefault(condition_name, []).append((accuracy, loss))
+                    fault_stage_completed += 1
+                    if tracker is not None:
+                        values = running[condition_name]
+                        tracker.update(
+                            "Fault evaluation", advance=1,
+                            stage_completed=fault_stage_completed, stage_total=fault_stage_total,
+                            logical_ber=probability, coverage=mask.coverage, policy=name,
+                            trial=trial + 1, trials=configuration.execution.trials,
+                            mean_accuracy=float(np.mean([value[0] for value in values])),
+                            mean_loss=float(np.mean([value[1] for value in values])),
+                            **context,
+                        )
         if _arrays_digest(benchmark.values()) != state_before:
             raise RuntimeError("model state was not restored after protection trials")
+        if tracker is not None:
+            tracker.update("Statistical aggregation", **context)
         protection_results = _summaries(trial_rows, evaluation_masks, configuration.execution.confidence)
         accuracy_comparisons, loss_comparisons = {}, {}
         for probability in probabilities:
@@ -232,6 +304,8 @@ def _execute_single_study(
             "multiplicity": "Holm adjustment within each BER and reported metric family",
         }
         compositions = mask_composition({name: tuple(mask.protected) for name, mask in masks.items()}, identities)
+        if tracker is not None:
+            tracker.update("Statistical aggregation", advance=1, **context)
 
     exact_rankings = {
         output.name: tuple((identity.parameter, identity.flat_index, identity.bit_index, float(output.scores[identity])) for identity in sorted(identities))
@@ -245,10 +319,16 @@ def _execute_single_study(
         "schedule_index": trial, "seed": schedule.seed, "logical_ber": schedule.model.probability, "sha256": schedule.digest(),
         "events": tuple((event.inference_index, event.bit.parameter, event.bit.flat_index, event.bit.bit_index) for event in schedule.events),
     }) for trial, schedule in enumerate(schedules))
+    if tracker is not None:
+        tracker.update("Clean evaluation", **context)
     clean = benchmark.evaluate(evaluation_x, evaluation_y)
+    if tracker is not None:
+        tracker.update("Clean evaluation", advance=1, **context)
     quantized = benchmark.quantized_values()
     empirical_payload = [{key: value for key, value in measurement.to_dict().items() if key != "runtime_seconds"} for measurement in empirical]
     metric_payload = [{key: value for key, value in row.items() if key != "runtime_seconds"} for row in metrics]
+    if tracker is not None:
+        tracker.update("Scientific payload", **context)
     scientific_payload = _finite({
         "schema": "netsurf-m3-study/v1",
         "replication": {"name": replication_name, "sample_offset": sample_offset},
@@ -296,6 +376,8 @@ def _execute_single_study(
         )
     if _arrays_digest(benchmark.values()) != _arrays_digest(original):
         raise RuntimeError("model state changed during study")
+    if tracker is not None:
+        tracker.update("Scientific payload", advance=1, **context)
     return StudyOutcome(
         configuration, scientific_payload, partitions, tuple(outputs), empirical, tuple(_finite(metrics)),
         tuple(_finite(agreement)), tuple(trial_rows), tuple(_finite(protection_results)), _finite(comparisons), tuple(_finite(compositions)),
@@ -338,12 +420,25 @@ def _aggregate_replication_metrics(outcomes: Sequence[StudyOutcome]):
     return tuple(rows)
 
 
-def execute_study(configuration: StudyConfiguration, *, adapter=None) -> StudyOutcome:
+def execute_study(
+    configuration: StudyConfiguration, *, adapter=None, progress=None,
+    _tracker: ProgressTracker | None = None,
+) -> StudyOutcome:
     """Execute one or more explicit replications through the same study engine."""
 
     plan = configuration.replications
+    own_tracker = _tracker is None
+    tracker = _tracker or ProgressTracker(
+        configuration.name, study_operation_count(configuration), progress
+    )
     if plan.count == 1:
-        return _execute_single_study(configuration, adapter=adapter)
+        outcome = _execute_single_study(
+            configuration, adapter=adapter, tracker=tracker, replication_index=1,
+            replication_count=1,
+        )
+        if own_tracker:
+            tracker.finish()
+        return outcome
     if adapter is not None:
         raise ValueError("injecting one adapter instance is unsupported for replicated studies")
     outcomes = []
@@ -359,8 +454,12 @@ def execute_study(configuration: StudyConfiguration, *, adapter=None) -> StudyOu
         outcomes.append(_execute_single_study(
             child_config, replication_name=f"replication_{index}",
             sample_offset=index * plan.sample_offset_stride,
+            tracker=tracker, replication_index=index + 1,
+            replication_count=plan.count,
         ))
+    tracker.update("Replication aggregation")
     aggregate = _aggregate_replication_metrics(outcomes)
+    tracker.update("Replication aggregation", advance=1)
     primary = outcomes[0]
     payload = {
         "schema": "netsurf-m3-replicated-study/v1",
@@ -371,7 +470,10 @@ def execute_study(configuration: StudyConfiguration, *, adapter=None) -> StudyOu
         # the reproducibility-critical scientific digest.
         "replication_aggregate": [row for row in aggregate if row["metric"] != "runtime_seconds"],
     }
-    return replace(
+    result = replace(
         primary, configuration=configuration, scientific_payload=_finite(payload),
         replication_aggregate=tuple(_finite(aggregate)), replications=tuple(outcomes),
     )
+    if own_tracker:
+        tracker.finish()
+    return result

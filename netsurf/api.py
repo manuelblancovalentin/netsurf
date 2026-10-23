@@ -9,6 +9,7 @@ import tomllib
 from .experiment_config import ExperimentConfiguration, load_experiment
 from .experiment_engine import ExperimentOutcome, execute_experiment
 from .plotting import plot_protection_results, plot_study_results
+from .progress import ProgressTracker, experiment_operation_count, study_operation_count
 from .reporting import render_study_report, write_report
 from .result_bundle import ResultBundle, create_result_bundle, read_result_bundle
 from .study_bundle import create_study_bundle
@@ -31,13 +32,34 @@ def run_experiment(
     configuration: ExperimentConfiguration | str | Path,
     *,
     repository_root: Path | None = None,
+    progress=None,
 ) -> Path:
     """Validate, execute, and atomically save an experiment."""
     root = repository_root or Path(__file__).resolve().parents[1]
     config = load_configuration(configuration) if isinstance(configuration, (str, Path)) else configuration
     if isinstance(config, StudyConfiguration):
-        return create_study_bundle(execute_study(config), repository_root=root)
-    return create_result_bundle(execute_experiment(config), repository_root=root)
+        tracker = ProgressTracker(config.name, study_operation_count(config, include_bundle=True), progress)
+        try:
+            outcome = execute_study(config, _tracker=tracker)
+            tracker.update("Result bundle generation")
+            destination = create_study_bundle(outcome, repository_root=root)
+            tracker.update("Result bundle generation", advance=1)
+            tracker.finish()
+            return destination
+        except BaseException as error:
+            tracker.fail(error)
+            raise
+    tracker = ProgressTracker(config.name, experiment_operation_count(config, include_bundle=True), progress)
+    try:
+        outcome = execute_experiment(config, _tracker=tracker)
+        tracker.update("Result bundle generation")
+        destination = create_result_bundle(outcome, repository_root=root)
+        tracker.update("Result bundle generation", advance=1)
+        tracker.finish()
+        return destination
+    except BaseException as error:
+        tracker.fail(error)
+        raise
 
 
 def regenerate_report(

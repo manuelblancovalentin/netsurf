@@ -236,6 +236,15 @@ prints its unique immutable directory. `replication_aggregate.csv` reports
 candidate/sample replication dispersion separately from per-probe diagnostics
 and fault-trial statistics.
 
+Interactive `netsurf run` commands show a compact progress line on stderr.
+Redirected execution remains quiet by default; `--progress` forces periodic
+plain-text lines without ANSI escapes, and `--no-progress` disables reporting.
+The final result-directory JSON remains on stdout. Progress counts completed
+coarse operations: shared schedule creation, actual mask evaluations, empirical
+bit injections, and declared setup/analysis stages. It does not extrapolate a
+constant whole-experiment rate across model loading, Hessian work, fault
+evaluation, and report generation.
+
 CPU-only TensorFlow's CUDA-driver and `cuInit` messages are benign. NetSuRF's
 own lazy import suppresses this TensorFlow 2.21 pre-absl chatter by default;
 `NETSURF_TF_IMPORT_QUIET=0` restores it for debugging. Direct user imports of

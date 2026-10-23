@@ -152,11 +152,14 @@ def measure_single_bits(
     codec: BitCodec,
     *,
     evaluation_sample_sha256: str,
+    progress=None,
 ) -> tuple[SingleBitMeasurement, ...]:
     """Measure exact isolated encoded-bit effects with restoration after each bit."""
 
     baseline = adapter.evaluate(inputs, labels)
     baseline_predictions = adapter.predict_classes(inputs) if hasattr(adapter, "predict_classes") else None
+    if progress is not None:
+        progress(0, len(candidates), None)
     original = adapter.values()
     measurements: list[SingleBitMeasurement] = []
     for candidate in candidates:
@@ -176,8 +179,7 @@ def measure_single_bits(
                 prediction_changes = int(np.sum(adapter.predict_classes(inputs) != baseline_predictions))
         elapsed = perf_counter() - started
         signed_loss = faulted.categorical_crossentropy - baseline.categorical_crossentropy
-        measurements.append(
-            SingleBitMeasurement(
+        measurement = SingleBitMeasurement(
                 identity.parameter,
                 identity.flat_index,
                 identity.bit_index,
@@ -201,7 +203,9 @@ def measure_single_bits(
                 candidate.sampling_probability,
                 candidate.score_quantile,
             )
-        )
+        measurements.append(measurement)
+        if progress is not None:
+            progress(len(measurements), len(candidates), measurement)
     restored = adapter.values()
     if any(not np.array_equal(original[name], restored[name]) for name in original):
         raise RuntimeError("model state changed during empirical single-bit sweep")

@@ -15,6 +15,7 @@ from .faults import FaultModel, FaultSchedule, apply_per_inference_schedule, app
 from .identities import BitIdentity
 from .manifests import digest_object, sha256_file
 from .protection import ProtectionMask, ProtectionPolicy
+from .progress import ProgressTracker, experiment_operation_count
 from .quantization import BitCodec, FixedPointFormat
 from .ranking import (
     FirstOrderEstimator,
@@ -217,12 +218,21 @@ def execute_experiment(
     configuration: ExperimentConfiguration,
     *,
     adapter: BenchmarkAdapter | None = None,
+    progress=None,
+    _tracker: ProgressTracker | None = None,
 ) -> ExperimentOutcome:
     """Execute a validated experiment and return typed, unsaved measurements."""
 
+    own_tracker = _tracker is None
+    tracker = _tracker or ProgressTracker(
+        configuration.name, experiment_operation_count(configuration), progress
+    )
+    tracker.update("Model loading")
     codec = BitCodec(FixedPointFormat.parse(configuration.benchmark.quantization))
     benchmark_adapter = adapter or create_adapter(configuration, codec)
     benchmark_adapter.load()
+    tracker.update("Model loading", advance=1)
+    tracker.update("Sample loading")
     if configuration.schema_version == "2.0.0":
         evaluation_inputs, evaluation_labels = benchmark_adapter.dataset(
             configuration.benchmark.evaluation_samples, role="evaluation"
@@ -237,10 +247,13 @@ def execute_experiment(
         ranking_inputs, ranking_labels = benchmark_adapter.dataset(
             configuration.benchmark.ranking_samples
         )
+    tracker.update("Sample loading", advance=1)
     checkpoint_state = benchmark_adapter.values()
+    tracker.update("Clean evaluation")
     checkpoint_baseline = benchmark_adapter.evaluate(
         evaluation_inputs, evaluation_labels
     )
+    tracker.update("Clean evaluation", advance=1)
     quantized_state = benchmark_adapter.quantized_values()
     quantization_errors = {
         name: float(np.max(np.abs(checkpoint_state[name] - quantized_state[name])))
@@ -248,6 +261,7 @@ def execute_experiment(
     }
 
     with benchmark_adapter.temporary_values(checkpoint_state):
+        tracker.update("Estimator and mask construction")
         identities = tuple(benchmark_adapter.bit_identities())
         rankings, rankings_by_result, estimator_runtimes = _construct_rankings(
             configuration,
@@ -269,6 +283,7 @@ def execute_experiment(
                     "control_full", universe, len(identities), float(len(identities)), {"control": True}
                 ),
             }
+        tracker.update("Estimator and mask construction", advance=1)
         fault_model = FaultModel(
             target=configuration.fault.target,
             location=configuration.fault.location,
@@ -279,6 +294,10 @@ def execute_experiment(
         rows: list[TrialMeasurement] = []
         schedules: list[FaultSchedule] = []
         pre_trials_state = _arrays_digest(benchmark_adapter.values())
+        fault_stage_total = configuration.execution.trials * (1 + len(masks))
+        fault_stage_completed = 0
+        running: dict[str, list[tuple[float, float]]] = {}
+        tracker.update("Fault evaluation", stage_completed=0, stage_total=fault_stage_total)
         for trial in range(configuration.execution.trials):
             schedule = FaultSchedule.generate(
                 fault_model,
@@ -287,6 +306,13 @@ def execute_experiment(
                 inference_count=configuration.benchmark.evaluation_samples,
             )
             schedules.append(schedule)
+            fault_stage_completed += 1
+            tracker.update(
+                "Fault evaluation", advance=1,
+                stage_completed=fault_stage_completed, stage_total=fault_stage_total,
+                logical_ber=configuration.fault.probability, policy="schedule",
+                trial=trial + 1, trials=configuration.execution.trials,
+            )
             for policy_name, mask in masks.items():
                 accuracy, loss, accounting = _evaluate_faulted(
                     benchmark_adapter, evaluation_inputs, evaluation_labels,
@@ -305,6 +331,18 @@ def execute_experiment(
                         accounting.suppressed_events,
                         accounting.unique_applied_bits,
                     )
+                )
+                running.setdefault(policy_name, []).append((accuracy, loss))
+                values = running[policy_name]
+                fault_stage_completed += 1
+                tracker.update(
+                    "Fault evaluation", advance=1,
+                    stage_completed=fault_stage_completed, stage_total=fault_stage_total,
+                    logical_ber=configuration.fault.probability,
+                    coverage=mask.coverage, policy=policy_name,
+                    trial=trial + 1, trials=configuration.execution.trials,
+                    mean_accuracy=float(np.mean([value[0] for value in values])),
+                    mean_loss=float(np.mean([value[1] for value in values])),
                 )
         post_trials_state = _arrays_digest(benchmark_adapter.values())
 
@@ -398,6 +436,7 @@ def execute_experiment(
             ).protected
         )
 
+    tracker.update("Scientific aggregation")
     scientific_payload: dict[str, Any] = {
         "schema": (
             "netsurf-quantized-weight-experiment/v2"
@@ -491,7 +530,7 @@ def execute_experiment(
             )
         if qpolar_name is None:
             scientific_payload["checks"]["full_msb_mask_equivalent"] = "not_applicable"
-    return ExperimentOutcome(
+    result = ExperimentOutcome(
         configuration,
         scientific_payload,
         tuple(rows),
@@ -500,3 +539,7 @@ def execute_experiment(
         exact_schedules,
         estimator_runtimes,
     )
+    tracker.update("Scientific aggregation", advance=1)
+    if own_tracker:
+        tracker.finish()
+    return result

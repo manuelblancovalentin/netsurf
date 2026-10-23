@@ -13,6 +13,7 @@ from .doctor import doctor_report
 from .experiment_config import ConfigurationError, load_experiment, template_text
 from .paths import workspace_root
 from .plotting import PlottingDependencyError
+from .progress import LiveProgressReporter
 from .result_bundle import ResultBundleError
 from .study_config import StudyConfigurationError
 
@@ -39,6 +40,10 @@ def _parser() -> argparse.ArgumentParser:
     validate.add_argument("--resolved", action="store_true")
     run = subparsers.add_parser("run", help="execute and finalize a new result bundle")
     run.add_argument("configuration", type=Path)
+    progress = run.add_mutually_exclusive_group()
+    progress.add_argument("--progress", dest="progress", action="store_true", help="show progress even when output is redirected")
+    progress.add_argument("--no-progress", dest="progress", action="store_false", help="disable live progress")
+    run.set_defaults(progress=None)
     inspect = subparsers.add_parser("inspect", help="verify and summarize a finalized bundle")
     inspect.add_argument("run_directory", type=Path)
     report = subparsers.add_parser("report", help="regenerate a report from saved data")
@@ -90,7 +95,9 @@ def main(argv: list[str] | None = None) -> int:
             config = load_configuration(args.configuration)
             print(json.dumps(config.resolved_document(), indent=2, sort_keys=True) if args.resolved else f"valid: {config.name} (schema {config.schema_version})")
         elif args.command == "run":
-            destination = run_experiment(args.configuration)
+            enabled = sys.stderr.isatty() if args.progress is None else args.progress
+            reporter = LiveProgressReporter(sys.stderr) if enabled else None
+            destination = run_experiment(args.configuration, progress=reporter)
             result = read_result_bundle(destination)
             print(json.dumps({"run_directory": str(destination), "scientific_payload_sha256": result.scientific_payload_sha256}, indent=2, sort_keys=True))
         elif args.command == "inspect":
