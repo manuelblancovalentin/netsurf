@@ -364,7 +364,7 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
         } for value in results],
         "final_fault_states": [[bit.key() for bit in sorted(value.bits)] for value in final_states],
         **({"conditional_final_fault_states": [[bit.key() for bit in sorted(value.bits)] for value in conditional_states],
-            "conditional_comparisons": [value.to_dict() for value in conditional_comparisons]} if controlled else {}),
+            "conditional_comparisons": [{key:item for key,item in value.to_dict().items() if key != "wall_seconds"} for value in conditional_comparisons]} if controlled else {}),
         "exact_optimum": None if exact_risk is None else {"risk": exact_risk, "mask": [bit.key() for bit in sorted(exact_mask)]},
     }
     if tracker is not None: tracker.update("Scientific payload", advance=1, **context)

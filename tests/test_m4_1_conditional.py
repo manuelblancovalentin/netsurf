@@ -137,7 +137,8 @@ def test_controlled_configuration_rejects_nonindependent_final_seeds(tmp_path):
 
 
 def test_controlled_methods_share_design_and_final_schedules_are_independent():
-    outcome=execute_search(load_search(CONTROLLED))
+    config=load_search(CONTROLLED); outcome=execute_search(config)
+    assert outcome.scientific_payload_sha256==execute_search(config).scientific_payload_sha256
     assert {result.initial_mask for result in outcome.search_results} == {outcome.search_results[0].initial_mask}
     assert all(len(result.best_mask)==2 for result in outcome.search_results)
     schedules=[result.steps[0].background_schedule_sha256 for result in outcome.search_results if result.steps]
