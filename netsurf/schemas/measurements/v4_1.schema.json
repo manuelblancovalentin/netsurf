@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/measurements/v4_1.schema.json",
+  "title": "NetSuRF controlled conditional-search measurements",
+  "schema_version": "4.1.0",
+  "tables": {
+    "final_trials.csv": {"unit": "one natural-Bernoulli held-out fault field for one final mask", "identity": ["replication", "logical_ber", "strategy", "trial", "schedule_sha256"]},
+    "conditional_context_contributions.csv": {"unit": "one whole-path paired contribution from one independent held-out background field", "identity": ["replication", "logical_ber", "target", "context", "schedule_sha256"]},
+    "conditional_mask_comparisons.csv": {"unit": "one final-mask comparison within a BER and replication", "identity": ["replication", "logical_ber", "target"]},
+    "conditional_swap_paths.csv": {"unit": "one legal deterministic path step", "identity": ["replication", "logical_ber", "target", "step"]},
+    "proposal_diagnostics.csv": {"unit": "one exactly evaluated search proposal", "identity": ["replication", "logical_ber", "strategy", "iteration", "candidate_index"]},
+    "search_steps.csv": {"unit": "one exactly evaluated swap decision"},
+    "search_results.csv": {"unit": "one completed named method in one BER and replication"},
+    "convergence.csv": {"unit": "one post-hoc natural held-out evaluation of an accepted search state"},
+    "incremental_validation.csv": {"unit": "one bounded fault-workload class"},
+    "polar_interactions.csv": {"unit": "one selected pair under one background context"},
+    "mask_composition.csv": {"unit": "one category count within a best mask"},
+    "mask_overlap.csv": {"unit": "one pair of best masks in one replication"}
+  },
+  "null_handling": "Empty CSV fields represent unavailable optional measurements; JSON uses null.",
+  "units": {"wall_seconds": "seconds", "work_proxy_macs": "multiply-accumulate proxy operations", "accuracy": "fraction", "categorical_crossentropy": "mean natural-log loss"}
+}

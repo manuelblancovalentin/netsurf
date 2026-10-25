@@ -16,6 +16,8 @@ from .study_config import ESTIMATOR_IMPLEMENTATION_VERSIONS, SUPPORTED_ESTIMATOR
 
 SEARCH_SCHEMA_VERSION = "4.0.0"
 SEARCH_PROTOCOL = "conditional-protection-search/v1"
+CONTROLLED_SEARCH_SCHEMA_VERSION = "4.1.0"
+CONTROLLED_SEARCH_PROTOCOL = "conditional-protection-search/v2"
 
 
 class SearchConfigurationError(ValueError):
@@ -43,6 +45,13 @@ class GuidanceConfiguration:
 class InitialMaskConfiguration:
     guidance: str
     budget_bits: int
+
+
+@dataclass(frozen=True)
+class SearchMethodConfiguration:
+    name: str
+    strategy: str
+    guidance: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -80,6 +89,8 @@ class FinalEvaluationConfiguration:
     contexts: int
     seed: int
     confidence: float
+    conditional_contexts: int
+    conditional_seed: int
 
 
 @dataclass(frozen=True)
@@ -102,9 +113,11 @@ class SearchConfiguration:
     estimators: tuple[StudyEstimator, ...]
     guidance: tuple[GuidanceConfiguration, ...]
     initial_mask: InitialMaskConfiguration
+    methods: tuple[SearchMethodConfiguration, ...]
     search: ConditionalSearchConfiguration
     polar: PolarConfiguration
     fault: FaultConfiguration
+    fault_probabilities: tuple[float, ...]
     final_evaluation: FinalEvaluationConfiguration
     replications: SearchReplications
     output: OutputConfiguration
@@ -112,6 +125,17 @@ class SearchConfiguration:
     source_text: str
 
     def resolved_document(self) -> dict[str, Any]:
+        controlled = self.schema_version == CONTROLLED_SEARCH_SCHEMA_VERSION
+        fault = asdict(self.fault)
+        if controlled:
+            fault.pop("probability", None); fault["probabilities"] = list(self.fault_probabilities)
+        final = asdict(self.final_evaluation)
+        if controlled:
+            final = {"natural_contexts": final["contexts"], "natural_seed": final["seed"],
+                     "conditional_contexts": final["conditional_contexts"], "conditional_seed": final["conditional_seed"],
+                     "confidence": final["confidence"]}
+        else:
+            final = {"contexts": final["contexts"], "seed": final["seed"], "confidence": final["confidence"]}
         return {
             "schema_version": self.schema_version, "scientific_protocol": self.scientific_protocol,
             "study_type": "conditional_search", "source_configuration": str(self.source_path),
@@ -119,8 +143,10 @@ class SearchConfiguration:
             "benchmark": {**asdict(self.benchmark), "checkpoint": str(self.benchmark.checkpoint), "dataset": str(self.benchmark.dataset)},
             "samples": asdict(self.samples), "estimators": [asdict(value) for value in self.estimators],
             "guidance": [asdict(value) for value in self.guidance], "initial_mask": asdict(self.initial_mask),
-            "search": asdict(self.search), "polar": asdict(self.polar), "fault": asdict(self.fault),
-            "final_evaluation": asdict(self.final_evaluation), "replications": asdict(self.replications),
+            **({"methods": [asdict(value) for value in self.methods]} if controlled else {}),
+            "search": {key:value for key,value in asdict(self.search).items() if not controlled or key != "strategies"},
+            "polar": asdict(self.polar), "fault": fault,
+            "final_evaluation": final, "replications": asdict(self.replications),
             "output": {"root": str(self.output.root), "report": self.output.report, "plots": self.output.plots},
         }
 
@@ -152,11 +178,16 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
         document = tomllib.loads(text)
     except (OSError, tomllib.TOMLDecodeError) as error:
         raise SearchConfigurationError(f"cannot load search configuration {source}: {error}") from error
-    if document.get("schema_version") != SEARCH_SCHEMA_VERSION:
+    schema_version = document.get("schema_version")
+    controlled = schema_version == CONTROLLED_SEARCH_SCHEMA_VERSION
+    if schema_version not in {SEARCH_SCHEMA_VERSION, CONTROLLED_SEARCH_SCHEMA_VERSION}:
         raise SearchConfigurationError(f"unsupported conditional-search schema: {document.get('schema_version')!r}")
-    if document.get("scientific_protocol") != SEARCH_PROTOCOL:
+    expected_protocol = CONTROLLED_SEARCH_PROTOCOL if controlled else SEARCH_PROTOCOL
+    if document.get("scientific_protocol") != expected_protocol:
         raise SearchConfigurationError(f"unsupported conditional-search protocol: {document.get('scientific_protocol')!r}")
     required = {"schema_version", "scientific_protocol", "experiment", "benchmark", "samples", "estimators", "guidance", "initial_mask", "search", "polar", "fault", "final_evaluation", "replications", "output"}
+    if controlled:
+        required.add("methods")
     _keys(document, required, set(), "root")
     experiment = _table(document, "experiment"); _keys(experiment, {"name", "description", "objective"}, set(), "experiment")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", str(experiment["name"])):
@@ -218,14 +249,35 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
     if initial["guidance"] not in {value.name for value in guidance} or int(initial["budget_bits"]) < 1:
         raise SearchConfigurationError("initial mask requires known guidance and positive budget_bits")
     search = _table(document, "search")
-    search_fields = {"strategies", "evaluator", "iterations", "candidate_pool_strategy", "candidate_pool_count", "uniform_exploration", "rank_temperature", "background_contexts", "seed", "greedy_add_candidates", "greedy_remove_candidates", "initial_temperature", "cooling_rate", "cache_memory_mb", "exact_enumeration"}
+    search_fields = {"evaluator", "iterations", "candidate_pool_strategy", "candidate_pool_count", "uniform_exploration", "rank_temperature", "background_contexts", "seed", "greedy_add_candidates", "greedy_remove_candidates", "initial_temperature", "cooling_rate", "cache_memory_mb", "exact_enumeration"}
+    if not controlled:
+        search_fields.add("strategies")
     _keys(search, search_fields, set(), "search")
-    strategies = tuple(map(str, search["strategies"]))
     supported_strategies = {"static", "conditional_greedy", "uniform_swap", "static_guided_swap", "polar_guided_swap", "simulated_annealing"}
-    if not strategies or set(strategies) - supported_strategies:
-        raise SearchConfigurationError(f"unsupported search strategies: {sorted(set(strategies)-supported_strategies)}")
-    if len(set(strategies)) != len(strategies):
-        raise SearchConfigurationError("search strategies must be unique")
+    guidance_names = {value.name for value in guidance}
+    if controlled:
+        methods_raw = document["methods"]
+        if not isinstance(methods_raw, list) or not methods_raw:
+            raise SearchConfigurationError("methods must be a nonempty array")
+        methods = []
+        for index, value in enumerate(methods_raw):
+            _keys(value, {"name", "strategy", "guidance"}, set(), f"methods[{index}]")
+            method_guidance = tuple(map(str, value["guidance"]))
+            if value["strategy"] not in supported_strategies:
+                raise SearchConfigurationError(f"unsupported method strategy: {value['strategy']}")
+            if not method_guidance or set(method_guidance)-guidance_names:
+                raise SearchConfigurationError(f"method references unsupported guidance: {method_guidance}")
+            methods.append(SearchMethodConfiguration(str(value["name"]),str(value["strategy"]),method_guidance))
+        if len({value.name for value in methods}) != len(methods):
+            raise SearchConfigurationError("method names must be unique")
+        strategies = tuple(value.strategy for value in methods)
+    else:
+        strategies = tuple(map(str, search["strategies"]))
+        if not strategies or set(strategies) - supported_strategies:
+            raise SearchConfigurationError(f"unsupported search strategies: {sorted(set(strategies)-supported_strategies)}")
+        if len(set(strategies)) != len(strategies):
+            raise SearchConfigurationError("search strategies must be unique")
+        methods = [SearchMethodConfiguration(value,value,tuple(guidance_names)) for value in strategies]
     if search["evaluator"] not in {"incremental", "full"}:
         raise SearchConfigurationError("search.evaluator must be incremental or full")
     if search["candidate_pool_strategy"] not in {"all", "top_union", "uniform"}:
@@ -250,14 +302,23 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
         raise SearchConfigurationError("polar_guided_swap requires a positive polar pair_budget")
     if int(polar["pair_budget"]) < 0 or int(polar["background_contexts"]) < 1:
         raise SearchConfigurationError("invalid sparse polar budget")
-    fault = _table(document, "fault"); _keys(fault, {"target", "location", "persistence", "distribution", "probability"}, set(), "fault")
+    fault = _table(document, "fault")
+    _keys(fault, {"target", "location", "persistence", "distribution", "probabilities" if controlled else "probability"}, set(), "fault")
     if (fault["target"], fault["location"], fault["persistence"], fault["distribution"]) != ("weight", "logical_trainable_parameter_bits", "persistent_trial", "independent_bernoulli"):
         raise SearchConfigurationError("M4 supports persistent independent logical weight-bit faults only")
-    if not 0 <= float(fault["probability"]) <= 1:
-        raise SearchConfigurationError("fault probability must be in [0,1]")
-    final = _table(document, "final_evaluation"); _keys(final, {"contexts", "seed", "confidence"}, set(), "final_evaluation")
-    if int(final["contexts"]) < 1 or not 0 < float(final["confidence"]) < 1:
+    probabilities = tuple(map(float, fault["probabilities"])) if controlled else (float(fault["probability"]),)
+    if not probabilities or len(set(probabilities)) != len(probabilities) or any(not 0 <= value <= 1 for value in probabilities):
+        raise SearchConfigurationError("fault probabilities must be unique values in [0,1]")
+    final = _table(document, "final_evaluation")
+    _keys(final, {"natural_contexts", "natural_seed", "conditional_contexts", "conditional_seed", "confidence"} if controlled else {"contexts", "seed", "confidence"}, set(), "final_evaluation")
+    natural_contexts = int(final["natural_contexts"] if controlled else final["contexts"])
+    natural_seed = int(final["natural_seed"] if controlled else final["seed"])
+    conditional_contexts = int(final["conditional_contexts"] if controlled else final["contexts"])
+    conditional_seed = int(final["conditional_seed"] if controlled else final["seed"])
+    if natural_contexts < 1 or conditional_contexts < 1 or not 0 < float(final["confidence"]) < 1:
         raise SearchConfigurationError("invalid final evaluation settings")
+    if controlled and natural_seed == conditional_seed:
+        raise SearchConfigurationError("natural and conditional final-evaluation seeds must be independent")
     reps = _table(document, "replications"); _keys(reps, {"count", "search_seed_stride", "final_seed_stride", "sample_offset_stride"}, set(), "replications")
     if int(reps["count"]) < 1 or any(int(reps[name]) < 0 for name in ("search_seed_stride", "final_seed_stride", "sample_offset_stride")):
         raise SearchConfigurationError("invalid replication plan")
@@ -273,13 +334,13 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
     if search_config.exact_enumeration and search_config.candidate_pool_count > 20:
         raise SearchConfigurationError("exact enumeration is limited to candidate_pool_count <= 20")
     return SearchConfiguration(
-        SEARCH_SCHEMA_VERSION, SEARCH_PROTOCOL, str(experiment["name"]), str(experiment["description"]), str(experiment["objective"]),
+        str(schema_version), expected_protocol, str(experiment["name"]), str(experiment["description"]), str(experiment["objective"]),
         BenchmarkConfiguration(str(benchmark["adapter"]), str(benchmark["id"]), checkpoint, dataset, str(benchmark["split"]), int(samples["final_count"]), int(samples["ranking_count"]), str(benchmark["quantization"]), str(benchmark["quantization_backend"]), tuple(map(str, injectables))),
         SearchSamples(int(samples["ranking_count"]), int(samples["search_count"]), int(samples["final_count"]), bool(samples["require_disjoint"])),
-        tuple(estimators), tuple(guidance), InitialMaskConfiguration(str(initial["guidance"]), int(initial["budget_bits"])),
+        tuple(estimators), tuple(guidance), InitialMaskConfiguration(str(initial["guidance"]), int(initial["budget_bits"])), tuple(methods),
         search_config, PolarConfiguration(bool(polar["enabled"]), str(polar["mode"]), int(polar["pair_budget"]), int(polar["background_contexts"]), int(polar["seed"]), float(polar["strength"]), bool(polar["collect_cancellation_diagnostics"])),
-        FaultConfiguration(str(fault["target"]), str(fault["location"]), str(fault["persistence"]), str(fault["distribution"]), float(fault["probability"])),
-        FinalEvaluationConfiguration(int(final["contexts"]), int(final["seed"]), float(final["confidence"])),
+        FaultConfiguration(str(fault["target"]), str(fault["location"]), str(fault["persistence"]), str(fault["distribution"]), probabilities[0]), probabilities,
+        FinalEvaluationConfiguration(natural_contexts, natural_seed, float(final["confidence"]), conditional_contexts, conditional_seed),
         SearchReplications(int(reps["count"]), int(reps["search_seed_stride"]), int(reps["final_seed_stride"]), int(reps["sample_offset_stride"])),
         OutputConfiguration(root.resolve(), bool(output["report"]), bool(output["plots"])), source, text,
     )

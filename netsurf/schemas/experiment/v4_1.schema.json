@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/experiment/v4_1.schema.json",
+  "title": "NetSuRF controlled conditional protection search configuration",
+  "type": "object",
+  "required": ["schema_version", "scientific_protocol", "experiment", "benchmark", "samples", "estimators", "guidance", "initial_mask", "methods", "search", "polar", "fault", "final_evaluation", "replications", "output"],
+  "properties": {
+    "schema_version": {"const": "4.1.0"},
+    "scientific_protocol": {"const": "conditional-protection-search/v2"},
+    "experiment": {"type": "object"}, "benchmark": {"type": "object"},
+    "samples": {"type": "object"}, "estimators": {"type": "array", "minItems": 1},
+    "guidance": {"type": "array", "minItems": 1}, "initial_mask": {"type": "object"},
+    "methods": {"type": "array", "minItems": 1}, "search": {"type": "object"},
+    "polar": {"type": "object"}, "fault": {"type": "object"},
+    "final_evaluation": {"type": "object"}, "replications": {"type": "object"},
+    "output": {"type": "object"}
+  },
+  "additionalProperties": false,
+  "description": "load_search enforces strict fields, independent natural/conditional seeds, named method guidance, and all cross-field constraints."
+}

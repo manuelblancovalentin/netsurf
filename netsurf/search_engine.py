@@ -10,6 +10,7 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from .adapters.registry import create_adapter
+from .conditional_risk import ConditionalMaskComparison, compare_protection_masks
 from .estimators_m3 import EstimatorOutput, basic_estimator, compute_estimators
 from .identities import BitIdentity
 from .incremental import DenseReluDenseIncrementalEvaluator, FaultState, metrics_from_logits
@@ -25,6 +26,7 @@ from .search import (
     RankingPrior,
     SearchResult,
     conditional_search,
+    estimate_mask_risk,
     exhaustive_optimum,
     sample_full_fault_states,
 )
@@ -48,6 +50,8 @@ class SearchOutcome:
     exact_enumeration: tuple[Mapping[str, Any], ...]
     exact_optimum_mask: frozenset[BitIdentity]
     exact_optimum_risk: float | None
+    conditional_comparisons: tuple[ConditionalMaskComparison, ...]
+    logical_ber: float
     replication_name: str = "replication_0"
     replications: tuple["SearchOutcome", ...] = ()
 
@@ -99,7 +103,7 @@ def _candidate_pool(configuration, identities, orderings, initial, seed):
     return tuple(sorted(selected_set))
 
 
-def _matched_final_trials(evaluator, inputs, labels, states, results, replication, progress=None):
+def _matched_final_trials(evaluator, inputs, labels, states, results, replication, progress=None, logical_ber=None):
     rows = []
     for result in results:
         for trial, state in enumerate(states):
@@ -107,6 +111,7 @@ def _matched_final_trials(evaluator, inputs, labels, states, results, replicatio
             metrics = metrics_from_logits(evaluator.full_forward(inputs, active).logits, labels)
             rows.append({
                 "replication": replication, "strategy": result.strategy, "trial": trial,
+                **({"logical_ber": logical_ber} if logical_ber is not None else {}),
                 "schedule_sha256": digest_object([bit.key() for bit in sorted(state.bits)]),
                 "fault_count": len(state.bits), "active_fault_count": len(active.bits),
                 "accuracy": metrics.accuracy, "categorical_crossentropy": metrics.categorical_crossentropy,
@@ -115,7 +120,7 @@ def _matched_final_trials(evaluator, inputs, labels, states, results, replicatio
     return tuple(rows)
 
 
-def _heldout_convergence(evaluator, inputs, labels, states, result, replication, progress=None):
+def _heldout_convergence(evaluator, inputs, labels, states, result, replication, progress=None, logical_ber=None):
     masks = [(0, result.initial_mask)]
     current = set(result.initial_mask)
     for step in result.steps:
@@ -137,7 +142,7 @@ def _heldout_convergence(evaluator, inputs, labels, states, result, replication,
             losses.append(metrics_from_logits(evaluator.full_forward(inputs, FaultState(state.bits - mask)).logits, labels).categorical_crossentropy)
             if progress is not None: progress()
         summary = summarize(losses).to_dict()
-        rows.append({"replication": replication, "strategy": result.strategy, "iteration": iteration,
+        rows.append({"replication": replication, "strategy": result.strategy, **({"logical_ber":logical_ber} if logical_ber is not None else {}), "iteration": iteration,
                      "exact_evaluations": int(cumulative_evaluations), "work_proxy_macs": int(cumulative_work),
                      "wall_seconds": cumulative_time, "heldout_loss_mean": summary["mean"],
                      "heldout_loss_ci_low": summary["confidence_interval"][0], "heldout_loss_ci_high": summary["confidence_interval"][1]})
@@ -178,8 +183,10 @@ def _incremental_validation(evaluator, inputs, labels, identities):
     return tuple(cases)
 
 
-def _execute_replication(configuration: SearchConfiguration, replication_index: int, tracker=None):
-    replication = f"replication_{replication_index}"
+def _execute_replication(configuration: SearchConfiguration, replication_index: int, tracker=None, *, probability=None, condition_index=0):
+    controlled = configuration.schema_version == "4.1.0"
+    probability = configuration.fault.probability if probability is None else float(probability)
+    replication = f"ber_{condition_index}_replication_{replication_index}" if controlled else f"replication_{replication_index}"
     context = {"replication": replication_index + 1, "replications": configuration.replications.count}
     if tracker is not None: tracker.update("Model loading", **context)
     codec = BitCodec(FixedPointFormat.parse(configuration.benchmark.quantization))
@@ -222,14 +229,38 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
     polar_values = []
     if configuration.polar.enabled and configuration.polar.pair_budget:
         if tracker is not None: tracker.update("Sparse polar calibration", **context)
-        possible = list(combinations(pool, 2)); generator = np.random.default_rng(configuration.polar.seed + replication_index)
-        if len(possible) > configuration.polar.pair_budget:
-            possible = [possible[int(i)] for i in generator.choice(len(possible), configuration.polar.pair_budget, replace=False)]
+        all_pairs = list(combinations(pool, 2)); generator = np.random.default_rng(configuration.polar.seed + replication_index)
+        if controlled:
+            # Prioritize boundary swaps each configured guidance is likely to
+            # propose, then fill the bounded sparse budget uniformly.  This
+            # improves decision-level diagnostic coverage without claiming a
+            # dense interaction model.
+            prioritized=[]; seen=set()
+            for method in configuration.methods:
+                for guidance_name in method.guidance:
+                    ordering=orderings[guidance_name]
+                    protected=tuple(bit for bit in reversed(ordering.identities) if bit in initial)
+                    additions=tuple(bit for bit in ordering.identities if bit in pool_set and bit not in initial)
+                    for removed,added in zip(protected,additions):
+                        key=tuple(sorted((removed,added)))
+                        if key not in seen:
+                            prioritized.append(key); seen.add(key)
+                            if len(prioritized)>=configuration.polar.pair_budget: break
+                    if len(prioritized)>=configuration.polar.pair_budget: break
+                if len(prioritized)>=configuration.polar.pair_budget: break
+            remaining=[pair for pair in all_pairs if tuple(sorted(pair)) not in seen]
+            needed=configuration.polar.pair_budget-len(prioritized)
+            sampled=[] if needed<=0 else [remaining[int(i)] for i in generator.choice(len(remaining),min(needed,len(remaining)),replace=False)]
+            possible=prioritized+sampled
+        else:
+            possible=all_pairs
+            if len(possible) > configuration.polar.pair_budget:
+                possible = [possible[int(i)] for i in generator.choice(len(possible), configuration.polar.pair_budget, replace=False)]
         for pair_index, (left, right) in enumerate(possible):
             if configuration.polar.mode == "finite_clean":
                 backgrounds = (FaultState(frozenset()),)
             else:
-                backgrounds = sample_full_fault_states(tuple(bit for bit in identities if bit not in {left, right}), probability=configuration.fault.probability, count=configuration.polar.background_contexts, seed=configuration.polar.seed + replication_index * 1009 + pair_index)
+                backgrounds = sample_full_fault_states(tuple(bit for bit in identities if bit not in {left, right}), probability=probability, count=configuration.polar.background_contexts, seed=configuration.polar.seed + replication_index * 1009 + condition_index * 1_000_003 + pair_index)
             for background in backgrounds:
                 polar_values.append(measure_polar_pair(evaluator, search_x, search_y, background, left, right))
                 if tracker is not None: tracker.update("Sparse polar calibration", advance=1, **context)
@@ -240,22 +271,25 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
             grouped.setdefault((value.left, value.right), []).append(value.local_quadratic_interaction)
         interactions = {key: float(np.mean(values)) for key, values in grouped.items()}
 
-    final_seed = configuration.final_evaluation.seed + replication_index * configuration.replications.final_seed_stride
-    final_states = sample_full_fault_states(identities, probability=configuration.fault.probability, count=configuration.final_evaluation.contexts, seed=final_seed)
+    final_seed = configuration.final_evaluation.seed + replication_index * configuration.replications.final_seed_stride + condition_index * 10_000_019
+    final_states = () if controlled else sample_full_fault_states(identities, probability=probability, count=configuration.final_evaluation.contexts, seed=final_seed)
     results = []
-    for strategy_index, strategy in enumerate(configuration.search.strategies):
+    for strategy_index, method in enumerate(configuration.methods):
+        strategy = method.strategy
+        method_components = [component for component, guide in zip(components, (g for g in configuration.guidance if g.weight > 0)) if guide.name in method.guidance]
+        method_proposal = ProposalPrior(pool, method_components, uniform_exploration=configuration.search.uniform_exploration, rank_temperature=configuration.search.rank_temperature)
         def search_progress(value):
             if tracker is not None:
                 tracker.update("Conditional search", advance=1, replication=replication_index + 1,
                                replications=configuration.replications.count, logical_ber=configuration.fault.probability,
-                               policy=strategy, iteration=value["iteration"], iterations=value["iterations"],
+                               policy=method.name, iteration=value["iteration"], iterations=value["iterations"],
                                protected_bits=value["protected_bits"], estimated_risk=value["estimated_risk"],
                                best_estimated_risk=value["best_estimated_risk"], accepted=value["accepted"],
                                rejected=value["rejected"], exact_evaluations=value["exact_evaluations"],
-                               work_class=f"Search {strategy}")
+                               work_class=f"Search {method.name}")
         result = conditional_search(
-            evaluator, search_x, search_y, identities, initial, strategy=strategy, proposal=proposal,
-            probability=configuration.fault.probability, iterations=configuration.search.iterations,
+            evaluator, search_x, search_y, identities, initial, strategy=strategy, proposal=method_proposal,
+            probability=probability, iterations=configuration.search.iterations,
             background_contexts=configuration.search.background_contexts, seed=search_seed + strategy_index * 100_003,
             final_contexts=configuration.final_evaluation.contexts, final_seed=final_seed,
             confidence=configuration.final_evaluation.confidence, candidate_pool=pool,
@@ -263,19 +297,48 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
             greedy_remove_candidates=configuration.search.greedy_remove_candidates,
             initial_temperature=configuration.search.initial_temperature, cooling_rate=configuration.search.cooling_rate,
             polar_interactions=interactions, polar_strength=configuration.polar.strength,
-            evaluator_mode=configuration.search.evaluator, final_fault_states=final_states, progress=search_progress,
-            final_inputs=final_x, final_labels=final_y,
+            evaluator_mode=configuration.search.evaluator, final_fault_states=None if controlled else final_states, progress=search_progress,
+            final_inputs=None if controlled else final_x, final_labels=None if controlled else final_y,
+            defer_final_evaluation=controlled,
+            background_seed=search_seed if controlled else None,
         )
+        if controlled:
+            result = replace(result, strategy=method.name, proposal_provenance={**result.proposal_provenance,"method":method.name,"algorithm":method.strategy,"guidance":list(method.guidance)})
         results.append(result)
+    conditional_comparisons = ()
+    if controlled:
+        # These fields are created only after all final masks are fixed.  They
+        # are therefore structurally unavailable to proposal selection.
+        final_states = sample_full_fault_states(identities, probability=probability, count=configuration.final_evaluation.contexts, seed=final_seed)
+        conditional_seed = configuration.final_evaluation.conditional_seed + replication_index * configuration.replications.final_seed_stride + condition_index * 10_000_019
+        conditional_states = sample_full_fault_states(identities, probability=probability, count=configuration.final_evaluation.conditional_contexts, seed=conditional_seed)
+        evaluated_results = []
+        comparisons = []
+        for result in results:
+            final_risk, _ = estimate_mask_risk(evaluator, final_x, final_y, identities, result.best_mask, probability=probability, contexts=len(final_states), seed=final_seed, confidence=configuration.final_evaluation.confidence, full_fault_states=final_states)
+            evaluated_results.append(replace(result, final_risk=final_risk))
+            def conditional_progress(completed, total, *, method_name=result.strategy):
+                if tracker is not None:
+                    tracker.update("Held-out conditional evaluation", advance=1, replication=replication_index+1,
+                                   replications=configuration.replications.count, logical_ber=probability,
+                                   policy=method_name, trial=completed, trials=total)
+            comparisons.append(compare_protection_masks(
+                evaluator, final_x, final_y, identities, conditional_states, initial, result.best_mask,
+                probabilities=probability, confidence=configuration.final_evaluation.confidence,
+                baseline_name="initial_static", target_name=result.strategy, mode=configuration.search.evaluator,
+                progress=conditional_progress,
+            ))
+        results = evaluated_results
+        conditional_comparisons = tuple(comparisons)
     if tracker is not None:
         tracker.update("Held-out final evaluation", **context)
-    trials = _matched_final_trials(evaluator, final_x, final_y, final_states, results, replication, None if tracker is None else lambda: tracker.update("Held-out final evaluation", advance=1, **context))
-    maximum_states = sum(1 if value == "static" else 1 + configuration.search.iterations for value in configuration.search.strategies)
+    trials = _matched_final_trials(evaluator, final_x, final_y, final_states, results, replication, None if tracker is None else lambda: tracker.update("Held-out final evaluation", advance=1, logical_ber=probability, **context), probability if controlled else None)
+    maximum_states = sum(1 if value.strategy == "static" else 1 + configuration.search.iterations for value in configuration.methods)
     actual_states = sum(1 + result.accepted for result in results)
     if tracker is not None:
         tracker.adjust_total((actual_states - maximum_states) * configuration.final_evaluation.contexts, stage="Held-out convergence")
         tracker.update("Held-out convergence", **context)
-    convergence = tuple(row for result in results for row in _heldout_convergence(evaluator, final_x, final_y, final_states, result, replication, None if tracker is None else lambda: tracker.update("Held-out convergence", advance=1, **context)))
+    convergence = tuple(row for result in results for row in _heldout_convergence(evaluator, final_x, final_y, final_states, result, replication, None if tracker is None else lambda: tracker.update("Held-out convergence", advance=1, logical_ber=probability, **context), probability if controlled else None))
     exact_rows, exact_mask, exact_risk = (), frozenset(), None
     if configuration.search.exact_enumeration:
         if tracker is not None: tracker.update("Restricted exact enumeration", **context)
@@ -286,7 +349,7 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
         "replication": replication,
         "benchmark": {"id": configuration.benchmark.id, "checkpoint_sha256": sha256_file(configuration.benchmark.checkpoint), "dataset_sha256": sha256_file(configuration.benchmark.dataset), "eligible_bits": len(identities), "quantization": configuration.benchmark.quantization},
         "partitions": {name: value.to_dict() for name, value in partitions.items()},
-        "fault": {"probability": configuration.fault.probability, "persistence": configuration.fault.persistence, "distribution": configuration.fault.distribution},
+        "fault": {"probability": probability, "persistence": configuration.fault.persistence, "distribution": configuration.fault.distribution},
         "initial_mask": [bit.key() for bit in sorted(initial)], "candidate_pool": [bit.key() for bit in pool],
         "rankings": {name: {"digest": value.digest(), "criteria": value.criteria, "estimator": value.estimator} for name, value in orderings.items()},
         "search": [{
@@ -300,17 +363,21 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
             } for step in value.steps],
         } for value in results],
         "final_fault_states": [[bit.key() for bit in sorted(value.bits)] for value in final_states],
+        **({"conditional_final_fault_states": [[bit.key() for bit in sorted(value.bits)] for value in conditional_states],
+            "conditional_comparisons": [value.to_dict() for value in conditional_comparisons]} if controlled else {}),
         "exact_optimum": None if exact_risk is None else {"risk": exact_risk, "mask": [bit.key() for bit in sorted(exact_mask)]},
     }
     if tracker is not None: tracker.update("Scientific payload", advance=1, **context)
-    return SearchOutcome(configuration, payload, partitions, outputs, orderings, pool, tuple(polar_values), tuple(results), trials, convergence, validation, tuple(exact_rows), exact_mask, exact_risk, replication)
+    return SearchOutcome(configuration, payload, partitions, outputs, orderings, pool, tuple(polar_values), tuple(results), trials, convergence, validation, tuple(exact_rows), exact_mask, exact_risk, conditional_comparisons, probability, replication)
 
 
 def execute_search(configuration: SearchConfiguration, *, _tracker=None) -> SearchOutcome:
-    members = tuple(_execute_replication(configuration, index, _tracker) for index in range(configuration.replications.count))
+    members = tuple(_execute_replication(configuration, index, _tracker, probability=probability, condition_index=condition_index)
+                    for condition_index, probability in enumerate(configuration.fault_probabilities)
+                    for index in range(configuration.replications.count))
     if len(members) == 1:
         return members[0]
     payload = {"schema_version": configuration.schema_version, "scientific_protocol": configuration.scientific_protocol,
-               "replications": [{"name": value.replication_name, "payload_sha256": value.scientific_payload_sha256} for value in members]}
+               "replications": [{"name": value.replication_name, **({"logical_ber":value.logical_ber} if configuration.schema_version == "4.1.0" else {}), "payload_sha256": value.scientific_payload_sha256} for value in members]}
     first = members[0]
     return replace(first, scientific_payload=payload, replications=members)

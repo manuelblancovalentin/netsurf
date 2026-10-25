@@ -51,6 +51,10 @@ def test_search_is_deterministic_uses_matched_heldout_schedules_and_disjoint_sam
     assert greedy_payload["steps"][0]["background_fault_states"]
 
 
+def test_m4_reference_scientific_payload_is_unchanged():
+    assert execute_search(load_search(CONTROL)).scientific_payload_sha256 == "e49551615df5a4ffad666db5d873dd8b05756a3e533f3bd89af73a2e98c6d6b6"
+
+
 def test_search_progress_reaches_declared_total():
     config = load_search(CONTROL)
     events = []

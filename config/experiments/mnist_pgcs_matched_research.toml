@@ -1,0 +1,149 @@
+schema_version = "4.1.0"
+scientific_protocol = "conditional-protection-search/v2"
+
+[experiment]
+name = "mnist_pgcs_matched_research"
+description = "Controlled logical-fault stress comparison of PGCS proposal strategies; BER values are not physical SEU rates."
+objective = "Compare independently replicated final masks using held-out conditional risk and separate natural Bernoulli trials."
+
+[benchmark]
+adapter = "mnist_quantized"
+id = "mnist_dense32_q621-v2"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "v2_disjoint_partitions"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 128
+search_count = 64
+final_count = 128
+require_disjoint = true
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "encoded-bit-index/v1"
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+
+[[guidance]]
+name = "gradient_global"
+estimator = "first_order_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+weight = 1.0
+
+[[guidance]]
+name = "msb_ordered"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "canonical"]
+weight = 1.0
+
+[[guidance]]
+name = "msb_input_first"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "layer_input_first", "stable_identity"]
+weight = 1.0
+
+[[guidance]]
+name = "msb_output_first"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "layer_output_first", "stable_identity"]
+weight = 1.0
+
+[initial_mask]
+guidance = "gradient_global"
+budget_bits = 256
+
+[[methods]]
+name = "static_gradient"
+strategy = "static"
+guidance = ["gradient_global"]
+
+[[methods]]
+name = "uniform_swap"
+strategy = "uniform_swap"
+guidance = ["gradient_global"]
+
+[[methods]]
+name = "gradient_guided_swap"
+strategy = "static_guided_swap"
+guidance = ["gradient_global"]
+
+[[methods]]
+name = "msb_guided_swap"
+strategy = "static_guided_swap"
+guidance = ["msb_ordered"]
+
+[[methods]]
+name = "input_first_guided_swap"
+strategy = "static_guided_swap"
+guidance = ["msb_input_first"]
+
+[[methods]]
+name = "output_first_guided_swap"
+strategy = "static_guided_swap"
+guidance = ["msb_output_first"]
+
+[[methods]]
+name = "polar_guided_swap"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+
+[[methods]]
+name = "conditional_greedy"
+strategy = "conditional_greedy"
+guidance = ["gradient_global"]
+
+[search]
+evaluator = "incremental"
+iterations = 4
+candidate_pool_strategy = "top_union"
+candidate_pool_count = 512
+uniform_exploration = 0.15
+rank_temperature = 0.15
+background_contexts = 8
+seed = 45301
+greedy_add_candidates = 4
+greedy_remove_candidates = 3
+initial_temperature = 0.01
+cooling_rate = 0.95
+cache_memory_mb = 512.0
+exact_enumeration = false
+
+[polar]
+enabled = true
+mode = "finite_background"
+pair_budget = 16
+background_contexts = 2
+seed = 45302
+strength = 0.75
+collect_cancellation_diagnostics = true
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probabilities = [0.001, 0.01]
+
+[final_evaluation]
+natural_contexts = 20
+natural_seed = 45303
+conditional_contexts = 24
+conditional_seed = 45304
+confidence = 0.95
+
+[replications]
+count = 5
+search_seed_stride = 1000
+final_seed_stride = 1000
+sample_offset_stride = 256
+
+[output]
+root = ""
+report = true
+plots = true

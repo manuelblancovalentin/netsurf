@@ -277,6 +277,8 @@ def conditional_search(
     final_inputs: np.ndarray | None = None,
     final_labels: np.ndarray | None = None,
     progress: Callable[[Mapping[str, object]], None] | None = None,
+    defer_final_evaluation: bool = False,
+    background_seed: int | None = None,
 ) -> SearchResult:
     """Run a fixed-cardinality local search with exact conditional decisions."""
     supported = {"static", "conditional_greedy", "uniform_swap", "static_guided_swap", "polar_guided_swap", "simulated_annealing"}
@@ -294,10 +296,11 @@ def conditional_search(
         raise ValueError("initial mask must be a nonempty subset of the universe")
     budget = len(current)
     generator = np.random.default_rng(int(seed))
+    context_seed = int(seed if background_seed is None else background_seed)
     started = perf_counter()
     initial_risk, _ = estimate_mask_risk(
         evaluator, inputs, labels, universe, current, probability=probability,
-        contexts=background_contexts, seed=seed + 1_000_000, confidence=confidence,
+        contexts=background_contexts, seed=context_seed + 1_000_000, confidence=confidence,
     )
     current_risk = float(initial_risk["mean"])
     best_risk, best_mask = current_risk, current
@@ -336,7 +339,7 @@ def conditional_search(
         # backgrounds are exact projections that remove the two swapped bits.
         base_backgrounds = sample_conditional_backgrounds(
             universe, current, (), probability=probability,
-            count=background_contexts, seed=seed + iteration * 100_003,
+            count=background_contexts, seed=context_seed + iteration * 100_003,
         )
         background_rows = tuple(tuple(bit.key() for bit in sorted(state.bits)) for state in base_backgrounds)
         background_digest = digest_object(background_rows)
@@ -410,13 +413,16 @@ def conditional_search(
                 "best_estimated_risk": best_risk, "accepted": accepted, "rejected": rejected,
                 "exact_evaluations": exact_evaluations,
             })
-    evaluation_inputs = inputs if final_inputs is None else final_inputs
-    evaluation_labels = labels if final_labels is None else final_labels
-    final_risk, _ = estimate_mask_risk(
-        evaluator, evaluation_inputs, evaluation_labels, universe, best_mask, probability=probability,
-        contexts=final_contexts, seed=final_seed, confidence=confidence,
-        full_fault_states=final_fault_states,
-    )
+    if defer_final_evaluation:
+        final_risk = {}
+    else:
+        evaluation_inputs = inputs if final_inputs is None else final_inputs
+        evaluation_labels = labels if final_labels is None else final_labels
+        final_risk, _ = estimate_mask_risk(
+            evaluator, evaluation_inputs, evaluation_labels, universe, best_mask, probability=probability,
+            contexts=final_contexts, seed=final_seed, confidence=confidence,
+            full_fault_states=final_fault_states,
+        )
     return SearchResult(
         strategy, frozenset(initial_mask), current, best_mask, initial_risk, final_risk,
         best_risk, tuple(steps), accepted, rejected, proposals_generated,

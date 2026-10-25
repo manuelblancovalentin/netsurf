@@ -1,0 +1,127 @@
+schema_version = "4.1.0"
+scientific_protocol = "conditional-protection-search/v2"
+
+[experiment]
+name = "numpy_pgcs_conditional_validation"
+description = "Exact small-model validation of telescoping held-out conditional mask comparison."
+objective = "Validate independent conditional-risk and direct Bernoulli endpoints against restricted exhaustive risk."
+
+[benchmark]
+adapter = "numpy_reference"
+id = "numpy_reference_q621-v1"
+checkpoint = "../../netsurf/benchmarks/data/numpy_reference_checkpoint.json"
+dataset = "../../netsurf/benchmarks/data/numpy_reference_dataset.json"
+split = "fixed_disjoint_control"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 2
+search_count = 2
+final_count = 2
+require_disjoint = true
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "encoded-bit-index/v1"
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+
+[[guidance]]
+name = "msb_ordered"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "canonical"]
+weight = 1.0
+
+[[guidance]]
+name = "gradient_global"
+estimator = "first_order_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+weight = 1.0
+
+[initial_mask]
+guidance = "gradient_global"
+budget_bits = 2
+
+[[methods]]
+name = "static_gradient"
+strategy = "static"
+guidance = ["gradient_global"]
+
+[[methods]]
+name = "uniform_swap"
+strategy = "uniform_swap"
+guidance = ["gradient_global"]
+
+[[methods]]
+name = "gradient_guided_swap"
+strategy = "static_guided_swap"
+guidance = ["gradient_global"]
+
+[[methods]]
+name = "msb_guided_swap"
+strategy = "static_guided_swap"
+guidance = ["msb_ordered"]
+
+[[methods]]
+name = "polar_guided_swap"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+
+[[methods]]
+name = "conditional_greedy"
+strategy = "conditional_greedy"
+guidance = ["gradient_global"]
+
+[search]
+evaluator = "incremental"
+iterations = 3
+candidate_pool_strategy = "top_union"
+candidate_pool_count = 8
+uniform_exploration = 0.20
+rank_temperature = 0.20
+background_contexts = 8
+seed = 45101
+greedy_add_candidates = 3
+greedy_remove_candidates = 2
+initial_temperature = 0.02
+cooling_rate = 0.90
+cache_memory_mb = 32.0
+exact_enumeration = true
+
+[polar]
+enabled = true
+mode = "finite_background"
+pair_budget = 6
+background_contexts = 3
+seed = 45102
+strength = 0.75
+collect_cancellation_diagnostics = true
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probabilities = [0.05]
+
+[final_evaluation]
+natural_contexts = 16
+natural_seed = 45103
+conditional_contexts = 32
+conditional_seed = 45104
+confidence = 0.95
+
+[replications]
+count = 1
+search_seed_stride = 1000
+final_seed_stride = 1000
+sample_offset_stride = 0
+
+[output]
+root = ""
+report = true
+plots = true
