@@ -10,7 +10,7 @@ import numpy as np
 from .adapters.registry import create_adapter
 from .analysis_m3 import estimator_agreement, mask_composition, paired_policy_comparisons, ranking_quality
 from .empirical import SingleBitMeasurement, measure_single_bits, select_all, stratified_candidates, uniform_candidates
-from .estimators_m3 import EstimatorOutput, compute_estimators
+from .estimators_m3 import EstimatorOutput, basic_estimator, compute_estimators
 from .experiment_engine import TrialMeasurement, _arrays_digest, _evaluate_faulted
 from .faults import FaultModel, FaultSchedule
 from .identities import BitIdentity
@@ -63,23 +63,6 @@ def _finite(value: Any) -> Any:
     if isinstance(value, np.integer):
         return int(value)
     return value
-
-
-def _basic_estimator(name: str, identities: Sequence[BitIdentity], *, seed: int) -> EstimatorOutput:
-    if name == "msb_first":
-        return EstimatorOutput(
-            name, "encoded-bit-index/v1",
-            {identity: float(identity.bit_index) for identity in identities}, None, 0.0,
-            {"expression": "encoded bit index; larger is more significant"},
-        )
-    if name == "random":
-        generator = np.random.default_rng(int(seed))
-        return EstimatorOutput(
-            name, "seeded-uniform-score/v1",
-            {identity: float(value) for identity, value in zip(sorted(identities), generator.random(len(identities)))},
-            None, 0.0, {"seed": int(seed), "purpose": "negative-control ranking score"},
-        )
-    raise ValueError(name)
 
 
 def _summaries(rows: Sequence[TrialMeasurement], masks: Mapping[str, ProtectionMask], confidence: float):
@@ -143,7 +126,7 @@ def _execute_single_study(
         advanced_specifications, benchmark, ranking_x, ranking_y, identities, codec,
     ))
     for specification in configuration.estimators:
-        output = _basic_estimator(specification.name, identities, seed=specification.seed) if specification.name in {"msb_first", "random"} else next(advanced_outputs)
+        output = basic_estimator(specification.name, identities, seed=specification.seed) if specification.name in {"msb_first", "random"} else next(advanced_outputs)
         if output.implementation_version != specification.implementation_version:
             raise ValueError(
                 f"estimator {specification.name} implementation version mismatch: "

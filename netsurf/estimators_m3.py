@@ -22,6 +22,24 @@ class EstimatorOutput:
     metadata: Mapping[str, Any]
 
 
+def basic_estimator(name: str, identities: Sequence[BitIdentity], *, seed: int = 0) -> EstimatorOutput:
+    """Construct the shared structural baselines without model execution."""
+    if name == "msb_first":
+        return EstimatorOutput(
+            name, "encoded-bit-index/v1",
+            {identity: float(identity.bit_index) for identity in identities}, None, 0.0,
+            {"expression": "encoded bit index; larger is more significant"},
+        )
+    if name == "random":
+        generator = np.random.default_rng(int(seed))
+        return EstimatorOutput(
+            name, "seeded-uniform-score/v1",
+            {identity: float(value) for identity, value in zip(sorted(identities), generator.random(len(identities)))},
+            None, 0.0, {"seed": int(seed), "purpose": "negative-control ranking score"},
+        )
+    raise ValueError(name)
+
+
 def _parameter_value(matrix: Mapping[str, np.ndarray], identity: BitIdentity) -> float:
     return float(matrix[identity.parameter].reshape(-1)[identity.flat_index])
 
