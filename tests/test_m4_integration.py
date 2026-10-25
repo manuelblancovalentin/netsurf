@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 from dataclasses import replace
 from pathlib import Path
 
@@ -67,5 +68,16 @@ def test_schema4_bundle_verifies_and_report_regenerates(tmp_path):
     result = read_result_bundle(path)
     assert result.scientific_payload_sha256 == outcome.scientific_payload_sha256
     assert (path / "measurements/final_trials.csv").is_file()
+    assert (path / "measurements/mask_overlap.csv").is_file()
+    with (path / "measurements/search_results.csv").open(newline="") as stream:
+        search_rows = list(csv.DictReader(stream))
+    assert search_rows
+    assert all("iteration_to_best" in row and "seconds_to_best" in row for row in search_rows)
+    with (path / "measurements/mask_overlap.csv").open(newline="") as stream:
+        overlap_rows = list(csv.DictReader(stream))
+    assert overlap_rows
+    assert all(0.0 <= float(row["jaccard"]) <= 1.0 for row in overlap_rows)
     regenerated = regenerate_report(result, tmp_path / "derived", plots=False)
-    assert "Search decisions use matched three-state" in regenerated.read_text()
+    report = regenerated.read_text()
+    assert "Search decisions use matched three-state" in report
+    assert "Accuracy q05" in report

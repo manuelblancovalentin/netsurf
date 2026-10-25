@@ -83,8 +83,14 @@ nonzero uniform exploration, cache memory, and annealing controls.
 
 Schema-4 bundles add `final_trials.csv`, `search_steps.csv`, `convergence.csv`,
 `proposal_evaluations.csv`, `incremental_validation.csv`,
-`estimator_runtime.csv`, `mask_composition.csv`,
+`estimator_runtime.csv`, `mask_composition.csv`, `mask_overlap.csv`,
 and, when applicable, `polar_interactions.csv` and
 `exact_mask_enumeration.csv`. Exact masks, rankings, candidate pools, partitions,
 and matched held-out schedules are stored under `artifacts/`. Table units and
 identities are in `netsurf/schemas/measurements/v4.schema.json`.
+
+`search_results.csv` records the iteration and accumulated measured search time
+at which each strategy first reached its final best search-risk estimate.
+`mask_overlap.csv` records pairwise intersection, union, Jaccard overlap, and
+fraction-of-budget overlap for the final best masks within each replication.
+These are derived diagnostics and do not enter the scientific payload hash.

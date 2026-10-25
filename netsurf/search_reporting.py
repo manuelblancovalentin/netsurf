@@ -61,12 +61,12 @@ def render_search_report(summary: Mapping[str, Any], resolved: Mapping[str, Any]
         "- Search decisions use matched three-state conditional loss estimates; held-out schedules are not used to accept proposals.",
         "- Exact inference refers to encoded XOR/decode and supported-network forward equivalence, not exact knowledge of expected risk or global optimization.", "",
         "## Held-out results", "",
-        "| Strategy | Trials | Mean accuracy (95% CI) | Mean cross-entropy (95% CI) | Minimum accuracy |",
-        "|---|---:|---:|---:|---:|",
+        "| Strategy | Trials | Mean accuracy (95% CI) | Accuracy q05 | Minimum accuracy | Mean cross-entropy (95% CI) |",
+        "|---|---:|---:|---:|---:|---:|",
     ]
     for value in summary.get("strategy_results", []):
         accuracy, loss = value["accuracy"], value["categorical_crossentropy"]
-        lines.append(f"| {value['strategy']} | {value['trial_count']} | {accuracy['mean']:.6f} [{accuracy['confidence_interval'][0]:.6f}, {accuracy['confidence_interval'][1]:.6f}] | {loss['mean']:.6f} [{loss['confidence_interval'][0]:.6f}, {loss['confidence_interval'][1]:.6f}] | {accuracy['minimum']:.6f} |")
+        lines.append(f"| {value['strategy']} | {value['trial_count']} | {accuracy['mean']:.6f} [{accuracy['confidence_interval'][0]:.6f}, {accuracy['confidence_interval'][1]:.6f}] | {accuracy['quantile_05']:.6f} | {accuracy['minimum']:.6f} | {loss['mean']:.6f} [{loss['confidence_interval'][0]:.6f}, {loss['confidence_interval'][1]:.6f}] |")
     lines += ["", "Intervals summarize held-out logical fault realizations conditional on the fixed checkpoint, dataset partitions, and each generated mask. Repeated search seeds are not independently trained networks.", "", "## Paired comparisons", "", "| Left − right | Metric | Matched pairs | Mean difference (95% CI) |", "|---|---|---:|---:|"]
     for value in summary.get("paired_comparisons", []):
         difference = value["difference"]
