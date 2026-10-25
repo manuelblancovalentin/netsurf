@@ -33,3 +33,7 @@ protocol, matched held-out fault schedules, exact incremental diagnostics,
 sparse polar interactions, fixed-budget search traces, and restricted exact
 enumeration. Its executable validator is `netsurf.search_config.load_search`.
 and reader; migrations must write a new bundle.
+
+Experiment and measurement `4.1.0` add named matched methods, multi-BER
+conditions, independent natural and telescoping-conditional held-out fields,
+and whole-path cluster-level uncertainty. Schema 4.0 remains readable unchanged.

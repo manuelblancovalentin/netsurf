@@ -94,3 +94,22 @@ at which each strategy first reached its final best search-risk estimate.
 `mask_overlap.csv` records pairwise intersection, union, Jaccard overlap, and
 fraction-of-budget overlap for the final best masks within each replication.
 These are derived diagnostics and do not enter the scientific payload hash.
+
+## Schema 4.1 controlled conditional comparison
+
+Schema `4.1.0` uses protocol `conditional-protection-search/v2`. It adds named
+`[[methods]]`, multiple logical BER conditions, and separate natural-Bernoulli
+and conditional held-out counts and seeds. Schema 4.0 remains readable with its
+original scientific payload.
+
+Methods share the checkpoint, codec, initial mask, eligible universe, candidate
+pool, data partitions, and base search backgrounds within a BER/replication.
+Candidate pools restrict search moves only; faults remain sampled over the full
+eligible-bit population.
+
+Final masks are fixed before held-out seeds are used. Natural evaluation writes
+`final_trials.csv`. Conditional evaluation follows
+`sorted_removed_then_sorted_added/v1`; one base field contributes one complete
+path sum. New tables are `conditional_context_contributions.csv`,
+`conditional_mask_comparisons.csv`, `conditional_swap_paths.csv`, and
+`proposal_diagnostics.csv`, defined by `measurements/v4_1.schema.json`.

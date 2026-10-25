@@ -131,3 +131,22 @@ the enabled rewrite path exhibited cross-process last-bit drift in gradients
 and cross-entropy on Kona. A process that initialized TensorFlow under a
 conflicting environment must be restarted; the adapter does not silently hash
 numerically unstable results as equivalent.
+
+## M4.1 independent final comparison
+
+Equal-budget masks are connected by pairing sorted members of `S0 - S1` with
+sorted members of `S1 - S0`. This deterministic legal path does not imply
+path-independent finite-sample variance. Every independent mask-agnostic field
+uses backgrounds excluding the current protected set and both swapped bits.
+Step contributions are summed before uncertainty is calculated.
+
+The primary endpoint is target-minus-initial expected cross-entropy; zero-one
+risk is secondary. Background fields—not inputs or path steps—are sampling
+units. Intervals are conditional on the fixed recorded input set. Natural
+Bernoulli trials are a separate endpoint. Final data and seeds are unavailable
+to search. Candidate pools constrain proposals, never the fault universe.
+
+Pruning is deferred. A zero-valued stored word remains faultable; a permanent
+logical mask needs explicit semantics; structured physical removal changes
+topology, checkpoint identity, eligible bits, and hardware cost. Zeroing a
+weight does not remove its upset vulnerability.

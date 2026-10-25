@@ -421,3 +421,27 @@ Without `proj`, activate a Python 3.11 environment, install the declared core
 and research dependencies plus this checkout in editable mode, and use the same
 commands. Point the TOML at immutable local dataset/checkpoint copies; every
 manifest records their hashes. Do not copy Kona's absolute environment path.
+
+## M4.1 controlled conditional-risk workflow
+
+```bash
+proj activate netsurf
+netsurf validate config/experiments/numpy_pgcs_conditional_validation.toml --resolved
+netsurf run config/experiments/numpy_pgcs_conditional_validation.toml
+netsurf validate config/experiments/mnist_pgcs_matched_smoke.toml
+netsurf run config/experiments/mnist_pgcs_matched_smoke.toml
+```
+
+The researcher-scale study is not an automated regression:
+
+```bash
+tmux new -s netsurf-m41
+proj activate netsurf
+netsurf validate config/experiments/mnist_pgcs_matched_research.toml --resolved
+netsurf run config/experiments/mnist_pgcs_matched_research.toml
+# detach: Ctrl-b d; reconnect: tmux attach -t netsurf-m41
+```
+
+Defaults use two logical BERs, five replications, eight methods, 20 natural
+fields, and 24 conditional fields per method/BER/replication. Do not adapt
+confirmatory allocations after inspecting held-out results.

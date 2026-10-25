@@ -76,3 +76,13 @@ Freeze one checkpoint and verify NetSuRF checkpoint → folded QKeras → HLS C 
 5. Add architecture-specific ABFT last, because recovery/re-execution requirements are the least portable.
 
 Every method must share stated physical targets, matched fault conditions where meaningful, and measured area/power/latency/timing—not a forced per-bit abstraction.
+
+## M4.1 — independent conditional comparison
+
+- [x] Whole-path held-out conditional-risk contributions and paired intervals.
+- [x] Common initialization and candidate pools with named guidance methods.
+- [x] Multi-BER replicated controlled configurations and saved-data reporting.
+- [x] Separate natural and conditional schedules created after mask selection.
+
+Pruning remains a future protocol because stored zeros, logical masks, and
+physically removed parameters define different fault populations and costs.

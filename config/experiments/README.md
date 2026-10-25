@@ -51,3 +51,10 @@ The four M3.1 templates use schema `3.1.0`. The researcher can change candidate
 protection `coverages`/`probabilities`, and execution `trials` without editing
 NetSuRF source. Unsupported estimator, adapter, partition, and schema
 combinations fail before result creation.
+
+Schema-4.1 maintained configurations are:
+
+- `numpy_pgcs_conditional_validation.toml`: exhaustive small reference;
+- `mnist_pgcs_matched_smoke.toml`: bounded prepared-checkpoint integration;
+- `mnist_pgcs_matched_research.toml`: five-replication, two-BER researcher
+  study, not executed by ordinary tests.

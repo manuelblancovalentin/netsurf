@@ -121,3 +121,8 @@ implementations, HLS/RTL export, logical-to-physical mapping, and Wolf hardware
 execution remain deferred. Exact Hessian-diagonal validation is implemented
 only for the tractable NumPy reference; MNIST uses configurable stochastic HVP
 probes and explicitly sampled empirical candidates, not a 152,700-bit exhaustive claim.
+
+Schema 4.1 adds `conditional_risk.py` without replacing the optimizer. It owns
+deterministic mask paths and whole-path contributions. `search_engine.py` fixes
+masks before creating separate natural and conditional fields. Bundling and
+reporting consume saved cluster-level measurements without rerunning inference.

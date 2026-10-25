@@ -169,3 +169,8 @@ for bounded commands and expected digests.
 Generated benchmark outputs, checkpoints, rankings, and synthesis products are
 not validated merely because they exist. Consult `docs/LEGACY_MAPPING.md` before
 using historical material in a publication.
+
+Schema 4.1 adds independent conditional-risk evaluation for closely related
+final masks. Begin with
+`config/experiments/numpy_pgcs_conditional_validation.toml`; matched MNIST
+smoke and research configurations reuse the existing prepared checkpoint.
