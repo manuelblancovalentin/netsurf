@@ -99,3 +99,18 @@ def test_polar_guidance_is_proposal_only_and_exactly_verified(search_fixture):
     )
     assert result.proposals_evaluated == 2
     assert result.exact_evaluations == 18  # 3 matched states × 3 contexts × 2 swaps
+
+
+def test_greedy_alternatives_share_one_auditable_background_schedule(search_fixture):
+    evaluator, inputs, labels, universe, proposal = search_fixture
+    result = conditional_search(
+        evaluator, inputs, labels, universe, universe[:2], strategy="conditional_greedy",
+        proposal=proposal, probability=0.1, iterations=1, background_contexts=4,
+        seed=81, final_contexts=2, final_seed=82,
+        greedy_add_candidates=2, greedy_remove_candidates=2,
+    )
+    step = result.steps[0]
+    assert len(step.evaluated_candidates) == 4
+    assert len(step.background_fault_states) == 4
+    assert len(step.background_schedule_sha256) == 64
+    assert {value.candidate_index for value in step.evaluated_candidates} == {0, 1, 2, 3}

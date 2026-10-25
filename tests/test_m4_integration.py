@@ -44,6 +44,10 @@ def test_search_is_deterministic_uses_matched_heldout_schedules_and_disjoint_sam
         by_strategy.setdefault(row["strategy"], []).append((row["trial"], row["schedule_sha256"], row["fault_count"]))
     assert len(by_strategy) > 1
     assert len({tuple(value) for value in by_strategy.values()}) == 1
+    greedy = next(value for value in first.search_results if value.strategy == "conditional_greedy")
+    assert all(len(step.evaluated_candidates) > 1 for step in greedy.steps)
+    greedy_payload = next(value for value in first.scientific_payload["search"] if value["strategy"] == "conditional_greedy")
+    assert greedy_payload["steps"][0]["background_fault_states"]
 
 
 def test_search_progress_reaches_declared_total():

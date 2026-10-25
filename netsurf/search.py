@@ -19,6 +19,7 @@ from .incremental import (
     sample_conditional_backgrounds,
 )
 from .statistics import summarize
+from .manifests import digest_object
 
 
 @dataclass(frozen=True)
@@ -123,6 +124,26 @@ class ProposalPrior:
 
 
 @dataclass(frozen=True)
+class ProposalEvaluation:
+    candidate_index: int
+    removed: BitIdentity
+    added: BitIdentity
+    proposal_probability_remove: float
+    proposal_probability_add: float
+    risk_difference: float
+    risk_ci_low: float
+    risk_ci_high: float
+    exact_evaluations: int
+    work_proxy_macs: int
+    gate_changes: int
+
+    def to_dict(self):
+        row = asdict(self)
+        row["removed"] = self.removed.key(); row["added"] = self.added.key()
+        return row
+
+
+@dataclass(frozen=True)
 class SearchStep:
     iteration: int
     strategy: str
@@ -148,12 +169,17 @@ class SearchStep:
     cache_hits: int
     cache_misses: int
     fallback_count: int
+    background_schedule_sha256: str
+    background_fault_states: tuple[tuple[str, ...], ...]
+    evaluated_candidates: tuple[ProposalEvaluation, ...]
     wall_seconds: float
 
     def to_dict(self):
         row = asdict(self)
         row["removed"] = None if self.removed is None else self.removed.key()
         row["added"] = None if self.added is None else self.added.key()
+        row.pop("evaluated_candidates", None)
+        row.pop("background_fault_states", None)
         return row
 
 
@@ -305,18 +331,32 @@ def conditional_search(
                 added, q_add = proposal.sample(additions, generator=generator, adjustment=adjustment)
             candidates.append((removed, added, q_remove, q_add))
         proposals_generated += len(candidates)
+        # One full Bernoulli background schedule is shared across every
+        # alternative evaluated at this iteration. Candidate-specific
+        # backgrounds are exact projections that remove the two swapped bits.
+        base_backgrounds = sample_conditional_backgrounds(
+            universe, current, (), probability=probability,
+            count=background_contexts, seed=seed + iteration * 100_003,
+        )
+        background_rows = tuple(tuple(bit.key() for bit in sorted(state.bits)) for state in base_backgrounds)
+        background_digest = digest_object(background_rows)
         evaluated = []
+        evaluation_records = []
         for candidate_index, (removed, added, q_remove, q_add) in enumerate(candidates):
-            backgrounds = sample_conditional_backgrounds(
-                universe, current, (removed, added), probability=probability,
-                count=background_contexts, seed=seed + iteration * 100_003 + candidate_index,
-            )
+            backgrounds = tuple(FaultState(state.bits - {removed, added}) for state in base_backgrounds)
             estimate = evaluate_conditional_swap(
                 evaluator, inputs, labels, backgrounds, removed, added,
                 probability_removed=probability, probability_added=probability,
                 confidence=confidence, mode=evaluator_mode,
             )
             evaluated.append((estimate.risk_difference["mean"], removed, added, q_remove, q_add, estimate))
+            interval = estimate.risk_difference["confidence_interval"]
+            evaluation_records.append(ProposalEvaluation(
+                candidate_index, removed, added, q_remove, q_add,
+                float(estimate.risk_difference["mean"]), float(interval[0]), float(interval[1]),
+                estimate.background_evaluations + estimate.incremental_evaluations + estimate.full_evaluations,
+                estimate.work_proxy_macs, estimate.gate_changes,
+            ))
         proposals_evaluated += len(evaluated)
         chosen = min(evaluated, key=lambda value: (value[0], value[1], value[2])) if strategy == "conditional_greedy" else evaluated[0]
         difference, removed, added, q_remove, q_add, estimate = chosen
@@ -358,7 +398,8 @@ def conditional_search(
             iteration_work, iteration_gates,
             iteration_backgrounds, iteration_incremental, iteration_full,
             iteration_affected, iteration_reused, iteration_hits, iteration_misses,
-            iteration_fallbacks, perf_counter() - iteration_started,
+            iteration_fallbacks, background_digest, background_rows,
+            tuple(evaluation_records), perf_counter() - iteration_started,
         )
         steps.append(step)
         if progress:

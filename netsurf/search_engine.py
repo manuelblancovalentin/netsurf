@@ -289,7 +289,16 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
         "fault": {"probability": configuration.fault.probability, "persistence": configuration.fault.persistence, "distribution": configuration.fault.distribution},
         "initial_mask": [bit.key() for bit in sorted(initial)], "candidate_pool": [bit.key() for bit in pool],
         "rankings": {name: {"digest": value.digest(), "criteria": value.criteria, "estimator": value.estimator} for name, value in orderings.items()},
-        "search": [{"strategy": value.strategy, "best_mask": [bit.key() for bit in sorted(value.best_mask)], "accepted": value.accepted, "rejected": value.rejected, "best_estimated_risk": value.best_estimated_risk, "final_risk": value.final_risk} for value in results],
+        "search": [{
+            "strategy": value.strategy, "best_mask": [bit.key() for bit in sorted(value.best_mask)],
+            "accepted": value.accepted, "rejected": value.rejected,
+            "best_estimated_risk": value.best_estimated_risk, "final_risk": value.final_risk,
+            "steps": [{
+                **{key: item for key, item in step.to_dict().items() if key != "wall_seconds"},
+                "background_fault_states": step.background_fault_states,
+                "evaluated_candidates": [candidate.to_dict() for candidate in step.evaluated_candidates],
+            } for step in value.steps],
+        } for value in results],
         "final_fault_states": [[bit.key() for bit in sorted(value.bits)] for value in final_states],
         "exact_optimum": None if exact_risk is None else {"risk": exact_risk, "mask": [bit.key() for bit in sorted(exact_mask)]},
     }

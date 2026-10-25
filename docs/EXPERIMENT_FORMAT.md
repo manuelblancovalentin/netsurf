@@ -82,7 +82,8 @@ incremental/full evaluator, fixed budgets, explicit candidate-pool restriction,
 nonzero uniform exploration, cache memory, and annealing controls.
 
 Schema-4 bundles add `final_trials.csv`, `search_steps.csv`, `convergence.csv`,
-`incremental_validation.csv`, `estimator_runtime.csv`, `mask_composition.csv`,
+`proposal_evaluations.csv`, `incremental_validation.csv`,
+`estimator_runtime.csv`, `mask_composition.csv`,
 and, when applicable, `polar_interactions.csv` and
 `exact_mask_enumeration.csv`. Exact masks, rankings, candidate pools, partitions,
 and matched held-out schedules are stored under `artifacts/`. Table units and

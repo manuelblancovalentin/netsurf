@@ -33,14 +33,17 @@ def _rows(outcome):
             row = value.to_dict(); left, right = value.left, value.right
             row.update({"replication": member.replication_name, "left_parameter": left.parameter, "left_flat_index": left.flat_index, "left_bit_index": left.bit_index, "right_parameter": right.parameter, "right_flat_index": right.flat_index, "right_bit_index": right.bit_index})
             row.pop("left", None); row.pop("right", None); polar.append(row)
-    steps = []
+    steps, proposal_evaluations = [], []
     for member in members:
         for result in member.search_results:
             for value in result.steps:
                 row = value.to_dict(); removed, added = value.removed, value.added
                 row.update({"replication": member.replication_name, "removed_parameter": removed.parameter, "removed_flat_index": removed.flat_index, "removed_bit_index": removed.bit_index, "added_parameter": added.parameter, "added_flat_index": added.flat_index, "added_bit_index": added.bit_index})
                 row.pop("removed", None); row.pop("added", None); steps.append(row)
-    return trials, convergence, validation, tuple(polar), tuple(steps)
+                for candidate in value.evaluated_candidates:
+                    candidate_row = candidate.to_dict(); candidate_row.update({"replication": member.replication_name, "strategy": result.strategy, "iteration": value.iteration, "background_schedule_sha256": value.background_schedule_sha256})
+                    proposal_evaluations.append(candidate_row)
+    return trials, convergence, validation, tuple(polar), tuple(steps), tuple(proposal_evaluations)
 
 
 def _summary(outcome, trials, validation):
@@ -71,17 +74,21 @@ def create_search_bundle(outcome: SearchOutcome, *, repository_root: Path, run_i
     _write_bytes(staging / "config.toml", config.source_text.encode())
     resolved = config.resolved_document(); _write_json(staging / "resolved_config.json", resolved)
     _write_json(staging / "scientific_payload.json", outcome.scientific_payload)
-    trials, convergence, validation, polar, steps = _rows(outcome)
+    trials, convergence, validation, polar, steps, proposal_evaluations = _rows(outcome)
     summary = _summary(outcome, trials, validation); _write_json(staging / "summary.json", summary)
     _write_json(staging / "artifacts/sample_partitions.json", {member.replication_name: {name: value.to_dict() for name, value in member.partitions.items()} for member in members})
     _write_json(staging / "artifacts/rankings.json", {member.replication_name: {name: {"digest": value.digest(), "criteria": value.criteria, "estimator": value.estimator, "ordered_bits": [bit.key() for bit in value.identities]} for name, value in member.orderings.items()} for member in members})
     _write_json(staging / "artifacts/search_masks.json", {member.replication_name: {result.strategy: {"initial": [bit.key() for bit in sorted(result.initial_mask)], "final": [bit.key() for bit in sorted(result.final_mask)], "best": [bit.key() for bit in sorted(result.best_mask)], "proposal": result.proposal_provenance} for result in member.search_results} for member in members})
     _write_json(staging / "artifacts/candidate_pools.json", {member.replication_name: [bit.key() for bit in member.candidate_pool] for member in members})
     _write_json(staging / "artifacts/final_fault_schedules.json", {member.replication_name: member.scientific_payload.get("final_fault_states", []) for member in members})
+    _write_json(staging / "artifacts/search_fault_schedules.json", {member.replication_name: {result.strategy: [{"iteration": step.iteration, "schedule_sha256": step.background_schedule_sha256, "full_background_states": step.background_fault_states} for step in result.steps] for result in member.search_results} for member in members})
     _write_csv(staging/"measurements/final_trials.csv", ["schema_version","replication","strategy","trial","schedule_sha256","fault_count","active_fault_count","accuracy","categorical_crossentropy"], ({"schema_version":MEASUREMENT_SCHEMA_VERSION,**row} for row in trials))
     if steps:
-        fields=["schema_version","replication","strategy","iteration","removed_parameter","removed_flat_index","removed_bit_index","added_parameter","added_flat_index","added_bit_index","proposal_probability_remove","proposal_probability_add","estimated_risk_difference","estimated_risk_ci_low","estimated_risk_ci_high","accepted","acceptance_probability","current_estimated_risk","best_estimated_risk","exact_evaluations","work_proxy_macs","gate_changes","background_evaluations","incremental_evaluations","full_evaluations","affected_layers","reused_layers","cache_hits","cache_misses","fallback_count","wall_seconds"]
+        fields=["schema_version","replication","strategy","iteration","removed_parameter","removed_flat_index","removed_bit_index","added_parameter","added_flat_index","added_bit_index","proposal_probability_remove","proposal_probability_add","estimated_risk_difference","estimated_risk_ci_low","estimated_risk_ci_high","accepted","acceptance_probability","current_estimated_risk","best_estimated_risk","exact_evaluations","work_proxy_macs","gate_changes","background_evaluations","incremental_evaluations","full_evaluations","affected_layers","reused_layers","cache_hits","cache_misses","fallback_count","background_schedule_sha256","wall_seconds"]
         _write_csv(staging/"measurements/search_steps.csv", fields, ({"schema_version":MEASUREMENT_SCHEMA_VERSION,**row} for row in steps))
+    if proposal_evaluations:
+        fields=["schema_version","replication","strategy","iteration","candidate_index","removed","added","proposal_probability_remove","proposal_probability_add","risk_difference","risk_ci_low","risk_ci_high","exact_evaluations","work_proxy_macs","gate_changes","background_schedule_sha256"]
+        _write_csv(staging/"measurements/proposal_evaluations.csv", fields, ({"schema_version":MEASUREMENT_SCHEMA_VERSION,**row} for row in proposal_evaluations))
     _write_csv(staging/"measurements/convergence.csv", ["schema_version","replication","strategy","iteration","exact_evaluations","work_proxy_macs","wall_seconds","heldout_loss_mean","heldout_loss_ci_low","heldout_loss_ci_high"], ({"schema_version":MEASUREMENT_SCHEMA_VERSION,**row} for row in convergence))
     validation_fields=["schema_version","replication","case","earliest_layer","changed_bits","changed_parameters","relu_gate_changes","max_logit_absolute_error","loss_absolute_error","prediction_mismatches","full_seconds_mean","full_seconds_std","incremental_seconds_mean","incremental_seconds_std","full_work_proxy_macs","incremental_work_proxy_macs","fallback"]
     _write_csv(staging/"measurements/incremental_validation.csv", validation_fields, ({"schema_version":MEASUREMENT_SCHEMA_VERSION,**row} for row in validation))
