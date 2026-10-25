@@ -61,6 +61,10 @@ It retains `ΔW·δh`, recomputes ReLU gates exactly, operates on current encode
 words, and falls back to full inference if its activation cache exceeds the
 configured limit. NumPy float64 reference tests require `rtol=atol=1e-12`;
 the float32 MNIST bounded validation records observed errors in its bundle.
+The inference-work proxy includes each distinct background-cache construction
+and every candidate update. Identical `FaultState` backgrounds may share an
+exact cache; cache hits, misses, fallback count, wall time, and dense MAC proxy
+remain separate measurements.
 
 M3 ordering is lexicographic. A later criterion cannot cross a primary tier.
 `msb+ordered`, `msb+reversed`, seeded `msb+random`, input/output layer order,

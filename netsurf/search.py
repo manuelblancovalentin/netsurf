@@ -342,12 +342,13 @@ def conditional_search(
         background_digest = digest_object(background_rows)
         evaluated = []
         evaluation_records = []
+        shared_cache_store = {} if evaluator_mode == "incremental" else None
         for candidate_index, (removed, added, q_remove, q_add) in enumerate(candidates):
             backgrounds = tuple(FaultState(state.bits - {removed, added}) for state in base_backgrounds)
             estimate = evaluate_conditional_swap(
                 evaluator, inputs, labels, backgrounds, removed, added,
                 probability_removed=probability, probability_added=probability,
-                confidence=confidence, mode=evaluator_mode,
+                confidence=confidence, mode=evaluator_mode, cache_store=shared_cache_store,
             )
             evaluated.append((estimate.risk_difference["mean"], removed, added, q_remove, q_add, estimate))
             interval = estimate.risk_difference["confidence_interval"]

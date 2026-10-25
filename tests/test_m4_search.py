@@ -98,7 +98,9 @@ def test_polar_guidance_is_proposal_only_and_exactly_verified(search_fixture):
         seed=22, final_contexts=3, final_seed=23, polar_interactions=interactions,
     )
     assert result.proposals_evaluated == 2
-    assert result.exact_evaluations == 18  # 3 matched states × 3 contexts × 2 swaps
+    # Candidate states are always evaluated; repeated identical backgrounds may
+    # reuse a cache and therefore reduce actual forward evaluations.
+    assert result.exact_evaluations == 12 + sum(step.cache_misses for step in result.steps)
 
 
 def test_greedy_alternatives_share_one_auditable_background_schedule(search_fixture):
@@ -114,3 +116,9 @@ def test_greedy_alternatives_share_one_auditable_background_schedule(search_fixt
     assert len(step.background_fault_states) == 4
     assert len(step.background_schedule_sha256) == 64
     assert {value.candidate_index for value in step.evaluated_candidates} == {0, 1, 2, 3}
+    # All 32 candidate states are evaluated; only distinct exact projected
+    # backgrounds incur a new full forward (duplicates also reuse the cache).
+    assert step.exact_evaluations == 32 + step.cache_misses
+    assert step.cache_hits + step.cache_misses == 16
+    assert step.cache_hits > 0
+    assert step.work_proxy_macs > 0

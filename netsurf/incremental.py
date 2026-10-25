@@ -195,6 +195,13 @@ class DenseReluDenseIncrementalEvaluator:
             0, 0.0, False, False, None, full_macs, perf_counter() - started,
         ))
 
+    def full_work_proxy_macs(self, sample_count: int) -> int:
+        """Dense multiply-accumulate count for one complete forward pass."""
+
+        return int(sample_count) * (
+            self.base_values["dense0/kernel"].size + self.base_values["dense1/kernel"].size
+        )
+
     def cache(self, inputs: np.ndarray, state: FaultState = FaultState(frozenset())) -> ForwardCache | None:
         values = self.values_for_state(state)
         flat = self._flat(inputs, values["dense0/kernel"].shape[0], values["dense0/kernel"].dtype)
@@ -303,6 +310,7 @@ def evaluate_conditional_swap(
     probability_added: float,
     confidence: float = 0.95,
     mode: str = "incremental",
+    cache_store: dict[FaultState, ForwardCache | None] | None = None,
 ) -> ConditionalSwapEstimate:
     """Evaluate the exact three-state conditional identity on matched contexts."""
     if removed == added:
@@ -318,21 +326,33 @@ def evaluate_conditional_swap(
     for background in backgrounds:
         if removed in background.bits or added in background.bits:
             raise ValueError("conditional background must exclude both swapped bits")
-        cache = evaluator.cache(inputs, background)
+        reused_cache = (
+            cache_store is not None and background in cache_store
+            and cache_store[background] is not None
+        )
+        if reused_cache:
+            cache = cache_store[background]
+        else:
+            cache = evaluator.cache(inputs, background) if mode == "incremental" else None
+            if cache_store is not None and cache is not None:
+                cache_store[background] = cache
         if mode == "incremental" and cache is not None:
-            cache_hits += 1
+            cache_hits += int(reused_cache)
+            cache_misses += int(not reused_cache)
             background_logits = cache.logits
             removed_result = evaluator.incremental_forward(cache, inputs, background.with_bit(removed))
             added_result = evaluator.incremental_forward(cache, inputs, background.with_bit(added))
             incremental_count += 2
         else:
-            cache_misses += 1
+            cache_misses += int(not reused_cache)
             background_result = evaluator.full_forward(inputs, background)
             removed_result = evaluator.full_forward(inputs, background.with_bit(removed))
             added_result = evaluator.full_forward(inputs, background.with_bit(added))
             background_logits = background_result.logits
             full_count += 2  # The separately counted background is also full-forward.
-        backgrounds_count += 1
+        if not reused_cache:
+            backgrounds_count += 1
+            work += evaluator.full_work_proxy_macs(len(inputs))
         base_loss = metrics_from_logits(background_logits, labels).categorical_crossentropy
         removed_loss = metrics_from_logits(removed_result.logits, labels).categorical_crossentropy
         added_loss = metrics_from_logits(added_result.logits, labels).categorical_crossentropy
