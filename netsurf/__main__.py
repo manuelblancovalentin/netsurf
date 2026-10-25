@@ -16,6 +16,7 @@ from .plotting import PlottingDependencyError
 from .progress import LiveProgressReporter
 from .result_bundle import ResultBundleError
 from .study_config import StudyConfigurationError
+from .search_config import SearchConfigurationError
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -108,7 +109,7 @@ def main(argv: list[str] | None = None) -> int:
             output = args.output or workspace_root() / "scratch" / "reports" / result.manifest["run_id"]
             print(regenerate_report(result, output, plots=args.plots))
         return 0
-    except (ConfigurationError, StudyConfigurationError, ResultBundleError, PlottingDependencyError, FileExistsError, OSError, KeyError, ValueError) as error:
+    except (ConfigurationError, StudyConfigurationError, SearchConfigurationError, ResultBundleError, PlottingDependencyError, FileExistsError, OSError, KeyError, ValueError) as error:
         print(f"netsurf: {error}", file=sys.stderr)
         return 2
 

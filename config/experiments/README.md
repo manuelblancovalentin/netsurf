@@ -1,5 +1,15 @@
 # Experiment configurations
 
+M4 conditional-search configurations:
+
+- `numpy_pgcs_exact.toml`: bounded exact-enumeration and all-strategy reference.
+- `mnist_incremental_validation.toml`: prepared-checkpoint E01/E02 smoke run.
+- `mnist_static_guided_search.toml`: researcher-run static/nonpolar comparison.
+- `mnist_polar_guided_search.toml`: researcher-run polar/nonpolar comparison.
+
+The last two are intentionally not executed by the regression suite. Adjust
+budgets only through TOML and retain disjoint ranking/search/final partitions.
+
 `template.toml` and `smoke.toml` preserve the schema-1 historical compatibility
 experiment. New work uses schema `2.0.0` and protocol
 `quantized-weight-fault/v2`:

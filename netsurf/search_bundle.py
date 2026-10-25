@@ -1,0 +1,115 @@
+"""Immutable schema-4 result bundles for conditional protection search."""
+
+from __future__ import annotations
+
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+import uuid
+
+from . import __version__
+from .experiment_config import MANIFEST_SCHEMA_VERSION, SUMMARY_SCHEMA_VERSION
+from .manifests import git_provenance, runtime_provenance, sha256_file
+from .result_bundle import ResultBundleError, _inventory, _write_bytes, _write_csv, _write_json
+from .search_engine import SearchOutcome
+from .search_reporting import paired_search_comparisons, plot_search_results, render_search_report, summarize_search_trials
+
+
+MEASUREMENT_SCHEMA_VERSION = "4.0.0"
+
+
+def _members(outcome):
+    return outcome.replications or (outcome,)
+
+
+def _rows(outcome):
+    members = _members(outcome)
+    trials = tuple(row for member in members for row in member.final_trials)
+    convergence = tuple(row for member in members for row in member.convergence)
+    validation = tuple({"replication": member.replication_name, **row} for member in members for row in member.incremental_validation)
+    polar = []
+    for member in members:
+        for value in member.polar_measurements:
+            row = value.to_dict(); left, right = value.left, value.right
+            row.update({"replication": member.replication_name, "left_parameter": left.parameter, "left_flat_index": left.flat_index, "left_bit_index": left.bit_index, "right_parameter": right.parameter, "right_flat_index": right.flat_index, "right_bit_index": right.bit_index})
+            row.pop("left", None); row.pop("right", None); polar.append(row)
+    steps = []
+    for member in members:
+        for result in member.search_results:
+            for value in result.steps:
+                row = value.to_dict(); removed, added = value.removed, value.added
+                row.update({"replication": member.replication_name, "removed_parameter": removed.parameter, "removed_flat_index": removed.flat_index, "removed_bit_index": removed.bit_index, "added_parameter": added.parameter, "added_flat_index": added.flat_index, "added_bit_index": added.bit_index})
+                row.pop("removed", None); row.pop("added", None); steps.append(row)
+    return trials, convergence, validation, tuple(polar), tuple(steps)
+
+
+def _summary(outcome, trials, validation):
+    members = _members(outcome)
+    exact = next(({"risk": member.exact_optimum_risk, "mask": [bit.key() for bit in sorted(member.exact_optimum_mask)]} for member in members if member.exact_optimum_risk is not None), None)
+    return {
+        "schema_version": SUMMARY_SCHEMA_VERSION, "search_schema_version": outcome.configuration.schema_version,
+        "scientific_protocol": outcome.configuration.scientific_protocol, "experiment_name": outcome.configuration.name,
+        "benchmark_id": outcome.configuration.benchmark.id, "eligible_bits": len(members[0].estimator_outputs[0].scores),
+        "protection_budget_bits": outcome.configuration.initial_mask.budget_bits,
+        "logical_ber": outcome.configuration.fault.probability, "replication_count": len(members),
+        "trial_count": len(trials), "strategy_results": summarize_search_trials(trials, outcome.configuration.final_evaluation.confidence),
+        "paired_comparisons": paired_search_comparisons(trials, outcome.configuration.final_evaluation.confidence),
+        "incremental_validation": list(validation), "exact_optimum": exact,
+        "scientific_payload_sha256": outcome.scientific_payload_sha256,
+    }
+
+
+def create_search_bundle(outcome: SearchOutcome, *, repository_root: Path, run_id: str | None = None) -> Path:
+    config = outcome.configuration; members = _members(outcome); now = datetime.now(timezone.utc)
+    identifier = run_id or f"{now.strftime('%Y%m%dT%H%M%S.%fZ')}-{uuid.uuid4().hex[:8]}"
+    experiment_root = config.output.root / config.name
+    destination, staging = experiment_root / identifier, experiment_root / f".{identifier}.incomplete"
+    experiment_root.mkdir(parents=True, exist_ok=True)
+    if destination.exists() or staging.exists():
+        raise ResultBundleError(f"run directory already exists: {destination}")
+    staging.mkdir()
+    _write_bytes(staging / "config.toml", config.source_text.encode())
+    resolved = config.resolved_document(); _write_json(staging / "resolved_config.json", resolved)
+    _write_json(staging / "scientific_payload.json", outcome.scientific_payload)
+    trials, convergence, validation, polar, steps = _rows(outcome)
+    summary = _summary(outcome, trials, validation); _write_json(staging / "summary.json", summary)
+    _write_json(staging / "artifacts/sample_partitions.json", {member.replication_name: {name: value.to_dict() for name, value in member.partitions.items()} for member in members})
+    _write_json(staging / "artifacts/rankings.json", {member.replication_name: {name: {"digest": value.digest(), "criteria": value.criteria, "estimator": value.estimator, "ordered_bits": [bit.key() for bit in value.identities]} for name, value in member.orderings.items()} for member in members})
+    _write_json(staging / "artifacts/search_masks.json", {member.replication_name: {result.strategy: {"initial": [bit.key() for bit in sorted(result.initial_mask)], "final": [bit.key() for bit in sorted(result.final_mask)], "best": [bit.key() for bit in sorted(result.best_mask)], "proposal": result.proposal_provenance} for result in member.search_results} for member in members})
+    _write_json(staging / "artifacts/candidate_pools.json", {member.replication_name: [bit.key() for bit in member.candidate_pool] for member in members})
+    _write_json(staging / "artifacts/final_fault_schedules.json", {member.replication_name: member.scientific_payload.get("final_fault_states", []) for member in members})
+    _write_csv(staging/"measurements/final_trials.csv", ["schema_version","replication","strategy","trial","schedule_sha256","fault_count","active_fault_count","accuracy","categorical_crossentropy"], ({"schema_version":MEASUREMENT_SCHEMA_VERSION,**row} for row in trials))
+    if steps:
+        fields=["schema_version","replication","strategy","iteration","removed_parameter","removed_flat_index","removed_bit_index","added_parameter","added_flat_index","added_bit_index","proposal_probability_remove","proposal_probability_add","estimated_risk_difference","estimated_risk_ci_low","estimated_risk_ci_high","accepted","acceptance_probability","current_estimated_risk","best_estimated_risk","exact_evaluations","work_proxy_macs","gate_changes","background_evaluations","incremental_evaluations","full_evaluations","affected_layers","reused_layers","cache_hits","cache_misses","fallback_count","wall_seconds"]
+        _write_csv(staging/"measurements/search_steps.csv", fields, ({"schema_version":MEASUREMENT_SCHEMA_VERSION,**row} for row in steps))
+    _write_csv(staging/"measurements/convergence.csv", ["schema_version","replication","strategy","iteration","exact_evaluations","work_proxy_macs","wall_seconds","heldout_loss_mean","heldout_loss_ci_low","heldout_loss_ci_high"], ({"schema_version":MEASUREMENT_SCHEMA_VERSION,**row} for row in convergence))
+    validation_fields=["schema_version","replication","case","earliest_layer","changed_bits","changed_parameters","relu_gate_changes","max_logit_absolute_error","loss_absolute_error","prediction_mismatches","full_seconds_mean","full_seconds_std","incremental_seconds_mean","incremental_seconds_std","full_work_proxy_macs","incremental_work_proxy_macs","fallback"]
+    _write_csv(staging/"measurements/incremental_validation.csv", validation_fields, ({"schema_version":MEASUREMENT_SCHEMA_VERSION,**row} for row in validation))
+    _write_csv(staging/"measurements/estimator_runtime.csv", ["schema_version","replication","estimator","implementation_version","runtime_seconds"], ({"schema_version":MEASUREMENT_SCHEMA_VERSION,"replication":member.replication_name,"estimator":value.name,"implementation_version":value.implementation_version,"runtime_seconds":value.runtime_seconds} for member in members for value in member.estimator_outputs))
+    if polar:
+        fields=["schema_version",*polar[0].keys()]; _write_csv(staging/"measurements/polar_interactions.csv", fields, ({"schema_version":MEASUREMENT_SCHEMA_VERSION,**row} for row in polar))
+    exact_rows=[]
+    for member in members:
+        for row in member.exact_enumeration: exact_rows.append({"replication":member.replication_name,"mask":";".join(row["mask"]),"risk":row["risk"]})
+    if exact_rows: _write_csv(staging/"measurements/exact_mask_enumeration.csv", ["schema_version","replication","mask","risk"], ({"schema_version":MEASUREMENT_SCHEMA_VERSION,**row} for row in exact_rows))
+    exact_lookup={(row["replication"],row["mask"]):float(row["risk"]) for row in exact_rows}
+    result_rows=[]
+    for member in members:
+        optimum=member.exact_optimum_risk
+        for result in member.search_results:
+            mask=";".join(bit.key() for bit in sorted(result.best_mask)); restricted=exact_lookup.get((member.replication_name,mask))
+            result_rows.append({"replication":member.replication_name,"strategy":result.strategy,"protected_bits":len(result.best_mask),"initial_risk_mean":result.initial_risk["mean"],"best_search_risk_estimate":result.best_estimated_risk,"heldout_loss_mean":result.final_risk["mean"],"heldout_loss_ci_low":result.final_risk["confidence_interval"][0],"heldout_loss_ci_high":result.final_risk["confidence_interval"][1],"accepted":result.accepted,"rejected":result.rejected,"proposals_generated":result.proposals_generated,"proposals_evaluated":result.proposals_evaluated,"exact_evaluations":result.exact_evaluations,"work_proxy_macs":result.work_proxy_macs,"wall_seconds":result.wall_seconds,"restricted_exact_risk":restricted,"restricted_exact_gap":None if restricted is None or optimum is None else restricted-optimum})
+    result_fields=["schema_version","replication","strategy","protected_bits","initial_risk_mean","best_search_risk_estimate","heldout_loss_mean","heldout_loss_ci_low","heldout_loss_ci_high","accepted","rejected","proposals_generated","proposals_evaluated","exact_evaluations","work_proxy_macs","wall_seconds","restricted_exact_risk","restricted_exact_gap"]
+    _write_csv(staging/"measurements/search_results.csv",result_fields,({"schema_version":MEASUREMENT_SCHEMA_VERSION,**row} for row in result_rows))
+    composition=[]
+    for member in members:
+        for result in member.search_results:
+            for dimension, function in (("layer",lambda b:b.parameter.split("/",1)[0]),("parameter_class",lambda b:b.parameter.split("/",1)[1]),("bit_position",lambda b:str(b.bit_index))):
+                for category,count in sorted(Counter(function(bit) for bit in result.best_mask).items()): composition.append({"replication":member.replication_name,"strategy":result.strategy,"dimension":dimension,"category":category,"protected_count":count})
+    _write_csv(staging/"measurements/mask_composition.csv", ["schema_version","replication","strategy","dimension","category","protected_count"], ({"schema_version":MEASUREMENT_SCHEMA_VERSION,**row} for row in composition))
+    figures=()
+    if config.output.plots:
+        figures=tuple(path.relative_to(staging).as_posix() for path in plot_search_results(summary, staging/"plots", trials=trials, convergence=convergence, validation=validation, polar=polar, search_steps=steps, composition=composition, search_results=result_rows))
+    if config.output.report: _write_bytes(staging/"report.md", render_search_report(summary,resolved,figure_paths=figures).encode())
+    manifest={"schema_version":MANIFEST_SCHEMA_VERSION,"run_id":identifier,"status":"complete","source":git_provenance(Path(repository_root).resolve()),"runtime":runtime_provenance(),"versions":{"netsurf":__version__,"experiment_schema":config.schema_version,"manifest_schema":MANIFEST_SCHEMA_VERSION,"summary_schema":SUMMARY_SCHEMA_VERSION,"measurement_schema":MEASUREMENT_SCHEMA_VERSION,"scientific_protocol":config.scientific_protocol,"incremental_evaluator":"dense-relu-dense-exact-incremental/v1","conditional_estimator":"three-state matched conditional swap/v1"},"benchmark":{**resolved["benchmark"],"checkpoint_sha256":sha256_file(config.benchmark.checkpoint),"dataset_sha256":sha256_file(config.benchmark.dataset)},"experiment":{**resolved["experiment"],"requested_configuration":"config.toml","resolved_configuration":"resolved_config.json"},"execution":{**{key:resolved[key] for key in ("samples","estimators","guidance","initial_mask","search","polar","fault","final_evaluation","replications")},"started_utc":now.isoformat(),"completed_utc":datetime.now(timezone.utc).isoformat()},"outputs":_inventory(staging),"scientific_payload_sha256":outcome.scientific_payload_sha256}
+    _write_json(staging/"manifest.json",manifest); _write_json(staging/"checksums.json",{"schema_version":"1.0.0","files":{entry["path"]:entry["sha256"] for entry in _inventory(staging)}}); _write_bytes(staging/"FINALIZED",f"scientific_payload_sha256={outcome.scientific_payload_sha256}\n".encode("ascii")); staging.rename(destination); return destination

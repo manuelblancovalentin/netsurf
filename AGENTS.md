@@ -25,9 +25,8 @@
 
 ## Current bounded milestone
 
-Run `python -m pytest -q` in the activated `netsurf` project. Use `netsurf
-doctor` before modern experiments, then follow the M3.2 researcher-run
-configurations in `docs/REPRODUCIBILITY.md`. Do not retrain an existing
-write-once checkpoint, run an exhaustive 152,700-bit MNIST sweep, or promote a
-research estimator from a smoke result. Replicated reports must aggregate all
-saved trial rows and preserve fault-trial versus ranking-mask replication.
+Run `python -m pytest -q` in the activated `netsurf` project. Use the schema-4
+M4 commands in `docs/REPRODUCIBILITY.md`; do not retrain checkpoints or launch
+an exhaustive MNIST search. Preserve search, fault-schedule, and replication
+uncertainty separately. Polar interactions are proposal diagnostics, not an
+accepted protection theory, and small-pool optima are not whole-network optima.

@@ -40,6 +40,28 @@ An estimator maps bit identities to scalar scores. It does not choose protected 
 
 No current estimator is claimed globally optimal.
 
+## Conditional protection search
+
+Schema-4 masks have fixed logical-bit cardinality. For a swap `a` (protected)
+to `b` (unprotected), NetSuRF samples backgrounds excluding both bits and uses
+`p_a[L(Ga)-L(G)] - p_b[L(Gb)-L(G)]`. The background and both candidate states
+share inputs and context. Each network evaluation is numerically exact within
+the documented dtype tolerance; its Monte Carlo mean is not an exact expected
+risk. Search-sample estimates, proposal-surrogate error, and optimizer error
+remain distinct.
+
+The finite polar interaction compares additive logit responses with exact
+four-state loss interaction. It can bias proposals but cannot accept a mask by
+itself. Simulated annealing is explicitly a heuristic with noisy risk estimates
+and is not represented as Metropolis–Hastings sampling. Held-out final inputs
+and mask-independent full fault states are never used for acceptance decisions.
+
+The incremental evaluator supports only explicit Dense→ReLU→Dense networks.
+It retains `ΔW·δh`, recomputes ReLU gates exactly, operates on current encoded
+words, and falls back to full inference if its activation cache exceeds the
+configured limit. NumPy float64 reference tests require `rtol=atol=1e-12`;
+the float32 MNIST bounded validation records observed errors in its bundle.
+
 M3 ordering is lexicographic. A later criterion cannot cross a primary tier.
 `msb+ordered`, `msb+reversed`, seeded `msb+random`, input/output layer order,
 and `msb+gradient` all prioritize encoded bit significance. Therefore their

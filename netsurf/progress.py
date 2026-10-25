@@ -25,6 +25,14 @@ class ProgressEvent:
     trials: int | None = None
     mean_accuracy: float | None = None
     mean_loss: float | None = None
+    iteration: int | None = None
+    iterations: int | None = None
+    protected_bits: int | None = None
+    estimated_risk: float | None = None
+    best_estimated_risk: float | None = None
+    accepted: int | None = None
+    rejected: int | None = None
+    exact_evaluations: int | None = None
     failed: bool = False
     message: str | None = None
     work_class: str | None = None
@@ -45,20 +53,21 @@ class ProgressTracker:
         self.callback = callback
         self._last: ProgressEvent | None = None
 
-    def adjust_total(self, delta: int) -> None:
+    def adjust_total(self, delta: int, *, stage: str = "Empirical bit injection") -> None:
         self.total = max(self.completed + 1, self.total + int(delta))
         if self.remaining:
-            self.remaining["Empirical bit injection"] = self.remaining.get("Empirical bit injection", 0) + int(delta)
+            self.remaining[stage] = self.remaining.get(stage, 0) + int(delta)
 
     def update(self, stage: str, *, advance: int = 0, **context) -> None:
+        work_class = context.pop("work_class", stage)
         self.completed += int(advance)
         if self.completed > self.total:
             raise RuntimeError("progress accounting exceeded its declared operation total")
         if self.remaining and advance:
-            self.remaining[stage] = max(0, self.remaining.get(stage, 0) - int(advance))
+            self.remaining[work_class] = max(0, self.remaining.get(work_class, 0) - int(advance))
         event = ProgressEvent(
             self.experiment, stage, self.completed, self.total,
-            work_class=stage, remaining_work=tuple(sorted(self.remaining.items())), **context
+            work_class=work_class, remaining_work=tuple(sorted(self.remaining.items())), **context
         )
         self._last = event
         if self.callback is not None:
@@ -196,6 +205,8 @@ class LiveProgressReporter:
             details.append(f"mean acc {100 * event.mean_accuracy:.2f}%")
         if event.mean_loss is not None:
             details.append(f"mean loss {event.mean_loss:.4g}")
+        if event.iteration is not None:
+            details.append(f"iteration {event.iteration}/{event.iterations}")
         status = " | ".join(details)
         suffix = f" | {status}" if status else ""
         failure = f" | error: {event.message}" if event.failed and event.message else ""
@@ -230,6 +241,18 @@ class LiveProgressReporter:
             details.add_row("Policy", event.policy)
         if event.trial is not None:
             details.add_row("Trial", f"{event.trial} / {event.trials}")
+        if event.iteration is not None:
+            details.add_row("Iteration", f"{event.iteration} / {event.iterations}")
+        if event.protected_bits is not None:
+            details.add_row("Protected bits", str(event.protected_bits))
+        if event.estimated_risk is not None:
+            details.add_row("Estimated risk", f"{event.estimated_risk:.6g}")
+        if event.best_estimated_risk is not None:
+            details.add_row("Best estimate", f"{event.best_estimated_risk:.6g}")
+        if event.accepted is not None:
+            details.add_row("Accepted / rejected", f"{event.accepted} / {event.rejected}")
+        if event.exact_evaluations is not None:
+            details.add_row("Exact evaluations", str(event.exact_evaluations))
         if event.mean_accuracy is not None or event.mean_loss is not None:
             details.add_row("Mean accuracy", "—" if event.mean_accuracy is None else f"{event.mean_accuracy:.2%}")
             details.add_row("Mean loss", "—" if event.mean_loss is None else f"{event.mean_loss:.4g}")
@@ -309,6 +332,35 @@ def experiment_operation_plan(configuration, *, include_bundle: bool = False) ->
             "Estimator and mask construction": 1,
             "Fault evaluation": configuration.execution.trials * (1 + masks),
             "Scientific aggregation": 1}
+    if include_bundle:
+        plan["Result bundle generation"] = 1
+    return plan
+
+
+def search_operation_plan(configuration, *, include_bundle: bool = False) -> dict[str, int]:
+    """Count the complete bounded schema-4 workflow by measurable work class."""
+
+    replications = configuration.replications.count
+    plan = {
+        "Model loading": replications,
+        "Sample partitioning": replications,
+        "Ranking and initialization": replications,
+        "Incremental exactness validation": replications,
+        "Held-out final evaluation": replications * len(configuration.search.strategies) * configuration.final_evaluation.contexts,
+        "Scientific payload": replications,
+    }
+    polar_contexts = 1 if configuration.polar.mode == "finite_clean" else configuration.polar.background_contexts
+    if configuration.polar.enabled:
+        plan["Sparse polar calibration"] = replications * configuration.polar.pair_budget * polar_contexts
+    for strategy in configuration.search.strategies:
+        if strategy != "static":
+            plan[f"Search {strategy}"] = replications * configuration.search.iterations
+    # Upper bound; the engine reduces this after it knows how many proposals
+    # were accepted, because only accepted mask states are plotted.
+    states = sum(1 if value == "static" else 1 + configuration.search.iterations for value in configuration.search.strategies)
+    plan["Held-out convergence"] = replications * states * configuration.final_evaluation.contexts
+    if configuration.search.exact_enumeration:
+        plan["Restricted exact enumeration"] = replications
     if include_bundle:
         plan["Result bundle generation"] = 1
     return plan

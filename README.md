@@ -117,6 +117,22 @@ Schema 3.1 additionally provides uniform candidate sampling, the separately
 versioned positive per-example score, independent replication controls,
 multiple Hutchinson probe-count aliases, and multiple logical-BER conditions.
 
+Schema 4 adds fixed-budget conditional protection search for the two explicit
+Dense→ReLU→Dense adapters. Existing M3 rankings can initialize masks and form
+rank-mixture proposal priors. Uniform, static-guided, polar-guided,
+conditional-greedy, and simulated-annealing searches use exact matched
+three-state swap evaluations; independent held-out fault states are shared by
+all final masks. The polar score is proposal guidance only.
+
+```bash
+netsurf validate config/experiments/numpy_pgcs_exact.toml
+netsurf run config/experiments/numpy_pgcs_exact.toml
+netsurf run config/experiments/mnist_incremental_validation.toml
+# Researcher-sized studies; inspect their budgets before launching:
+netsurf run config/experiments/mnist_static_guided_search.toml
+netsurf run config/experiments/mnist_polar_guided_search.toml
+```
+
 NetSuRF's lazy TensorFlow import suppresses TensorFlow 2.21's native pre-absl
 CPU/GPU discovery chatter by default. Set `NETSURF_TF_IMPORT_QUIET=0` to expose
 it when debugging, and optionally set `NETSURF_TF_CPP_MIN_LOG_LEVEL` to choose

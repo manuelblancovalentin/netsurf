@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/measurements/v4.schema.json",
+  "title": "NetSuRF conditional-search tabular measurements",
+  "schema_version": "4.0.0",
+  "tables": {
+    "final_trials.csv": {"unit": "one held-out fault realization for one mask", "identity": ["replication", "strategy", "trial", "schedule_sha256"]},
+    "search_steps.csv": {"unit": "one exactly evaluated swap decision", "identity": ["replication", "strategy", "iteration"]},
+    "search_results.csv": {"unit": "one completed strategy in one replication", "identity": ["replication", "strategy"]},
+    "convergence.csv": {"unit": "one post-hoc held-out evaluation of an accepted search state", "identity": ["replication", "strategy", "iteration"]},
+    "incremental_validation.csv": {"unit": "one bounded fault-workload class", "identity": ["replication", "case"]},
+    "polar_interactions.csv": {"unit": "one selected pair under one background context"},
+    "exact_mask_enumeration.csv": {"unit": "one mask in the declared restricted pool"},
+    "mask_composition.csv": {"unit": "one category count within a best mask"}
+  },
+  "null_handling": "Empty CSV fields represent unavailable optional measurements; JSON uses null.",
+  "units": {"wall_seconds": "seconds", "work_proxy_macs": "multiply-accumulate proxy operations", "accuracy": "fraction", "categorical_crossentropy": "mean natural-log loss"}
+}

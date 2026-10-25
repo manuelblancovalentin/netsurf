@@ -1,0 +1,74 @@
+schema_version = "4.0.0"
+scientific_protocol = "conditional-protection-search/v1"
+[experiment]
+name = "mnist_incremental_validation"
+description = "Bounded validation of exact incremental inference on Dense32 quantized MNIST."
+objective = "Compare incremental and full inference before running conditional search."
+[benchmark]
+adapter = "mnist_quantized"
+id = "mnist_dense32_q621-v1"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "m4_explicit_disjoint_partitions"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+[samples]
+ranking_count = 32
+search_count = 16
+final_count = 32
+require_disjoint = true
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+[[guidance]]
+name = "gradient_global"
+estimator = "first_order_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+weight = 1.0
+[initial_mask]
+guidance = "gradient_global"
+budget_bits = 8
+[search]
+strategies = ["static"]
+evaluator = "incremental"
+iterations = 0
+candidate_pool_strategy = "top_union"
+candidate_pool_count = 32
+uniform_exploration = 0.1
+rank_temperature = 0.1
+background_contexts = 2
+seed = 44101
+greedy_add_candidates = 2
+greedy_remove_candidates = 2
+initial_temperature = 0.01
+cooling_rate = 0.95
+cache_memory_mb = 128.0
+exact_enumeration = false
+[polar]
+enabled = false
+mode = "finite_clean"
+pair_budget = 0
+background_contexts = 1
+seed = 44102
+strength = 0.0
+collect_cancellation_diagnostics = false
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.001
+[final_evaluation]
+contexts = 4
+seed = 44103
+confidence = 0.95
+[replications]
+count = 1
+search_seed_stride = 1000
+final_seed_stride = 1000
+sample_offset_stride = 0
+[output]
+root = ""
+report = true
+plots = true

@@ -70,3 +70,20 @@ seed/count, partition index/hash, and fault schedule is serialized. Replicated
 tables add a `replication` column and aggregate rows use a configured
 replication—not an inference—as the statistical unit. Runtime is reportable
 execution metadata and never enters the scientific payload hash.
+
+## Schema 4.0 conditional search
+
+Schema `4.0.0` uses protocol `conditional-protection-search/v1`. Its mandatory
+tables are `[samples]`, `[[estimators]]`, `[[guidance]]`, `[initial_mask]`,
+`[search]`, `[polar]`, `[fault]`, `[final_evaluation]`, `[replications]`, and
+`[output]`. Guidance references existing estimator results and declares a
+lexicographic ordering plus rank-mixture weight. Search declares strategy,
+incremental/full evaluator, fixed budgets, explicit candidate-pool restriction,
+nonzero uniform exploration, cache memory, and annealing controls.
+
+Schema-4 bundles add `final_trials.csv`, `search_steps.csv`, `convergence.csv`,
+`incremental_validation.csv`, `estimator_runtime.csv`, `mask_composition.csv`,
+and, when applicable, `polar_interactions.csv` and
+`exact_mask_enumeration.csv`. Exact masks, rankings, candidate pools, partitions,
+and matched held-out schedules are stored under `artifacts/`. Table units and
+identities are in `netsurf/schemas/measurements/v4.schema.json`.

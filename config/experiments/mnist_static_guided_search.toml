@@ -1,0 +1,82 @@
+schema_version = "4.0.0"
+scientific_protocol = "conditional-protection-search/v1"
+[experiment]
+name = "mnist_static_guided_search"
+description = "Bounded comparison of static, uniform, ranking-guided, greedy, and annealed fixed-budget search."
+objective = "Measure held-out protection quality per exact evaluation and computation without claiming global optimality."
+[benchmark]
+adapter = "mnist_quantized"
+id = "mnist_dense32_q621-v1"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "m4_explicit_disjoint_partitions"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+[samples]
+ranking_count = 128
+search_count = 64
+final_count = 128
+require_disjoint = true
+[[estimators]]
+name = "msb_first"
+implementation_version = "encoded-bit-index/v1"
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+[[guidance]]
+name = "msb_output_first"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "layer_output_first", "stable_identity"]
+weight = 0.25
+[[guidance]]
+name = "gradient_global"
+estimator = "first_order_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+weight = 0.75
+[initial_mask]
+guidance = "gradient_global"
+budget_bits = 256
+[search]
+strategies = ["static", "conditional_greedy", "uniform_swap", "static_guided_swap", "simulated_annealing"]
+evaluator = "incremental"
+iterations = 20
+candidate_pool_strategy = "top_union"
+candidate_pool_count = 1024
+uniform_exploration = 0.15
+rank_temperature = 0.08
+background_contexts = 8
+seed = 44201
+greedy_add_candidates = 4
+greedy_remove_candidates = 4
+initial_temperature = 0.01
+cooling_rate = 0.95
+cache_memory_mb = 512.0
+exact_enumeration = false
+[polar]
+enabled = false
+mode = "finite_clean"
+pair_budget = 0
+background_contexts = 1
+seed = 44202
+strength = 0.0
+collect_cancellation_diagnostics = false
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.001
+[final_evaluation]
+contexts = 40
+seed = 44203
+confidence = 0.95
+[replications]
+count = 3
+search_seed_stride = 10000
+final_seed_stride = 10000
+sample_offset_stride = 256
+[output]
+root = ""
+report = true
+plots = true

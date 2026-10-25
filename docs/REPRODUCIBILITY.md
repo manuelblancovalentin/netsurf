@@ -389,3 +389,35 @@ conda run -n netsurf python -m netsurf report <run-directory> \
 The modern canonical environment now includes Matplotlib 3.11.2. A core-only
 installation can still regenerate Markdown without it; `--plots` requires the
 declared `matplotlib>=3.8,<4` optional dependency.
+
+## M4 conditional-search workflow
+
+Start with the exact small reference and bounded prepared-checkpoint validation;
+neither command trains a model.
+
+```bash
+proj activate netsurf
+netsurf doctor
+netsurf validate config/experiments/numpy_pgcs_exact.toml --resolved
+netsurf run config/experiments/numpy_pgcs_exact.toml
+netsurf run config/experiments/mnist_incremental_validation.toml
+```
+
+Keep a researcher-sized SSH run reconnectable:
+
+```bash
+tmux new -s netsurf-m4
+proj activate netsurf
+netsurf run config/experiments/mnist_static_guided_search.toml
+# detach: Ctrl-b d; reconnect: tmux attach -t netsurf-m4
+```
+
+The polar comparison is `netsurf run
+config/experiments/mnist_polar_guided_search.toml`. Inspect and reduce its
+pair/context/iteration/replication budgets when turnaround matters. Redirected
+runs retain ANSI-free progress on stderr and final JSON on stdout.
+
+Without `proj`, activate a Python 3.11 environment, install the declared core
+and research dependencies plus this checkout in editable mode, and use the same
+commands. Point the TOML at immutable local dataset/checkpoint copies; every
+manifest records their hashes. Do not copy Kona's absolute environment path.

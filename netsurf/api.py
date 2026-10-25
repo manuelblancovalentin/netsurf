@@ -12,12 +12,16 @@ from .derived_analysis import derive_protection_analysis
 from .manifests import digest_object
 from .experiment_engine import ExperimentOutcome, execute_experiment
 from .plotting import plot_protection_results, plot_study_results
-from .progress import ProgressTracker, experiment_operation_plan, study_operation_plan
+from .progress import ProgressTracker, experiment_operation_plan, search_operation_plan, study_operation_plan
 from .reporting import render_study_report, write_report
 from .result_bundle import ResultBundle, create_result_bundle, read_result_bundle
 from .study_bundle import create_study_bundle
 from .study_config import StudyConfiguration, load_study
 from .study_engine import StudyOutcome, execute_study
+from .search_bundle import create_search_bundle
+from .search_config import SearchConfiguration, load_search
+from .search_engine import execute_search
+from .search_reporting import plot_search_results, render_search_report
 
 
 def _write_derived_analysis(destination: Path, derived: dict) -> None:
@@ -94,6 +98,8 @@ def load_configuration(path: str | Path):
         version = tomllib.load(stream).get("schema_version")
     if version in {"3.0.0", "3.1.0"}:
         return load_study(source)
+    if version == "4.0.0":
+        return load_search(source)
     return load_experiment(source)
 
 
@@ -106,6 +112,18 @@ def run_experiment(
     """Validate, execute, and atomically save an experiment."""
     root = repository_root or Path(__file__).resolve().parents[1]
     config = load_configuration(configuration) if isinstance(configuration, (str, Path)) else configuration
+    if isinstance(config, SearchConfiguration):
+        tracker = ProgressTracker(config.name, search_operation_plan(config, include_bundle=True), progress)
+        try:
+            outcome = execute_search(config, _tracker=tracker)
+            tracker.update("Result bundle generation")
+            destination = create_search_bundle(outcome, repository_root=root)
+            tracker.update("Result bundle generation", advance=1)
+            tracker.finish()
+            return destination
+        except BaseException as error:
+            tracker.fail(error)
+            raise
     if isinstance(config, StudyConfiguration):
         tracker = ProgressTracker(config.name, study_operation_plan(config, include_bundle=True), progress)
         try:
@@ -143,6 +161,7 @@ def regenerate_report(
     destination.mkdir(parents=True, exist_ok=True)
     figures: tuple[str, ...] = ()
     is_study = result.resolved_config.get("schema_version") in {"3.0.0", "3.1.0"}
+    is_search = result.resolved_config.get("schema_version") == "4.0.0"
     summary = result.summary
     derived = None
     trial_rows = ()
@@ -186,6 +205,19 @@ def regenerate_report(
             }
             (destination / "derived_summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
             _write_derived_analysis(destination, derived)
+    if is_search:
+        def search_rows(name):
+            path = result.path / "measurements" / name
+            if not path.is_file(): return ()
+            with path.open(newline="", encoding="utf-8") as stream:
+                return tuple(dict(row) for row in csv.DictReader(stream))
+        figures = ()
+        if plots:
+            generated = plot_search_results(summary, destination / "plots", trials=search_rows("final_trials.csv"), convergence=search_rows("convergence.csv"), validation=search_rows("incremental_validation.csv"), polar=search_rows("polar_interactions.csv"), search_steps=search_rows("search_steps.csv"), composition=search_rows("mask_composition.csv"), search_results=search_rows("search_results.csv"))
+            figures = tuple(path.relative_to(destination).as_posix() for path in generated)
+        output_path = destination / "report.md"
+        output_path.write_text(render_search_report(summary, result.resolved_config, figure_paths=figures), encoding="utf-8")
+        return output_path
     if plots and is_study:
         def rows(name):
             path = result.path / "measurements" / name

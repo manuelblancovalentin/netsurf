@@ -67,6 +67,16 @@ FaultModel -> deterministic FaultSchedule -> InjectionEngine
 - `netsurf.experiment_engine`: benchmark-neutral estimator, policy, schedule, trial, and aggregation orchestration.
 - `netsurf.study_config`, `netsurf.study_engine`, and `netsurf.study_bundle`:
   strict schema-3 empirical/protection protocols and applicable immutable tables.
+- `netsurf.incremental`: immutable XOR fault states, cached Dense→ReLU→Dense
+  forward state, exact downstream updates, full-forward reference/fallback, and
+  the matched three-state conditional swap estimator.
+- `netsurf.search`: existing-ranking proposal adapters and fixed-budget static,
+  greedy, uniform, guided, polar-guided, and annealed search strategies.
+- `netsurf.polar`: bounded additive-logit polar, local quadratic, exact
+  four-state interaction, error-bound, gate, and cancellation diagnostics.
+- `netsurf.search_config`, `netsurf.search_engine`, `netsurf.search_bundle`, and
+  `netsurf.search_reporting`: schema-4 orchestration, immutable outputs, and
+  saved-data-only report/plot regeneration.
 - `netsurf.result_bundle`: atomic staging, write-once finalization, checksums, typed reading, and corruption detection.
 - `netsurf.derived_analysis`: presentation-only pooled and replication-level
   protection statistics reconstructed from immutable trial rows using exact

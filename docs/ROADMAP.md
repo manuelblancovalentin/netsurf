@@ -52,11 +52,22 @@ automatically an optimal multi-fault protection policy.
 The next activity is researcher-run configuration studies and scientific
 review, not another estimator redesign.
 
-## M4 — hardware equivalence and mapping
+## M4 — conditional protection search
+
+- [x] Exact cached Dense→ReLU→Dense fault inference with full reference/fallback.
+- [x] Exact matched three-state swap estimation and exhaustive NumPy validation.
+- [x] Existing-ranking mixtures, uniform exploration, and fixed-budget greedy/local/annealed search.
+- [x] Sparse finite-polar proposal guidance and exact four-state calibration diagnostics.
+- [x] Schema-4 configurations, immutable bundles, progress, saved-data reports, and bounded validation.
+
+Scientific review of researcher-run masks is required before claiming a search
+advantage. No MNIST result establishes global optimality or hardware cost.
+
+## M5 — hardware equivalence and mapping
 
 Freeze one checkpoint and verify NetSuRF checkpoint → folded QKeras → HLS C simulation → RTL fixed-vector equivalence. Produce a machine-readable logical-bit-to-register map. Parse, hash, and validate zero/full plus selected intermediate Genus reports. At this boundary, create a project-owned Wolf flow copy/registry manifest and validate its Cadence compatibility path.
 
-## M5 — mitigation sequence
+## M6 — mitigation sequence
 
 1. Reconstruct register-storage TMR and voter guarantees.
 2. Add packed-word parity with an explicit detected-error action.
