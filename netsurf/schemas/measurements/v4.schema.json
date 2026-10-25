@@ -12,7 +12,8 @@
     "incremental_validation.csv": {"unit": "one bounded fault-workload class", "identity": ["replication", "case"]},
     "polar_interactions.csv": {"unit": "one selected pair under one background context"},
     "exact_mask_enumeration.csv": {"unit": "one mask in the declared restricted pool"},
-    "mask_composition.csv": {"unit": "one category count within a best mask"}
+    "mask_composition.csv": {"unit": "one category count within a best mask"},
+    "mask_overlap.csv": {"unit": "one pair of best masks in one replication", "identity": ["replication", "left", "right"]}
   },
   "null_handling": "Empty CSV fields represent unavailable optional measurements; JSON uses null.",
   "units": {"wall_seconds": "seconds", "work_proxy_macs": "multiply-accumulate proxy operations", "accuracy": "fraction", "categorical_crossentropy": "mean natural-log loss"}

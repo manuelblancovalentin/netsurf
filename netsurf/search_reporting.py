@@ -61,12 +61,12 @@ def render_search_report(summary: Mapping[str, Any], resolved: Mapping[str, Any]
         "- Search decisions use matched three-state conditional loss estimates; held-out schedules are not used to accept proposals.",
         "- Exact inference refers to encoded XOR/decode and supported-network forward equivalence, not exact knowledge of expected risk or global optimization.", "",
         "## Held-out results", "",
-        "| Strategy | Trials | Mean accuracy (95% CI) | Mean cross-entropy (95% CI) | Minimum accuracy |",
-        "|---|---:|---:|---:|---:|",
+        "| Strategy | Trials | Mean accuracy (95% CI) | Accuracy q05 | Minimum accuracy | Mean cross-entropy (95% CI) |",
+        "|---|---:|---:|---:|---:|---:|",
     ]
     for value in summary.get("strategy_results", []):
         accuracy, loss = value["accuracy"], value["categorical_crossentropy"]
-        lines.append(f"| {value['strategy']} | {value['trial_count']} | {accuracy['mean']:.6f} [{accuracy['confidence_interval'][0]:.6f}, {accuracy['confidence_interval'][1]:.6f}] | {loss['mean']:.6f} [{loss['confidence_interval'][0]:.6f}, {loss['confidence_interval'][1]:.6f}] | {accuracy['minimum']:.6f} |")
+        lines.append(f"| {value['strategy']} | {value['trial_count']} | {accuracy['mean']:.6f} [{accuracy['confidence_interval'][0]:.6f}, {accuracy['confidence_interval'][1]:.6f}] | {accuracy['quantile_05']:.6f} | {accuracy['minimum']:.6f} | {loss['mean']:.6f} [{loss['confidence_interval'][0]:.6f}, {loss['confidence_interval'][1]:.6f}] |")
     lines += ["", "Intervals summarize held-out logical fault realizations conditional on the fixed checkpoint, dataset partitions, and each generated mask. Repeated search seeds are not independently trained networks.", "", "## Paired comparisons", "", "| Left − right | Metric | Matched pairs | Mean difference (95% CI) |", "|---|---|---:|---:|"]
     for value in summary.get("paired_comparisons", []):
         difference = value["difference"]
@@ -115,6 +115,15 @@ def plot_search_results(summary, output: Path, *, trials=(), convergence=(), val
             fig,ax=plt.subplots(figsize=(max(7,len(data)*1.2),4.5)); ax.boxplot(data, tick_labels=labels, showmeans=True); ax.axhline(0,color="black",lw=1); ax.set_ylabel("Paired accuracy difference vs static"); ax.tick_params(axis="x",rotation=25); fig.tight_layout(); path=output/"paired_optimizer_accuracy.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
     if polar:
         fig,ax=plt.subplots(figsize=(6,5)); x=[float(v["finite_polar_interaction"]) for v in polar]; y=[float(v["exact_interaction"]) for v in polar]; ax.scatter(x,y,alpha=.65); limits=[min(x+y+[0]),max(x+y+[0])]; ax.plot(limits,limits,"--",color="black"); ax.set(xlabel="Finite additive-logit polar",ylabel="Exact four-state interaction",title="Polar calibration"); fig.tight_layout(); path=output/"polar_calibration.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
+        errors=[float(v["interaction_prediction_error"]) for v in polar]
+        agreements=[bool(v["interaction_sign_agreement"]) for v in polar]
+        fig,(error_ax,sign_ax)=plt.subplots(1,2,figsize=(10,4))
+        error_ax.hist(errors,bins=min(20,max(5,len(errors)//2))); error_ax.axvline(0,color="black",lw=1)
+        error_ax.set(xlabel="Exact − polar interaction",ylabel="Sampled pairs",title="Polar prediction error")
+        counts=[sum(agreements),len(agreements)-sum(agreements)]
+        sign_ax.bar(["Agreement","Disagreement"],counts)
+        sign_ax.set(ylabel="Sampled pairs",title=f"Interaction sign agreement (n={len(agreements)})")
+        fig.tight_layout(); path=output/"polar_error_and_sign.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
         cancellations=[float(v["cancellation_score"]) for v in polar if v.get("cancellation_score") not in (None,"")]
         if cancellations:
             fig,ax=plt.subplots(figsize=(6,4)); ax.hist(cancellations,bins=min(20,max(5,len(cancellations)//2))); ax.axvline(1,color="black",ls="--"); ax.set(xlabel="Additive-logit cancellation score",ylabel="Sampled pairs",title="Exploratory pair cancellation"); fig.tight_layout(); path=output/"polar_cancellation.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
@@ -125,6 +134,13 @@ def plot_search_results(summary, output: Path, *, trials=(), convergence=(), val
             values=[sum(int(v["protected_count"]) for v in layer_rows if str(v["strategy"])==strategy and str(v["category"])==layer) for strategy in strategies]
             ax.bar(x,values,bottom=bottom,label=layer); bottom+=values
         ax.set_xticks(x,strategies,rotation=25); ax.set_ylabel("Protected bits (summed over replications)"); ax.set_title("Best-mask layer composition"); ax.legend(); fig.tight_layout(); path=output/"mask_layer_composition.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
+    position_rows=[v for v in composition if str(v["dimension"])=="bit_position"]
+    if position_rows:
+        strategies=sorted({str(v["strategy"]) for v in position_rows}); positions=sorted({str(v["category"]) for v in position_rows},key=int); x=np.arange(len(strategies)); bottom=np.zeros(len(strategies)); fig,ax=plt.subplots(figsize=(max(7,len(strategies)*1.2),4.5))
+        for position in positions:
+            values=[sum(int(v["protected_count"]) for v in position_rows if str(v["strategy"])==strategy and str(v["category"])==position) for strategy in strategies]
+            ax.bar(x,values,bottom=bottom,label=f"bit {position}"); bottom+=values
+        ax.set_xticks(x,strategies,rotation=25); ax.set_ylabel("Protected bits (summed over replications)"); ax.set_title("Best-mask bit-position composition"); ax.legend(ncols=min(3,len(positions))); fig.tight_layout(); path=output/"mask_bit_position_composition.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
     gaps=[v for v in search_results if v.get("restricted_exact_gap") not in (None,"")]
     if gaps:
         fig,ax=plt.subplots(figsize=(max(6,len(gaps)*.8),4)); ax.bar(range(len(gaps)),[float(v["restricted_exact_gap"]) for v in gaps]); ax.set_xticks(range(len(gaps)),[str(v["strategy"]) for v in gaps],rotation=25); ax.axhline(0,color="black",lw=1); ax.set_ylabel("Exact restricted-pool risk gap"); ax.set_title("Search gap to restricted exact optimum"); fig.tight_layout(); path=output/"restricted_optimization_gap.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)

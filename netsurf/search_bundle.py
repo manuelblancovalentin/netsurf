@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import datetime, timezone
+from itertools import combinations
 from pathlib import Path
 import uuid
 
@@ -105,9 +106,21 @@ def create_search_bundle(outcome: SearchOutcome, *, repository_root: Path, run_i
         optimum=member.exact_optimum_risk
         for result in member.search_results:
             mask=";".join(bit.key() for bit in sorted(result.best_mask)); restricted=exact_lookup.get((member.replication_name,mask))
-            result_rows.append({"replication":member.replication_name,"strategy":result.strategy,"protected_bits":len(result.best_mask),"initial_risk_mean":result.initial_risk["mean"],"best_search_risk_estimate":result.best_estimated_risk,"heldout_loss_mean":result.final_risk["mean"],"heldout_loss_ci_low":result.final_risk["confidence_interval"][0],"heldout_loss_ci_high":result.final_risk["confidence_interval"][1],"accepted":result.accepted,"rejected":result.rejected,"proposals_generated":result.proposals_generated,"proposals_evaluated":result.proposals_evaluated,"exact_evaluations":result.exact_evaluations,"work_proxy_macs":result.work_proxy_macs,"wall_seconds":result.wall_seconds,"restricted_exact_risk":restricted,"restricted_exact_gap":None if restricted is None or optimum is None else restricted-optimum})
-    result_fields=["schema_version","replication","strategy","protected_bits","initial_risk_mean","best_search_risk_estimate","heldout_loss_mean","heldout_loss_ci_low","heldout_loss_ci_high","accepted","rejected","proposals_generated","proposals_evaluated","exact_evaluations","work_proxy_macs","wall_seconds","restricted_exact_risk","restricted_exact_gap"]
+            best_iteration=0; best_time=0.0; seen=float(result.initial_risk["mean"]); elapsed=0.0
+            for step in result.steps:
+                elapsed += step.wall_seconds
+                if step.best_estimated_risk < seen:
+                    seen=step.best_estimated_risk; best_iteration=step.iteration; best_time=elapsed
+            result_rows.append({"replication":member.replication_name,"strategy":result.strategy,"protected_bits":len(result.best_mask),"initial_risk_mean":result.initial_risk["mean"],"best_search_risk_estimate":result.best_estimated_risk,"heldout_loss_mean":result.final_risk["mean"],"heldout_loss_ci_low":result.final_risk["confidence_interval"][0],"heldout_loss_ci_high":result.final_risk["confidence_interval"][1],"accepted":result.accepted,"rejected":result.rejected,"proposals_generated":result.proposals_generated,"proposals_evaluated":result.proposals_evaluated,"exact_evaluations":result.exact_evaluations,"work_proxy_macs":result.work_proxy_macs,"wall_seconds":result.wall_seconds,"iteration_to_best":best_iteration,"seconds_to_best":best_time,"restricted_exact_risk":restricted,"restricted_exact_gap":None if restricted is None or optimum is None else restricted-optimum})
+    result_fields=["schema_version","replication","strategy","protected_bits","initial_risk_mean","best_search_risk_estimate","heldout_loss_mean","heldout_loss_ci_low","heldout_loss_ci_high","accepted","rejected","proposals_generated","proposals_evaluated","exact_evaluations","work_proxy_macs","wall_seconds","iteration_to_best","seconds_to_best","restricted_exact_risk","restricted_exact_gap"]
     _write_csv(staging/"measurements/search_results.csv",result_fields,({"schema_version":MEASUREMENT_SCHEMA_VERSION,**row} for row in result_rows))
+    overlap_rows=[]
+    for member in members:
+        for left,right in combinations(member.search_results,2):
+            intersection=len(left.best_mask & right.best_mask); union=len(left.best_mask | right.best_mask)
+            overlap_rows.append({"replication":member.replication_name,"left":left.strategy,"right":right.strategy,"intersection_bits":intersection,"union_bits":union,"jaccard":intersection/union if union else 1.0,"fraction_of_budget":intersection/len(left.best_mask) if left.best_mask else 1.0})
+    if overlap_rows:
+        _write_csv(staging/"measurements/mask_overlap.csv",["schema_version","replication","left","right","intersection_bits","union_bits","jaccard","fraction_of_budget"],({"schema_version":MEASUREMENT_SCHEMA_VERSION,**row} for row in overlap_rows))
     composition=[]
     for member in members:
         for result in member.search_results:
