@@ -10,7 +10,7 @@ from netsurf.adapters.registry import create_adapter
 from netsurf.incremental import DenseReluDenseIncrementalEvaluator, FaultState, metrics_from_logits
 from netsurf.quantization import BitCodec, FixedPointFormat
 from netsurf.study_config import load_study
-from netsurf.topology import DenseReluDenseTopologyEvaluator
+from netsurf.topology import DenseReluDenseTopologyEvaluator, benchmark_topology_engines
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -139,3 +139,19 @@ def test_response_cache_is_selective_and_invalidated_by_background(topology_fixt
     bounded = DenseReluDenseTopologyEvaluator(evaluator, inputs, response_cache_limit=1)
     bounded.response(adapter.bit_identities()[0]); bounded.response(adapter.bit_identities()[1])
     assert len(bounded._responses) == 1
+
+
+def test_bounded_benchmark_measures_all_three_matched_swap_paths(topology_fixture):
+    adapter, evaluator, inputs, labels = topology_fixture
+    result = benchmark_topology_engines(
+        evaluator, inputs, labels, tuple(adapter.bit_identities())[:8],
+    )
+    assert result["pair_count"] == 4
+    for field in (
+        "full_matched_swaps_per_second",
+        "incremental_matched_swaps_per_second",
+        "topology_matched_swaps_per_second",
+    ):
+        assert result[field] is not None
+        assert result[field] > 0
+    assert result["maximum_full_logit_absolute_error"] < 1e-12

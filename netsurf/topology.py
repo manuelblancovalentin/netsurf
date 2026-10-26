@@ -271,6 +271,7 @@ def benchmark_topology_engines(
     maximum_incremental_error = max(float(np.max(np.abs(reference - exact))) for reference, exact in zip(incremental, full))
     pair_count = len(candidates) // 2
     topology_pair_seconds = full_pair_seconds = 0.0
+    topology_swap_seconds = incremental_swap_seconds = full_swap_seconds = 0.0
     if pair_count:
         pairs = tuple(zip(candidates[0:2 * pair_count:2], candidates[1:2 * pair_count:2]))
         started = perf_counter()
@@ -282,6 +283,37 @@ def benchmark_topology_engines(
         for left, right in pairs:
             measure_polar_pair(evaluator, inputs, labels, background, left, right)
         full_pair_seconds = perf_counter() - started
+        from .incremental import evaluate_conditional_swap
+        started = perf_counter()
+        for left, right in pairs:
+            evaluate_conditional_swap(
+                evaluator, inputs, labels, (background,), left, right,
+                probability_removed=0.5, probability_added=0.5, mode="full",
+            )
+        full_swap_seconds = perf_counter() - started
+        started = perf_counter()
+        swap_cache: dict[FaultState, ForwardCache | None] = {}
+        for left, right in pairs:
+            evaluate_conditional_swap(
+                evaluator, inputs, labels, (background,), left, right,
+                probability_removed=0.5, probability_added=0.5,
+                mode="incremental", cache_store=swap_cache,
+            )
+        incremental_swap_seconds = perf_counter() - started
+        base_loss = metrics_from_logits(topology.cache.logits, labels).categorical_crossentropy
+        started = perf_counter()
+        for left, right in pairs:
+            left_loss = metrics_from_logits(
+                topology.cache.logits + topology.response(left).logits_delta, labels,
+            ).categorical_crossentropy
+            right_loss = metrics_from_logits(
+                topology.cache.logits + topology.response(right).logits_delta, labels,
+            ).categorical_crossentropy
+            # Exercise the same three-state scalar identity. The checksum is
+            # intentionally not returned because this helper measures paths,
+            # not a scientific estimator.
+            _ = 0.5 * (base_loss - left_loss) + 0.5 * (right_loss - base_loss)
+        topology_swap_seconds = perf_counter() - started
     return {
         "candidate_count": len(candidates), "sample_count": len(inputs),
         "cache_construction_seconds": cache_seconds,
@@ -294,6 +326,9 @@ def benchmark_topology_engines(
         "pair_count": pair_count,
         "existing_pair_measurements_per_second": pair_count / full_pair_seconds if full_pair_seconds else None,
         "topology_pair_measurements_per_second": pair_count / topology_pair_seconds if topology_pair_seconds else None,
+        "full_matched_swaps_per_second": pair_count / full_swap_seconds if full_swap_seconds else None,
+        "incremental_matched_swaps_per_second": pair_count / incremental_swap_seconds if incremental_swap_seconds else None,
+        "topology_matched_swaps_per_second": pair_count / topology_swap_seconds if topology_swap_seconds else None,
         "topology_cache_hits": topology.cache_hits, "topology_cache_misses": topology.cache_misses,
         "topology_fallbacks": topology.fallbacks,
         "maximum_full_logit_absolute_error": maximum_full_error,
