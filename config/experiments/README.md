@@ -58,3 +58,19 @@ Schema-4.1 maintained configurations are:
 - `mnist_pgcs_matched_smoke.toml`: bounded prepared-checkpoint integration;
 - `mnist_pgcs_matched_research.toml`: five-replication, two-BER researcher
   study, not executed by ordinary tests.
+
+Schema-4.2 topology-aware configurations are:
+
+- `numpy_topology_polar_exact.toml`: bounded 102-bit exactness, curvature,
+  proposal-ablation, and restricted-search reference;
+- `mnist_topology_exact_validation.toml`: small prepared-checkpoint exactness
+  and performance validation;
+- `mnist_topology_polar_smoke.toml`: bounded single-budget integration;
+- `mnist_topology_polar_research.toml`: researcher-run matrix over three
+  logical-bit budgets, BER 0.001/0.01, and three independent search
+  replications. It is never run by ordinary tests.
+
+Pair-discovery budgets and protection budgets are distinct. Sparse unmeasured
+interactions are omitted, not interpreted as zeros. Per-method `iterations`
+can approximately match proposal counts; recorded exact work and wall time are
+the authoritative comparisons.

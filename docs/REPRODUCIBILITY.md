@@ -445,3 +445,31 @@ netsurf run config/experiments/mnist_pgcs_matched_research.toml
 Defaults use two logical BERs, five replications, eight methods, 20 natural
 fields, and 24 conditional fields per method/BER/replication. Do not adapt
 confirmatory allocations after inspecting held-out results.
+
+## M4.2 topology-aware workflow
+
+Run the algebraic reference first, then the prepared-checkpoint validation and
+smoke study. None retrains the model.
+
+```bash
+proj activate netsurf
+netsurf validate config/experiments/numpy_topology_polar_exact.toml --resolved
+netsurf run config/experiments/numpy_topology_polar_exact.toml
+netsurf validate config/experiments/mnist_topology_exact_validation.toml --resolved
+netsurf run config/experiments/mnist_topology_exact_validation.toml
+netsurf run config/experiments/mnist_topology_polar_smoke.toml
+```
+
+The larger study is researcher-run only:
+
+```bash
+tmux new -s netsurf-m42
+proj activate netsurf
+netsurf validate config/experiments/mnist_topology_polar_research.toml --resolved
+netsurf run config/experiments/mnist_topology_polar_research.toml
+```
+
+Schema 4.2 records proposal-distribution shifts separately from exactly
+verified swap benefits. Accurate pair interactions alone are not evidence that
+an optimizer improves a protection mask. Logical BER 0.01 is a stress
+condition, not a calibrated radiation rate.

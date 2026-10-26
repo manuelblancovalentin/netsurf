@@ -1,0 +1,103 @@
+schema_version = "4.2.0"
+scientific_protocol = "topology-aware-conditional-search/v1"
+
+[experiment]
+name = "mnist_topology_exact_validation"
+description = "Bounded MNIST validation of topology-aware responses against full and incremental inference."
+objective = "Measure exactness, cache behavior, and latency without launching a protection-search campaign."
+
+[benchmark]
+adapter = "mnist_quantized"
+id = "mnist_dense32_q621-v2"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "v2_disjoint_partitions"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 16
+search_count = 8
+final_count = 16
+require_disjoint = true
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+
+[[guidance]]
+name = "gradient_global"
+estimator = "first_order_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+weight = 1.0
+
+[initial_mask]
+guidance = "gradient_global"
+budget_bits = 64
+
+[[methods]]
+name = "static_gradient"
+strategy = "static"
+guidance = ["gradient_global"]
+interaction_model = "none"
+
+[search]
+evaluator = "incremental"
+iterations = 0
+candidate_pool_strategy = "top_union"
+candidate_pool_count = 96
+uniform_exploration = 0.20
+rank_temperature = 0.15
+background_contexts = 2
+seed = 46301
+greedy_add_candidates = 2
+greedy_remove_candidates = 2
+initial_temperature = 0.01
+cooling_rate = 0.95
+cache_memory_mb = 256.0
+exact_enumeration = false
+
+[polar]
+enabled = true
+mode = "finite_background"
+pair_budget = 24
+background_contexts = 1
+seed = 46302
+strength = 0.75
+collect_cancellation_diagnostics = true
+
+[topology]
+interaction_models = ["finite_polar", "topology_corrected", "local_quadratic", "kronecker", "stratified_kronecker"]
+interaction_guidance = "mask_dependent_sparse_v1"
+confidence_strata = 2
+minimum_stratum_samples = 2
+output_layer_pair_budget = 8
+hidden_layer_pair_budget = 8
+cross_layer_pair_budget = 8
+cache_response_limit = 128
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probabilities = [0.001]
+
+[final_evaluation]
+natural_contexts = 2
+natural_seed = 46303
+conditional_contexts = 2
+conditional_seed = 46304
+confidence = 0.95
+
+[replications]
+count = 1
+search_seed_stride = 1000
+final_seed_stride = 1000
+sample_offset_stride = 0
+
+[output]
+root = ""
+report = true
+plots = true

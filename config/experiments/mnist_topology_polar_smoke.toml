@@ -1,0 +1,128 @@
+schema_version = "4.2.0"
+scientific_protocol = "topology-aware-conditional-search/v1"
+
+[experiment]
+name = "mnist_topology_polar_smoke"
+description = "Small end-to-end MNIST comparison of static, finite-polar, Kronecker, and exact conditional guidance."
+objective = "Validate saved-data diagnostics and proposal influence under equal bounded search work."
+
+[benchmark]
+adapter = "mnist_quantized"
+id = "mnist_dense32_q621-v2"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "v2_disjoint_partitions"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 32
+search_count = 16
+final_count = 32
+require_disjoint = true
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+
+[[guidance]]
+name = "gradient_global"
+estimator = "first_order_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+weight = 1.0
+
+[initial_mask]
+guidance = "gradient_global"
+budget_bits = 256
+
+[[methods]]
+name = "static_gradient"
+strategy = "static"
+guidance = ["gradient_global"]
+interaction_model = "none"
+
+[[methods]]
+name = "finite_polar_off"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+interaction_model = "finite_polar"
+polarity_strength = 0.0
+
+[[methods]]
+name = "finite_polar"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+interaction_model = "finite_polar"
+
+[[methods]]
+name = "kronecker"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+interaction_model = "kronecker"
+
+[[methods]]
+name = "conditional_greedy"
+strategy = "conditional_greedy"
+guidance = ["gradient_global"]
+interaction_model = "none"
+
+[search]
+evaluator = "incremental"
+iterations = 2
+candidate_pool_strategy = "top_union"
+candidate_pool_count = 320
+uniform_exploration = 0.15
+rank_temperature = 0.15
+background_contexts = 4
+seed = 46401
+greedy_add_candidates = 3
+greedy_remove_candidates = 2
+initial_temperature = 0.01
+cooling_rate = 0.95
+cache_memory_mb = 256.0
+exact_enumeration = false
+
+[polar]
+enabled = true
+mode = "finite_background"
+pair_budget = 24
+background_contexts = 2
+seed = 46402
+strength = 0.75
+collect_cancellation_diagnostics = true
+
+[topology]
+interaction_models = ["finite_polar", "topology_corrected", "local_quadratic", "kronecker", "stratified_kronecker"]
+interaction_guidance = "mask_dependent_sparse_v1"
+confidence_strata = 2
+minimum_stratum_samples = 4
+output_layer_pair_budget = 8
+hidden_layer_pair_budget = 8
+cross_layer_pair_budget = 8
+cache_response_limit = 256
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probabilities = [0.001]
+
+[final_evaluation]
+natural_contexts = 8
+natural_seed = 46403
+conditional_contexts = 8
+conditional_seed = 46404
+confidence = 0.95
+
+[replications]
+count = 1
+search_seed_stride = 1000
+final_seed_stride = 1000
+sample_offset_stride = 0
+
+[output]
+root = ""
+report = true
+plots = true

@@ -25,9 +25,10 @@
 
 ## Current bounded milestone
 
-Run `python -m pytest -q` in the activated `netsurf` project. Use the schema-4
-and schema-4.1 commands in `docs/REPRODUCIBILITY.md`; do not retrain checkpoints
-or launch the matched MNIST research study automatically. Preserve search,
-natural-fault, conditional-background, and replication uncertainty separately.
-Polar interactions are proposal diagnostics, not an accepted protection
-theory, and small-pool optima are not whole-network optima.
+Run `python -m pytest -q` in the activated `netsurf` project. Use the schema-4,
+4.1, and bounded schema-4.2 commands in `docs/REPRODUCIBILITY.md`; do not retrain
+checkpoints or launch the MNIST research studies automatically. Preserve
+search, natural-fault, conditional-background, protection-budget, and
+replication uncertainty separately. Polar and Kronecker interactions are
+proposal diagnostics, not accepted protection theories, and small-pool optima
+are not whole-network optima.

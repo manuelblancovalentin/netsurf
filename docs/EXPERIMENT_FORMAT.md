@@ -113,3 +113,18 @@ Final masks are fixed before held-out seeds are used. Natural evaluation writes
 path sum. New tables are `conditional_context_contributions.csv`,
 `conditional_mask_comparisons.csv`, `conditional_swap_paths.csv`, and
 `proposal_diagnostics.csv`, defined by `measurements/v4_1.schema.json`.
+
+## Schema 4.2 topology-aware search
+
+Schema `4.2.0` uses protocol `topology-aware-conditional-search/v1`. It adds a
+strict `[topology]` table, per-method interaction-model/strength/shuffle
+ablations, optional per-method iteration budgets, and one or more global
+logical-bit budgets through `initial_mask.budget_bits_list`. Protection budget
+is a reporting and pairing condition and is never pooled across budgets.
+
+`topology_interactions.csv` separates exact finite polarity,
+topology-corrected interaction, local GGN, conventional Kronecker, and
+stratified Kronecker values. `proposal_influence.csv` records rank changes,
+top-k overlap, total variation, and Jensen--Shannon divergence before versus
+after interaction guidance. Sparse missing edges are unavailable observations,
+not numerical zeros.

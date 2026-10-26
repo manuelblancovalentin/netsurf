@@ -1,0 +1,176 @@
+schema_version = "4.2.0"
+scientific_protocol = "topology-aware-conditional-search/v1"
+
+[experiment]
+name = "mnist_topology_polar_research"
+description = "Bounded research comparison of static, layer-structured finite-polar, and Kronecker proposal guidance at two logical BER conditions."
+objective = "Test proposal influence and independently held-out conditional risk without treating interaction accuracy as optimizer superiority."
+
+[benchmark]
+adapter = "mnist_quantized"
+id = "mnist_dense32_q621-v2"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "v2_disjoint_partitions"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 256
+search_count = 128
+final_count = 256
+require_disjoint = true
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "encoded-bit-index/v1"
+
+[[guidance]]
+name = "gradient_global"
+estimator = "first_order_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+weight = 1.0
+
+[[guidance]]
+name = "msb_input_first"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "layer_input_first", "stable_identity"]
+weight = 1.0
+
+[[guidance]]
+name = "msb_output_first"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "layer_output_first", "stable_identity"]
+weight = 1.0
+
+[initial_mask]
+guidance = "gradient_global"
+budget_bits_list = [7635, 15270, 38175]
+
+[[methods]]
+name = "static_gradient"
+strategy = "static"
+guidance = ["gradient_global"]
+interaction_model = "none"
+
+[[methods]]
+name = "finite_polar_off"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+interaction_model = "finite_polar"
+polarity_strength = 0.0
+
+[[methods]]
+name = "finite_polar"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+interaction_model = "finite_polar"
+
+[[methods]]
+name = "topology_corrected"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+interaction_model = "topology_corrected"
+
+[[methods]]
+name = "shuffled_polar"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+interaction_model = "finite_polar"
+shuffle_interactions = true
+
+[[methods]]
+name = "kronecker"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+interaction_model = "kronecker"
+
+[[methods]]
+name = "stratified_kronecker"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+interaction_model = "stratified_kronecker"
+
+[[methods]]
+name = "input_layer_first"
+strategy = "static_guided_swap"
+guidance = ["msb_input_first"]
+interaction_model = "none"
+
+[[methods]]
+name = "output_layer_first"
+strategy = "static_guided_swap"
+guidance = ["msb_output_first"]
+interaction_model = "none"
+
+[[methods]]
+name = "conditional_greedy"
+strategy = "conditional_greedy"
+guidance = ["gradient_global"]
+interaction_model = "none"
+iterations = 1
+
+[search]
+evaluator = "incremental"
+iterations = 20
+candidate_pool_strategy = "top_union"
+candidate_pool_count = 40000
+uniform_exploration = 0.15
+rank_temperature = 0.15
+background_contexts = 16
+seed = 46401
+greedy_add_candidates = 6
+greedy_remove_candidates = 4
+initial_temperature = 0.01
+cooling_rate = 0.95
+cache_memory_mb = 256.0
+exact_enumeration = false
+
+[polar]
+enabled = true
+mode = "finite_background"
+pair_budget = 384
+background_contexts = 4
+seed = 46402
+strength = 0.75
+collect_cancellation_diagnostics = true
+
+[topology]
+interaction_models = ["finite_polar", "topology_corrected", "local_quadratic", "kronecker", "stratified_kronecker"]
+interaction_guidance = "mask_dependent_sparse_v1"
+confidence_strata = 4
+minimum_stratum_samples = 16
+output_layer_pair_budget = 128
+hidden_layer_pair_budget = 192
+cross_layer_pair_budget = 64
+cache_response_limit = 2048
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probabilities = [0.001, 0.01]
+
+[final_evaluation]
+natural_contexts = 64
+natural_seed = 46403
+conditional_contexts = 64
+conditional_seed = 46404
+confidence = 0.95
+
+[replications]
+count = 3
+search_seed_stride = 1000
+final_seed_stride = 1000
+sample_offset_stride = 0
+
+[output]
+root = ""
+report = true
+plots = true

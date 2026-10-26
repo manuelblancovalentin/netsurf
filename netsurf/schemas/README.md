@@ -37,3 +37,9 @@ and reader; migrations must write a new bundle.
 Experiment and measurement `4.1.0` add named matched methods, multi-BER
 conditions, independent natural and telescoping-conditional held-out fields,
 and whole-path cluster-level uncertainty. Schema 4.0 remains readable unchanged.
+
+Experiment and measurement `4.2.0` add exact Dense--ReLU--Dense topology
+responses, structural pair classes, layer-budgeted sparse discovery,
+mask-dependent proposal guidance, and conventional or confidence-stratified
+Kronecker GGN diagnostics. Missing sparse edges are recorded as unmeasured,
+not assumed physically zero. Schemas 4.0 and 4.1 retain their original readers.

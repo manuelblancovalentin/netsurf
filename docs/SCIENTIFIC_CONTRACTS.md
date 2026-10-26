@@ -150,3 +150,20 @@ Pruning is deferred. A zero-valued stored word remains faultable; a permanent
 logical mask needs explicit semantics; structured physical removal changes
 topology, checkpoint identity, eligible bits, and hardware cost. Zeroing a
 weight does not remove its upset vulnerability.
+
+## M4.2 topology and curvature levels
+
+For the explicit Dense--ReLU--Dense adapter, topology responses decode the
+current background word and calculate exact finite hidden/output logit changes.
+Same-hidden-neuron and connected cross-layer pairs retain their exact ReLU or
+bilinear residual. Other structurally additive logit pairs can still have a
+nonzero cross-entropy interaction.
+
+Finite additive-logit polarity, topology-corrected finite interaction,
+input-dependent local GGN curvature, conventional Kronecker factors, and
+stratified Kronecker factors are distinct recorded quantities. The latter two
+are local curvature approximations and are not exact finite sign-bit models.
+Sparse mask-dependent proposal scores omit unmeasured edges; omission is never
+represented as evidence that the physical interaction is zero. Every proposed
+swap remains subject to exact matched conditional evaluation, and final claims
+use independent M4.1 held-out fields.

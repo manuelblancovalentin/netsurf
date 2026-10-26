@@ -1,0 +1,151 @@
+schema_version = "4.2.0"
+scientific_protocol = "topology-aware-conditional-search/v1"
+
+[experiment]
+name = "numpy_topology_polar_exact"
+description = "Bounded exact topology, finite-polar, and Kronecker validation on the 102-bit reference network."
+objective = "Validate algebraic response identities and show whether interaction guidance changes proposals on a tractable network."
+
+[benchmark]
+adapter = "numpy_reference"
+id = "numpy_reference_q621-v1"
+checkpoint = "../../netsurf/benchmarks/data/numpy_reference_checkpoint.json"
+dataset = "../../netsurf/benchmarks/data/numpy_reference_dataset.json"
+split = "fixed_disjoint_control"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 2
+search_count = 2
+final_count = 2
+require_disjoint = true
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "encoded-bit-index/v1"
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+
+[[guidance]]
+name = "gradient_global"
+estimator = "first_order_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+weight = 1.0
+
+[[guidance]]
+name = "msb_ordered"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "canonical"]
+weight = 1.0
+
+[initial_mask]
+guidance = "gradient_global"
+budget_bits = 2
+
+[[methods]]
+name = "static_prior"
+strategy = "static"
+guidance = ["gradient_global"]
+interaction_model = "none"
+
+[[methods]]
+name = "polar_off"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+interaction_model = "finite_polar"
+polarity_strength = 0.0
+
+[[methods]]
+name = "finite_polar"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+interaction_model = "finite_polar"
+
+[[methods]]
+name = "shuffled_polar"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+interaction_model = "finite_polar"
+shuffle_interactions = true
+
+[[methods]]
+name = "kronecker"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+interaction_model = "kronecker"
+
+[[methods]]
+name = "stratified_kronecker"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+interaction_model = "stratified_kronecker"
+
+[[methods]]
+name = "conditional_greedy"
+strategy = "conditional_greedy"
+guidance = ["gradient_global"]
+interaction_model = "none"
+
+[search]
+evaluator = "incremental"
+iterations = 3
+candidate_pool_strategy = "top_union"
+candidate_pool_count = 8
+uniform_exploration = 0.20
+rank_temperature = 0.20
+background_contexts = 6
+seed = 46201
+greedy_add_candidates = 3
+greedy_remove_candidates = 2
+initial_temperature = 0.02
+cooling_rate = 0.90
+cache_memory_mb = 32.0
+exact_enumeration = true
+
+[polar]
+enabled = true
+mode = "finite_background"
+pair_budget = 12
+background_contexts = 2
+seed = 46202
+strength = 0.75
+collect_cancellation_diagnostics = true
+
+[topology]
+interaction_models = ["finite_polar", "topology_corrected", "local_quadratic", "kronecker", "stratified_kronecker"]
+interaction_guidance = "mask_dependent_sparse_v1"
+confidence_strata = 1
+minimum_stratum_samples = 2
+output_layer_pair_budget = 4
+hidden_layer_pair_budget = 4
+cross_layer_pair_budget = 4
+cache_response_limit = 32
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probabilities = [0.05]
+
+[final_evaluation]
+natural_contexts = 12
+natural_seed = 46203
+conditional_contexts = 16
+conditional_seed = 46204
+confidence = 0.95
+
+[replications]
+count = 1
+search_seed_stride = 1000
+final_seed_stride = 1000
+sample_offset_stride = 0
+
+[output]
+root = ""
+report = true
+plots = true

@@ -126,3 +126,16 @@ Schema 4.1 adds `conditional_risk.py` without replacing the optimizer. It owns
 deterministic mask paths and whole-path contributions. `search_engine.py` fixes
 masks before creating separate natural and conditional fields. Bundling and
 reporting consume saved cluster-level measurements without rerunning inference.
+
+Schema 4.2 adds two architecture-specific analytical layers without changing
+the benchmark-neutral fault codec. `topology.py` owns exact on-demand
+Dense--ReLU--Dense response signatures and structural pair residuals over an
+incremental forward cache. `curvature.py` owns input-dependent local GGN,
+Kronecker, and confidence-stratified Kronecker factors. Both consume exact
+`BitIdentity` and `BitCodec` state; neither is a general model converter.
+
+Protection remains globally budgeted. Per-layer values limit sparse interaction
+discovery only. The search layer converts recorded edges into mask-dependent
+proposal adjustments, while exact matched conditional evaluation remains the
+sole acceptance path. Saved topology and proposal-influence tables regenerate
+reports and plots without TensorFlow.
