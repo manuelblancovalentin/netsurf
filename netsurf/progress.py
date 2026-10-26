@@ -341,7 +341,8 @@ def search_operation_plan(configuration, *, include_bundle: bool = False) -> dic
     """Count the complete bounded schema-4 workflow by measurable work class."""
 
     conditions = len(getattr(configuration, "fault_probabilities", (configuration.fault.probability,)))
-    replications = configuration.replications.count * conditions
+    budget_count = len(getattr(configuration.initial_mask, "budgets_bits", ())) or 1
+    replications = configuration.replications.count * conditions * budget_count
     methods = getattr(configuration, "methods", ())
     method_names = tuple(value.name for value in methods) or configuration.search.strategies
     method_algorithms = tuple(value.strategy for value in methods) or configuration.search.strategies
@@ -353,17 +354,18 @@ def search_operation_plan(configuration, *, include_bundle: bool = False) -> dic
         "Held-out final evaluation": replications * len(method_names) * configuration.final_evaluation.contexts,
         "Scientific payload": replications,
     }
-    if configuration.schema_version == "4.1.0":
+    if configuration.schema_version in {"4.1.0", "4.2.0"}:
         plan["Held-out conditional evaluation"] = replications * len(method_names) * configuration.final_evaluation.conditional_contexts
     polar_contexts = 1 if configuration.polar.mode == "finite_clean" else configuration.polar.background_contexts
     if configuration.polar.enabled:
         plan["Sparse polar calibration"] = replications * configuration.polar.pair_budget * polar_contexts
-    for name, strategy in zip(method_names, method_algorithms):
+    for method, name, strategy in zip(methods, method_names, method_algorithms):
         if strategy != "static":
-            plan[f"Search {name}"] = replications * configuration.search.iterations
+            iterations = configuration.search.iterations if getattr(method, "iterations", None) is None else method.iterations
+            plan[f"Search {name}"] = replications * iterations
     # Upper bound; the engine reduces this after it knows how many proposals
     # were accepted, because only accepted mask states are plotted.
-    states = sum(1 if value == "static" else 1 + configuration.search.iterations for value in method_algorithms)
+    states = sum(1 if strategy == "static" else 1 + (configuration.search.iterations if getattr(method, "iterations", None) is None else method.iterations) for method, strategy in zip(methods, method_algorithms))
     plan["Held-out convergence"] = replications * states * configuration.final_evaluation.contexts
     if configuration.search.exact_enumeration:
         plan["Restricted exact enumeration"] = replications

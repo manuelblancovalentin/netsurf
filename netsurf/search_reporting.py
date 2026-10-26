@@ -15,15 +15,15 @@ def summarize_conditional_comparisons(rows: Sequence[Mapping[str, Any]], confide
     """Pool independent whole-path context contributions by BER and strategy."""
     grouped = defaultdict(list)
     for row in rows:
-        grouped[(float(row["logical_ber"]), str(row["target"]))].append(row)
+        grouped[(float(row["logical_ber"]), row.get("protection_budget_bits"), str(row["target"]))].append(row)
     result = []
-    for (logical_ber, target), values in sorted(grouped.items()):
+    for (logical_ber, budget, target), values in sorted(grouped.items()):
         conditional_loss = summarize([float(value["loss_difference"]) for value in values], confidence).to_dict()
         conditional_zero_one = summarize([float(value["zero_one_risk_difference"]) for value in values], confidence).to_dict()
         direct_loss = summarize([float(value["direct_loss_difference"]) for value in values], confidence).to_dict()
         direct_zero_one = summarize([float(value["direct_zero_one_risk_difference"]) for value in values], confidence).to_dict()
         result.append({
-            "logical_ber": logical_ber, "target": target,
+            "logical_ber": logical_ber, **({"protection_budget_bits": int(budget)} if budget is not None else {}), "target": target,
             "background_context_count": len(values),
             "replication_count": len({str(value["replication"]) for value in values}),
             "input_sample_count": int(values[0]["input_sample_count"]),
@@ -41,15 +41,15 @@ def summarize_conditional_comparisons(rows: Sequence[Mapping[str, Any]], confide
 def summarize_search_trials(rows: Sequence[Mapping[str, Any]], confidence: float = 0.95):
     grouped = defaultdict(list)
     for row in rows:
-        grouped[(row.get("logical_ber"),str(row["strategy"]))].append(row)
+        grouped[(row.get("logical_ber"),row.get("protection_budget_bits"),str(row["strategy"]))].append(row)
     result = []
-    for (logical_ber,strategy), values in sorted(grouped.items(),key=lambda item:((float("-inf") if item[0][0] is None else float(item[0][0])),item[0][1])):
+    for (logical_ber,budget,strategy), values in sorted(grouped.items(),key=lambda item:((float("-inf") if item[0][0] is None else float(item[0][0])),-1 if item[0][1] is None else int(item[0][1]),item[0][2])):
         accuracy = summarize([float(value["accuracy"]) for value in values], confidence=confidence, bounds=(0, 1)).to_dict()
         loss = summarize([float(value["categorical_crossentropy"]) for value in values], confidence=confidence).to_dict()
         accuracy["minimum"] = min(float(value["accuracy"]) for value in values)
         accuracy["quantile_05"] = float(np.quantile([float(value["accuracy"]) for value in values], 0.05))
         loss["maximum"] = max(float(value["categorical_crossentropy"]) for value in values)
-        result.append({**({"logical_ber":float(logical_ber)} if logical_ber is not None else {}),"strategy": strategy, "trial_count": len(values), "replication_count": len({str(value["replication"]) for value in values}), "accuracy": accuracy, "categorical_crossentropy": loss})
+        result.append({**({"logical_ber":float(logical_ber)} if logical_ber is not None else {}), **({"protection_budget_bits":int(budget)} if budget is not None else {}), "strategy": strategy, "trial_count": len(values), "replication_count": len({str(value["replication"]) for value in values}), "accuracy": accuracy, "categorical_crossentropy": loss})
     return result
 
 
@@ -57,9 +57,9 @@ def paired_search_comparisons(rows: Sequence[Mapping[str, Any]], confidence: flo
     by_condition = defaultdict(lambda:defaultdict(dict))
     for row in rows:
         identity = (str(row["replication"]), int(row["trial"]), str(row["schedule_sha256"]))
-        by_condition[row.get("logical_ber")][str(row["strategy"])][identity] = row
+        by_condition[(row.get("logical_ber"), row.get("protection_budget_bits"))][str(row["strategy"])][identity] = row
     result = []
-    for logical_ber,by_strategy in sorted(by_condition.items(),key=lambda item:float("-inf") if item[0] is None else float(item[0])):
+    for (logical_ber,budget),by_strategy in sorted(by_condition.items(),key=lambda item:(float("-inf") if item[0][0] is None else float(item[0][0]), -1 if item[0][1] is None else int(item[0][1]))):
         names=sorted(by_strategy); baseline="static" if "static" in names else ("static_gradient" if "static_gradient" in names else None)
         pairs=[(name,baseline) for name in names if name!=baseline] if baseline else list(zip(names[1:],names[:-1]))
         for left, right in pairs:
@@ -67,7 +67,7 @@ def paired_search_comparisons(rows: Sequence[Mapping[str, Any]], confidence: flo
             for metric in ("accuracy", "categorical_crossentropy"):
                 differences = [float(by_strategy[left][key][metric]) - float(by_strategy[right][key][metric]) for key in shared]
                 if differences:
-                    result.append({**({"logical_ber":float(logical_ber)} if logical_ber is not None else {}),"left": left, "right": right, "metric": metric, "matched_pairs": len(shared), "difference": summarize(differences, confidence=confidence).to_dict(), "pairing_identity": "replication,trial,schedule_sha256"})
+                    result.append({**({"logical_ber":float(logical_ber)} if logical_ber is not None else {}), **({"protection_budget_bits":int(budget)} if budget is not None else {}), "left": left, "right": right, "metric": metric, "matched_pairs": len(shared), "difference": summarize(differences, confidence=confidence).to_dict(), "pairing_identity": "protection_budget_bits,replication,trial,schedule_sha256"})
     return result
 
 
@@ -81,17 +81,17 @@ def render_search_report(summary: Mapping[str, Any], resolved: Mapping[str, Any]
         f"- Benchmark: `{resolved['benchmark']['id']}`",
         f"- Quantization: `{resolved['benchmark']['quantization']}`",
         f"- Logical BER condition(s): {', '.join(f'{value:.6g}' for value in resolved['fault'].get('probabilities',[resolved['fault'].get('probability')]))} (not physical SEU rates)",
-        f"- Protection budget: {resolved['initial_mask']['budget_bits']} logical bits",
+        f"- Protection budget(s): {', '.join(map(str, resolved['initial_mask'].get('budget_bits_list', [resolved['initial_mask'].get('budget_bits')])))} logical bits",
         f"- Search samples and held-out final samples are {'required to be disjoint' if resolved['samples']['require_disjoint'] else 'not required to be disjoint'}.",
         "- Search decisions use matched three-state conditional loss estimates; held-out schedules are not used to accept proposals.",
         "- Exact inference refers to encoded XOR/decode and supported-network forward equivalence, not exact knowledge of expected risk or global optimization.", "",
         "## Held-out results", "",
-        "| BER | Strategy | Trials | Mean accuracy (95% CI) | Accuracy q05 | Minimum accuracy | Mean cross-entropy (95% CI) |",
-        "|---:|---|---:|---:|---:|---:|---:|",
+        "| BER | Budget bits | Strategy | Trials | Mean accuracy (95% CI) | Accuracy q05 | Minimum accuracy | Mean cross-entropy (95% CI) |",
+        "|---:|---:|---|---:|---:|---:|---:|---:|",
     ]
     for value in summary.get("strategy_results", []):
         accuracy, loss = value["accuracy"], value["categorical_crossentropy"]
-        lines.append(f"| {value.get('logical_ber','—')} | {value['strategy']} | {value['trial_count']} | {accuracy['mean']:.6f} [{accuracy['confidence_interval'][0]:.6f}, {accuracy['confidence_interval'][1]:.6f}] | {accuracy['quantile_05']:.6f} | {accuracy['minimum']:.6f} | {loss['mean']:.6f} [{loss['confidence_interval'][0]:.6f}, {loss['confidence_interval'][1]:.6f}] |")
+        lines.append(f"| {value.get('logical_ber','—')} | {value.get('protection_budget_bits','—')} | {value['strategy']} | {value['trial_count']} | {accuracy['mean']:.6f} [{accuracy['confidence_interval'][0]:.6f}, {accuracy['confidence_interval'][1]:.6f}] | {accuracy['quantile_05']:.6f} | {accuracy['minimum']:.6f} | {loss['mean']:.6f} [{loss['confidence_interval'][0]:.6f}, {loss['confidence_interval'][1]:.6f}] |")
     lines += ["", "Intervals summarize held-out logical fault realizations conditional on the fixed checkpoint, dataset partitions, and each generated mask. Repeated search seeds are not independently trained networks.", "", "## Paired comparisons", "", "| Left − right | Metric | Matched pairs | Mean difference (95% CI) |", "|---|---|---:|---:|"]
     for value in summary.get("paired_comparisons", []):
         difference = value["difference"]
@@ -100,12 +100,12 @@ def render_search_report(summary: Mapping[str, Any], resolved: Mapping[str, Any]
     if conditional:
         lines += ["", "## Independent conditional-risk comparison", "",
                   "Primary endpoint: target-mask minus common initial-mask expected cross-entropy. Each independent held-out background contributes one sum over the complete deterministic swap path; path steps are not treated as independent.", "",
-                  "| BER | Strategy | Contexts | Replications | Swaps | Conditional Δloss (95% CI) | Direct Bernoulli Δloss (95% CI) | Conditional SE | Direct SE |",
-                  "|---:|---|---:|---:|---:|---:|---:|---:|---:|"]
+                  "| BER | Budget bits | Strategy | Contexts | Replications | Swaps | Conditional Δloss (95% CI) | Direct Bernoulli Δloss (95% CI) | Conditional SE | Direct SE |",
+                  "|---:|---:|---|---:|---:|---:|---:|---:|---:|---:|"]
         for value in conditional:
             conditional_loss=value["conditional_loss_difference"]; direct_loss=value["direct_loss_difference"]
             swaps=f"{value['swap_count_min']}" if value["swap_count_min"]==value["swap_count_max"] else f"{value['swap_count_min']}–{value['swap_count_max']}"
-            lines.append(f"| {value['logical_ber']:.6g} | {value['target']} | {value['background_context_count']} | {value['replication_count']} | {swaps} | {conditional_loss['mean']:.6g} [{conditional_loss['confidence_interval'][0]:.6g}, {conditional_loss['confidence_interval'][1]:.6g}] | {direct_loss['mean']:.6g} [{direct_loss['confidence_interval'][0]:.6g}, {direct_loss['confidence_interval'][1]:.6g}] | {conditional_loss['standard_error']:.4g} | {direct_loss['standard_error']:.4g} |")
+            lines.append(f"| {value['logical_ber']:.6g} | {value.get('protection_budget_bits','—')} | {value['target']} | {value['background_context_count']} | {value['replication_count']} | {swaps} | {conditional_loss['mean']:.6g} [{conditional_loss['confidence_interval'][0]:.6g}, {conditional_loss['confidence_interval'][1]:.6g}] | {direct_loss['mean']:.6g} [{direct_loss['confidence_interval'][0]:.6g}, {direct_loss['confidence_interval'][1]:.6g}] | {conditional_loss['standard_error']:.4g} | {direct_loss['standard_error']:.4g} |")
         lines += ["", "Intervals are conditional on the fixed held-out input sets and quantify variation over independently generated persistent logical fault fields. The natural and conditional endpoints are reported separately."]
     proposal_quality=summary.get("proposal_quality",[])
     if proposal_quality:
@@ -113,6 +113,14 @@ def render_search_report(summary: Mapping[str, Any], resolved: Mapping[str, Any]
         for value in proposal_quality:
             show=lambda item:"—" if item is None else f"{item:.4g}"
             lines.append(f"| {value['strategy']} | {value['proposal_count']} | {value['accepted_count']} | {value['improving_count']} | {show(value['proposal_score_benefit_spearman'])} | {value['top_quartile_recall']:.4g} | {value['polar_measured_count']} | {show(value['polar_benefit_spearman'])} |")
+    influence=summary.get("proposal_influence",[])
+    if influence:
+        lines += ["", "## Polarity-on/off proposal influence", "",
+                  "These diagnostics compare the proposal distribution immediately before and after the configured interaction term. A changed distribution does not establish better protection.", "",
+                  "| BER | Strategy | Iteration | Changed ranks | Top-k overlap | Total variation | Jensen–Shannon |",
+                  "|---:|---|---:|---:|---:|---:|---:|"]
+        for value in influence:
+            lines.append(f"| {value['logical_ber']:.6g} | {value['strategy']} | {value['iteration']} | {value['changed_fraction']:.3f} | {value['top_k_overlap']:.3f} | {value['total_variation']:.4g} | {value['jensen_shannon_divergence']:.4g} |")
     lines += ["", "## Incremental exactness", ""]
     checks = summary.get("incremental_validation", [])
     lines.append(f"Bounded validation cases: {len(checks)}; maximum logit absolute error: {max((float(v['max_logit_absolute_error']) for v in checks), default=0):.3g}; prediction mismatches: {sum(int(v['prediction_mismatches']) for v in checks)}.")
@@ -126,7 +134,7 @@ def render_search_report(summary: Mapping[str, Any], resolved: Mapping[str, Any]
     return "\n".join(lines)
 
 
-def plot_search_results(summary, output: Path, *, trials=(), convergence=(), validation=(), polar=(), search_steps=(), composition=(), search_results=(), proposal_diagnostics=()):
+def plot_search_results(summary, output: Path, *, trials=(), convergence=(), validation=(), polar=(), topology=(), search_steps=(), composition=(), search_results=(), proposal_diagnostics=()):
     try:
         import matplotlib.pyplot as plt
     except ImportError as error:
@@ -181,6 +189,15 @@ def plot_search_results(summary, output: Path, *, trials=(), convergence=(), val
         cancellations=[float(v["cancellation_score"]) for v in polar if v.get("cancellation_score") not in (None,"")]
         if cancellations:
             fig,ax=plt.subplots(figsize=(6,4)); ax.hist(cancellations,bins=min(20,max(5,len(cancellations)//2))); ax.axvline(1,color="black",ls="--"); ax.set(xlabel="Additive-logit cancellation score",ylabel="Sampled pairs",title="Exploratory pair cancellation"); fig.tight_layout(); path=output/"polar_cancellation.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
+    if topology:
+        errors=[abs(float(value["topology_exact_interaction_error"])) for value in topology]
+        classes=sorted({str(value["topology_class"]) for value in topology})
+        data=[[abs(float(value["topology_exact_interaction_error"])) for value in topology if str(value["topology_class"])==name] for name in classes]
+        fig,ax=plt.subplots(figsize=(max(7,len(classes)*1.2),4.5)); ax.boxplot(data,tick_labels=classes,showmeans=True); ax.set_yscale("symlog",linthresh=1e-15); ax.set(ylabel="Absolute interaction reconstruction error",title="Exact topology reconstruction by pair class"); ax.tick_params(axis="x",rotation=25); fig.tight_layout(); path=output/"topology_exact_error.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
+        for field,title,filename in (("local_quadratic","Local quadratic","local_vs_finite_polar.png"),("kronecker","Conventional Kronecker","kronecker_vs_finite_polar.png"),("stratified_kronecker","Stratified Kronecker","stratified_kron_vs_finite_polar.png")):
+            values=[value for value in topology if value.get(field) not in (None,"")]
+            if values:
+                fig,ax=plt.subplots(figsize=(6,5)); x=[float(value["finite_polar"]) for value in values]; y=[float(value[field]) for value in values]; ax.scatter(x,y,alpha=.65); limits=[min(x+y+[0]),max(x+y+[0])]; ax.plot(limits,limits,"--",color="black"); ax.set(xlabel="Exact finite additive-logit polar",ylabel=title,title=f"{title} approximation"); fig.tight_layout(); path=output/filename; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
     layer_rows=[v for v in composition if str(v["dimension"])=="layer"]
     if layer_rows:
         strategies=sorted({str(v["strategy"]) for v in layer_rows}); layers=sorted({str(v["category"]) for v in layer_rows}); x=np.arange(len(strategies)); bottom=np.zeros(len(strategies)); fig,ax=plt.subplots(figsize=(max(7,len(strategies)*1.2),4.5))

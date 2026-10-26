@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/measurements/v4_2.schema.json",
+  "title": "NetSuRF topology-aware conditional-search measurements",
+  "schema_version": "4.2.0",
+  "tables": {
+    "topology_interactions.csv": {"unit": "one selected bit pair under one exact background", "identity": ["replication", "left", "right", "background_fault_count"]},
+    "proposal_influence.csv": {"unit": "one polarity-on/off proposal-distribution comparison", "identity": ["replication", "logical_ber", "strategy", "iteration"]},
+    "polar_interactions.csv": {"unit": "one finite additive-logit pair measurement under one background"},
+    "final_trials.csv": {"unit": "one natural-Bernoulli held-out field for one final mask"},
+    "conditional_context_contributions.csv": {"unit": "one whole-path paired contribution from one held-out background"},
+    "search_steps.csv": {"unit": "one exactly evaluated swap decision"},
+    "search_results.csv": {"unit": "one completed method, BER, and replication"},
+    "incremental_validation.csv": {"unit": "one bounded exactness and timing workload class"}
+  },
+  "null_handling": "Empty CSV fields represent structurally unavailable approximations, especially cross-layer Kronecker values; JSON uses null.",
+  "units": {"wall_seconds": "seconds", "accuracy": "fraction", "categorical_crossentropy": "mean natural-log loss", "logical_ber": "independent logical bit-flip probability"}
+}

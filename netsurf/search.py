@@ -124,6 +124,90 @@ class ProposalPrior:
 
 
 @dataclass(frozen=True)
+class ProposalInfluence:
+    candidate_count: int
+    changed_positions: int
+    changed_fraction: float
+    top_k: int
+    top_k_overlap: float
+    spearman_rank_correlation: float
+    total_variation: float
+    jensen_shannon_divergence: float
+
+
+def sparse_conditional_swap_score(
+    removed: BitIdentity,
+    added: BitIdentity,
+    protected: Iterable[BitIdentity],
+    universe: Sequence[BitIdentity],
+    interactions: Mapping[tuple[BitIdentity, BitIdentity], float],
+    *,
+    probabilities: float | Mapping[BitIdentity, float],
+    isolated_damage: Mapping[BitIdentity, float] | None = None,
+) -> float:
+    """Second-order mask-dependent risk change over recorded sparse edges.
+
+    Missing edges are deliberately omitted and are not asserted to be zero.
+    The direct ``removed, added`` edge cancels from the swap identity.
+    """
+
+    protected = frozenset(protected)
+    if removed not in protected or added in protected:
+        raise ValueError("swap score requires protected removed and faultable added bits")
+    probability = (lambda bit: float(probabilities[bit])) if isinstance(probabilities, Mapping) else (lambda bit: float(probabilities))
+    damage = isolated_damage or {}
+    result = probability(removed) * float(damage.get(removed, 0.0)) - probability(added) * float(damage.get(added, 0.0))
+    left_sum = right_sum = 0.0
+    for (first, second), interaction in interactions.items():
+        if first == removed:
+            other = second
+            if other not in protected and other != added:
+                left_sum += probability(other) * float(interaction)
+        elif second == removed:
+            other = first
+            if other not in protected and other != added:
+                left_sum += probability(other) * float(interaction)
+        if first == added:
+            other = second
+            if other not in protected and other != removed:
+                right_sum += probability(other) * float(interaction)
+        elif second == added:
+            other = first
+            if other not in protected and other != removed:
+                right_sum += probability(other) * float(interaction)
+    result += probability(removed) * left_sum - probability(added) * right_sum
+    return float(result)
+
+
+def proposal_influence(before: np.ndarray, after: np.ndarray, *, top_k: int = 10) -> ProposalInfluence:
+    """Compare proposal distributions before and after interaction guidance."""
+
+    before = np.asarray(before, dtype=np.float64)
+    after = np.asarray(after, dtype=np.float64)
+    if before.shape != after.shape or before.ndim != 1 or len(before) == 0:
+        raise ValueError("proposal distributions must be nonempty matching vectors")
+    if np.any(before < 0) or np.any(after < 0) or not np.isclose(before.sum(), 1) or not np.isclose(after.sum(), 1):
+        raise ValueError("proposal distributions must be normalized and nonnegative")
+    order_before = np.argsort(-before, kind="stable")
+    order_after = np.argsort(-after, kind="stable")
+    ranks_before = np.empty(len(before), dtype=np.int64); ranks_before[order_before] = np.arange(len(before))
+    ranks_after = np.empty(len(after), dtype=np.int64); ranks_after[order_after] = np.arange(len(after))
+    changed = int(np.count_nonzero(ranks_before != ranks_after))
+    k = min(max(1, int(top_k)), len(before))
+    overlap = len(set(order_before[:k]) & set(order_after[:k])) / k
+    if len(before) == 1:
+        correlation = 1.0
+    else:
+        correlation = float(np.corrcoef(ranks_before, ranks_after)[0, 1])
+    midpoint = 0.5 * (before + after)
+    def kl(left, right):
+        valid = left > 0
+        return float(np.sum(left[valid] * np.log(left[valid] / right[valid])))
+    return ProposalInfluence(len(before), changed, changed / len(before), k, overlap, correlation,
+                             float(0.5 * np.sum(np.abs(before - after))),
+                             0.5 * kl(before, midpoint) + 0.5 * kl(after, midpoint))
+
+@dataclass(frozen=True)
 class ProposalEvaluation:
     candidate_index: int
     removed: BitIdentity
@@ -201,6 +285,7 @@ class SearchResult:
     work_proxy_macs: int
     wall_seconds: float
     proposal_provenance: Mapping[str, object]
+    proposal_influence: tuple[Mapping[str, object], ...] = ()
 
 
 def estimate_mask_risk(
@@ -249,6 +334,29 @@ def _polar_adjustment(
     return {candidate: float(np.exp(np.clip(strength * value / scale, -20, 20))) for candidate, value in zip(candidates, values)}
 
 
+def _mask_dependent_adjustment(
+    candidates: Sequence[BitIdentity], removed: BitIdentity, current: frozenset[BitIdentity],
+    universe: Sequence[BitIdentity], interactions: Mapping[tuple[BitIdentity, BitIdentity], float] | None,
+    probability: float, strength: float,
+) -> dict[BitIdentity, float] | None:
+    if not interactions or strength == 0:
+        return None
+    adjacency: dict[BitIdentity, list[tuple[BitIdentity, float]]] = {}
+    for (left, right), value in interactions.items():
+        adjacency.setdefault(left, []).append((right, float(value)))
+        adjacency.setdefault(right, []).append((left, float(value)))
+    removed_edges = {other: value for other, value in adjacency.get(removed, ()) if other not in current}
+    scores = []
+    for candidate in candidates:
+        left_sum = sum(value for other, value in removed_edges.items() if other != candidate)
+        right_sum = sum(value for other, value in adjacency.get(candidate, ()) if other not in current and other != removed)
+        scores.append(probability * probability * (left_sum - right_sum))
+    scores = np.asarray(scores, dtype=np.float64)
+    scale = max(float(np.std(scores)), 1e-12)
+    # Lower predicted risk changes are more desirable additions.
+    return {candidate: float(np.exp(np.clip(-strength * score / scale, -20, 20))) for candidate, score in zip(candidates, scores)}
+
+
 def conditional_search(
     evaluator: DenseReluDenseIncrementalEvaluator,
     inputs: np.ndarray,
@@ -279,11 +387,14 @@ def conditional_search(
     progress: Callable[[Mapping[str, object]], None] | None = None,
     defer_final_evaluation: bool = False,
     background_seed: int | None = None,
+    interaction_guidance: str = "direct_pair_v1",
 ) -> SearchResult:
     """Run a fixed-cardinality local search with exact conditional decisions."""
     supported = {"static", "conditional_greedy", "uniform_swap", "static_guided_swap", "polar_guided_swap", "simulated_annealing"}
     if strategy not in supported:
         raise ValueError(f"unsupported search strategy: {strategy}")
+    if interaction_guidance not in {"direct_pair_v1", "mask_dependent_sparse_v1"}:
+        raise ValueError(f"unsupported interaction guidance: {interaction_guidance}")
     if iterations < 0 or background_contexts < 1 or final_contexts < 1:
         raise ValueError("invalid search or context budget")
     universe = tuple(universe)
@@ -305,6 +416,7 @@ def conditional_search(
     current_risk = float(initial_risk["mean"])
     best_risk, best_mask = current_risk, current
     steps: list[SearchStep] = []
+    influence_rows: list[Mapping[str, object]] = []
     accepted = rejected = proposals_generated = proposals_evaluated = exact_evaluations = work = 0
     if strategy == "static":
         iterations = 0
@@ -330,7 +442,20 @@ def conditional_search(
                 q_remove, q_add = 1 / len(protected), 1 / len(additions)
             else:
                 removed, q_remove = proposal.sample(protected, generator=generator, removal=True)
-                adjustment = _polar_adjustment(additions, removed, polar_interactions, polar_strength) if strategy == "polar_guided_swap" else None
+                adjustment = None
+                if strategy == "polar_guided_swap":
+                    adjustment = (_mask_dependent_adjustment(additions, removed, current, universe, polar_interactions, probability, polar_strength)
+                                  if interaction_guidance == "mask_dependent_sparse_v1"
+                                  else _polar_adjustment(additions, removed, polar_interactions, polar_strength))
+                    before = proposal.probabilities(additions)
+                    after = proposal.probabilities(additions, adjustment=adjustment)
+                    influence = proposal_influence(before, after, top_k=min(10, len(additions)))
+                    influence_rows.append({
+                        "iteration": iteration + 1, "removed": removed.key(),
+                        "interaction_guidance": interaction_guidance,
+                        "polarity_strength": polar_strength, **asdict(influence),
+                        "materially_influenced": influence.total_variation > 1e-12,
+                    })
                 added, q_add = proposal.sample(additions, generator=generator, adjustment=adjustment)
             candidates.append((removed, added, q_remove, q_add))
         proposals_generated += len(candidates)
@@ -427,7 +552,7 @@ def conditional_search(
         strategy, frozenset(initial_mask), current, best_mask, initial_risk, final_risk,
         best_risk, tuple(steps), accepted, rejected, proposals_generated,
         proposals_evaluated, exact_evaluations, work, perf_counter() - started,
-        proposal.provenance(),
+        proposal.provenance(), tuple(influence_rows),
     )
 
 

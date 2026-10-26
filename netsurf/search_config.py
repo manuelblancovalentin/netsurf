@@ -18,6 +18,8 @@ SEARCH_SCHEMA_VERSION = "4.0.0"
 SEARCH_PROTOCOL = "conditional-protection-search/v1"
 CONTROLLED_SEARCH_SCHEMA_VERSION = "4.1.0"
 CONTROLLED_SEARCH_PROTOCOL = "conditional-protection-search/v2"
+TOPOLOGY_SEARCH_SCHEMA_VERSION = "4.2.0"
+TOPOLOGY_SEARCH_PROTOCOL = "topology-aware-conditional-search/v1"
 
 
 class SearchConfigurationError(ValueError):
@@ -45,6 +47,7 @@ class GuidanceConfiguration:
 class InitialMaskConfiguration:
     guidance: str
     budget_bits: int
+    budgets_bits: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -52,6 +55,10 @@ class SearchMethodConfiguration:
     name: str
     strategy: str
     guidance: tuple[str, ...]
+    interaction_model: str = "configured"
+    polarity_strength: float | None = None
+    shuffle_interactions: bool = False
+    iterations: int | None = None
 
 
 @dataclass(frozen=True)
@@ -82,6 +89,18 @@ class PolarConfiguration:
     seed: int
     strength: float
     collect_cancellation_diagnostics: bool
+
+
+@dataclass(frozen=True)
+class TopologyConfiguration:
+    interaction_models: tuple[str, ...]
+    interaction_guidance: str
+    confidence_strata: int
+    minimum_stratum_samples: int
+    output_layer_pair_budget: int
+    hidden_layer_pair_budget: int
+    cross_layer_pair_budget: int
+    cache_response_limit: int
 
 
 @dataclass(frozen=True)
@@ -121,11 +140,13 @@ class SearchConfiguration:
     final_evaluation: FinalEvaluationConfiguration
     replications: SearchReplications
     output: OutputConfiguration
+    topology: TopologyConfiguration | None
     source_path: Path
     source_text: str
 
     def resolved_document(self) -> dict[str, Any]:
-        controlled = self.schema_version == CONTROLLED_SEARCH_SCHEMA_VERSION
+        controlled = self.schema_version in {CONTROLLED_SEARCH_SCHEMA_VERSION, TOPOLOGY_SEARCH_SCHEMA_VERSION}
+        topology_aware = self.schema_version == TOPOLOGY_SEARCH_SCHEMA_VERSION
         fault = asdict(self.fault)
         if controlled:
             fault.pop("probability", None); fault["probabilities"] = list(self.fault_probabilities)
@@ -142,11 +163,15 @@ class SearchConfiguration:
             "experiment": {"name": self.name, "description": self.description, "objective": self.objective},
             "benchmark": {**asdict(self.benchmark), "checkpoint": str(self.benchmark.checkpoint), "dataset": str(self.benchmark.dataset)},
             "samples": asdict(self.samples), "estimators": [asdict(value) for value in self.estimators],
-            "guidance": [asdict(value) for value in self.guidance], "initial_mask": asdict(self.initial_mask),
-            **({"methods": [asdict(value) for value in self.methods]} if controlled else {}),
+            "guidance": [asdict(value) for value in self.guidance],
+            "initial_mask": ({"guidance": self.initial_mask.guidance, "budget_bits_list": list(self.initial_mask.budgets_bits)}
+                             if topology_aware and len(self.initial_mask.budgets_bits) > 1 else
+                             {"guidance": self.initial_mask.guidance, "budget_bits": self.initial_mask.budget_bits}),
+            **({"methods": [asdict(value) if topology_aware else {"name": value.name, "strategy": value.strategy, "guidance": list(value.guidance)} for value in self.methods]} if controlled else {}),
             "search": {key:value for key,value in asdict(self.search).items() if not controlled or key != "strategies"},
             "polar": asdict(self.polar), "fault": fault,
             "final_evaluation": final, "replications": asdict(self.replications),
+            **({"topology": asdict(self.topology)} if topology_aware and self.topology is not None else {}),
             "output": {"root": str(self.output.root), "report": self.output.report, "plots": self.output.plots},
         }
 
@@ -179,15 +204,18 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
     except (OSError, tomllib.TOMLDecodeError) as error:
         raise SearchConfigurationError(f"cannot load search configuration {source}: {error}") from error
     schema_version = document.get("schema_version")
-    controlled = schema_version == CONTROLLED_SEARCH_SCHEMA_VERSION
-    if schema_version not in {SEARCH_SCHEMA_VERSION, CONTROLLED_SEARCH_SCHEMA_VERSION}:
+    controlled = schema_version in {CONTROLLED_SEARCH_SCHEMA_VERSION, TOPOLOGY_SEARCH_SCHEMA_VERSION}
+    topology_aware = schema_version == TOPOLOGY_SEARCH_SCHEMA_VERSION
+    if schema_version not in {SEARCH_SCHEMA_VERSION, CONTROLLED_SEARCH_SCHEMA_VERSION, TOPOLOGY_SEARCH_SCHEMA_VERSION}:
         raise SearchConfigurationError(f"unsupported conditional-search schema: {document.get('schema_version')!r}")
-    expected_protocol = CONTROLLED_SEARCH_PROTOCOL if controlled else SEARCH_PROTOCOL
+    expected_protocol = TOPOLOGY_SEARCH_PROTOCOL if topology_aware else (CONTROLLED_SEARCH_PROTOCOL if controlled else SEARCH_PROTOCOL)
     if document.get("scientific_protocol") != expected_protocol:
         raise SearchConfigurationError(f"unsupported conditional-search protocol: {document.get('scientific_protocol')!r}")
     required = {"schema_version", "scientific_protocol", "experiment", "benchmark", "samples", "estimators", "guidance", "initial_mask", "search", "polar", "fault", "final_evaluation", "replications", "output"}
     if controlled:
         required.add("methods")
+    if topology_aware:
+        required.add("topology")
     _keys(document, required, set(), "root")
     experiment = _table(document, "experiment"); _keys(experiment, {"name", "description", "objective"}, set(), "experiment")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", str(experiment["name"])):
@@ -245,8 +273,14 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
         raise SearchConfigurationError("guidance names must be unique")
     if sum(value.weight for value in guidance) <= 0:
         raise SearchConfigurationError("at least one guidance weight must be positive")
-    initial = _table(document, "initial_mask"); _keys(initial, {"guidance", "budget_bits"}, set(), "initial_mask")
-    if initial["guidance"] not in {value.name for value in guidance} or int(initial["budget_bits"]) < 1:
+    initial = _table(document, "initial_mask")
+    _keys(initial, {"guidance"}, {"budget_bits", "budget_bits_list"} if topology_aware else {"budget_bits"}, "initial_mask")
+    if ("budget_bits" in initial) == ("budget_bits_list" in initial):
+        raise SearchConfigurationError("initial_mask requires exactly one of budget_bits or budget_bits_list")
+    budgets = tuple(map(int, initial.get("budget_bits_list", [initial.get("budget_bits")])))
+    if not budgets or len(set(budgets)) != len(budgets) or any(value < 1 for value in budgets):
+        raise SearchConfigurationError("protection budgets must be unique positive bit counts")
+    if initial["guidance"] not in {value.name for value in guidance}:
         raise SearchConfigurationError("initial mask requires known guidance and positive budget_bits")
     search = _table(document, "search")
     search_fields = {"evaluator", "iterations", "candidate_pool_strategy", "candidate_pool_count", "uniform_exploration", "rank_temperature", "background_contexts", "seed", "greedy_add_candidates", "greedy_remove_candidates", "initial_temperature", "cooling_rate", "cache_memory_mb", "exact_enumeration"}
@@ -261,13 +295,21 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
             raise SearchConfigurationError("methods must be a nonempty array")
         methods = []
         for index, value in enumerate(methods_raw):
-            _keys(value, {"name", "strategy", "guidance"}, set(), f"methods[{index}]")
+            _keys(value, {"name", "strategy", "guidance"}, {"interaction_model", "polarity_strength", "shuffle_interactions", "iterations"} if topology_aware else set(), f"methods[{index}]")
             method_guidance = tuple(map(str, value["guidance"]))
             if value["strategy"] not in supported_strategies:
                 raise SearchConfigurationError(f"unsupported method strategy: {value['strategy']}")
             if not method_guidance or set(method_guidance)-guidance_names:
                 raise SearchConfigurationError(f"method references unsupported guidance: {method_guidance}")
-            methods.append(SearchMethodConfiguration(str(value["name"]),str(value["strategy"]),method_guidance))
+            interaction_model = str(value.get("interaction_model", "configured"))
+            if topology_aware and interaction_model not in {"none", "finite_polar", "topology_corrected", "local_quadratic", "kronecker", "stratified_kronecker"}:
+                raise SearchConfigurationError(f"unsupported interaction model: {interaction_model}")
+            methods.append(SearchMethodConfiguration(str(value["name"]),str(value["strategy"]),method_guidance,
+                                                       interaction_model, None if "polarity_strength" not in value else float(value["polarity_strength"]),
+                                                       bool(value.get("shuffle_interactions", False)),
+                                                       None if "iterations" not in value else int(value["iterations"])))
+            if methods[-1].iterations is not None and methods[-1].iterations < 0:
+                raise SearchConfigurationError("method iterations must be nonnegative")
         if len({value.name for value in methods}) != len(methods):
             raise SearchConfigurationError("method names must be unique")
         strategies = tuple(value.strategy for value in methods)
@@ -282,7 +324,7 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
         raise SearchConfigurationError("search.evaluator must be incremental or full")
     if search["candidate_pool_strategy"] not in {"all", "top_union", "uniform"}:
         raise SearchConfigurationError("unsupported candidate_pool_strategy")
-    if int(search["candidate_pool_count"]) < int(initial["budget_bits"]):
+    if int(search["candidate_pool_count"]) < max(budgets):
         raise SearchConfigurationError("candidate pool cannot be smaller than protection budget")
     if not 0 < float(search["uniform_exploration"]) <= 1:
         raise SearchConfigurationError("uniform_exploration must be in (0,1]")
@@ -302,6 +344,30 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
         raise SearchConfigurationError("polar_guided_swap requires a positive polar pair_budget")
     if int(polar["pair_budget"]) < 0 or int(polar["background_contexts"]) < 1:
         raise SearchConfigurationError("invalid sparse polar budget")
+    topology = None
+    if topology_aware:
+        raw = _table(document, "topology")
+        fields = {"interaction_models", "interaction_guidance", "confidence_strata", "minimum_stratum_samples", "output_layer_pair_budget", "hidden_layer_pair_budget", "cross_layer_pair_budget", "cache_response_limit"}
+        _keys(raw, fields, set(), "topology")
+        models = tuple(map(str, raw["interaction_models"]))
+        supported_models = {"finite_polar", "topology_corrected", "local_quadratic", "kronecker", "stratified_kronecker"}
+        if not models or len(set(models)) != len(models) or set(models) - supported_models:
+            raise SearchConfigurationError("topology.interaction_models contains unsupported or duplicate values")
+        if raw["interaction_guidance"] != "mask_dependent_sparse_v1":
+            raise SearchConfigurationError("topology interaction guidance must be mask_dependent_sparse_v1")
+        numeric = ("confidence_strata", "minimum_stratum_samples", "cache_response_limit")
+        discovery_budget_fields = ("output_layer_pair_budget", "hidden_layer_pair_budget", "cross_layer_pair_budget")
+        if any(int(raw[name]) < 1 for name in numeric) or any(int(raw[name]) < 0 for name in discovery_budget_fields):
+            raise SearchConfigurationError("invalid topology strata, cache, or discovery budget")
+        if sum(int(raw[name]) for name in discovery_budget_fields) > int(polar["pair_budget"]):
+            raise SearchConfigurationError("layer discovery budgets exceed polar.pair_budget")
+        method_models = {value.interaction_model for value in methods} - {"none"}
+        if not method_models <= set(models):
+            raise SearchConfigurationError("method interaction_model is not enabled by topology.interaction_models")
+        topology = TopologyConfiguration(models, str(raw["interaction_guidance"]), int(raw["confidence_strata"]),
+                                         int(raw["minimum_stratum_samples"]), int(raw["output_layer_pair_budget"]),
+                                         int(raw["hidden_layer_pair_budget"]), int(raw["cross_layer_pair_budget"]),
+                                         int(raw["cache_response_limit"]))
     fault = _table(document, "fault")
     _keys(fault, {"target", "location", "persistence", "distribution", "probabilities" if controlled else "probability"}, set(), "fault")
     if (fault["target"], fault["location"], fault["persistence"], fault["distribution"]) != ("weight", "logical_trainable_parameter_bits", "persistent_trial", "independent_bernoulli"):
@@ -337,10 +403,10 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
         str(schema_version), expected_protocol, str(experiment["name"]), str(experiment["description"]), str(experiment["objective"]),
         BenchmarkConfiguration(str(benchmark["adapter"]), str(benchmark["id"]), checkpoint, dataset, str(benchmark["split"]), int(samples["final_count"]), int(samples["ranking_count"]), str(benchmark["quantization"]), str(benchmark["quantization_backend"]), tuple(map(str, injectables))),
         SearchSamples(int(samples["ranking_count"]), int(samples["search_count"]), int(samples["final_count"]), bool(samples["require_disjoint"])),
-        tuple(estimators), tuple(guidance), InitialMaskConfiguration(str(initial["guidance"]), int(initial["budget_bits"])), tuple(methods),
+        tuple(estimators), tuple(guidance), InitialMaskConfiguration(str(initial["guidance"]), budgets[0], budgets), tuple(methods),
         search_config, PolarConfiguration(bool(polar["enabled"]), str(polar["mode"]), int(polar["pair_budget"]), int(polar["background_contexts"]), int(polar["seed"]), float(polar["strength"]), bool(polar["collect_cancellation_diagnostics"])),
         FaultConfiguration(str(fault["target"]), str(fault["location"]), str(fault["persistence"]), str(fault["distribution"]), probabilities[0]), probabilities,
         FinalEvaluationConfiguration(natural_contexts, natural_seed, float(final["confidence"]), conditional_contexts, conditional_seed),
         SearchReplications(int(reps["count"]), int(reps["search_seed_stride"]), int(reps["final_seed_stride"]), int(reps["sample_offset_stride"])),
-        OutputConfiguration(root.resolve(), bool(output["report"]), bool(output["plots"])), source, text,
+        OutputConfiguration(root.resolve(), bool(output["report"]), bool(output["plots"])), topology, source, text,
     )

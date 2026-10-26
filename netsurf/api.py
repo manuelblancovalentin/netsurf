@@ -98,7 +98,7 @@ def load_configuration(path: str | Path):
         version = tomllib.load(stream).get("schema_version")
     if version in {"3.0.0", "3.1.0"}:
         return load_study(source)
-    if version in {"4.0.0", "4.1.0"}:
+    if version in {"4.0.0", "4.1.0", "4.2.0"}:
         return load_search(source)
     return load_experiment(source)
 
@@ -161,7 +161,7 @@ def regenerate_report(
     destination.mkdir(parents=True, exist_ok=True)
     figures: tuple[str, ...] = ()
     is_study = result.resolved_config.get("schema_version") in {"3.0.0", "3.1.0"}
-    is_search = result.resolved_config.get("schema_version") in {"4.0.0", "4.1.0"}
+    is_search = result.resolved_config.get("schema_version") in {"4.0.0", "4.1.0", "4.2.0"}
     summary = result.summary
     derived = None
     trial_rows = ()
@@ -213,7 +213,7 @@ def regenerate_report(
                 return tuple(dict(row) for row in csv.DictReader(stream))
         figures = ()
         if plots:
-            generated = plot_search_results(summary, destination / "plots", trials=search_rows("final_trials.csv"), convergence=search_rows("convergence.csv"), validation=search_rows("incremental_validation.csv"), polar=search_rows("polar_interactions.csv"), search_steps=search_rows("search_steps.csv"), composition=search_rows("mask_composition.csv"), search_results=search_rows("search_results.csv"), proposal_diagnostics=search_rows("proposal_diagnostics.csv"))
+            generated = plot_search_results(summary, destination / "plots", trials=search_rows("final_trials.csv"), convergence=search_rows("convergence.csv"), validation=search_rows("incremental_validation.csv"), polar=search_rows("polar_interactions.csv"), topology=search_rows("topology_interactions.csv"), search_steps=search_rows("search_steps.csv"), composition=search_rows("mask_composition.csv"), search_results=search_rows("search_results.csv"), proposal_diagnostics=search_rows("proposal_diagnostics.csv"))
             figures = tuple(path.relative_to(destination).as_posix() for path in generated)
         output_path = destination / "report.md"
         output_path.write_text(render_search_report(summary, result.resolved_config, figure_paths=figures), encoding="utf-8")
