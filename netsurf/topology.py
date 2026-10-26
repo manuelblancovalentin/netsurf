@@ -267,8 +267,17 @@ def benchmark_topology_engines(
     responses = [topology.response(bit).logits_delta for bit in candidates]
     topology_seconds = perf_counter() - started
     base = evaluator.full_forward(inputs, background).logits
+    relative_floor = 1e-12
     maximum_full_error = max(float(np.max(np.abs(base + response - reference))) for response, reference in zip(responses, full))
+    maximum_full_relative_error = max(
+        float(np.max(np.abs(base + response - reference) / np.maximum(np.abs(reference), relative_floor)))
+        for response, reference in zip(responses, full)
+    )
     maximum_incremental_error = max(float(np.max(np.abs(reference - exact))) for reference, exact in zip(incremental, full))
+    maximum_incremental_relative_error = max(
+        float(np.max(np.abs(reference - exact) / np.maximum(np.abs(exact), relative_floor)))
+        for reference, exact in zip(incremental, full)
+    )
     pair_count = len(candidates) // 2
     topology_pair_seconds = full_pair_seconds = 0.0
     topology_swap_seconds = incremental_swap_seconds = full_swap_seconds = 0.0
@@ -332,6 +341,9 @@ def benchmark_topology_engines(
         "topology_cache_hits": topology.cache_hits, "topology_cache_misses": topology.cache_misses,
         "topology_fallbacks": topology.fallbacks,
         "maximum_full_logit_absolute_error": maximum_full_error,
+        "maximum_full_logit_relative_error": maximum_full_relative_error,
         "maximum_incremental_logit_absolute_error": maximum_incremental_error,
+        "maximum_incremental_logit_relative_error": maximum_incremental_relative_error,
+        "relative_error_denominator_floor": relative_floor,
         "loss_checksum": float(sum(metrics_from_logits(value, labels).categorical_crossentropy for value in full)),
     }

@@ -155,3 +155,6 @@ def test_bounded_benchmark_measures_all_three_matched_swap_paths(topology_fixtur
         assert result[field] is not None
         assert result[field] > 0
     assert result["maximum_full_logit_absolute_error"] < 1e-12
+    assert result["maximum_full_logit_relative_error"] < 1e-12
+    assert result["maximum_incremental_logit_relative_error"] < 1e-12
+    assert result["relative_error_denominator_floor"] == 1e-12
