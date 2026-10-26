@@ -194,6 +194,10 @@ def plot_search_results(summary, output: Path, *, trials=(), convergence=(), val
         classes=sorted({str(value["topology_class"]) for value in topology})
         data=[[abs(float(value["topology_exact_interaction_error"])) for value in topology if str(value["topology_class"])==name] for name in classes]
         fig,ax=plt.subplots(figsize=(max(7,len(classes)*1.2),4.5)); ax.boxplot(data,tick_labels=classes,showmeans=True); ax.set_yscale("symlog",linthresh=1e-15); ax.set(ylabel="Absolute interaction reconstruction error",title="Exact topology reconstruction by pair class"); ax.tick_params(axis="x",rotation=25); fig.tight_layout(); path=output/"topology_exact_error.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
+        topology_times=[float(value["wall_seconds"]) for value in topology if value.get("wall_seconds") not in (None,"")]
+        existing_times=[float(value["wall_seconds"]) for value in polar if value.get("wall_seconds") not in (None,"")]
+        if topology_times and existing_times:
+            fig,ax=plt.subplots(figsize=(6.5,4.5)); ax.boxplot([existing_times,topology_times],tick_labels=["Existing incremental","Topology-aware"],showmeans=True); ax.set_yscale("log"); ax.set(ylabel="Wall time per sampled pair (s)",title="Pair-interaction evaluation latency"); fig.tight_layout(); path=output/"topology_pair_latency.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
         for field,title,filename in (("local_quadratic","Local quadratic","local_vs_finite_polar.png"),("kronecker","Conventional Kronecker","kronecker_vs_finite_polar.png"),("stratified_kronecker","Stratified Kronecker","stratified_kron_vs_finite_polar.png")):
             values=[value for value in topology if value.get(field) not in (None,"")]
             if values:
