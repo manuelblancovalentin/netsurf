@@ -101,6 +101,8 @@ def test_no_progress_cli_option_suppresses_reporter(monkeypatch, capsys, tmp_pat
         return destination
 
     monkeypatch.setattr(cli, "run_experiment", fake_run)
+    monkeypatch.setattr(cli, "load_configuration", lambda path: SimpleNamespace(name="unused"))
+    monkeypatch.setattr(cli, "configuration_operation_plan", lambda config: {"work": 1})
     monkeypatch.setattr(cli, "read_result_bundle", lambda path: SimpleNamespace(scientific_payload_sha256="abc"))
     assert cli.main(["run", "unused.toml", "--no-progress"]) == 0
     assert captured["progress"] is None

@@ -7,13 +7,13 @@ import json
 from pathlib import Path
 import sys
 
-from .api import load_configuration, read_result_bundle, regenerate_report, run_experiment
+from .api import configuration_operation_plan, load_configuration, read_result_bundle, regenerate_report, run_experiment
 from .benchmarks import benchmark_info, benchmark_list
 from .doctor import doctor_report
 from .experiment_config import ConfigurationError, load_experiment, template_text
 from .paths import workspace_root
 from .plotting import PlottingDependencyError
-from .progress import LiveProgressReporter
+from .progress import ExperimentQueueItem, HierarchicalProgressReporter
 from .result_bundle import ResultBundleError
 from .study_config import StudyConfigurationError
 from .search_config import SearchConfigurationError
@@ -45,6 +45,12 @@ def _parser() -> argparse.ArgumentParser:
     progress.add_argument("--progress", dest="progress", action="store_true", help="show progress even when output is redirected")
     progress.add_argument("--no-progress", dest="progress", action="store_false", help="disable live progress")
     run.set_defaults(progress=None)
+    batch = subparsers.add_parser("batch", help="execute multiple experiment configurations sequentially")
+    batch.add_argument("configurations", type=Path, nargs="+")
+    batch_progress = batch.add_mutually_exclusive_group()
+    batch_progress.add_argument("--progress", dest="progress", action="store_true", help="show line-oriented progress when redirected")
+    batch_progress.add_argument("--no-progress", dest="progress", action="store_false", help="disable progress display")
+    batch.set_defaults(progress=None)
     inspect = subparsers.add_parser("inspect", help="verify and summarize a finalized bundle")
     inspect.add_argument("run_directory", type=Path)
     report = subparsers.add_parser("report", help="regenerate a report from saved data")
@@ -52,6 +58,75 @@ def _parser() -> argparse.ArgumentParser:
     report.add_argument("--output", type=Path)
     report.add_argument("--plots", action="store_true")
     return parser
+
+
+_EXPECTED_RUN_ERRORS = (
+    ConfigurationError, StudyConfigurationError, SearchConfigurationError,
+    ResultBundleError, PlottingDependencyError, FileExistsError, OSError,
+    KeyError, ValueError,
+)
+
+
+def _run_configurations(paths: list[Path], *, progress: bool | None, batch: bool) -> int:
+    loaded = []
+    items = []
+    for path in paths:
+        source = path.expanduser().resolve()
+        try:
+            configuration = load_configuration(source)
+            loaded.append((source, configuration, None))
+            items.append(ExperimentQueueItem(configuration.name, str(source), configuration_operation_plan(configuration)))
+        except _EXPECTED_RUN_ERRORS as error:
+            loaded.append((source, None, error))
+            items.append(ExperimentQueueItem(source.stem, str(source), {"Configuration validation": 1}))
+    enabled = sys.stderr.isatty() if progress is None else progress
+    reporter = HierarchicalProgressReporter(items, sys.stderr) if enabled else None
+    results = []
+    unexpected = None
+    try:
+        for index, (source, configuration, validation_error) in enumerate(loaded):
+            if reporter is not None:
+                reporter.start_experiment(index)
+            if validation_error is not None:
+                if reporter is not None:
+                    reporter.fail_experiment(index, validation_error)
+                results.append({"configuration": str(source), "status": "failed", "error": str(validation_error)})
+                continue
+            try:
+                destination = run_experiment(configuration, progress=None if reporter is None else reporter.callback(index))
+                result = read_result_bundle(destination)
+                if reporter is not None:
+                    reporter.complete_experiment(index, str(destination))
+                results.append({
+                    "configuration": str(source), "status": "completed",
+                    "run_directory": str(destination),
+                    "scientific_payload_sha256": result.scientific_payload_sha256,
+                })
+            except _EXPECTED_RUN_ERRORS as error:
+                if reporter is not None:
+                    reporter.fail_experiment(index, error)
+                results.append({"configuration": str(source), "status": "failed", "error": str(error)})
+            except BaseException as error:
+                if reporter is not None:
+                    reporter.fail_experiment(index, error)
+                unexpected = error
+                raise
+    finally:
+        if reporter is not None:
+            reporter.finish()
+    if unexpected is not None:
+        raise unexpected
+    failed = sum(value["status"] == "failed" for value in results)
+    completed = len(results) - failed
+    if batch:
+        print(json.dumps({"completed": completed, "failed": failed, "experiments": results}, indent=2, sort_keys=True))
+        if reporter is None:
+            print(f"NetSuRF summary: {completed} completed, {failed} failed, 0 pending", file=sys.stderr)
+    elif results and results[0]["status"] == "completed":
+        print(json.dumps({key: results[0][key] for key in ("run_directory", "scientific_payload_sha256")}, indent=2, sort_keys=True))
+    elif results:
+        print(f"netsurf: {results[0]['error']}", file=sys.stderr)
+    return 2 if failed else 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -96,11 +171,9 @@ def main(argv: list[str] | None = None) -> int:
             config = load_configuration(args.configuration)
             print(json.dumps(config.resolved_document(), indent=2, sort_keys=True) if args.resolved else f"valid: {config.name} (schema {config.schema_version})")
         elif args.command == "run":
-            enabled = sys.stderr.isatty() if args.progress is None else args.progress
-            reporter = LiveProgressReporter(sys.stderr) if enabled else None
-            destination = run_experiment(args.configuration, progress=reporter)
-            result = read_result_bundle(destination)
-            print(json.dumps({"run_directory": str(destination), "scientific_payload_sha256": result.scientific_payload_sha256}, indent=2, sort_keys=True))
+            return _run_configurations([args.configuration], progress=args.progress, batch=False)
+        elif args.command == "batch":
+            return _run_configurations(args.configurations, progress=args.progress, batch=True)
         elif args.command == "inspect":
             result = read_result_bundle(args.run_directory)
             print(json.dumps({"run_directory": str(result.path), "run_id": result.manifest["run_id"], "experiment": result.summary["experiment_name"], "benchmark": result.summary["benchmark_id"], "trials": result.summary["trial_count"], "scientific_payload_sha256": result.scientific_payload_sha256, "checksums": "verified"}, indent=2, sort_keys=True))
@@ -109,7 +182,7 @@ def main(argv: list[str] | None = None) -> int:
             output = args.output or workspace_root() / "scratch" / "reports" / result.manifest["run_id"]
             print(regenerate_report(result, output, plots=args.plots))
         return 0
-    except (ConfigurationError, StudyConfigurationError, SearchConfigurationError, ResultBundleError, PlottingDependencyError, FileExistsError, OSError, KeyError, ValueError) as error:
+    except _EXPECTED_RUN_ERRORS as error:
         print(f"netsurf: {error}", file=sys.stderr)
         return 2
 

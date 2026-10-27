@@ -103,6 +103,17 @@ def load_configuration(path: str | Path):
     return load_experiment(source)
 
 
+def configuration_operation_plan(configuration) -> dict[str, int]:
+    """Return the same measured-work plan used by the scientific tracker."""
+    if isinstance(configuration, SearchConfiguration):
+        return search_operation_plan(configuration, include_bundle=True)
+    if isinstance(configuration, StudyConfiguration):
+        return study_operation_plan(configuration, include_bundle=True)
+    if isinstance(configuration, ExperimentConfiguration):
+        return experiment_operation_plan(configuration, include_bundle=True)
+    raise TypeError(f"unsupported experiment configuration: {type(configuration).__name__}")
+
+
 def run_experiment(
     configuration: ExperimentConfiguration | str | Path,
     *,
@@ -254,6 +265,6 @@ def regenerate_report(
 
 __all__ = [
     "ExperimentConfiguration", "ExperimentOutcome", "StudyConfiguration", "StudyOutcome", "ResultBundle",
-    "load_configuration", "load_experiment", "load_study", "execute_study",
+    "load_configuration", "configuration_operation_plan", "load_experiment", "load_study", "execute_study",
     "read_result_bundle", "regenerate_report", "run_experiment",
 ]

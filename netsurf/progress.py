@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from time import monotonic
-from typing import Callable, Mapping, TextIO
+from typing import Callable, Mapping, Sequence, TextIO
 import sys
 
 
@@ -289,6 +289,302 @@ class LiveProgressReporter:
             self.stream.write(self._line(event, now) + "\n")
             self.stream.flush()
         self.last_rendered = now
+
+
+@dataclass(frozen=True)
+class ExperimentQueueItem:
+    """One validated configuration in a sequential execution queue."""
+
+    name: str
+    source: str
+    operation_plan: Mapping[str, int]
+
+
+@dataclass
+class _QueueState:
+    item: ExperimentQueueItem
+    status: str = "pending"
+    completed: int = 0
+    total: int = 1
+    stage: str = "Pending"
+    event: ProgressEvent | None = None
+    started: float | None = None
+    finished: float | None = None
+    error: str | None = None
+    result: str | None = None
+    last_event_time: float | None = None
+    previous_completed: int = 0
+    remaining: dict[str, int] = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.remaining = {str(key): int(value) for key, value in self.item.operation_plan.items()}
+        self.total = max(1, sum(self.remaining.values()))
+
+
+class HierarchicalProgressReporter:
+    """One coordinated queue and current-experiment Rich Live display."""
+
+    _STYLES = {
+        "pending": ("○", "grey50"),
+        "running": ("●", "yellow"),
+        "completed": ("●", "green"),
+        "failed": ("●", "red"),
+    }
+
+    def __init__(
+        self,
+        items: Sequence[ExperimentQueueItem],
+        stream: TextIO | None = None,
+        *,
+        refresh_seconds: float = 1.0,
+        clock: Callable[[], float] = monotonic,
+        interactive: bool | None = None,
+        width: int | None = None,
+    ):
+        if not items:
+            raise ValueError("experiment queue cannot be empty")
+        self.stream = stream or sys.stderr
+        self.refresh_seconds = float(refresh_seconds)
+        self.clock = clock
+        self.interactive = self.stream.isatty() if interactive is None else interactive
+        self.width = width
+        self.started = self.clock()
+        self.last_rendered = -float("inf")
+        self.states = [_QueueState(item) for item in items]
+        self.current_index: int | None = None
+        self.class_rates: dict[str, float] = {}
+        self.smoothed_queue_eta: float | None = None
+        self.smoothed_task_eta: float | None = None
+        self._live = None
+        self._console = None
+        self._rich_available = False
+        self._closed = False
+        if self.interactive:
+            try:
+                from rich.console import Console
+                from rich.live import Live
+
+                self._console = Console(file=self.stream, width=width, force_terminal=True)
+                self._live = Live(
+                    console=self._console,
+                    refresh_per_second=max(1, int(round(1 / max(self.refresh_seconds, 0.1)))),
+                    transient=False,
+                    auto_refresh=False,
+                )
+                self._rich_available = True
+            except ImportError:
+                self.interactive = False
+                self.stream.write(
+                    "NetSuRF: Rich live progress is unavailable; using plain output. "
+                    "Environment owner command: python -m pip install 'rich>=13,<16'\n"
+                )
+                self.stream.flush()
+
+    @staticmethod
+    def _duration(seconds: float) -> str:
+        return LiveProgressReporter._duration(seconds)
+
+    def callback(self, index: int) -> ProgressCallback:
+        if not 0 <= index < len(self.states):
+            raise IndexError(index)
+        return lambda event: self.update(index, event)
+
+    def start_experiment(self, index: int) -> None:
+        state = self.states[index]
+        if state.status != "pending":
+            raise RuntimeError(f"experiment {index} is already {state.status}")
+        now = self.clock(); self.current_index = index
+        state.status = "running"; state.stage = "Starting"; state.started = now
+        state.last_event_time = now; self.smoothed_task_eta = None
+        self._render(now, force=True, plain_message=f"Starting {state.item.name} ({index + 1}/{len(self.states)})")
+
+    def _observe(self, state: _QueueState, event: ProgressEvent, now: float) -> None:
+        if event.completed > state.previous_completed and state.last_event_time is not None:
+            units = event.completed - state.previous_completed
+            seconds_per_unit = max(0.0, now - state.last_event_time) / units
+            name = event.work_class or event.stage
+            prior = self.class_rates.get(name)
+            self.class_rates[name] = seconds_per_unit if prior is None else 0.25 * seconds_per_unit + 0.75 * prior
+            state.last_event_time = now
+        elif event.completed != state.previous_completed:
+            state.last_event_time = now
+        state.previous_completed = event.completed
+
+    def update(self, index: int, event: ProgressEvent) -> None:
+        state = self.states[index]
+        now = self.clock()
+        if state.status == "pending":
+            self.start_experiment(index)
+            now = self.clock()
+        if state.status not in {"running", "failed"}:
+            return
+        self._observe(state, event, now)
+        state.event = event; state.completed = int(event.completed); state.total = max(1, int(event.total))
+        state.stage = event.stage; state.remaining = dict(event.remaining_work)
+        if event.failed:
+            state.status = "failed"; state.error = event.message or "experiment failed"; state.finished = now
+        self._render(now, force=event.failed or event.stage != getattr(state, "_rendered_stage", None))
+        state._rendered_stage = event.stage
+
+    def complete_experiment(self, index: int, result: str | None = None) -> None:
+        state = self.states[index]
+        if state.status == "failed":
+            return
+        if state.status != "running":
+            raise RuntimeError(f"experiment {index} is not running")
+        now = self.clock(); state.status = "completed"; state.stage = "Completed"
+        state.completed = state.total; state.finished = now; state.result = result
+        state.remaining = {key: 0 for key in state.remaining}
+        self._render(now, force=True, plain_message=f"Completed {state.item.name}: {state.completed}/{state.total}")
+
+    def fail_experiment(self, index: int, error: BaseException | str) -> None:
+        state = self.states[index]; now = self.clock()
+        if state.status == "failed":
+            return
+        if state.status == "pending":
+            state.started = now
+        state.status = "failed"; state.stage = "Failed"; state.finished = now
+        state.error = str(error); self.current_index = index
+        self._render(now, force=True, plain_message=f"Failed {state.item.name}: {state.error}")
+
+    def _task_eta_seconds(self, state: _QueueState, now: float) -> float | None:
+        if state.status == "completed":
+            return 0.0
+        remaining = state.remaining
+        if not remaining:
+            if state.completed < 2 or state.started is None:
+                return None
+            return (now - state.started) / state.completed * max(0, state.total - state.completed)
+        total = sum(max(0, value) for value in remaining.values())
+        known = sum(max(0, value) for name, value in remaining.items() if name in self.class_rates)
+        if total == 0:
+            return 0.0
+        if known / total < 0.5:
+            return None
+        estimate = sum(self.class_rates[name] * max(0, value) for name, value in remaining.items() if name in self.class_rates)
+        self.smoothed_task_eta = estimate if self.smoothed_task_eta is None else 0.30 * estimate + 0.70 * self.smoothed_task_eta
+        return self.smoothed_task_eta
+
+    def _queue_eta_seconds(self, now: float) -> float | None:
+        remaining: dict[str, int] = {}
+        for state in self.states:
+            if state.status in {"completed", "failed"}:
+                continue
+            values = state.remaining or dict(state.item.operation_plan)
+            for name, count in values.items():
+                remaining[name] = remaining.get(name, 0) + max(0, int(count))
+        total = sum(remaining.values())
+        if total == 0:
+            return 0.0
+        known = sum(count for name, count in remaining.items() if name in self.class_rates)
+        if known / total < 0.5:
+            return None
+        estimate = sum(self.class_rates[name] * count for name, count in remaining.items() if name in self.class_rates)
+        self.smoothed_queue_eta = estimate if self.smoothed_queue_eta is None else 0.30 * estimate + 0.70 * self.smoothed_queue_eta
+        return self.smoothed_queue_eta
+
+    def _condition(self, event: ProgressEvent | None) -> str:
+        if event is None:
+            return ""
+        values = []
+        if event.replication is not None:
+            values.append(f"rep {event.replication}/{event.replications}")
+        if event.logical_ber is not None:
+            values.append(f"BER {event.logical_ber:.3g}")
+        if event.coverage is not None:
+            values.append(f"coverage {event.coverage:.1%}")
+        if event.policy:
+            values.append(event.policy)
+        if event.trial is not None:
+            values.append(f"trial {event.trial}/{event.trials}")
+        if event.iteration is not None:
+            values.append(f"iteration {event.iteration}/{event.iterations}")
+        return " · ".join(values)
+
+    def _renderable(self, now: float):
+        from rich.console import Group
+        from rich.progress import BarColumn, Progress, TaskProgressColumn
+        from rich.table import Table
+        from rich.text import Text
+
+        queue = Table(title="NetSuRF experiment queue", expand=True, box=None, padding=(0, 1))
+        queue.add_column("Status", width=9, no_wrap=True); queue.add_column("Experiment", ratio=2, overflow="ellipsis", no_wrap=True)
+        queue.add_column("Work", justify="right", no_wrap=True); queue.add_column("Stage", ratio=2, overflow="ellipsis", no_wrap=True)
+        for state in self.states:
+            symbol, style = self._STYLES[state.status]
+            stage = state.error if state.status == "failed" else state.stage
+            label = "done" if state.status == "completed" else state.status
+            queue.add_row(Text(f"{symbol} {label}", style=style), Text(state.item.name, style=style),
+                          f"{state.completed}/{state.total}", Text(stage, style=style, overflow="ellipsis", no_wrap=True))
+        total = sum(state.total for state in self.states)
+        completed = sum(state.completed for state in self.states)
+        overall = Progress(BarColumn(bar_width=None), TaskProgressColumn(), expand=True)
+        overall.add_task("Queue", total=max(1, total), completed=min(completed, total))
+        pieces = [queue, overall]
+        state = None if self.current_index is None else self.states[self.current_index]
+        if state is not None and state.status in {"running", "failed"}:
+            event = state.event
+            detail = Table.grid(expand=True, padding=(0, 1)); detail.add_column(style="dim", no_wrap=True); detail.add_column(overflow="ellipsis", no_wrap=True)
+            detail.add_row("Current", state.item.name)
+            detail.add_row("Stage", state.stage)
+            condition = self._condition(event)
+            if condition: detail.add_row("Condition", condition)
+            detail.add_row("Work", f"{state.completed} / {state.total}")
+            elapsed = 0.0 if state.started is None else now - state.started
+            task_eta = self._task_eta_seconds(state, now)
+            queue_eta = self._queue_eta_seconds(now)
+            detail.add_row("Elapsed", self._duration(elapsed))
+            detail.add_row("Experiment ETA", "Estimating..." if task_eta is None else self._duration(task_eta))
+            detail.add_row("Queue ETA", "Estimating..." if queue_eta is None else self._duration(queue_eta))
+            if event is not None and event.mean_accuracy is not None:
+                detail.add_row("Mean accuracy", f"{event.mean_accuracy:.2%}")
+            if event is not None and event.mean_loss is not None:
+                detail.add_row("Mean loss", f"{event.mean_loss:.4g}")
+            if state.error: detail.add_row("Error", state.error)
+            pieces.append(detail)
+        return Group(*pieces)
+
+    def _plain_line(self, now: float) -> str:
+        state = None if self.current_index is None else self.states[self.current_index]
+        completed_tasks = sum(item.status == "completed" for item in self.states)
+        failed_tasks = sum(item.status == "failed" for item in self.states)
+        if state is None:
+            return f"NetSuRF queue: {completed_tasks} completed, {failed_tasks} failed, {len(self.states)} total"
+        fraction = min(1.0, state.completed / max(1, state.total))
+        eta = self._queue_eta_seconds(now)
+        condition = self._condition(state.event)
+        suffix = f" | {condition}" if condition else ""
+        return (f"NetSuRF queue {self.current_index + 1}/{len(self.states)} | {state.item.name} | {state.stage} | "
+                f"{state.completed}/{state.total} {fraction:.1%}{suffix} | elapsed {self._duration(now-self.started)} | "
+                f"queue ETA {'Estimating...' if eta is None else self._duration(eta)}")
+
+    def _render(self, now: float, *, force: bool = False, plain_message: str | None = None) -> None:
+        if self._closed or (not force and now - self.last_rendered < self.refresh_seconds):
+            return
+        if self.interactive and self._rich_available:
+            if not self._live.is_started:
+                self._live.start(refresh=True)
+            self._live.update(self._renderable(now), refresh=True)
+        else:
+            self.stream.write((plain_message or self._plain_line(now)) + "\n"); self.stream.flush()
+        self.last_rendered = now
+
+    def finish(self) -> None:
+        if self._closed:
+            return
+        now = self.clock()
+        self._render(now, force=True)
+        if self._live is not None and self._live.is_started:
+            self._live.stop()
+        completed = sum(state.status == "completed" for state in self.states)
+        failed = sum(state.status == "failed" for state in self.states)
+        pending = sum(state.status == "pending" for state in self.states)
+        summary = f"NetSuRF summary: {completed} completed, {failed} failed, {pending} pending in {self._duration(now-self.started)}"
+        if self._console is not None and self.interactive and self._rich_available:
+            self._console.print(summary)
+        else:
+            self.stream.write(summary + "\n"); self.stream.flush()
+        self._closed = True
 
 
 def study_operation_count(configuration, *, include_bundle: bool = False) -> int:
