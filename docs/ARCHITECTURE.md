@@ -139,3 +139,12 @@ discovery only. The search layer converts recorded edges into mask-dependent
 proposal adjustments, while exact matched conditional evaluation remains the
 sole acceptance path. Saved topology and proposal-influence tables regenerate
 reports and plots without TensorFlow.
+
+Schema 4.3 adds `conditional_screening.py`, which computes reusable candidate
+marginals from common random fields while retaining paired context
+contributions, and `factorized.py`, which represents a full vulnerable-
+population Kronecker interaction sum with dynamic rank-one updates.
+`search.py` composes those proposal stages with the existing exact conditional
+acceptance gate. `timing.py` defines non-overlapping timing intervals; bundle
+and reporting code label inclusive method and cumulative trajectory timing so
+they cannot be mistaken for additive phase measurements.

@@ -473,3 +473,56 @@ Schema 4.2 records proposal-distribution shifts separately from exactly
 verified swap benefits. Accurate pair interactions alone are not evidence that
 an optimizer improves a protection mask. Logical BER 0.01 is a stress
 condition, not a calibrated radiation rate.
+
+## M4.3 mask-aware conditional-screening workflow
+
+Run the exhaustive 102-bit reference first. It validates exact swap
+decomposition, common-background candidate screening, full-population
+factorized sums, dynamic updates, immutable outputs, saved-data plots, and the
+exclusive timing audit.
+
+```bash
+proj activate netsurf
+netsurf validate config/experiments/numpy_conditional_screening_exact.toml --resolved
+netsurf run config/experiments/numpy_conditional_screening_exact.toml
+```
+
+Then use the prepared MNIST checkpoint for the bounded diagnostic and smoke
+study. Neither command trains or overwrites the checkpoint.
+
+```bash
+netsurf validate config/experiments/mnist_factorized_aggregate_validation.toml --resolved
+netsurf run config/experiments/mnist_factorized_aggregate_validation.toml
+netsurf validate config/experiments/mnist_conditional_screening_smoke.toml --resolved
+netsurf run config/experiments/mnist_conditional_screening_smoke.toml
+```
+
+The 25%-coverage diagnostic uses 32/16/32 ranking/search/final samples, one
+search iteration, four final contexts, and explicit full-versus-restricted
+aggregate populations. The smoke configuration uses 32/16/32 samples, two
+iterations, four final contexts, and all principal M4.3 proposal paths. These
+are bounded diagnostics, not publication experiments.
+
+The researcher-sized comparison is deliberately not an automated regression:
+
+```bash
+tmux new -s netsurf-m43
+proj activate netsurf
+netsurf validate config/experiments/mnist_conditional_screening_research.toml --resolved
+netsurf run config/experiments/mnist_conditional_screening_research.toml
+```
+
+It declares two budgets, two logical BERs, three replications, nine methods,
+eight search iterations, and separate 32-context natural and conditional final
+evaluations. Inspect disk/runtime after one bounded condition before committing
+to the full matrix. Screening work scales approximately with replications ×
+budgets × BERs × iterations × backgrounds × shortlisted candidates; exact
+verification scales with the verified swap shortlist. Full-population
+factorization setup additionally scales with the 152,700-bit eligible
+population but its per-query aggregate is constant-size for the explicit dense
+layers.
+
+`candidate_screening_contexts.csv` preserves common-field paired contributions;
+`factorized_guidance.csv` records coverage, drift, and timing attribution; and
+`timing_phases.csv` is the only additive wall-time table. See
+`docs/M4_3_AUDIT.md` for the M4.2 25%-coverage evidence and timing semantics.

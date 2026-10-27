@@ -73,6 +73,12 @@ netsurf run config/experiments/mnist_estimator_uniform.toml
 netsurf run config/experiments/mnist_estimator_replicated.toml
 netsurf run config/experiments/mnist_multi_coverage_ber.toml
 
+# M4.3: exact mask-aware screening reference and bounded MNIST diagnostics.
+netsurf run config/experiments/numpy_conditional_screening_exact.toml
+netsurf run config/experiments/mnist_factorized_aggregate_validation.toml
+netsurf run config/experiments/mnist_conditional_screening_smoke.toml
+netsurf validate config/experiments/mnist_conditional_screening_research.toml --resolved
+
 # Use the run directory printed by either command.
 netsurf inspect workspace/runs/<experiment>/<run-id>
 netsurf report workspace/runs/<experiment>/<run-id> --plots
@@ -123,6 +129,14 @@ rank-mixture proposal priors. Uniform, static-guided, polar-guided,
 conditional-greedy, and simulated-annealing searches use exact matched
 three-state swap evaluations; independent held-out fault states are shared by
 all final masks. The polar score is proposal guidance only.
+
+Schema 4.3 adds reusable common-background conditional marginals, saved paired
+candidate contributions, exact shortlist verification, and dynamic full-
+vulnerable-population conventional/stratified Kronecker aggregates. Candidate-
+pool aggregation is an explicit restricted control. Aggregate and polar scores
+remain proposal diagnostics; only exact three-state conditional evaluation can
+accept a swap. See `docs/M4_3_AUDIT.md` for the 25%-coverage sparse-guidance
+diagnosis and non-overlapping timing semantics.
 
 ```bash
 netsurf validate config/experiments/numpy_pgcs_exact.toml

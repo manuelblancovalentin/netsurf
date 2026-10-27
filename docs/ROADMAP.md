@@ -86,3 +86,18 @@ Every method must share stated physical targets, matched fault conditions where 
 
 Pruning remains a future protocol because stored zeros, logical masks, and
 physically removed parameters define different fault populations and costs.
+
+## M4.2–M4.3 — topology and mask-aware conditional guidance
+
+- [x] Reconstruct exact Dense--ReLU--Dense topology responses and distinct
+  finite, topology-corrected, and Kronecker interaction levels.
+- [x] Audit the sparse-guidance loss of proposal influence at 25% coverage.
+- [x] Add exact small-universe swap decomposition and reusable common-field
+  conditional candidate marginals.
+- [x] Add full-population conventional/stratified Kronecker aggregates with
+  self exclusion, rank-one updates, coverage, drift, and timing diagnostics.
+- [x] Retain exact conditional acceptance and independent held-out endpoints.
+
+The next activity is researcher execution of the maintained M4.3 configurations
+and scientific review. Full-population aggregate guidance remains a proposal
+surrogate, not an accepted susceptibility or protection theory.

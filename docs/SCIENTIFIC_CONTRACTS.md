@@ -167,3 +167,22 @@ Sparse mask-dependent proposal scores omit unmeasured edges; omission is never
 represented as evidence that the physical interaction is zero. Every proposed
 swap remains subject to exact matched conditional evaluation, and final claims
 use independent M4.1 held-out fields.
+
+## M4.3 mask-aware screening and aggregate guidance
+
+Reusable removal and addition marginals are proposal-screening quantities.
+Their difference `C-D` is not an exact swap effect because it omits the pair
+correction. Candidate rows share common background fields, and bundles retain
+per-context contributions so their covariance is recoverable. Marginal-only,
+corrected-shortlist, factorized, and hybrid searches are separately named.
+
+The full-population Kronecker aggregate is exact only as a matrix identity
+within its stated local GGN surrogate. It excludes only the queried encoded bit
+from its vulnerable sum, supports rank-one accepted-swap updates, and records
+population coverage and reconstruction drift. Stratified and conventional
+aggregates remain different approximations. Restricted-pool aggregation is a
+negative control, not a full-network quantity.
+
+Neither a factorized score nor a polar pair term accepts a swap. Exact matched
+three-state conditional evaluation remains the acceptance gate, and independent
+held-out natural and conditional fields remain the scientific endpoints.
