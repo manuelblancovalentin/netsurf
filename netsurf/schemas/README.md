@@ -53,3 +53,11 @@ fixed candidate and exact-verification budgets, shared search backgrounds,
 global or layer/bit-position-stratified shuffled Kronecker controls, run-local
 factor calibration caching, batched factorized queries, and per-candidate
 proposal records. Schema 4.3 retains its historical scalar numerical path.
+
+Pruning preparation schema `5.0.0` is a separate checkpoint-generation
+contract, not an experiment-result schema. It defines the immutable source,
+calibration partition, physical hidden-neuron pruning method/schedule,
+separately weighted reliability components, fine-tuning mode, and workspace
+checkpoint destination. Its executable validator is
+`netsurf.pruning_config.load_pruning`. Existing experiment, study, search,
+manifest, summary, and measurement readers remain unchanged.

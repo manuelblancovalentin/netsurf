@@ -89,6 +89,12 @@ FaultModel -> deterministic FaultSchedule -> InjectionEngine
   Live queue/current-experiment renderer, persistent per-task runtimes,
   phase-aware ETA estimation, and ANSI-free redirected output. Batch status
   never enters result serialization.
+- `netsurf.pruning_config`, `netsurf.pruning`, and
+  `netsurf.pruning_pipeline`: strict schema-5 preparation, physical hidden
+  dependency-group removal, ablatable importance terms, bounded fine-tuning,
+  immutable checkpoint provenance, and exact post-quantization validation.
+- `netsurf.reliability`: clean-relative accuracy/loss and prediction-change
+  measurements for explicit persistent XOR states, with exact topology costs.
 - `netsurf.api` and `netsurf.__main__`: one public engine exposed to scripts, notebooks, and the CLI.
 - `netsurf.milestone`: retained historical compatibility workflow; new work uses versioned experiment configurations.
 

@@ -205,3 +205,24 @@ Cached factors depend only on fully hashed calibration inputs. Protected-mask
 state and logical BER remain uncached method-local aggregate state. Cache reuse
 may change wall time but must not change proposal scores, masks, fault states,
 held-out measurements, or the scientific payload digest.
+
+## M5 structured pruning
+
+Physical hidden-neuron pruning removes the incoming kernel column, hidden bias,
+and outgoing kernel row as one dependency group. It re-enumerates bit identities
+over the smaller tensors; a zero-valued or masked source tensor is never called
+pruned. `grouped_taylor` is an architecture-specific adaptation of the Vinck
+et al. workflow, not a reproduction of their CNN, quantizer, accelerator, or
+single-transient fault experiment. `group_magnitude` and independently trained
+widths are controls.
+
+`netsurf_reliability_aware` and `netsurf_fault_augmented` are explicitly new
+NetSuRF proposals. They are not RAP: the accessible RAP source lacks the exact
+criterion and fine-tuning equations needed for faithful reproduction. Clean
+preservation, stored-bit susceptibility, resource cost, and fault-augmented
+training weights remain separately recorded and ablatable.
+
+Post-pruning topology records exact parameter and encoded-bit counts, dense MAC
+count, and packed encoded storage bytes. MAC reduction is not a FIT reduction
+without an approved physical exposure model. Each pruned model is evaluated
+relative to its own clean baseline.

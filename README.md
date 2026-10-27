@@ -138,6 +138,13 @@ and writes an exact `q<6,2,1>` checkpoint under
 and biases are the injectable population: 25,450 scalars and 152,700 logical
 bits. MSB-first, seeded random, and first-order
 `abs(dL/dw * exact_bit_delta)` rankers are available independently or together.
+
+Schema-5 structured pruning physically removes complete hidden-neuron
+dependency groups and writes new immutable checkpoints under `workspace/`.
+Validate, prepare, and verify a researcher-authored configuration with
+`netsurf pruning validate`, `netsurf pruning run`, and
+`netsurf pruning inspect`; see `docs/PRUNING.md`. No M5 research campaign is
+started automatically.
 M3 additionally separates raw estimators, composable lexicographic ordering,
 and budget selection; records disjoint ranking, empirical-validation, and final
 evaluation samples; and supports exact isolated-bit damage, seeded Hutchinson

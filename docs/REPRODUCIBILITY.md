@@ -561,3 +561,22 @@ queue entries continue; a nonzero exit status indicates that at least one entry
 failed. Use `--progress` for occasional ANSI-free records when stderr is
 redirected, or `--no-progress` for automation that consumes only the JSON
 summary on stdout.
+
+## M5 structured-pruning checkpoint preparation
+
+M5 provides a schema and CLI, not a maintained research configuration or an
+automatic training campaign. Author a schema-5 TOML using `docs/PRUNING.md`,
+then validate before permitting any configured fine-tuning:
+
+```bash
+proj activate netsurf
+netsurf pruning validate /path/to/research-authored-pruning.toml --resolved
+netsurf pruning run /path/to/research-authored-pruning.toml
+netsurf pruning inspect workspace/benchmarks/my_pruned_model/checkpoint.npz
+```
+
+With `fine_tuning.enabled = false`, preparation performs calibration,
+importance calculation, physical tensor removal, exact six-bit requantization,
+and immutable serialization only. Training cost when enabled scales with
+`stages × epochs_per_stage × training_samples / batch_size`; reliability-aware
+fine-tuning performs both clean and fault-augmented forwards per batch.
