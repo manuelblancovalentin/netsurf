@@ -18,6 +18,7 @@ from .manifests import digest_object, sha256_file
 from .ordering import compose_ordering
 from .protection import ProtectionMask, ProtectionPolicy
 from .progress import ProgressTracker, study_operation_plan
+from .pruning import checkpoint_pruning_contract
 from .quantization import BitCodec, FixedPointFormat
 from .ranking import Ranking
 from .samples import SamplePartition, require_disjoint
@@ -312,18 +313,22 @@ def _execute_single_study(
     metric_payload = [{key: value for key, value in row.items() if key != "runtime_seconds"} for row in metrics]
     if tracker is not None:
         tracker.update("Scientific payload", **context)
+    benchmark_payload = {
+        "id": configuration.benchmark.id,
+        "checkpoint_sha256": sha256_file(configuration.benchmark.checkpoint),
+        "dataset_sha256": sha256_file(configuration.benchmark.dataset),
+        "eligible_parameters": sum(value.size for value in benchmark.parameter_specs()),
+        "eligible_bits": len(identities),
+        "partitions": {name: value.to_dict() for name, value in partitions.items()},
+    }
+    pruning_contract = checkpoint_pruning_contract(benchmark)
+    if pruning_contract is not None:
+        benchmark_payload["structured_pruning"] = pruning_contract
     scientific_payload = _finite({
         "schema": "netsurf-m3-study/v1",
         "replication": {"name": replication_name, "sample_offset": sample_offset},
         "scientific_protocol": configuration.scientific_protocol,
-        "benchmark": {
-            "id": configuration.benchmark.id,
-            "checkpoint_sha256": sha256_file(configuration.benchmark.checkpoint),
-            "dataset_sha256": sha256_file(configuration.benchmark.dataset),
-            "eligible_parameters": sum(value.size for value in benchmark.parameter_specs()),
-            "eligible_bits": len(identities),
-            "partitions": {name: value.to_dict() for name, value in partitions.items()},
-        },
+        "benchmark": benchmark_payload,
         "quantization": codec.format.to_dict(),
         "estimator_definitions": {output.name: {"implementation_version": output.implementation_version, **dict(output.metadata)} for output in outputs},
         "candidate_selection": list(candidate_rows),

@@ -14,6 +14,7 @@ from .experiment_config import ConfigurationError, load_experiment, template_tex
 from .paths import workspace_root
 from .plotting import PlottingDependencyError
 from .progress import ExperimentQueueItem, HierarchicalProgressReporter
+from .pruning_config import PruningConfigurationError, load_pruning
 from .result_bundle import ResultBundleError
 from .study_config import StudyConfigurationError
 from .search_config import SearchConfigurationError
@@ -33,6 +34,15 @@ def _parser() -> argparse.ArgumentParser:
     benchmark_prepare_parser.add_argument("benchmark_name")
     benchmark_prepare_parser.add_argument("--epochs", type=int, default=3)
     benchmark_prepare_parser.add_argument("--train-samples", type=int, default=20000)
+    pruning = subparsers.add_parser("pruning", help="prepare and inspect physical structured-pruning checkpoints")
+    pruning_commands = pruning.add_subparsers(dest="pruning_command", required=True)
+    pruning_validate = pruning_commands.add_parser("validate", help="validate a schema-5 pruning configuration")
+    pruning_validate.add_argument("configuration", type=Path)
+    pruning_validate.add_argument("--resolved", action="store_true")
+    pruning_run = pruning_commands.add_parser("run", help="execute a bounded schema-5 pruning preparation")
+    pruning_run.add_argument("configuration", type=Path)
+    pruning_inspect = pruning_commands.add_parser("inspect", help="verify an immutable pruned checkpoint")
+    pruning_inspect.add_argument("checkpoint", type=Path)
     initialize = subparsers.add_parser("init-experiment", help="create a validated experiment TOML template")
     initialize.add_argument("--output", type=Path, required=True)
     initialize.add_argument("--template", choices=("template", "smoke"), default="template")
@@ -61,7 +71,7 @@ def _parser() -> argparse.ArgumentParser:
 
 
 _EXPECTED_RUN_ERRORS = (
-    ConfigurationError, StudyConfigurationError, SearchConfigurationError,
+    ConfigurationError, StudyConfigurationError, SearchConfigurationError, PruningConfigurationError,
     ResultBundleError, PlottingDependencyError, FileExistsError, OSError,
     KeyError, ValueError,
 )
@@ -161,6 +171,18 @@ def main(argv: list[str] | None = None) -> int:
                 from .adapters.mnist_quantized import prepare_checkpoint
 
                 print(prepare_checkpoint(epochs=args.epochs, train_samples=args.train_samples))
+        elif args.command == "pruning":
+            if args.pruning_command == "validate":
+                config = load_pruning(args.configuration)
+                print(json.dumps(config.resolved_document(), indent=2, sort_keys=True) if args.resolved else f"valid: {config.name} (schema {config.schema_version})")
+            elif args.pruning_command == "run":
+                from .pruning_pipeline import prepare_pruned_checkpoint
+
+                print(prepare_pruned_checkpoint(load_pruning(args.configuration)))
+            elif args.pruning_command == "inspect":
+                from .pruning_pipeline import inspect_pruned_checkpoint
+
+                print(json.dumps(inspect_pruned_checkpoint(args.checkpoint), indent=2, sort_keys=True))
         elif args.command == "init-experiment":
             destination = args.output.expanduser().resolve()
             destination.parent.mkdir(parents=True, exist_ok=True)

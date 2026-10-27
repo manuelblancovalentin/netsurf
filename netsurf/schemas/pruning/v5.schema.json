@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/pruning/v5.schema.json",
+  "title": "NetSuRF structured pruning configuration v5.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scientific_protocol", "experiment", "source", "calibration", "pruning", "reliability", "fine_tuning", "output"],
+  "properties": {
+    "schema_version": {"const": "5.0.0"},
+    "scientific_protocol": {"const": "structured-hidden-neuron-pruning/v1"},
+    "experiment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "description"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"},
+        "description": {"type": "string"}
+      }
+    },
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["adapter", "checkpoint", "dataset", "quantization"],
+      "properties": {
+        "adapter": {"const": "mnist_quantized"}, "checkpoint": {"type": "string"},
+        "dataset": {"type": "string"}, "quantization": {"const": "q<6,2,1>"}
+      }
+    },
+    "calibration": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sample_count", "sample_offset"],
+      "properties": {
+        "sample_count": {"type": "integer", "minimum": 1},
+        "sample_offset": {"type": "integer", "minimum": 0}
+      }
+    },
+    "pruning": {
+      "type": "object", "additionalProperties": false,
+      "required": ["method", "schedule", "iterations", "step_fraction", "target_widths", "magnitude_norm"],
+      "properties": {
+        "method": {"enum": ["grouped_taylor", "group_magnitude", "netsurf_reliability_aware", "independent_width"]},
+        "schedule": {"enum": ["paper_fraction", "target_widths"]},
+        "iterations": {"type": "integer", "minimum": 1},
+        "step_fraction": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1},
+        "target_widths": {"type": "array", "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},
+        "magnitude_norm": {"enum": ["l1", "l2"]}
+      }
+    },
+    "reliability": {
+      "type": "object", "additionalProperties": false,
+      "required": ["susceptibility_estimator", "susceptibility_reduction", "clean_weight", "susceptibility_weight", "cost_weight"],
+      "properties": {
+        "susceptibility_estimator": {"const": "first_order_gradient_delta"},
+        "susceptibility_reduction": {"enum": ["mean", "sum", "max"]},
+        "clean_weight": {"type": "number", "minimum": 0},
+        "susceptibility_weight": {"type": "number", "minimum": 0},
+        "cost_weight": {"type": "number", "minimum": 0}
+      }
+    },
+    "fine_tuning": {
+      "type": "object", "additionalProperties": false,
+      "required": ["enabled", "mode", "epochs_per_stage", "batch_size", "learning_rate", "training_samples", "clean_loss_weight", "fault_loss_weight", "fault_probability", "seed"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "mode": {"enum": ["standard", "quantization_aware", "netsurf_fault_augmented"]},
+        "epochs_per_stage": {"type": "integer", "minimum": 0},
+        "batch_size": {"type": "integer", "minimum": 1},
+        "learning_rate": {"type": "number", "exclusiveMinimum": 0},
+        "training_samples": {"type": "integer", "minimum": 1},
+        "clean_loss_weight": {"type": "number", "minimum": 0},
+        "fault_loss_weight": {"type": "number", "minimum": 0},
+        "fault_probability": {"type": "number", "minimum": 0, "maximum": 1},
+        "seed": {"type": "integer"}
+      }
+    },
+    "output": {
+      "type": "object", "additionalProperties": false, "required": ["checkpoint"],
+      "properties": {"checkpoint": {"type": "string", "pattern": "\\.npz$"}}
+    }
+  }
+}

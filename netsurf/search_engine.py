@@ -20,6 +20,7 @@ from .incremental import DenseReluDenseIncrementalEvaluator, FaultState, metrics
 from .manifests import digest_object, sha256_file
 from .ordering import OrderedRanking, compose_ordering
 from .polar import PolarPairMeasurement, interaction_map, measure_polar_pair
+from .pruning import checkpoint_pruning_contract
 from .quantization import BitCodec, FixedPointFormat
 from .ranking import Ranking
 from .samples import SamplePartition, require_disjoint
@@ -591,10 +592,14 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
         row["evaluated_candidates"] = [payload_candidate(candidate) for candidate in step.evaluated_candidates]
         return row
 
+    benchmark_payload = {"id": configuration.benchmark.id, "checkpoint_sha256": sha256_file(configuration.benchmark.checkpoint), "dataset_sha256": sha256_file(configuration.benchmark.dataset), "eligible_bits": len(identities), "quantization": configuration.benchmark.quantization}
+    pruning_contract = checkpoint_pruning_contract(benchmark)
+    if pruning_contract is not None:
+        benchmark_payload["structured_pruning"] = pruning_contract
     payload = {
         "schema_version": configuration.schema_version, "scientific_protocol": configuration.scientific_protocol,
         "replication": replication,
-        "benchmark": {"id": configuration.benchmark.id, "checkpoint_sha256": sha256_file(configuration.benchmark.checkpoint), "dataset_sha256": sha256_file(configuration.benchmark.dataset), "eligible_bits": len(identities), "quantization": configuration.benchmark.quantization},
+        "benchmark": benchmark_payload,
         "partitions": {name: value.to_dict() for name, value in partitions.items()},
         "fault": {"probability": probability, "persistence": configuration.fault.persistence, "distribution": configuration.fault.distribution},
         **({"protection_budget_bits": len(initial)} if configuration.schema_version in {"4.2.0", "4.3.0", "4.4.0"} else {}),

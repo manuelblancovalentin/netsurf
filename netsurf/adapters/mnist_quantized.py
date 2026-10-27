@@ -94,12 +94,15 @@ def _import_ml_runtime():
     return keras, tf
 
 
-def _keras_model():
+def _keras_model(hidden_width: int = 32):
     keras, _ = _import_ml_runtime()
+
+    if hidden_width < 1:
+        raise ValueError("hidden_width must be positive")
 
     inputs = keras.Input(shape=(28, 28, 1), name="image")
     value = keras.layers.Flatten(name="flatten")(inputs)
-    value = keras.layers.Dense(32, activation="relu", name="dense0")(value)
+    value = keras.layers.Dense(hidden_width, activation="relu", name="dense0")(value)
     logits = keras.layers.Dense(10, name="dense1")(value)
     return keras.Model(inputs, logits, name="mnist_dense32_q621_source")
 
@@ -194,10 +197,24 @@ class MnistQuantizedAdapter:
             self.metadata = json.loads(str(checkpoint["metadata_json"]))
         if self.metadata["quantization"]["notation"] != str(self.codec.format):
             raise ValueError("checkpoint quantization does not match experiment")
+        from ..pruning import topology
+
+        actual_topology = topology(self._values, self.codec.format.total_bits)
+        recorded_topology = self.metadata.get("topology")
+        if recorded_topology is not None and recorded_topology != actual_topology.to_dict():
+            raise ValueError("checkpoint topology metadata does not match parameter tensors")
         for name, value in self._values.items():
             if not np.array_equal(self.codec.decode(self.codec.encode(value)).astype(np.float32), value):
                 raise ValueError(f"checkpoint parameter is not exactly representable: {name}")
         self._per_example_gradient_function = None
+
+    def structural_metrics(self) -> dict[str, int]:
+        """Return exact logical storage and dense-operation counts."""
+
+        self._require_loaded()
+        from ..pruning import topology
+
+        return topology(self._values, self.codec.format.total_bits).to_dict()
 
     def _require_loaded(self) -> None:
         if not self._values:

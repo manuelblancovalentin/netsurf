@@ -16,6 +16,7 @@ from .identities import BitIdentity
 from .manifests import digest_object, sha256_file
 from .protection import ProtectionMask, ProtectionPolicy
 from .progress import ProgressTracker, experiment_operation_plan
+from .pruning import checkpoint_pruning_contract
 from .quantization import BitCodec, FixedPointFormat
 from .ranking import (
     FirstOrderEstimator,
@@ -530,6 +531,9 @@ def execute_experiment(
             )
         if qpolar_name is None:
             scientific_payload["checks"]["full_msb_mask_equivalent"] = "not_applicable"
+        pruning_contract = checkpoint_pruning_contract(benchmark_adapter)
+        if pruning_contract is not None:
+            scientific_payload["benchmark"]["structured_pruning"] = pruning_contract
     result = ExperimentOutcome(
         configuration,
         scientific_payload,
