@@ -119,7 +119,9 @@ The Rich display uses one coordinated Live renderer. A persistent queue table
 keeps completed, running, pending, and failed experiments visible while a
 detail panel shows the current stage, grouped BER/budget/replication/method
 condition, measured work, elapsed time, and phase-aware experiment and queue
-ETAs. It adapts to terminal width, including interactive `tmux -CC` sessions.
+ETAs. The queue's `Runtime` column retains each completed or failed
+experiment's wall time and shows live elapsed time for the running experiment.
+It adapts to terminal width, including interactive `tmux -CC` sessions.
 The counter advances
 only after declared operations actually complete. Shared
 fault schedules are counted once, while every model evaluation under a control

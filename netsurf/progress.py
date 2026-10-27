@@ -509,13 +509,22 @@ class HierarchicalProgressReporter:
 
         queue = Table(title="NetSuRF experiment queue", expand=True, box=None, padding=(0, 1))
         queue.add_column("Status", width=9, no_wrap=True); queue.add_column("Experiment", ratio=2, overflow="ellipsis", no_wrap=True)
-        queue.add_column("Work", justify="right", no_wrap=True); queue.add_column("Stage", ratio=2, overflow="ellipsis", no_wrap=True)
+        queue.add_column("Work", justify="right", no_wrap=True)
+        queue.add_column("Runtime", justify="right", no_wrap=True)
+        queue.add_column("Stage", ratio=2, overflow="ellipsis", no_wrap=True)
         for state in self.states:
             symbol, style = self._STYLES[state.status]
             stage = state.error if state.status == "failed" else state.stage
             label = "done" if state.status == "completed" else state.status
+            if state.started is None:
+                runtime = "—"
+            elif state.finished is not None:
+                runtime = self._duration(state.finished - state.started)
+            else:
+                runtime = self._duration(now - state.started)
             queue.add_row(Text(f"{symbol} {label}", style=style), Text(state.item.name, style=style),
-                          f"{state.completed}/{state.total}", Text(stage, style=style, overflow="ellipsis", no_wrap=True))
+                          f"{state.completed}/{state.total}", runtime,
+                          Text(stage, style=style, overflow="ellipsis", no_wrap=True))
         total = sum(state.total for state in self.states)
         completed = sum(state.completed for state in self.states)
         overall = Progress(BarColumn(bar_width=None), TaskProgressColumn(), expand=True)

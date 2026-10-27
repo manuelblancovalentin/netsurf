@@ -86,6 +86,8 @@ def test_rich_queue_uses_one_live_and_renders_within_narrow_width():
     console = rich.console.Console(file=plain, width=52, force_terminal=False)
     console.print(reporter._renderable(clock.value))
     assert max(map(len, plain.getvalue().splitlines())) <= 52
+    assert "Runtime" in plain.getvalue()
+    assert "00:02" in plain.getvalue()
 
 
 def test_batch_runs_sequentially_continues_after_expected_failure(monkeypatch, capsys, tmp_path):

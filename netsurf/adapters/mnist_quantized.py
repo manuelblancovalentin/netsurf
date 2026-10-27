@@ -183,6 +183,10 @@ class MnistQuantizedAdapter:
         self.checkpoint, self.dataset_path, self.codec = Path(checkpoint), Path(dataset), codec
         self._values: dict[str, np.ndarray] = {}
         self.metadata: dict[str, object] = {}
+        # Built lazily so importing NetSuRF remains independent of TensorFlow.
+        # The callable accepts parameter values explicitly; it never captures a
+        # mutable checkpoint or a faulted adapter state in its traced graph.
+        self._per_example_gradient_function = None
 
     def load(self) -> None:
         with np.load(self.checkpoint, allow_pickle=False) as checkpoint:
@@ -193,6 +197,7 @@ class MnistQuantizedAdapter:
         for name, value in self._values.items():
             if not np.array_equal(self.codec.decode(self.codec.encode(value)).astype(np.float32), value):
                 raise ValueError(f"checkpoint parameter is not exactly representable: {name}")
+        self._per_example_gradient_function = None
 
     def _require_loaded(self) -> None:
         if not self._values:
@@ -298,12 +303,48 @@ class MnistQuantizedAdapter:
     def per_example_gradients(self, inputs: np.ndarray, labels: np.ndarray) -> dict[str, np.ndarray]:
         _, tf = _import_ml_runtime()
 
-        variables = {name: tf.Variable(value, trainable=True, name=name.replace("/", "_")) for name, value in self._values.items()}
-        with tf.GradientTape() as tape:
-            logits = self._forward_tensor(tf.convert_to_tensor(inputs), variables)
-            losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
-        jacobians = tape.jacobian(losses, list(variables.values()), experimental_use_pfor=True)
-        return {name: value.numpy().copy() for name, value in zip(variables, jacobians)}
+        if self._per_example_gradient_function is None:
+            parameter_specs = tuple(
+                tf.TensorSpec(self._values[name].shape, tf.float32, name=name.replace("/", "_"))
+                for name in PARAMETER_NAMES
+            )
+
+            @tf.function(
+                input_signature=(
+                    tf.TensorSpec((None, 28, 28, 1), tf.float32, name="inputs"),
+                    tf.TensorSpec((None,), tf.int64, name="labels"),
+                    *parameter_specs,
+                ),
+                reduce_retracing=True,
+            )
+            def compiled_per_example_gradients(input_tensor, label_tensor, *parameter_tensors):
+                # GradientTape.jacobian uses pfor internally.  Keeping that
+                # operation inside one cached tf.function avoids rebuilding its
+                # parallel-for graph for every estimator replication.
+                values = dict(zip(PARAMETER_NAMES, parameter_tensors))
+                with tf.GradientTape() as tape:
+                    tape.watch(parameter_tensors)
+                    logits = self._forward_tensor(input_tensor, values)
+                    losses = tf.nn.sparse_softmax_cross_entropy_with_logits(
+                        labels=label_tensor, logits=logits
+                    )
+                return tuple(
+                    tape.jacobian(
+                        losses,
+                        parameter_tensors,
+                        experimental_use_pfor=True,
+                    )
+                )
+
+            self._per_example_gradient_function = compiled_per_example_gradients
+
+        tensors = (
+            tf.convert_to_tensor(np.asarray(inputs, dtype=np.float32)),
+            tf.convert_to_tensor(np.asarray(labels, dtype=np.int64)),
+            *(tf.convert_to_tensor(self._values[name], dtype=tf.float32) for name in PARAMETER_NAMES),
+        )
+        jacobians = self._per_example_gradient_function(*tensors)
+        return {name: value.numpy().copy() for name, value in zip(PARAMETER_NAMES, jacobians)}
 
     def hessian_vector_product(self, inputs, labels, vectors):
         _, tf = _import_ml_runtime()

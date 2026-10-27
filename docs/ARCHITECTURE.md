@@ -58,7 +58,10 @@ FaultModel -> deterministic FaultSchedule -> InjectionEngine
 - `netsurf.adapters.numpy_reference`: fixed 2-3-2 quantized reference network
   used for exhaustive bit and gradient validation.
 - `netsurf.adapters.mnist_quantized`: explicit Keras-trained Dense-32 MNIST
-  architecture whose faulted inference consumes exact fixed-point values.
+  architecture whose faulted inference consumes exact fixed-point values. Its
+  per-example Jacobian is one lazily compiled, shape-stable TensorFlow graph;
+  parameter values remain explicit inputs so cached tracing cannot retain a
+  stale clean or faulted model state.
 - `netsurf.doctor`: environment, dataset, workspace, and adapter diagnostics
   using package metadata rather than importing TensorFlow.
 - `netsurf.statistics`: sample statistics and Student-t confidence intervals.
@@ -83,8 +86,9 @@ FaultModel -> deterministic FaultSchedule -> InjectionEngine
   replication/BER/trial/schedule identities.
 - `netsurf.reporting` and `netsurf.plotting`: presentation derived only from saved measurements.
 - `netsurf.progress`: presentation-only measured-work tracking, a single Rich
-  Live queue/current-experiment renderer, phase-aware ETA estimation, and
-  ANSI-free redirected output. Batch status never enters result serialization.
+  Live queue/current-experiment renderer, persistent per-task runtimes,
+  phase-aware ETA estimation, and ANSI-free redirected output. Batch status
+  never enters result serialization.
 - `netsurf.api` and `netsurf.__main__`: one public engine exposed to scripts, notebooks, and the CLI.
 - `netsurf.milestone`: retained historical compatibility workflow; new work uses versioned experiment configurations.
 
