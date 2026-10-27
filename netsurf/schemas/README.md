@@ -43,3 +43,13 @@ responses, structural pair classes, layer-budgeted sparse discovery,
 mask-dependent proposal guidance, and conventional or confidence-stratified
 Kronecker GGN diagnostics. Missing sparse edges are recorded as unmeasured,
 not assumed physically zero. Schemas 4.0 and 4.1 retain their original readers.
+
+Experiment and measurement `4.3.0` add common-background conditional
+candidate marginals, exact shortlist verification, full-population factorized
+Kronecker aggregates, rank-one mask updates, and exclusive timing semantics.
+
+Experiment and measurement `4.4.0` add explicit controlled proposal models,
+fixed candidate and exact-verification budgets, shared search backgrounds,
+global or layer/bit-position-stratified shuffled Kronecker controls, run-local
+factor calibration caching, batched factorized queries, and per-candidate
+proposal records. Schema 4.3 retains its historical scalar numerical path.

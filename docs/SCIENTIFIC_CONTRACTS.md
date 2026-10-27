@@ -186,3 +186,22 @@ negative control, not a full-network quantity.
 Neither a factorized score nor a polar pair term accepts a swap. Exact matched
 three-state conditional evaluation remains the acceptance gate, and independent
 held-out natural and conditional fields remain the scientific endpoints.
+
+## M4.4 controlled proposals and cached factors
+
+Controlled proposal comparisons share their encoded-bit candidate universe,
+initial mask, search backgrounds, iteration count, shortlist sizes, and exact
+verification budget. A proposal model may reorder or reweight those candidates
+but cannot change the full logical fault population. Conditional greedy is a
+quality reference rather than an equal-cost controlled method.
+
+Sign-bit enrichment is an explicit sampling ablation, not a susceptibility
+estimator. Shuffled Kronecker guidance preserves either the global aggregate
+score distribution or each layer/bit-position distribution while destroying
+the corresponding bit identities. It is a negative control and cannot establish
+that the unshuffled factor is correct.
+
+Cached factors depend only on fully hashed calibration inputs. Protected-mask
+state and logical BER remain uncached method-local aggregate state. Cache reuse
+may change wall time but must not change proposal scores, masks, fault states,
+held-out measurements, or the scientific payload digest.

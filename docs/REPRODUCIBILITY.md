@@ -526,3 +526,21 @@ layers.
 `factorized_guidance.csv` records coverage, drift, and timing attribution; and
 `timing_phases.csv` is the only additive wall-time table. See
 `docs/M4_3_AUDIT.md` for the M4.2 25%-coverage evidence and timing semantics.
+
+## M4.4 controlled ablation workflow
+
+M4.4 intentionally provides schema support rather than a maintained research
+configuration. Author the study TOML separately using the exact field contract
+in `docs/M4_4_AUDIT.md`, then run:
+
+```bash
+proj activate netsurf
+netsurf validate /path/to/research-authored-m4_4.toml --resolved
+netsurf run /path/to/research-authored-m4_4.toml
+```
+
+Start with one NumPy or bounded prepared-checkpoint replication and inspect
+`controlled_proposals.csv`, `factorized_guidance.csv`, cache keys, background
+schedule hashes, and exact-verification counts before increasing iterations,
+BERs, budgets, or replications. Do not use held-out conditional results to
+retune a confirmatory search within the same study.

@@ -128,3 +128,20 @@ stratified Kronecker values. `proposal_influence.csv` records rank changes,
 top-k overlap, total variation, and Jensen--Shannon divergence before versus
 after interaction guidance. Sparse missing edges are unavailable observations,
 not numerical zeros.
+
+## Schema 4.4 controlled factorized-guidance ablation
+
+Schema `4.4.0` uses protocol `factorized-guidance-ablation/v1`. It preserves
+all schema-4.3 fields and requires `[proposal_control]` and `[factor_cache]`.
+Each method explicitly names `proposal_model`, `comparison_role`,
+`aggregate_shuffle_mode`, and `sign_bit_weight`. Exact accepted values and
+validation rules are documented in `docs/M4_4_AUDIT.md` and encoded by
+`netsurf.search_config.load_search`.
+
+New `controlled_proposals.csv` rows identify every removal/addition candidate
+that reaches the configured shortlist, its normalized proposal probability,
+rank, selection and exact-verification status, proposal model, and shuffle
+mode. `factorized_guidance.csv` adds bit-table/factor cache keys, hit/miss
+status, build attribution, batched-query time, aggregate-build time, update
+time, conditional-screening time, and exact-verification time. These execution
+times remain outside the stable scientific payload.
