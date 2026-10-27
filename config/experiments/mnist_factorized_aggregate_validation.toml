@@ -1,0 +1,133 @@
+schema_version = "4.3.0"
+scientific_protocol = "mask-aware-conditional-screening/v1"
+
+[experiment]
+name = "mnist_factorized_aggregate_validation"
+description = "Bounded 25%-coverage diagnostic contrasting sparse pair guidance with full- and restricted-population factorized aggregates."
+objective = "Test whether full vulnerable-population aggregation restores proposal influence where sparse M4.2 pair coverage was absent; this is not a protection-superiority study."
+
+[benchmark]
+adapter = "mnist_quantized"
+id = "mnist_dense32_q621-v2"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "v2_disjoint_partitions"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 32
+search_count = 16
+final_count = 32
+require_disjoint = true
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+
+[[guidance]]
+name = "gradient_global"
+estimator = "first_order_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+weight = 1.0
+
+[initial_mask]
+guidance = "gradient_global"
+budget_bits = 38175
+
+[[methods]]
+name = "static_gradient"
+strategy = "static"
+guidance = ["gradient_global"]
+interaction_model = "none"
+
+[[methods]]
+name = "sparse_finite_polar"
+strategy = "polar_guided_swap"
+guidance = ["gradient_global"]
+interaction_model = "finite_polar"
+
+[[methods]]
+name = "full_factorized_kronecker"
+strategy = "factorized_screening"
+guidance = ["gradient_global"]
+interaction_model = "factorized_kronecker"
+aggregate_population = "full"
+dynamic_aggregate = true
+
+[[methods]]
+name = "restricted_factorized_control"
+strategy = "factorized_screening"
+guidance = ["gradient_global"]
+interaction_model = "factorized_kronecker"
+aggregate_population = "candidate_pool"
+dynamic_aggregate = true
+
+[search]
+evaluator = "incremental"
+iterations = 1
+candidate_pool_strategy = "top_union"
+candidate_pool_count = 40000
+uniform_exploration = 0.15
+rank_temperature = 0.15
+background_contexts = 2
+seed = 47301
+greedy_add_candidates = 2
+greedy_remove_candidates = 2
+initial_temperature = 0.01
+cooling_rate = 0.95
+cache_memory_mb = 256.0
+exact_enumeration = false
+
+[polar]
+enabled = true
+mode = "finite_background"
+pair_budget = 24
+background_contexts = 2
+seed = 47302
+strength = 0.75
+collect_cancellation_diagnostics = true
+
+[topology]
+interaction_models = ["finite_polar", "factorized_kronecker"]
+interaction_guidance = "mask_dependent_sparse_v1"
+confidence_strata = 2
+minimum_stratum_samples = 4
+output_layer_pair_budget = 8
+hidden_layer_pair_budget = 8
+cross_layer_pair_budget = 8
+cache_response_limit = 256
+
+[screening]
+removal_shortlist = 2
+addition_shortlist = 3
+verification_shortlist = 2
+refresh_frequency = 1
+response_cache_limit = 256
+interaction_strength = 0.75
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probabilities = [0.001]
+
+[final_evaluation]
+natural_contexts = 4
+natural_seed = 47303
+conditional_contexts = 4
+conditional_seed = 47304
+confidence = 0.95
+
+[replications]
+count = 1
+search_seed_stride = 1000
+final_seed_stride = 1000
+sample_offset_stride = 0
+
+[output]
+root = ""
+report = true
+plots = true

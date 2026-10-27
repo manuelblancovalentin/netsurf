@@ -27,6 +27,16 @@ def test_all_maintained_m4_configurations_validate():
         assert load_search(ROOT / "config/experiments" / name).schema_version == "4.0.0"
 
 
+def test_all_maintained_m43_configurations_validate():
+    for name in (
+        "numpy_conditional_screening_exact.toml",
+        "mnist_factorized_aggregate_validation.toml",
+        "mnist_conditional_screening_smoke.toml",
+        "mnist_conditional_screening_research.toml",
+    ):
+        assert load_search(ROOT / "config/experiments" / name).schema_version == "4.3.0"
+
+
 def test_polar_strategy_without_polar_is_rejected(tmp_path):
     text = CONTROL.read_text().replace("enabled = true", "enabled = false", 1)
     path = tmp_path / "bad.toml"; path.write_text(text)

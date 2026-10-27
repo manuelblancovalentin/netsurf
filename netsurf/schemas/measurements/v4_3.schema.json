@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/measurements/v4_3.schema.json",
+  "title": "NetSuRF mask-aware conditional-screening measurements",
+  "schema_version": "4.3.0",
+  "tables": {
+    "candidate_screening.csv": {"unit": "one candidate marginal estimate at one search iteration", "identity": ["replication", "logical_ber", "protection_budget_bits", "strategy", "iteration", "identity"]},
+    "candidate_screening_contexts.csv": {"unit": "one paired candidate contribution under one common random background", "identity": ["replication", "logical_ber", "protection_budget_bits", "strategy", "iteration", "context", "identity"]},
+    "factorized_guidance.csv": {"unit": "one accepted-or-rejected factorized screening decision", "identity": ["replication", "logical_ber", "protection_budget_bits", "strategy", "iteration"]},
+    "timing_phases.csv": {"unit": "one mutually exclusive execution phase", "identity": ["replication", "phase"]},
+    "topology_interactions.csv": {"unit": "one selected bit pair under one exact background"},
+    "proposal_influence.csv": {"unit": "one proposal-distribution comparison"},
+    "final_trials.csv": {"unit": "one held-out natural-Bernoulli field for one final mask"},
+    "conditional_context_contributions.csv": {"unit": "one whole-path held-out conditional contribution"},
+    "search_steps.csv": {"unit": "one exact swap-verification decision"},
+    "search_results.csv": {"unit": "one completed method, budget, BER, and replication"}
+  },
+  "null_handling": "Empty CSV fields represent structurally unavailable quantities; JSON uses null.",
+  "units": {"exclusive_wall_seconds": "seconds", "wall_seconds": "seconds", "peak_rss_mb": "Linux maximum resident-set size in MiB", "accuracy": "fraction", "categorical_crossentropy": "mean natural-log loss", "logical_ber": "independent logical bit-flip probability"}
+}

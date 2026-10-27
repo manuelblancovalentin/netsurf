@@ -33,6 +33,8 @@ class ProgressEvent:
     accepted: int | None = None
     rejected: int | None = None
     exact_evaluations: int | None = None
+    screened_candidates: int | None = None
+    verified_swaps: int | None = None
     failed: bool = False
     message: str | None = None
     work_class: str | None = None
@@ -207,6 +209,10 @@ class LiveProgressReporter:
             details.append(f"mean loss {event.mean_loss:.4g}")
         if event.iteration is not None:
             details.append(f"iteration {event.iteration}/{event.iterations}")
+        if event.screened_candidates is not None:
+            details.append(f"screened {event.screened_candidates}")
+        if event.verified_swaps is not None:
+            details.append(f"verified {event.verified_swaps}")
         status = " | ".join(details)
         suffix = f" | {status}" if status else ""
         failure = f" | error: {event.message}" if event.failed and event.message else ""
@@ -253,6 +259,10 @@ class LiveProgressReporter:
             details.add_row("Accepted / rejected", f"{event.accepted} / {event.rejected}")
         if event.exact_evaluations is not None:
             details.add_row("Exact evaluations", str(event.exact_evaluations))
+        if event.screened_candidates is not None:
+            details.add_row("Screened candidates", str(event.screened_candidates))
+        if event.verified_swaps is not None:
+            details.add_row("Verified swaps", str(event.verified_swaps))
         if event.mean_accuracy is not None or event.mean_loss is not None:
             details.add_row("Mean accuracy", "—" if event.mean_accuracy is None else f"{event.mean_accuracy:.2%}")
             details.add_row("Mean loss", "—" if event.mean_loss is None else f"{event.mean_loss:.4g}")
@@ -354,7 +364,7 @@ def search_operation_plan(configuration, *, include_bundle: bool = False) -> dic
         "Held-out final evaluation": replications * len(method_names) * configuration.final_evaluation.contexts,
         "Scientific payload": replications,
     }
-    if configuration.schema_version in {"4.1.0", "4.2.0"}:
+    if configuration.schema_version in {"4.1.0", "4.2.0", "4.3.0"}:
         plan["Held-out conditional evaluation"] = replications * len(method_names) * configuration.final_evaluation.conditional_contexts
     polar_contexts = 1 if configuration.polar.mode == "finite_clean" else configuration.polar.background_contexts
     if configuration.polar.enabled:

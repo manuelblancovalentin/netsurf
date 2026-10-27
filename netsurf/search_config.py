@@ -20,6 +20,8 @@ CONTROLLED_SEARCH_SCHEMA_VERSION = "4.1.0"
 CONTROLLED_SEARCH_PROTOCOL = "conditional-protection-search/v2"
 TOPOLOGY_SEARCH_SCHEMA_VERSION = "4.2.0"
 TOPOLOGY_SEARCH_PROTOCOL = "topology-aware-conditional-search/v1"
+SCREENING_SEARCH_SCHEMA_VERSION = "4.3.0"
+SCREENING_SEARCH_PROTOCOL = "mask-aware-conditional-screening/v1"
 
 
 class SearchConfigurationError(ValueError):
@@ -59,6 +61,10 @@ class SearchMethodConfiguration:
     polarity_strength: float | None = None
     shuffle_interactions: bool = False
     iterations: int | None = None
+    aggregate_population: str = "full"
+    dynamic_aggregate: bool = True
+    pair_correction: bool = True
+    polar_correction_budget: int = 0
 
 
 @dataclass(frozen=True)
@@ -104,6 +110,16 @@ class TopologyConfiguration:
 
 
 @dataclass(frozen=True)
+class ScreeningConfiguration:
+    removal_shortlist: int
+    addition_shortlist: int
+    verification_shortlist: int
+    refresh_frequency: int
+    response_cache_limit: int
+    interaction_strength: float
+
+
+@dataclass(frozen=True)
 class FinalEvaluationConfiguration:
     contexts: int
     seed: int
@@ -141,12 +157,13 @@ class SearchConfiguration:
     replications: SearchReplications
     output: OutputConfiguration
     topology: TopologyConfiguration | None
+    screening: ScreeningConfiguration | None
     source_path: Path
     source_text: str
 
     def resolved_document(self) -> dict[str, Any]:
-        controlled = self.schema_version in {CONTROLLED_SEARCH_SCHEMA_VERSION, TOPOLOGY_SEARCH_SCHEMA_VERSION}
-        topology_aware = self.schema_version == TOPOLOGY_SEARCH_SCHEMA_VERSION
+        controlled = self.schema_version in {CONTROLLED_SEARCH_SCHEMA_VERSION, TOPOLOGY_SEARCH_SCHEMA_VERSION, SCREENING_SEARCH_SCHEMA_VERSION}
+        topology_aware = self.schema_version in {TOPOLOGY_SEARCH_SCHEMA_VERSION, SCREENING_SEARCH_SCHEMA_VERSION}
         fault = asdict(self.fault)
         if controlled:
             fault.pop("probability", None); fault["probabilities"] = list(self.fault_probabilities)
@@ -172,6 +189,7 @@ class SearchConfiguration:
             "polar": asdict(self.polar), "fault": fault,
             "final_evaluation": final, "replications": asdict(self.replications),
             **({"topology": asdict(self.topology)} if topology_aware and self.topology is not None else {}),
+            **({"screening": asdict(self.screening)} if self.screening is not None else {}),
             "output": {"root": str(self.output.root), "report": self.output.report, "plots": self.output.plots},
         }
 
@@ -204,11 +222,12 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
     except (OSError, tomllib.TOMLDecodeError) as error:
         raise SearchConfigurationError(f"cannot load search configuration {source}: {error}") from error
     schema_version = document.get("schema_version")
-    controlled = schema_version in {CONTROLLED_SEARCH_SCHEMA_VERSION, TOPOLOGY_SEARCH_SCHEMA_VERSION}
-    topology_aware = schema_version == TOPOLOGY_SEARCH_SCHEMA_VERSION
-    if schema_version not in {SEARCH_SCHEMA_VERSION, CONTROLLED_SEARCH_SCHEMA_VERSION, TOPOLOGY_SEARCH_SCHEMA_VERSION}:
+    controlled = schema_version in {CONTROLLED_SEARCH_SCHEMA_VERSION, TOPOLOGY_SEARCH_SCHEMA_VERSION, SCREENING_SEARCH_SCHEMA_VERSION}
+    topology_aware = schema_version in {TOPOLOGY_SEARCH_SCHEMA_VERSION, SCREENING_SEARCH_SCHEMA_VERSION}
+    screening_aware = schema_version == SCREENING_SEARCH_SCHEMA_VERSION
+    if schema_version not in {SEARCH_SCHEMA_VERSION, CONTROLLED_SEARCH_SCHEMA_VERSION, TOPOLOGY_SEARCH_SCHEMA_VERSION, SCREENING_SEARCH_SCHEMA_VERSION}:
         raise SearchConfigurationError(f"unsupported conditional-search schema: {document.get('schema_version')!r}")
-    expected_protocol = TOPOLOGY_SEARCH_PROTOCOL if topology_aware else (CONTROLLED_SEARCH_PROTOCOL if controlled else SEARCH_PROTOCOL)
+    expected_protocol = SCREENING_SEARCH_PROTOCOL if screening_aware else (TOPOLOGY_SEARCH_PROTOCOL if topology_aware else (CONTROLLED_SEARCH_PROTOCOL if controlled else SEARCH_PROTOCOL))
     if document.get("scientific_protocol") != expected_protocol:
         raise SearchConfigurationError(f"unsupported conditional-search protocol: {document.get('scientific_protocol')!r}")
     required = {"schema_version", "scientific_protocol", "experiment", "benchmark", "samples", "estimators", "guidance", "initial_mask", "search", "polar", "fault", "final_evaluation", "replications", "output"}
@@ -216,6 +235,8 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
         required.add("methods")
     if topology_aware:
         required.add("topology")
+    if screening_aware:
+        required.add("screening")
     _keys(document, required, set(), "root")
     experiment = _table(document, "experiment"); _keys(experiment, {"name", "description", "objective"}, set(), "experiment")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", str(experiment["name"])):
@@ -295,19 +316,32 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
             raise SearchConfigurationError("methods must be a nonempty array")
         methods = []
         for index, value in enumerate(methods_raw):
-            _keys(value, {"name", "strategy", "guidance"}, {"interaction_model", "polarity_strength", "shuffle_interactions", "iterations"} if topology_aware else set(), f"methods[{index}]")
+            optional_method_fields = {"interaction_model", "polarity_strength", "shuffle_interactions", "iterations"}
+            if screening_aware:
+                optional_method_fields |= {"aggregate_population", "dynamic_aggregate", "pair_correction", "polar_correction_budget"}
+            _keys(value, {"name", "strategy", "guidance"}, optional_method_fields if topology_aware else set(), f"methods[{index}]")
             method_guidance = tuple(map(str, value["guidance"]))
+            if screening_aware:
+                supported_strategies |= {"marginal_screening", "corrected_screening", "factorized_screening", "hybrid_screening"}
             if value["strategy"] not in supported_strategies:
                 raise SearchConfigurationError(f"unsupported method strategy: {value['strategy']}")
             if not method_guidance or set(method_guidance)-guidance_names:
                 raise SearchConfigurationError(f"method references unsupported guidance: {method_guidance}")
             interaction_model = str(value.get("interaction_model", "configured"))
-            if topology_aware and interaction_model not in {"none", "finite_polar", "topology_corrected", "local_quadratic", "kronecker", "stratified_kronecker"}:
+            supported_interactions = {"none", "finite_polar", "topology_corrected", "local_quadratic", "kronecker", "stratified_kronecker"}
+            if screening_aware:
+                supported_interactions |= {"factorized_kronecker", "factorized_stratified_kronecker"}
+            if topology_aware and interaction_model not in supported_interactions:
                 raise SearchConfigurationError(f"unsupported interaction model: {interaction_model}")
+            aggregate_population = str(value.get("aggregate_population", "full"))
+            if aggregate_population not in {"full", "candidate_pool"}:
+                raise SearchConfigurationError("aggregate_population must be full or candidate_pool")
             methods.append(SearchMethodConfiguration(str(value["name"]),str(value["strategy"]),method_guidance,
                                                        interaction_model, None if "polarity_strength" not in value else float(value["polarity_strength"]),
                                                        bool(value.get("shuffle_interactions", False)),
-                                                       None if "iterations" not in value else int(value["iterations"])))
+                                                       None if "iterations" not in value else int(value["iterations"]),
+                                                       aggregate_population, bool(value.get("dynamic_aggregate", True)),
+                                                       bool(value.get("pair_correction", True)), int(value.get("polar_correction_budget", 0))))
             if methods[-1].iterations is not None and methods[-1].iterations < 0:
                 raise SearchConfigurationError("method iterations must be nonnegative")
         if len({value.name for value in methods}) != len(methods):
@@ -351,6 +385,8 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
         _keys(raw, fields, set(), "topology")
         models = tuple(map(str, raw["interaction_models"]))
         supported_models = {"finite_polar", "topology_corrected", "local_quadratic", "kronecker", "stratified_kronecker"}
+        if screening_aware:
+            supported_models |= {"factorized_kronecker", "factorized_stratified_kronecker"}
         if not models or len(set(models)) != len(models) or set(models) - supported_models:
             raise SearchConfigurationError("topology.interaction_models contains unsupported or duplicate values")
         if raw["interaction_guidance"] != "mask_dependent_sparse_v1":
@@ -368,6 +404,16 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
                                          int(raw["minimum_stratum_samples"]), int(raw["output_layer_pair_budget"]),
                                          int(raw["hidden_layer_pair_budget"]), int(raw["cross_layer_pair_budget"]),
                                          int(raw["cache_response_limit"]))
+    screening = None
+    if screening_aware:
+        raw = _table(document, "screening")
+        fields = {"removal_shortlist", "addition_shortlist", "verification_shortlist", "refresh_frequency", "response_cache_limit", "interaction_strength"}
+        _keys(raw, fields, set(), "screening")
+        if any(int(raw[name]) < 1 for name in ("removal_shortlist", "addition_shortlist", "verification_shortlist", "refresh_frequency", "response_cache_limit")):
+            raise SearchConfigurationError("screening shortlist, refresh, and cache limits must be positive")
+        if float(raw["interaction_strength"]) < 0:
+            raise SearchConfigurationError("screening interaction_strength must be nonnegative")
+        screening = ScreeningConfiguration(int(raw["removal_shortlist"]), int(raw["addition_shortlist"]), int(raw["verification_shortlist"]), int(raw["refresh_frequency"]), int(raw["response_cache_limit"]), float(raw["interaction_strength"]))
     fault = _table(document, "fault")
     _keys(fault, {"target", "location", "persistence", "distribution", "probabilities" if controlled else "probability"}, set(), "fault")
     if (fault["target"], fault["location"], fault["persistence"], fault["distribution"]) != ("weight", "logical_trainable_parameter_bits", "persistent_trial", "independent_bernoulli"):
@@ -408,5 +454,5 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
         FaultConfiguration(str(fault["target"]), str(fault["location"]), str(fault["persistence"]), str(fault["distribution"]), probabilities[0]), probabilities,
         FinalEvaluationConfiguration(natural_contexts, natural_seed, float(final["confidence"]), conditional_contexts, conditional_seed),
         SearchReplications(int(reps["count"]), int(reps["search_seed_stride"]), int(reps["final_seed_stride"]), int(reps["sample_offset_stride"])),
-        OutputConfiguration(root.resolve(), bool(output["report"]), bool(output["plots"])), topology, source, text,
+        OutputConfiguration(root.resolve(), bool(output["report"]), bool(output["plots"])), topology, screening, source, text,
     )

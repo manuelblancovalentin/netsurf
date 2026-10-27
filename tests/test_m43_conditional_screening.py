@@ -11,6 +11,7 @@ from netsurf.conditional_screening import enumerate_exact_swap_decomposition, sc
 from netsurf.identities import BitIdentity
 from netsurf.incremental import DenseReluDenseIncrementalEvaluator, FaultState, evaluate_conditional_swap, metrics_from_logits
 from netsurf.quantization import BitCodec, FixedPointFormat
+from netsurf.search import PriorComponent, ProposalPrior, RankingPrior, conditional_screening_search
 from netsurf.study_config import load_study
 
 
@@ -93,3 +94,46 @@ def test_finite_sample_direct_swap_matches_existing_three_state_evaluator():
         right=metrics_from_logits(evaluator.full_forward(inputs,state.with_bit(added)).logits,labels).categorical_crossentropy
         expected.append(.2*(left-base)-.35*(right-base))
     assert result.risk_difference["mean"] == pytest.approx(np.mean(expected), abs=1e-12)
+
+
+def test_marginal_and_corrected_screening_use_same_engine_with_distinct_verification_budgets():
+    config = load_study(ROOT / "config/experiments/numpy_qpolar_cancellation.toml")
+    codec = BitCodec(FixedPointFormat.parse(config.benchmark.quantization))
+    adapter = create_adapter(config, codec); adapter.load()
+    inputs, labels, _ = adapter.sample_partition("evaluation", 4)
+    evaluator = DenseReluDenseIncrementalEvaluator(adapter, codec)
+    universe = tuple(adapter.bit_identities()); pool = universe[:18]; initial = frozenset(pool[:4])
+    prior = RankingPrior("canonical", pool, "test/v1")
+    proposal = ProposalPrior(pool, (PriorComponent(prior, 1.0),), uniform_exploration=.1)
+    common = dict(evaluator=evaluator, inputs=inputs, labels=labels, universe=universe,
+                  initial_mask=initial, proposal=proposal, probability=.1, iterations=1,
+                  background_contexts=3, seed=71, candidate_pool=pool,
+                  removal_shortlist=2, addition_shortlist=3, verification_shortlist=4,
+                  confidence=.95, final_contexts=2, final_seed=72, defer_final_evaluation=True)
+    marginal = conditional_screening_search(strategy="marginal_screening", **common)
+    corrected = conditional_screening_search(strategy="corrected_screening", **common)
+    assert marginal.proposals_evaluated == 1
+    assert corrected.proposals_evaluated == 4
+    assert marginal.screening_rows and corrected.screening_rows
+    assert len(marginal.best_mask) == len(initial) == len(corrected.best_mask)
+
+
+def test_screening_refresh_frequency_reuses_only_an_unchanged_mask():
+    config = load_study(ROOT / "config/experiments/numpy_qpolar_cancellation.toml")
+    codec = BitCodec(FixedPointFormat.parse(config.benchmark.quantization))
+    adapter = create_adapter(config, codec); adapter.load()
+    inputs, labels, _ = adapter.sample_partition("evaluation", 3)
+    evaluator = DenseReluDenseIncrementalEvaluator(adapter, codec)
+    universe = tuple(adapter.bit_identities()); pool = universe[:18]; initial = frozenset(pool[:4])
+    proposal = ProposalPrior(pool, (PriorComponent(RankingPrior("canonical", pool, "test/v1"), 1.0),), uniform_exploration=.1)
+    result = conditional_screening_search(
+        evaluator, inputs, labels, universe, initial, strategy="marginal_screening",
+        proposal=proposal, probability=0.0, iterations=2, background_contexts=2,
+        seed=81, candidate_pool=pool, removal_shortlist=2, addition_shortlist=3,
+        verification_shortlist=2, confidence=.95, final_contexts=2, final_seed=82,
+        defer_final_evaluation=True, refresh_frequency=2,
+    )
+    assert result.accepted == 0
+    assert len(result.steps) == 2
+    assert len(result.screening_rows) == 5  # one 2+3 candidate refresh, then reuse
+    assert [row["screening_refreshed"] for row in result.factorized_rows] == [True, False]

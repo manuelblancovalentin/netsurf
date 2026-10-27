@@ -20,6 +20,8 @@ from .incremental import (
 )
 from .statistics import summarize
 from .manifests import digest_object
+from .conditional_screening import screen_conditional_candidates
+from .factorized import FactorizedInteractionAggregate
 
 
 @dataclass(frozen=True)
@@ -286,6 +288,9 @@ class SearchResult:
     wall_seconds: float
     proposal_provenance: Mapping[str, object]
     proposal_influence: tuple[Mapping[str, object], ...] = ()
+    screening_rows: tuple[Mapping[str, object], ...] = ()
+    factorized_rows: tuple[Mapping[str, object], ...] = ()
+    screening_context_rows: tuple[Mapping[str, object], ...] = ()
 
 
 def estimate_mask_risk(
@@ -554,6 +559,139 @@ def conditional_search(
         proposals_evaluated, exact_evaluations, work, perf_counter() - started,
         proposal.provenance(), tuple(influence_rows),
     )
+
+
+def conditional_screening_search(
+    evaluator: DenseReluDenseIncrementalEvaluator,
+    inputs: np.ndarray,
+    labels: np.ndarray,
+    universe: Sequence[BitIdentity],
+    initial_mask: Iterable[BitIdentity],
+    *,
+    strategy: str,
+    proposal: ProposalPrior,
+    probability: float,
+    iterations: int,
+    background_contexts: int,
+    seed: int,
+    candidate_pool: Sequence[BitIdentity],
+    removal_shortlist: int,
+    addition_shortlist: int,
+    verification_shortlist: int,
+    confidence: float,
+    final_contexts: int,
+    final_seed: int,
+    defer_final_evaluation: bool = False,
+    aggregate: FactorizedInteractionAggregate | None = None,
+    dynamic_aggregate: bool = True,
+    interaction_strength: float = 1.0,
+    polar_interactions: Mapping[tuple[BitIdentity, BitIdentity], float] | None = None,
+    polar_correction_budget: int = 0,
+    response_cache_limit: int = 2048,
+    refresh_frequency: int = 1,
+    progress: Callable[[Mapping[str, object]], None] | None = None,
+) -> SearchResult:
+    """Reuse exact candidate marginals, then verify selected swaps exactly.
+
+    ``marginal_screening`` verifies only the best ``C-D`` shortlist entry.
+    Corrected/hybrid variants verify several shortlisted swaps with the exact
+    three-state estimator; pair/polar values affect screening order only.
+    """
+
+    supported = {"marginal_screening", "corrected_screening", "factorized_screening", "hybrid_screening"}
+    if strategy not in supported:
+        raise ValueError(f"unsupported screening strategy: {strategy}")
+    universe = tuple(universe); pool = tuple(candidate_pool); current = frozenset(initial_mask)
+    if not current or not current <= set(universe) or not set(pool) <= set(universe):
+        raise ValueError("invalid screening universe, pool, or initial mask")
+    started = perf_counter(); context_seed = int(seed); budget = len(current)
+    initial_risk, _ = estimate_mask_risk(evaluator, inputs, labels, universe, current,
+                                         probability=probability, contexts=background_contexts,
+                                         seed=context_seed + 1_000_000, confidence=confidence)
+    current_risk = best_risk = float(initial_risk["mean"]); best_mask = current
+    steps=[]; screening_rows=[]; screening_context_rows=[]; factorized_rows=[]; influence_rows=[]
+    accepted = rejected = generated = evaluated_count = exact_count = work = 0
+    cached_screening = cached_fields = cached_mask = None; cached_iteration = -1
+    for iteration in range(iterations):
+        iteration_started=perf_counter(); protected=tuple(sorted(current)); additions=tuple(bit for bit in pool if bit not in current)
+        if not additions: break
+        before_remove=proposal.probabilities(protected, removal=True); before_add=proposal.probabilities(additions)
+        after_remove=before_remove.copy(); after_add=before_add.copy()
+        if aggregate is not None:
+            remove_terms=np.asarray([probability*aggregate.query(bit) for bit in protected]); add_terms=np.asarray([probability*aggregate.query(bit) for bit in additions])
+            remove_scale=max(float(np.std(remove_terms)),1e-12); add_scale=max(float(np.std(add_terms)),1e-12)
+            after_remove *= np.exp(np.clip(-interaction_strength*remove_terms/remove_scale,-20,20)); after_remove /= after_remove.sum()
+            after_add *= np.exp(np.clip(interaction_strength*add_terms/add_scale,-20,20)); after_add /= after_add.sum()
+            for population_name,before,after in (("removal",before_remove,after_remove),("addition",before_add,after_add)):
+                influence=proposal_influence(before,after,top_k=min(10,len(before)))
+                influence_rows.append({"iteration":iteration+1,"removed":"","population":population_name,"interaction_guidance":"full_population_factorized_v1","polarity_strength":interaction_strength,**asdict(influence),"materially_influenced":influence.total_variation>1e-12})
+        remove_indices=np.argsort(-after_remove,kind="stable")[:min(removal_shortlist,len(protected))]
+        add_indices=np.argsort(-after_add,kind="stable")[:min(addition_shortlist,len(additions))]
+        remove_bits=tuple(protected[int(index)] for index in remove_indices); add_bits=tuple(additions[int(index)] for index in add_indices)
+        refresh = (cached_screening is None or cached_mask != current or
+                   iteration - cached_iteration >= refresh_frequency or
+                   cached_screening.candidate_order != remove_bits + add_bits)
+        if refresh:
+            base_fields=sample_full_fault_states(universe,probability=probability,count=background_contexts,seed=context_seed+iteration*100_003)
+            screened=screen_conditional_candidates(evaluator,inputs,labels,base_fields,current,remove_bits,add_bits,
+                                                   probabilities=probability,confidence=confidence,response_cache_limit=response_cache_limit)
+            cached_screening, cached_fields, cached_mask, cached_iteration = screened, base_fields, current, iteration
+            for value in screened.removals+screened.additions:
+                screening_rows.append({"iteration":iteration+1,"identity":value.identity.key(),"status":value.status,"weighted_mean":value.weighted_mean,"conditional_mean_loss_difference":value.conditional_mean_loss_difference,"standard_error":value.standard_error,"ci_low":value.confidence_interval[0],"ci_high":value.confidence_interval[1],"contexts":value.context_count,"examples":value.example_count,"response_count":value.response_count,"work_proxy_macs":value.work_proxy_macs,"exclusive_wall_seconds":value.exclusive_wall_seconds,"background_cache_hits":screened.background_cache_hits,"background_cache_misses":screened.background_cache_misses})
+            for context_index, row in enumerate(screened.paired_weighted_contributions):
+                for bit, contribution in zip(screened.candidate_order, row):
+                    screening_context_rows.append({"iteration":iteration+1,"context":context_index,"identity":bit.key(),"status":"protected" if bit in current else "unprotected","weighted_loss_contribution":float(contribution)})
+        else:
+            screened, base_fields = cached_screening, cached_fields
+        ranked=[]
+        for removed in remove_bits:
+            for added in add_bits:
+                score=screened.marginal_swap_score(removed,added)
+                ranked.append((score,removed,added,0.0))
+        ranked.sort(key=lambda value:(value[0],value[1],value[2]))
+        if polar_correction_budget and polar_interactions:
+            corrected=[]
+            for index,(score,removed,added,_) in enumerate(ranked):
+                polar=0.0 if index >= polar_correction_budget else float(polar_interactions.get((removed,added),polar_interactions.get((added,removed),0.0)))
+                corrected.append((score-probability*probability*polar,removed,added,polar))
+            ranked=sorted(corrected,key=lambda value:(value[0],value[1],value[2]))
+        generated += len(ranked)
+        verify_count=1 if strategy=="marginal_screening" else min(verification_shortlist,len(ranked))
+        verified=[]; records=[]; cache_store={}
+        for candidate_index,(screen_score,removed,added,polar) in enumerate(ranked[:verify_count]):
+            backgrounds=tuple(FaultState(state.bits-current-{removed,added}) for state in base_fields)
+            estimate=evaluate_conditional_swap(evaluator,inputs,labels,backgrounds,removed,added,
+                                               probability_removed=probability,probability_added=probability,
+                                               confidence=confidence,cache_store=cache_store)
+            verified.append((float(estimate.risk_difference["mean"]),removed,added,estimate,screen_score,polar))
+            interval=estimate.risk_difference["confidence_interval"]
+            records.append(ProposalEvaluation(candidate_index,removed,added,float(after_remove[protected.index(removed)]),float(after_add[additions.index(added)]),float(estimate.risk_difference["mean"]),float(interval[0]),float(interval[1]),estimate.background_evaluations+estimate.incremental_evaluations+estimate.full_evaluations,estimate.work_proxy_macs,estimate.gate_changes))
+        evaluated_count += len(verified); chosen=min(verified,key=lambda value:(value[0],value[1],value[2])); difference,removed,added,estimate,screen_score,polar=chosen
+        exact=sum(value[3].background_evaluations+value[3].incremental_evaluations+value[3].full_evaluations for value in verified); exact_count+=exact
+        screening_work=screened.work_proxy_macs if refresh else 0
+        iteration_work=sum(value[3].work_proxy_macs for value in verified)+screening_work; work+=iteration_work
+        removed_aggregate = added_aggregate = removed_explicit = added_explicit = None
+        if aggregate is not None:
+            removed_aggregate = probability * aggregate.query(removed)
+            added_aggregate = probability * aggregate.query(added)
+            if len(aggregate.population) <= 2048:
+                removed_explicit = probability * aggregate.explicit(removed)
+                added_explicit = probability * aggregate.explicit(added)
+        accept=difference<0; accepted+=int(accept); rejected+=int(not accept)
+        if accept:
+            current=frozenset((set(current)-{removed})|{added}); current_risk += difference
+            if aggregate is not None and dynamic_aggregate: aggregate.swap(removed,added)
+            if current_risk<best_risk: best_risk,best_mask=current_risk,current
+        interval=estimate.risk_difference["confidence_interval"]
+        rows=tuple(tuple(bit.key() for bit in sorted(state.bits)) for state in base_fields)
+        step=SearchStep(iteration+1,strategy,removed,added,float(after_remove[protected.index(removed)]),float(after_add[additions.index(added)]),difference,float(interval[0]),float(interval[1]),accept,1.0 if accept else 0.0,current_risk,best_risk,exact,iteration_work,sum(value[3].gate_changes for value in verified),sum(value[3].background_evaluations for value in verified),sum(value[3].incremental_evaluations for value in verified),sum(value[3].full_evaluations for value in verified),sum(value[3].affected_layers for value in verified),sum(value[3].reused_layers for value in verified),sum(value[3].cache_hits for value in verified),sum(value[3].cache_misses for value in verified),sum(value[3].fallback_count for value in verified),digest_object(rows),rows,tuple(records),perf_counter()-iteration_started)
+        steps.append(step)
+        screening_seconds=screened.exclusive_wall_seconds if refresh else 0.0
+        factorized_rows.append({"iteration":iteration+1,"strategy":strategy,"screening_score":screen_score,"polar_pair_correction":polar,"exact_risk_difference":difference,"removed_aggregate_score":removed_aggregate,"added_aggregate_score":added_aggregate,"removed_explicit_score":removed_explicit,"added_explicit_score":added_explicit,"aggregate_reconstruction_error":None if aggregate is None else aggregate.reconstruction_error(),"aggregate_population_coverage":None if aggregate is None else aggregate.population_coverage,"screening_refreshed":refresh,"screened_candidates":len(screened.candidate_order),"verified_swaps":len(verified),"conditional_screening_seconds":screening_seconds,"exact_verification_and_proposal_seconds":max(0.0,step.wall_seconds-screening_seconds),"accepted":accept})
+        if progress: progress({"iteration":iteration+1,"iterations":iterations,"strategy":strategy,"protected_bits":len(current),"estimated_risk":current_risk,"best_estimated_risk":best_risk,"accepted":accepted,"rejected":rejected,"exact_evaluations":exact_count,"screened_candidates":len(screened.candidate_order),"verified_swaps":len(verified)})
+    final_risk={} if defer_final_evaluation else estimate_mask_risk(evaluator,inputs,labels,universe,best_mask,probability=probability,contexts=final_contexts,seed=final_seed,confidence=confidence)[0]
+    provenance={**proposal.provenance(),"screening":"topology-conditional-marginal-screening/v1","corrected":strategy!="marginal_screening","factorized":aggregate is not None,"dynamic_aggregate":dynamic_aggregate,"polar_correction_budget":polar_correction_budget}
+    return SearchResult(strategy,frozenset(initial_mask),current,best_mask,initial_risk,final_risk,best_risk,tuple(steps),accepted,rejected,generated,evaluated_count,exact_count,work,perf_counter()-started,provenance,tuple(influence_rows),tuple(screening_rows),tuple(factorized_rows),tuple(screening_context_rows))
 
 
 def exhaustive_optimum(

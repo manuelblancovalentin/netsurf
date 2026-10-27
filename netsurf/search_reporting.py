@@ -8,6 +8,7 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 
+from .analysis_m3 import spearman
 from .statistics import summarize
 
 
@@ -121,6 +122,38 @@ def render_search_report(summary: Mapping[str, Any], resolved: Mapping[str, Any]
                   "|---:|---|---:|---:|---:|---:|---:|"]
         for value in influence:
             lines.append(f"| {value['logical_ber']:.6g} | {value['strategy']} | {value['iteration']} | {value['changed_fraction']:.3f} | {value['top_k_overlap']:.3f} | {value['total_variation']:.4g} | {value['jensen_shannon_divergence']:.4g} |")
+    screening=summary.get("screening_diagnostics",{})
+    if screening and screening.get("candidate_rows"):
+        coverages=", ".join(f"{100*value:.1f}%" for value in screening.get("aggregate_population_coverages",[])) or "not applicable"
+        reconstruction=screening.get("maximum_aggregate_reconstruction_error")
+        lines += ["", "## Mask-aware conditional screening", "",
+                  "Candidate marginals use common random background fields. Their saved per-context contributions preserve covariance; `C-D` is screening guidance and only the separately recorded three-state verification is an exact swap estimate.", "",
+                  f"- Candidate marginal rows: {screening['candidate_rows']}",
+                  f"- Paired context-contribution rows: {screening.get('paired_context_rows',0)}",
+                  f"- Exact verified factorized/screened decisions: {screening.get('factorized_decisions',0)}",
+                  f"- Screening responses: {screening.get('screening_response_count',0)}",
+                  f"- Aggregate population coverage values: {coverages}",
+                  f"- Maximum dynamic aggregate reconstruction drift: {'—' if reconstruction is None else f'{reconstruction:.3g}'}", ""]
+        costs=summary.get("computational_costs",{})
+        if costs:
+            show=lambda value:"—" if value is None else f"{float(value):.6g}"
+            lines += ["### Component cost and break-even diagnostic", "",
+                      "These are measured component costs, not an end-to-end speedup claim.", "",
+                      "| Factor/aggregate setup (s) | Direct screening (s) | Factor query/update/verification (s) | Responses/s | Verified swaps/s | Estimated break-even iterations |",
+                      "|---:|---:|---:|---:|---:|---:|",
+                      f"| {show(costs.get('factor_and_aggregate_setup_seconds'))} | {show(costs.get('conditional_screening_seconds'))} | {show(costs.get('factor_query_update_and_verification_seconds'))} | {show(costs.get('candidate_responses_per_second'))} | {show(costs.get('verified_swaps_per_second'))} | {show(costs.get('component_break_even_iterations'))} |", "",
+                      "The break-even value is a hypothetical component substitution estimate. The current hybrid still performs exact screening, so it is not an end-to-end speedup measurement.", ""]
+    timing=summary.get("timing_audit",[])
+    whole=[value for value in timing if value.get("phase")=="whole_process"]
+    phases=[value for value in timing if value.get("phase")!="whole_process"]
+    if timing:
+        lines += ["## Exclusive timing audit", "",
+                  "Phase rows are mutually exclusive. Search-result times are inclusive method times and convergence times are cumulative trajectory times; neither may be added to this audit.", "",
+                  "| Replication | Exclusive phase sum (s) | Whole elapsed (s) | Uninstrumented (s) |",
+                  "|---|---:|---:|---:|"]
+        for value in whole:
+            lines.append(f"| {value['replication']} | {float(value.get('exclusive_phase_sum_seconds',0)):.6f} | {float(value['exclusive_wall_seconds']):.6f} | {float(value.get('uninstrumented_seconds',0)):.6f} |")
+        lines.append("")
     lines += ["", "## Incremental exactness", ""]
     checks = summary.get("incremental_validation", [])
     lines.append(f"Bounded validation cases: {len(checks)}; maximum logit absolute error: {max((float(v['max_logit_absolute_error']) for v in checks), default=0):.3g}; prediction mismatches: {sum(int(v['prediction_mismatches']) for v in checks)}.")
@@ -134,7 +167,7 @@ def render_search_report(summary: Mapping[str, Any], resolved: Mapping[str, Any]
     return "\n".join(lines)
 
 
-def plot_search_results(summary, output: Path, *, trials=(), convergence=(), validation=(), polar=(), topology=(), search_steps=(), composition=(), search_results=(), proposal_diagnostics=()):
+def plot_search_results(summary, output: Path, *, trials=(), convergence=(), validation=(), polar=(), topology=(), search_steps=(), composition=(), search_results=(), proposal_diagnostics=(), screening=(), factorized=(), timing=()):
     try:
         import matplotlib.pyplot as plt
     except ImportError as error:
@@ -142,6 +175,49 @@ def plot_search_results(summary, output: Path, *, trials=(), convergence=(), val
         raise PlottingDependencyError("Matplotlib is required for search plots") from error
     output.mkdir(parents=True, exist_ok=True)
     generated = []
+    if screening:
+        strategies=sorted({str(value["strategy"]) for value in screening})
+        data=[[float(value["exclusive_wall_seconds"]) for value in screening if str(value["strategy"])==strategy] for strategy in strategies]
+        fig,ax=plt.subplots(figsize=(max(7,len(strategies)*1.2),4.5)); ax.boxplot(data,tick_labels=strategies,showmeans=True); ax.set_yscale("log"); ax.set(ylabel="Exclusive seconds per candidate marginal",title="Conditional-screening amortized latency"); ax.tick_params(axis="x",rotation=25); fig.tight_layout(); path=output/"conditional_screening_cost.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
+        first={(str(value["strategy"]),str(value["identity"])):float(value["weighted_mean"]) for value in screening if int(value["iteration"])==1}
+        if len(strategies)>1:
+            matrix=np.eye(len(strategies))
+            for i,left in enumerate(strategies):
+                for j,right in enumerate(strategies):
+                    shared=sorted({identity for strategy,identity in first if strategy==left}&{identity for strategy,identity in first if strategy==right})
+                    matrix[i,j]=np.nan if len(shared)<2 else spearman([first[(left,key)] for key in shared],[first[(right,key)] for key in shared])
+            fig,ax=plt.subplots(figsize=(max(6,len(strategies)*.8),max(5,len(strategies)*.65))); image=ax.imshow(matrix,vmin=-1,vmax=1,cmap="coolwarm"); ax.set_xticks(range(len(strategies)),strategies,rotation=35,ha="right"); ax.set_yticks(range(len(strategies)),strategies); ax.set_title("Candidate marginal rank agreement (iteration 1 overlap)"); fig.colorbar(image,ax=ax,label="Spearman correlation"); fig.tight_layout(); path=output/"candidate_ranking_agreement.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
+    if factorized:
+        comparable=[value for value in factorized if value.get("screening_score") not in (None,"") and value.get("exact_risk_difference") not in (None,"")]
+        if comparable:
+            fig,ax=plt.subplots(figsize=(6,5)); x=[float(value["screening_score"]) for value in comparable]; y=[float(value["exact_risk_difference"]) for value in comparable]; ax.scatter(x,y,alpha=.7); limits=[min(x+y+[0]),max(x+y+[0])]; ax.plot(limits,limits,"--",color="black"); ax.set(xlabel="Screening estimate C−D (guidance)",ylabel="Exact three-state Δrisk",title="Screening guidance versus exact swap verification"); fig.tight_layout(); path=output/"screening_vs_exact_swap.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
+        explicit=[]
+        for value in factorized:
+            for prefix in ("removed","added"):
+                if value.get(f"{prefix}_explicit_score") not in (None,""):
+                    explicit.append((float(value[f"{prefix}_explicit_score"]),float(value[f"{prefix}_aggregate_score"])))
+        if explicit:
+            x,y=zip(*explicit); fig,ax=plt.subplots(figsize=(6,5)); ax.scatter(x,y,alpha=.7); limits=[min((*x,*y,0)),max((*x,*y,0))]; ax.plot(limits,limits,"--",color="black"); ax.set(xlabel="Explicit vulnerable-bit Kronecker sum",ylabel="Factorized aggregate score",title="Explicit versus factorized aggregate"); fig.tight_layout(); path=output/"explicit_vs_factorized_aggregate.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
+        drift=[value for value in factorized if value.get("aggregate_reconstruction_error") not in (None,"")]
+        if drift:
+            fig,ax=plt.subplots(figsize=(7,4.5))
+            for strategy in sorted({str(value["strategy"]) for value in drift}):
+                values=sorted((value for value in drift if str(value["strategy"])==strategy),key=lambda value:int(value["iteration"])); ax.plot([int(value["iteration"]) for value in values],[float(value["aggregate_reconstruction_error"]) for value in values],marker="o",label=strategy)
+            ax.set_yscale("symlog",linthresh=1e-15); ax.set(xlabel="Search iteration",ylabel="Maximum aggregate reconstruction drift",title="Dynamic Kronecker aggregate consistency"); ax.legend(fontsize=8); fig.tight_layout(); path=output/"aggregate_update_drift.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
+        score_rows=[value for value in factorized if value.get("removed_aggregate_score") not in (None,"")]
+        if score_rows:
+            fig,ax=plt.subplots(figsize=(7,4.5))
+            for strategy in sorted({str(value["strategy"]) for value in score_rows}):
+                values=sorted((value for value in score_rows if str(value["strategy"])==strategy),key=lambda value:int(value["iteration"])); ax.plot([int(value["iteration"]) for value in values],[float(value["removed_aggregate_score"])-float(value["added_aggregate_score"]) for value in values],marker="o",label=strategy)
+            ax.axhline(0,color="black",lw=1); ax.set(xlabel="Search iteration",ylabel="Selected removal−addition aggregate score",title="Mask-dependent factorized score trajectory"); ax.legend(fontsize=8); fig.tight_layout(); path=output/"dynamic_aggregate_scores.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
+        coverage=[value for value in factorized if value.get("aggregate_population_coverage") not in (None,"")]
+        if coverage:
+            names=sorted({str(value["strategy"]) for value in coverage}); values=[max(float(value["aggregate_population_coverage"]) for value in coverage if str(value["strategy"])==name) for name in names]; fig,ax=plt.subplots(figsize=(max(7,len(names)*1.2),4)); ax.bar(names,values); ax.set_ylim(0,1.05); ax.set(ylabel="Eligible population coverage",title="Factorized interaction aggregate coverage"); ax.tick_params(axis="x",rotation=25); fig.tight_layout(); path=output/"factorized_population_coverage.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
+    timing_phases=[value for value in timing if value.get("phase")!="whole_process" and value.get("category")!="reporting"]
+    if timing_phases:
+        grouped=defaultdict(float)
+        for value in timing_phases: grouped[str(value["phase"])]+=float(value["exclusive_wall_seconds"])
+        fig,ax=plt.subplots(figsize=(max(7,len(grouped)*1.1),4.5)); ax.bar(list(grouped),list(grouped.values())); ax.set(ylabel="Exclusive wall seconds",title="Mutually exclusive engine timing"); ax.tick_params(axis="x",rotation=30); fig.tight_layout(); path=output/"exclusive_phase_timing.png"; fig.savefig(path,dpi=160); plt.close(fig); generated.append(path)
     conditional = summary.get("conditional_results", [])
     if conditional:
         for logical_ber in sorted({float(value["logical_ber"]) for value in conditional}):

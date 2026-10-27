@@ -6,12 +6,14 @@ from dataclasses import dataclass, replace
 from itertools import combinations
 from time import perf_counter
 from typing import Any, Mapping, Sequence
+import resource
 
 import numpy as np
 
 from .adapters.registry import create_adapter
 from .conditional_risk import ConditionalMaskComparison, compare_protection_masks
 from .curvature import DenseReluDenseCurvature
+from .factorized import FactorizedInteractionAggregate
 from .estimators_m3 import EstimatorOutput, basic_estimator, compute_estimators
 from .identities import BitIdentity
 from .incremental import DenseReluDenseIncrementalEvaluator, FaultState, metrics_from_logits
@@ -27,6 +29,7 @@ from .search import (
     RankingPrior,
     SearchResult,
     conditional_search,
+    conditional_screening_search,
     estimate_mask_risk,
     exhaustive_optimum,
     sample_full_fault_states,
@@ -58,6 +61,7 @@ class SearchOutcome:
     replications: tuple["SearchOutcome", ...] = ()
     topology_measurements: tuple[Mapping[str, Any], ...] = ()
     protection_budget_bits: int = 0
+    timing_records: tuple[Mapping[str, Any], ...] = ()
 
     @property
     def scientific_payload_sha256(self) -> str:
@@ -188,9 +192,15 @@ def _incremental_validation(evaluator, inputs, labels, identities):
 
 
 def _execute_replication(configuration: SearchConfiguration, replication_index: int, tracker=None, *, probability=None, condition_index=0):
-    controlled = configuration.schema_version in {"4.1.0", "4.2.0"}
+    whole_started = perf_counter(); phase_started = whole_started; timing_records = []
+    def finish_phase(phase, category, operation_count=0):
+        nonlocal phase_started
+        finished = perf_counter()
+        timing_records.append({"phase": phase, "category": category, "exclusive_wall_seconds": finished-phase_started, "operation_count": int(operation_count), "peak_rss_mb": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0})
+        phase_started = finished
+    controlled = configuration.schema_version in {"4.1.0", "4.2.0", "4.3.0"}
     probability = configuration.fault.probability if probability is None else float(probability)
-    if configuration.schema_version == "4.2.0":
+    if configuration.schema_version in {"4.2.0", "4.3.0"}:
         replication = f"budget_{configuration.initial_mask.budget_bits}_ber_{condition_index}_replication_{replication_index}"
     else:
         replication = f"ber_{condition_index}_replication_{replication_index}" if controlled else f"replication_{replication_index}"
@@ -198,6 +208,7 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
     if tracker is not None: tracker.update("Model loading", **context)
     codec = BitCodec(FixedPointFormat.parse(configuration.benchmark.quantization))
     benchmark = create_adapter(configuration, codec); benchmark.load()
+    finish_phase("model_loading", "shared_preprocessing", 1)
     if tracker is not None:
         tracker.update("Model loading", advance=1, **context)
         tracker.update("Sample partitioning", **context)
@@ -208,6 +219,7 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
     partitions = {"ranking": ranking_partition, "search": search_partition, "final_evaluation": final_partition}
     if configuration.samples.require_disjoint:
         require_disjoint(tuple(partitions.values()))
+    finish_phase("sample_partitioning", "shared_preprocessing", 3)
     if tracker is not None:
         tracker.update("Sample partitioning", advance=1, **context)
     identities = tuple(benchmark.bit_identities())
@@ -227,10 +239,12 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
     pool_set = set(pool)
     components = [PriorComponent(RankingPrior.from_ordering(OrderedRanking(value.name, value.estimator, value.criteria, tuple(bit for bit in value.identities if bit in pool_set), value.seed)), guide.weight) for guide, value in ((g, orderings[g.name]) for g in configuration.guidance) if guide.weight > 0]
     proposal = ProposalPrior(pool, components, uniform_exploration=configuration.search.uniform_exploration, rank_temperature=configuration.search.rank_temperature)
+    finish_phase("ranking_and_initialization", "shared_preprocessing", len(outputs))
     if tracker is not None: tracker.update("Ranking and initialization", advance=1, **context)
     evaluator = DenseReluDenseIncrementalEvaluator(benchmark, codec, cache_memory_limit_bytes=int(configuration.search.cache_memory_mb * 1024**2))
     if tracker is not None: tracker.update("Incremental exactness validation", **context)
     validation = _incremental_validation(evaluator, search_x, search_y, identities)
+    finish_phase("incremental_validation", "shared_preprocessing", len(validation))
     if tracker is not None: tracker.update("Incremental exactness validation", advance=1, **context)
 
     polar_values = []
@@ -238,7 +252,7 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
     if configuration.polar.enabled and configuration.polar.pair_budget:
         if tracker is not None: tracker.update("Sparse polar calibration", **context)
         generator = np.random.default_rng(configuration.polar.seed + replication_index)
-        if configuration.schema_version == "4.2.0":
+        if configuration.schema_version in {"4.2.0", "4.3.0"}:
             hidden = tuple(bit for bit in identities if bit.parameter.startswith("dense0/"))
             output = tuple(bit for bit in identities if bit.parameter.startswith("dense1/"))
             pool_hidden = tuple(bit for bit in pool if bit.parameter.startswith("dense0/")) or hidden
@@ -305,14 +319,14 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
         for pair_index, (left, right) in enumerate(possible):
             if configuration.polar.mode == "finite_clean":
                 backgrounds = (FaultState(frozenset()),)
-            elif configuration.schema_version == "4.2.0":
+            elif configuration.schema_version in {"4.2.0", "4.3.0"}:
                 backgrounds = tuple(FaultState(state.bits - {left, right}) for state in shared_topology_backgrounds)
             else:
                 backgrounds = sample_full_fault_states(tuple(bit for bit in identities if bit not in {left, right}), probability=probability, count=configuration.polar.background_contexts, seed=configuration.polar.seed + replication_index * 1009 + condition_index * 1_000_003 + pair_index)
             for background in backgrounds:
                 measured = measure_polar_pair(evaluator, search_x, search_y, background, left, right)
                 polar_values.append(measured)
-                if configuration.schema_version == "4.2.0":
+                if configuration.schema_version in {"4.2.0", "4.3.0"}:
                     if background not in topology_cache:
                         topology = DenseReluDenseTopologyEvaluator(
                             evaluator, search_x, background,
@@ -350,8 +364,10 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
                 if tracker is not None: tracker.update("Sparse polar calibration", advance=1, **context)
     interactions = interaction_map(polar_values)
     interaction_maps = {"finite_polar": interactions}
-    if configuration.schema_version == "4.2.0":
+    if configuration.schema_version in {"4.2.0", "4.3.0"}:
         for model in configuration.topology.interaction_models:
+            if model in {"factorized_kronecker", "factorized_stratified_kronecker"}:
+                continue
             grouped = {}
             for row in topology_rows:
                 value = row[model]
@@ -363,6 +379,7 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
         for value in polar_values:
             grouped.setdefault((value.left, value.right), []).append(value.local_quadratic_interaction)
         interactions = {key: float(np.mean(values)) for key, values in grouped.items()}
+    finish_phase("interaction_calibration", "shared_preprocessing", len(polar_values))
 
     final_seed = configuration.final_evaluation.seed + replication_index * configuration.replications.final_seed_stride + condition_index * 10_000_019
     final_states = () if controlled else sample_full_fault_states(identities, probability=probability, count=configuration.final_evaluation.contexts, seed=final_seed)
@@ -380,12 +397,14 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
                                protected_bits=value["protected_bits"], estimated_risk=value["estimated_risk"],
                                best_estimated_risk=value["best_estimated_risk"], accepted=value["accepted"],
                                rejected=value["rejected"], exact_evaluations=value["exact_evaluations"],
+                               screened_candidates=value.get("screened_candidates"),
+                               verified_swaps=value.get("verified_swaps"),
                                work_class=f"Search {method.name}")
         method_interactions = interactions
         method_strength = configuration.polar.strength
         interaction_guidance = "direct_pair_v1"
-        if configuration.schema_version == "4.2.0":
-            method_interactions = {} if method.interaction_model == "none" else dict(interaction_maps[method.interaction_model])
+        if configuration.schema_version in {"4.2.0", "4.3.0"}:
+            method_interactions = {} if method.interaction_model in {"none", "factorized_kronecker", "factorized_stratified_kronecker"} else dict(interaction_maps[method.interaction_model])
             method_strength = configuration.polar.strength if method.polarity_strength is None else method.polarity_strength
             if method.shuffle_interactions and method_interactions:
                 keys = sorted(method_interactions)
@@ -393,25 +412,72 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
                 np.random.default_rng(search_seed + strategy_index * 100_003 + 17).shuffle(values)
                 method_interactions = dict(zip(keys, map(float, values)))
             interaction_guidance = configuration.topology.interaction_guidance
-        result = conditional_search(
-            evaluator, search_x, search_y, identities, initial, strategy=strategy, proposal=method_proposal,
-            probability=probability, iterations=method_iterations,
-            background_contexts=configuration.search.background_contexts, seed=search_seed + strategy_index * 100_003,
-            final_contexts=configuration.final_evaluation.contexts, final_seed=final_seed,
-            confidence=configuration.final_evaluation.confidence, candidate_pool=pool,
-            greedy_add_candidates=configuration.search.greedy_add_candidates,
-            greedy_remove_candidates=configuration.search.greedy_remove_candidates,
-            initial_temperature=configuration.search.initial_temperature, cooling_rate=configuration.search.cooling_rate,
-            polar_interactions=method_interactions, polar_strength=method_strength,
-            evaluator_mode=configuration.search.evaluator, final_fault_states=None if controlled else final_states, progress=search_progress,
-            final_inputs=None if controlled else final_x, final_labels=None if controlled else final_y,
-            defer_final_evaluation=controlled,
-            background_seed=search_seed if controlled else None,
-            interaction_guidance=interaction_guidance,
-        )
+        if configuration.schema_version == "4.3.0" and strategy in {"marginal_screening", "corrected_screening", "factorized_screening", "hybrid_screening"}:
+            aggregate = None
+            if method.interaction_model in {"factorized_kronecker", "factorized_stratified_kronecker"}:
+                clean_topology = DenseReluDenseTopologyEvaluator(
+                    evaluator, search_x, FaultState.from_bits(),
+                    response_cache_limit=configuration.screening.response_cache_limit,
+                )
+                aggregate = FactorizedInteractionAggregate(
+                    DenseReluDenseCurvature(clean_topology), identities, initial,
+                    probabilities=probability,
+                    stratified=method.interaction_model == "factorized_stratified_kronecker",
+                    strata=configuration.topology.confidence_strata,
+                    minimum_samples=configuration.topology.minimum_stratum_samples,
+                    population=identities if method.aggregate_population == "full" else pool,
+                )
+            result = conditional_screening_search(
+                evaluator, search_x, search_y, identities, initial, strategy=strategy,
+                proposal=method_proposal, probability=probability, iterations=method_iterations,
+                background_contexts=configuration.search.background_contexts,
+                seed=search_seed + strategy_index * 100_003, candidate_pool=pool,
+                removal_shortlist=configuration.screening.removal_shortlist,
+                addition_shortlist=configuration.screening.addition_shortlist,
+                verification_shortlist=configuration.screening.verification_shortlist,
+                confidence=configuration.final_evaluation.confidence,
+                final_contexts=configuration.final_evaluation.contexts, final_seed=final_seed,
+                defer_final_evaluation=controlled, aggregate=aggregate,
+                dynamic_aggregate=method.dynamic_aggregate,
+                interaction_strength=configuration.screening.interaction_strength,
+                polar_interactions=interaction_maps.get("finite_polar", {}) if strategy == "hybrid_screening" else None,
+                polar_correction_budget=method.polar_correction_budget,
+                response_cache_limit=configuration.screening.response_cache_limit,
+                refresh_frequency=configuration.screening.refresh_frequency,
+                progress=search_progress,
+            )
+            if aggregate is not None:
+                count = len(result.factorized_rows)
+                result = replace(result, factorized_rows=tuple({**row,
+                    "factor_build_seconds": aggregate.timing.factor_build_seconds if index == 0 else 0.0,
+                    "aggregate_build_seconds": aggregate.timing.aggregate_build_seconds if index == 0 else 0.0,
+                    "aggregate_query_seconds": aggregate.timing.query_seconds if index == count - 1 else 0.0,
+                    "aggregate_update_seconds": aggregate.timing.update_seconds if index == count - 1 else 0.0,
+                    "aggregate_population": method.aggregate_population,
+                    "dynamic_aggregate": method.dynamic_aggregate,
+                    "timing_semantics": "shared_setup_attributed_to_first_row_and_cumulative_query_update_to_last_row",
+                } for index, row in enumerate(result.factorized_rows)))
+        else:
+            result = conditional_search(
+                evaluator, search_x, search_y, identities, initial, strategy=strategy, proposal=method_proposal,
+                probability=probability, iterations=method_iterations,
+                background_contexts=configuration.search.background_contexts, seed=search_seed + strategy_index * 100_003,
+                final_contexts=configuration.final_evaluation.contexts, final_seed=final_seed,
+                confidence=configuration.final_evaluation.confidence, candidate_pool=pool,
+                greedy_add_candidates=configuration.search.greedy_add_candidates,
+                greedy_remove_candidates=configuration.search.greedy_remove_candidates,
+                initial_temperature=configuration.search.initial_temperature, cooling_rate=configuration.search.cooling_rate,
+                polar_interactions=method_interactions, polar_strength=method_strength,
+                evaluator_mode=configuration.search.evaluator, final_fault_states=None if controlled else final_states, progress=search_progress,
+                final_inputs=None if controlled else final_x, final_labels=None if controlled else final_y,
+                defer_final_evaluation=controlled,
+                background_seed=search_seed if controlled else None,
+                interaction_guidance=interaction_guidance,
+            )
         if controlled:
             result = replace(result, strategy=method.name, proposal_provenance={**result.proposal_provenance,"method":method.name,"algorithm":method.strategy,"guidance":list(method.guidance)})
         results.append(result)
+    finish_phase("search", "search_and_exact_verification", sum(len(value.steps) for value in results))
     conditional_comparisons = ()
     if controlled:
         # These fields are created only after all final masks are fixed.  They
@@ -439,48 +505,69 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
         conditional_comparisons = tuple(comparisons)
     if tracker is not None:
         tracker.update("Held-out final evaluation", **context)
-    trials = tuple({**row, **({"protection_budget_bits": len(initial)} if configuration.schema_version == "4.2.0" else {})}
+    trials = tuple({**row, **({"protection_budget_bits": len(initial)} if configuration.schema_version in {"4.2.0", "4.3.0"} else {})}
                    for row in _matched_final_trials(evaluator, final_x, final_y, final_states, results, replication, None if tracker is None else lambda: tracker.update("Held-out final evaluation", advance=1, logical_ber=probability, **context), probability if controlled else None))
     maximum_states = sum(1 if value.strategy == "static" else 1 + (configuration.search.iterations if value.iterations is None else value.iterations) for value in configuration.methods)
     actual_states = sum(1 + result.accepted for result in results)
     if tracker is not None:
         tracker.adjust_total((actual_states - maximum_states) * configuration.final_evaluation.contexts, stage="Held-out convergence")
         tracker.update("Held-out convergence", **context)
-    convergence = tuple({**row, **({"protection_budget_bits": len(initial)} if configuration.schema_version == "4.2.0" else {})}
+    convergence = tuple({**row, **({"protection_budget_bits": len(initial)} if configuration.schema_version in {"4.2.0", "4.3.0"} else {})}
                         for result in results for row in _heldout_convergence(evaluator, final_x, final_y, final_states, result, replication, None if tracker is None else lambda: tracker.update("Held-out convergence", advance=1, logical_ber=probability, **context), probability if controlled else None))
     exact_rows, exact_mask, exact_risk = (), frozenset(), None
     if configuration.search.exact_enumeration:
         if tracker is not None: tracker.update("Restricted exact enumeration", **context)
         exact_mask, exact_risk, exact_rows = exhaustive_optimum(evaluator, search_x, search_y, pool, budget=len(initial), probability=configuration.fault.probability)
         if tracker is not None: tracker.update("Restricted exact enumeration", advance=1, **context)
+    finish_phase("heldout_and_exact_evaluation", "final_heldout_evaluation", len(trials)+len(convergence)+len(conditional_comparisons)+len(exact_rows))
+    def payload_candidate(candidate):
+        row = candidate.to_dict()
+        if configuration.schema_version == "4.3.0":
+            # Proposal probabilities are derived ordering diagnostics.  NumPy's
+            # vector normalization can vary in its final binary digit between
+            # processes; fixed decimal canonicalization keeps the scientific
+            # digest stable without changing selection or evaluation.
+            for name in ("proposal_probability_remove", "proposal_probability_add"):
+                row[name] = round(float(row[name]), 14)
+        return row
+
+    def payload_step(step):
+        row = {key: item for key, item in step.to_dict().items() if key != "wall_seconds"}
+        if configuration.schema_version == "4.3.0":
+            for name in ("proposal_probability_remove", "proposal_probability_add"):
+                row[name] = round(float(row[name]), 14)
+        row["background_fault_states"] = step.background_fault_states
+        row["evaluated_candidates"] = [payload_candidate(candidate) for candidate in step.evaluated_candidates]
+        return row
+
     payload = {
         "schema_version": configuration.schema_version, "scientific_protocol": configuration.scientific_protocol,
         "replication": replication,
         "benchmark": {"id": configuration.benchmark.id, "checkpoint_sha256": sha256_file(configuration.benchmark.checkpoint), "dataset_sha256": sha256_file(configuration.benchmark.dataset), "eligible_bits": len(identities), "quantization": configuration.benchmark.quantization},
         "partitions": {name: value.to_dict() for name, value in partitions.items()},
         "fault": {"probability": probability, "persistence": configuration.fault.persistence, "distribution": configuration.fault.distribution},
-        **({"protection_budget_bits": len(initial)} if configuration.schema_version == "4.2.0" else {}),
+        **({"protection_budget_bits": len(initial)} if configuration.schema_version in {"4.2.0", "4.3.0"} else {}),
         "initial_mask": [bit.key() for bit in sorted(initial)], "candidate_pool": [bit.key() for bit in pool],
         "rankings": {name: {"digest": value.digest(), "criteria": value.criteria, "estimator": value.estimator} for name, value in orderings.items()},
         "search": [{
             "strategy": value.strategy, "best_mask": [bit.key() for bit in sorted(value.best_mask)],
             "accepted": value.accepted, "rejected": value.rejected,
             "best_estimated_risk": value.best_estimated_risk, "final_risk": value.final_risk,
-            "steps": [{
-                **{key: item for key, item in step.to_dict().items() if key != "wall_seconds"},
-                "background_fault_states": step.background_fault_states,
-                "evaluated_candidates": [candidate.to_dict() for candidate in step.evaluated_candidates],
-            } for step in value.steps],
+            "steps": [payload_step(step) for step in value.steps],
         } for value in results],
         "final_fault_states": [[bit.key() for bit in sorted(value.bits)] for value in final_states],
         **({"conditional_final_fault_states": [[bit.key() for bit in sorted(value.bits)] for value in conditional_states],
             "conditional_comparisons": [{key:item for key,item in value.to_dict().items() if key != "wall_seconds"} for value in conditional_comparisons]} if controlled else {}),
-        **({"topology_interactions": [{key:value for key,value in row.items() if key not in {"left_identity","right_identity","wall_seconds"}} for row in topology_rows]} if configuration.schema_version == "4.2.0" else {}),
+        **({"topology_interactions": [{key:value for key,value in row.items() if key not in {"left_identity","right_identity","wall_seconds"}} for row in topology_rows]} if configuration.schema_version in {"4.2.0", "4.3.0"} else {}),
         "exact_optimum": None if exact_risk is None else {"risk": exact_risk, "mask": [bit.key() for bit in sorted(exact_mask)]},
     }
     if tracker is not None: tracker.update("Scientific payload", advance=1, **context)
-    outcome = SearchOutcome(configuration, payload, partitions, outputs, orderings, pool, tuple(polar_values), tuple(results), trials, convergence, validation, tuple(exact_rows), exact_mask, exact_risk, conditional_comparisons, probability, replication, (), tuple(topology_rows))
-    return replace(outcome, protection_budget_bits=len(initial))
+    finish_phase("scientific_payload", "reporting_preparation", 1)
+    whole_elapsed = perf_counter() - whole_started
+    exclusive_total = sum(float(value["exclusive_wall_seconds"]) for value in timing_records)
+    timing_records.append({"phase":"whole_process","category":"whole_process_elapsed","exclusive_wall_seconds":whole_elapsed,"operation_count":0,"exclusive_phase_sum_seconds":exclusive_total,"uninstrumented_seconds":max(0.0,whole_elapsed-exclusive_total),"peak_rss_mb":resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0})
+    outcome = SearchOutcome(configuration, payload, partitions, outputs, orderings, pool, tuple(polar_values), tuple(results), trials, convergence, validation, tuple(exact_rows), exact_mask, exact_risk, conditional_comparisons, probability, replication, (), tuple(topology_rows), len(initial), tuple(timing_records))
+    return outcome
 
 
 def execute_search(configuration: SearchConfiguration, *, _tracker=None) -> SearchOutcome:
@@ -497,6 +584,6 @@ def execute_search(configuration: SearchConfiguration, *, _tracker=None) -> Sear
     if len(members) == 1:
         return members[0]
     payload = {"schema_version": configuration.schema_version, "scientific_protocol": configuration.scientific_protocol,
-               "replications": [{"name": value.replication_name, **({"logical_ber":value.logical_ber} if configuration.schema_version in {"4.1.0", "4.2.0"} else {}), **({"protection_budget_bits": value.protection_budget_bits} if configuration.schema_version == "4.2.0" else {}), "payload_sha256": value.scientific_payload_sha256} for value in members]}
+               "replications": [{"name": value.replication_name, **({"logical_ber":value.logical_ber} if configuration.schema_version in {"4.1.0", "4.2.0", "4.3.0"} else {}), **({"protection_budget_bits": value.protection_budget_bits} if configuration.schema_version in {"4.2.0", "4.3.0"} else {}), "payload_sha256": value.scientific_payload_sha256} for value in members]}
     first = members[0]
     return replace(first, configuration=configuration, scientific_payload=payload, replications=members)

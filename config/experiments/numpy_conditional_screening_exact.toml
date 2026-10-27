@@ -1,0 +1,156 @@
+schema_version = "4.3.0"
+scientific_protocol = "mask-aware-conditional-screening/v1"
+
+[experiment]
+name = "numpy_conditional_screening_exact"
+description = "Bounded exact conditional-decomposition, candidate-screening, and factorized-aggregate validation."
+objective = "Verify reusable marginals, exact swap verification, and dynamic full-population Kronecker identities on the 102-bit reference network."
+
+[benchmark]
+adapter = "numpy_reference"
+id = "numpy_reference_q621-v1"
+checkpoint = "../../netsurf/benchmarks/data/numpy_reference_checkpoint.json"
+dataset = "../../netsurf/benchmarks/data/numpy_reference_dataset.json"
+split = "fixed_disjoint_control"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 2
+search_count = 2
+final_count = 2
+require_disjoint = true
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+
+[[guidance]]
+name = "gradient_global"
+estimator = "first_order_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+weight = 1.0
+
+[initial_mask]
+guidance = "gradient_global"
+budget_bits = 4
+
+[[methods]]
+name = "static_gradient"
+strategy = "static"
+guidance = ["gradient_global"]
+interaction_model = "none"
+
+[[methods]]
+name = "marginal_screening"
+strategy = "marginal_screening"
+guidance = ["gradient_global"]
+interaction_model = "none"
+pair_correction = false
+
+[[methods]]
+name = "corrected_screening"
+strategy = "corrected_screening"
+guidance = ["gradient_global"]
+interaction_model = "none"
+
+[[methods]]
+name = "dynamic_kronecker"
+strategy = "factorized_screening"
+guidance = ["gradient_global"]
+interaction_model = "factorized_kronecker"
+aggregate_population = "full"
+dynamic_aggregate = true
+
+[[methods]]
+name = "dynamic_stratified_kronecker"
+strategy = "factorized_screening"
+guidance = ["gradient_global"]
+interaction_model = "factorized_stratified_kronecker"
+aggregate_population = "full"
+dynamic_aggregate = true
+
+[[methods]]
+name = "hybrid_factorized_screening"
+strategy = "hybrid_screening"
+guidance = ["gradient_global"]
+interaction_model = "factorized_kronecker"
+aggregate_population = "full"
+dynamic_aggregate = true
+polar_correction_budget = 2
+
+[[methods]]
+name = "conditional_greedy"
+strategy = "conditional_greedy"
+guidance = ["gradient_global"]
+interaction_model = "none"
+iterations = 1
+
+[search]
+evaluator = "incremental"
+iterations = 2
+candidate_pool_strategy = "top_union"
+candidate_pool_count = 18
+uniform_exploration = 0.20
+rank_temperature = 0.20
+background_contexts = 4
+seed = 47101
+greedy_add_candidates = 3
+greedy_remove_candidates = 2
+initial_temperature = 0.02
+cooling_rate = 0.90
+cache_memory_mb = 32.0
+exact_enumeration = false
+
+[polar]
+enabled = true
+mode = "finite_background"
+pair_budget = 12
+background_contexts = 2
+seed = 47102
+strength = 0.75
+collect_cancellation_diagnostics = true
+
+[topology]
+interaction_models = ["finite_polar", "topology_corrected", "local_quadratic", "kronecker", "stratified_kronecker", "factorized_kronecker", "factorized_stratified_kronecker"]
+interaction_guidance = "mask_dependent_sparse_v1"
+confidence_strata = 1
+minimum_stratum_samples = 2
+output_layer_pair_budget = 4
+hidden_layer_pair_budget = 4
+cross_layer_pair_budget = 4
+cache_response_limit = 64
+
+[screening]
+removal_shortlist = 2
+addition_shortlist = 3
+verification_shortlist = 4
+refresh_frequency = 1
+response_cache_limit = 64
+interaction_strength = 0.75
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probabilities = [0.05]
+
+[final_evaluation]
+natural_contexts = 8
+natural_seed = 47103
+conditional_contexts = 8
+conditional_seed = 47104
+confidence = 0.95
+
+[replications]
+count = 1
+search_seed_stride = 1000
+final_seed_stride = 1000
+sample_offset_stride = 0
+
+[output]
+root = ""
+report = true
+plots = true
