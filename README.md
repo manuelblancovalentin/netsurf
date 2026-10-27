@@ -97,8 +97,30 @@ netsurf validate config/experiments/mnist_policy_ber_wide_v1.toml
 netsurf run config/experiments/mnist_policy_ber_wide_v1.toml
 ```
 
-The Rich display updates in place, adapts to terminal width, and reports an
-overall experiment ETA from measured operation classes. The counter advances
+Run an existing suite sequentially with one persistent queue display:
+
+```bash
+netsurf batch \
+  config/experiments/numpy_reference.toml \
+  config/experiments/numpy_single_bit.toml \
+  config/experiments/numpy_conditional_screening_exact.toml
+
+# Line-oriented redirected progress, or no presentation output:
+netsurf batch config/experiments/first.toml config/experiments/second.toml --progress 2>progress.log
+netsurf batch config/experiments/first.toml config/experiments/second.toml --no-progress
+```
+
+Batch execution validates the supplied files, processes them sequentially,
+continues after expected configuration or experiment failures, and returns exit
+status `2` if any experiment failed. Its stdout is one machine-readable JSON
+summary; progress and the concise completion summary remain on stderr.
+
+The Rich display uses one coordinated Live renderer. A persistent queue table
+keeps completed, running, pending, and failed experiments visible while a
+detail panel shows the current stage, grouped BER/budget/replication/method
+condition, measured work, elapsed time, and phase-aware experiment and queue
+ETAs. It adapts to terminal width, including interactive `tmux -CC` sessions.
+The counter advances
 only after declared operations actually complete. Shared
 fault schedules are counted once, while every model evaluation under a control
 or protection mask is counted separately. Setup, estimator, empirical-bit,

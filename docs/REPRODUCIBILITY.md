@@ -544,3 +544,20 @@ Start with one NumPy or bounded prepared-checkpoint replication and inspect
 schedule hashes, and exact-verification counts before increasing iterations,
 BERs, budgets, or replications. Do not use held-out conditional results to
 retune a confirmatory search within the same study.
+
+## Sequential experiment suites
+
+Existing configurations can share one hierarchical progress display without
+changing any configuration or scientific protocol:
+
+```bash
+proj activate netsurf
+netsurf batch config/experiments/first.toml config/experiments/second.toml
+```
+
+The queue is sequential: each experiment still creates its own immutable run
+directory and scientific payload. Expected failures remain marked and later
+queue entries continue; a nonzero exit status indicates that at least one entry
+failed. Use `--progress` for occasional ANSI-free records when stderr is
+redirected, or `--no-progress` for automation that consumes only the JSON
+summary on stdout.

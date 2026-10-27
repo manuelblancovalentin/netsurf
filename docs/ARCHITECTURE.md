@@ -82,6 +82,9 @@ FaultModel -> deterministic FaultSchedule -> InjectionEngine
   protection statistics reconstructed from immutable trial rows using exact
   replication/BER/trial/schedule identities.
 - `netsurf.reporting` and `netsurf.plotting`: presentation derived only from saved measurements.
+- `netsurf.progress`: presentation-only measured-work tracking, a single Rich
+  Live queue/current-experiment renderer, phase-aware ETA estimation, and
+  ANSI-free redirected output. Batch status never enters result serialization.
 - `netsurf.api` and `netsurf.__main__`: one public engine exposed to scripts, notebooks, and the CLI.
 - `netsurf.milestone`: retained historical compatibility workflow; new work uses versioned experiment configurations.
 
