@@ -123,6 +123,14 @@ def render_search_report(summary: Mapping[str, Any], resolved: Mapping[str, Any]
         for value in influence:
             lines.append(f"| {value['logical_ber']:.6g} | {value['strategy']} | {value['iteration']} | {value['changed_fraction']:.3f} | {value['top_k_overlap']:.3f} | {value['total_variation']:.4g} | {value['jensen_shannon_divergence']:.4g} |")
     screening=summary.get("screening_diagnostics",{})
+    fairness=summary.get("proposal_fairness",{})
+    if fairness:
+        lines += ["", "## Controlled-proposal fairness audit", "",
+                  f"- Distinct controlled candidate-pool hashes: {len(fairness.get('candidate_pool_hashes', []))}",
+                  f"- Exact verification budgets observed: {fairness.get('verification_budgets', [])}",
+                  "- Controlled methods use the same iteration-indexed search-background seeds within each replication, BER, and budget.",
+                  "- Candidate shortlists may differ because proposal models are the experimental variable; their sizes and exact-verification opportunities are fixed.",
+                  "- The candidate universe restricts protection moves only. Background faults are still sampled over every eligible logical bit.", ""]
     if screening and screening.get("candidate_rows"):
         coverages=", ".join(f"{100*value:.1f}%" for value in screening.get("aggregate_population_coverages",[])) or "not applicable"
         reconstruction=screening.get("maximum_aggregate_reconstruction_error")
@@ -142,7 +150,8 @@ def render_search_report(summary: Mapping[str, Any], resolved: Mapping[str, Any]
                       "| Factor/aggregate setup (s) | Direct screening (s) | Exact verification (s) | Factor query/update/verification (s) | Responses/s | Verified swaps/s | Estimated break-even iterations |",
                       "|---:|---:|---:|---:|---:|---:|---:|",
                       f"| {show(costs.get('factor_and_aggregate_setup_seconds'))} | {show(costs.get('conditional_screening_seconds'))} | {show(costs.get('exact_verification_seconds'))} | {show(costs.get('factor_query_update_and_verification_seconds'))} | {show(costs.get('candidate_responses_per_second'))} | {show(costs.get('verified_swaps_per_second'))} | {show(costs.get('component_break_even_iterations'))} |", "",
-                      "The break-even value is a hypothetical component substitution estimate. The current hybrid still performs exact screening, so it is not an end-to-end speedup measurement.", ""]
+                      "The break-even value is a hypothetical component substitution estimate. The current hybrid still performs exact screening, so it is not an end-to-end speedup measurement.",
+                      f"Cache accounting: {costs.get('factor_cache_hits',0)} reused factor rows and {costs.get('factor_cache_misses',0)} first-key rows. {costs.get('cost_scope','')}", ""]
     timing=summary.get("timing_audit",[])
     whole=[value for value in timing if value.get("phase")=="whole_process"]
     phases=[value for value in timing if value.get("phase")!="whole_process"]

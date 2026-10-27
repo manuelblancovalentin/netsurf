@@ -13,7 +13,7 @@ import numpy as np
 from .adapters.registry import create_adapter
 from .conditional_risk import ConditionalMaskComparison, compare_protection_masks
 from .curvature import DenseReluDenseCurvature
-from .factorized import FactorizedInteractionAggregate
+from .factorized import FactorCalibration, FactorCalibrationCache, FactorizedBitTable, FactorizedInteractionAggregate
 from .estimators_m3 import EstimatorOutput, basic_estimator, compute_estimators
 from .identities import BitIdentity
 from .incremental import DenseReluDenseIncrementalEvaluator, FaultState, metrics_from_logits
@@ -191,16 +191,16 @@ def _incremental_validation(evaluator, inputs, labels, identities):
     return tuple(cases)
 
 
-def _execute_replication(configuration: SearchConfiguration, replication_index: int, tracker=None, *, probability=None, condition_index=0):
+def _execute_replication(configuration: SearchConfiguration, replication_index: int, tracker=None, *, probability=None, condition_index=0, factor_cache=None):
     whole_started = perf_counter(); phase_started = whole_started; timing_records = []
     def finish_phase(phase, category, operation_count=0):
         nonlocal phase_started
         finished = perf_counter()
         timing_records.append({"phase": phase, "category": category, "exclusive_wall_seconds": finished-phase_started, "operation_count": int(operation_count), "peak_rss_mb": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0})
         phase_started = finished
-    controlled = configuration.schema_version in {"4.1.0", "4.2.0", "4.3.0"}
+    controlled = configuration.schema_version in {"4.1.0", "4.2.0", "4.3.0", "4.4.0"}
     probability = configuration.fault.probability if probability is None else float(probability)
-    if configuration.schema_version in {"4.2.0", "4.3.0"}:
+    if configuration.schema_version in {"4.2.0", "4.3.0", "4.4.0"}:
         replication = f"budget_{configuration.initial_mask.budget_bits}_ber_{condition_index}_replication_{replication_index}"
     else:
         replication = f"ber_{condition_index}_replication_{replication_index}" if controlled else f"replication_{replication_index}"
@@ -252,7 +252,7 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
     if configuration.polar.enabled and configuration.polar.pair_budget:
         if tracker is not None: tracker.update("Sparse polar calibration", **context)
         generator = np.random.default_rng(configuration.polar.seed + replication_index)
-        if configuration.schema_version in {"4.2.0", "4.3.0"}:
+        if configuration.schema_version in {"4.2.0", "4.3.0", "4.4.0"}:
             hidden = tuple(bit for bit in identities if bit.parameter.startswith("dense0/"))
             output = tuple(bit for bit in identities if bit.parameter.startswith("dense1/"))
             pool_hidden = tuple(bit for bit in pool if bit.parameter.startswith("dense0/")) or hidden
@@ -319,14 +319,14 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
         for pair_index, (left, right) in enumerate(possible):
             if configuration.polar.mode == "finite_clean":
                 backgrounds = (FaultState(frozenset()),)
-            elif configuration.schema_version in {"4.2.0", "4.3.0"}:
+            elif configuration.schema_version in {"4.2.0", "4.3.0", "4.4.0"}:
                 backgrounds = tuple(FaultState(state.bits - {left, right}) for state in shared_topology_backgrounds)
             else:
                 backgrounds = sample_full_fault_states(tuple(bit for bit in identities if bit not in {left, right}), probability=probability, count=configuration.polar.background_contexts, seed=configuration.polar.seed + replication_index * 1009 + condition_index * 1_000_003 + pair_index)
             for background in backgrounds:
                 measured = measure_polar_pair(evaluator, search_x, search_y, background, left, right)
                 polar_values.append(measured)
-                if configuration.schema_version in {"4.2.0", "4.3.0"}:
+                if configuration.schema_version in {"4.2.0", "4.3.0", "4.4.0"}:
                     if background not in topology_cache:
                         topology = DenseReluDenseTopologyEvaluator(
                             evaluator, search_x, background,
@@ -364,7 +364,7 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
                 if tracker is not None: tracker.update("Sparse polar calibration", advance=1, **context)
     interactions = interaction_map(polar_values)
     interaction_maps = {"finite_polar": interactions}
-    if configuration.schema_version in {"4.2.0", "4.3.0"}:
+    if configuration.schema_version in {"4.2.0", "4.3.0", "4.4.0"}:
         for model in configuration.topology.interaction_models:
             if model in {"factorized_kronecker", "factorized_stratified_kronecker"}:
                 continue
@@ -383,7 +383,7 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
 
     final_seed = configuration.final_evaluation.seed + replication_index * configuration.replications.final_seed_stride + condition_index * 10_000_019
     final_states = () if controlled else sample_full_fault_states(identities, probability=probability, count=configuration.final_evaluation.contexts, seed=final_seed)
-    results = []
+    results = []; shared_curvature = None
     for strategy_index, method in enumerate(configuration.methods):
         strategy = method.strategy
         method_iterations = configuration.search.iterations if method.iterations is None else method.iterations
@@ -403,7 +403,7 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
         method_interactions = interactions
         method_strength = configuration.polar.strength
         interaction_guidance = "direct_pair_v1"
-        if configuration.schema_version in {"4.2.0", "4.3.0"}:
+        if configuration.schema_version in {"4.2.0", "4.3.0", "4.4.0"}:
             method_interactions = {} if method.interaction_model in {"none", "factorized_kronecker", "factorized_stratified_kronecker"} else dict(interaction_maps[method.interaction_model])
             method_strength = configuration.polar.strength if method.polarity_strength is None else method.polarity_strength
             if method.shuffle_interactions and method_interactions:
@@ -412,26 +412,66 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
                 np.random.default_rng(search_seed + strategy_index * 100_003 + 17).shuffle(values)
                 method_interactions = dict(zip(keys, map(float, values)))
             interaction_guidance = configuration.topology.interaction_guidance
-        if configuration.schema_version == "4.3.0" and strategy in {"marginal_screening", "corrected_screening", "factorized_screening", "hybrid_screening"}:
+        if configuration.schema_version in {"4.3.0", "4.4.0"} and strategy in {"marginal_screening", "corrected_screening", "factorized_screening", "hybrid_screening"}:
             aggregate = None
+            table_build_attribution = calibration_build_attribution = 0.0
+            cache_metadata = {"factor_cache_enabled": False, "bit_table_cache_hit": False,
+                              "calibration_cache_hit": False, "factor_cache_key": ""}
             if method.interaction_model in {"factorized_kronecker", "factorized_stratified_kronecker"}:
-                clean_topology = DenseReluDenseTopologyEvaluator(
-                    evaluator, search_x, FaultState.from_bits(),
-                    response_cache_limit=configuration.screening.response_cache_limit,
-                )
+                if shared_curvature is None:
+                    clean_topology = DenseReluDenseTopologyEvaluator(
+                        evaluator, search_x, FaultState.from_bits(),
+                        response_cache_limit=configuration.screening.response_cache_limit,
+                    )
+                    shared_curvature = DenseReluDenseCurvature(clean_topology)
+                curvature = shared_curvature
+                bit_table = calibration = None
+                if configuration.schema_version == "4.4.0":
+                    table_key = digest_object({
+                        "kind": "factorized_bit_table/v1", "checkpoint_sha256": sha256_file(configuration.benchmark.checkpoint),
+                        "benchmark": configuration.benchmark.id, "quantization": configuration.benchmark.quantization,
+                        "quantization_backend": configuration.benchmark.quantization_backend,
+                        "architecture": tuple((value.name, tuple(value.shape)) for value in benchmark.parameter_specs()),
+                        "eligible_bits": tuple(bit.key() for bit in identities), "numpy": np.__version__,
+                    })
+                    calibration_key = digest_object({
+                        "kind": "factorized_calibration/v1", "bit_table_key": table_key,
+                        "dataset_sha256": sha256_file(configuration.benchmark.dataset),
+                        "partition": search_partition.to_dict(), "stratified": method.interaction_model == "factorized_stratified_kronecker",
+                        "strata": configuration.topology.confidence_strata,
+                        "minimum_samples": configuration.topology.minimum_stratum_samples,
+                        "response_cache_limit": configuration.screening.response_cache_limit,
+                        "backend": configuration.benchmark.adapter, "seed": configuration.search.seed,
+                    })
+                    cache = factor_cache if configuration.factor_cache.enabled else FactorCalibrationCache()
+                    bit_table, table_hit = cache.table(table_key, lambda: FactorizedBitTable.build(curvature, identities, key=table_key))
+                    calibration, calibration_hit = cache.calibration(calibration_key, lambda: FactorCalibration.build(
+                        curvature, key=calibration_key,
+                        stratified=method.interaction_model == "factorized_stratified_kronecker",
+                        strata=configuration.topology.confidence_strata,
+                        minimum_samples=configuration.topology.minimum_stratum_samples,
+                    ))
+                    cache_metadata = {"factor_cache_enabled": configuration.factor_cache.enabled,
+                                      "bit_table_cache_hit": table_hit, "calibration_cache_hit": calibration_hit,
+                                      "factor_cache_key": calibration_key, **cache.stats()}
+                    table_build_attribution = 0.0 if table_hit else bit_table.build_seconds
+                    calibration_build_attribution = 0.0 if calibration_hit else calibration.build_seconds
                 aggregate = FactorizedInteractionAggregate(
-                    DenseReluDenseCurvature(clean_topology), identities, initial,
+                    curvature, identities, initial,
                     probabilities=probability,
                     stratified=method.interaction_model == "factorized_stratified_kronecker",
                     strata=configuration.topology.confidence_strata,
                     minimum_samples=configuration.topology.minimum_stratum_samples,
                     population=identities if method.aggregate_population == "full" else pool,
+                    bit_table=bit_table, calibration=calibration,
                 )
+            method_seed = (search_seed if configuration.schema_version == "4.4.0" and
+                           method.comparison_role == "controlled" else search_seed + strategy_index * 100_003)
             result = conditional_screening_search(
                 evaluator, search_x, search_y, identities, initial, strategy=strategy,
                 proposal=method_proposal, probability=probability, iterations=method_iterations,
                 background_contexts=configuration.search.background_contexts,
-                seed=search_seed + strategy_index * 100_003, candidate_pool=pool,
+                seed=method_seed, candidate_pool=pool,
                 removal_shortlist=configuration.screening.removal_shortlist,
                 addition_shortlist=configuration.screening.addition_shortlist,
                 verification_shortlist=configuration.screening.verification_shortlist,
@@ -444,17 +484,28 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
                 polar_correction_budget=method.polar_correction_budget,
                 response_cache_limit=configuration.screening.response_cache_limit,
                 refresh_frequency=configuration.screening.refresh_frequency,
+                controlled_verification_budget=(configuration.proposal_control.verification_budget
+                    if configuration.schema_version == "4.4.0" and method.comparison_role == "controlled" else None),
+                proposal_model=(method.proposal_model if configuration.schema_version == "4.4.0" else "configured"),
+                sign_bit_index=codec.format.total_bits - 1,
+                sign_bit_weight=method.sign_bit_weight,
+                aggregate_shuffle_mode=method.aggregate_shuffle_mode,
+                aggregate_shuffle_seed=int(digest_object({"search_seed": search_seed, "method": method.name})[:16], 16),
+                vectorized_aggregate_queries=(configuration.factor_cache.vectorized_queries
+                    if configuration.schema_version == "4.4.0" else False),
                 progress=search_progress,
             )
             if aggregate is not None:
                 count = len(result.factorized_rows)
                 result = replace(result, factorized_rows=tuple({**row,
-                    "factor_build_seconds": aggregate.timing.factor_build_seconds if index == 0 else 0.0,
+                    "factor_build_seconds": (calibration_build_attribution + aggregate.timing.factor_build_seconds) if index == 0 else 0.0,
+                    "bit_table_build_seconds": table_build_attribution if index == 0 else 0.0,
                     "aggregate_build_seconds": aggregate.timing.aggregate_build_seconds if index == 0 else 0.0,
                     "aggregate_query_seconds": aggregate.timing.query_seconds if index == count - 1 else 0.0,
                     "aggregate_update_seconds": aggregate.timing.update_seconds if index == count - 1 else 0.0,
                     "aggregate_population": method.aggregate_population,
                     "dynamic_aggregate": method.dynamic_aggregate,
+                    **cache_metadata,
                     "timing_semantics": "shared_setup_attributed_to_first_row_and_cumulative_query_update_to_last_row",
                 } for index, row in enumerate(result.factorized_rows)))
         else:
@@ -475,7 +526,7 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
                 interaction_guidance=interaction_guidance,
             )
         if controlled:
-            result = replace(result, strategy=method.name, proposal_provenance={**result.proposal_provenance,"method":method.name,"algorithm":method.strategy,"guidance":list(method.guidance)})
+            result = replace(result, strategy=method.name, proposal_provenance={**result.proposal_provenance,"method":method.name,"algorithm":method.strategy,"guidance":list(method.guidance),"comparison_role":method.comparison_role})
         results.append(result)
     finish_phase("search", "search_and_exact_verification", sum(len(value.steps) for value in results))
     conditional_comparisons = ()
@@ -505,14 +556,14 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
         conditional_comparisons = tuple(comparisons)
     if tracker is not None:
         tracker.update("Held-out final evaluation", **context)
-    trials = tuple({**row, **({"protection_budget_bits": len(initial)} if configuration.schema_version in {"4.2.0", "4.3.0"} else {})}
+    trials = tuple({**row, **({"protection_budget_bits": len(initial)} if configuration.schema_version in {"4.2.0", "4.3.0", "4.4.0"} else {})}
                    for row in _matched_final_trials(evaluator, final_x, final_y, final_states, results, replication, None if tracker is None else lambda: tracker.update("Held-out final evaluation", advance=1, logical_ber=probability, **context), probability if controlled else None))
     maximum_states = sum(1 if value.strategy == "static" else 1 + (configuration.search.iterations if value.iterations is None else value.iterations) for value in configuration.methods)
     actual_states = sum(1 + result.accepted for result in results)
     if tracker is not None:
         tracker.adjust_total((actual_states - maximum_states) * configuration.final_evaluation.contexts, stage="Held-out convergence")
         tracker.update("Held-out convergence", **context)
-    convergence = tuple({**row, **({"protection_budget_bits": len(initial)} if configuration.schema_version in {"4.2.0", "4.3.0"} else {})}
+    convergence = tuple({**row, **({"protection_budget_bits": len(initial)} if configuration.schema_version in {"4.2.0", "4.3.0", "4.4.0"} else {})}
                         for result in results for row in _heldout_convergence(evaluator, final_x, final_y, final_states, result, replication, None if tracker is None else lambda: tracker.update("Held-out convergence", advance=1, logical_ber=probability, **context), probability if controlled else None))
     exact_rows, exact_mask, exact_risk = (), frozenset(), None
     if configuration.search.exact_enumeration:
@@ -522,7 +573,7 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
     finish_phase("heldout_and_exact_evaluation", "final_heldout_evaluation", len(trials)+len(convergence)+len(conditional_comparisons)+len(exact_rows))
     def payload_candidate(candidate):
         row = candidate.to_dict()
-        if configuration.schema_version == "4.3.0":
+        if configuration.schema_version in {"4.3.0", "4.4.0"}:
             # Proposal probabilities are derived ordering diagnostics.  NumPy's
             # vector normalization can vary in its final binary digit between
             # processes; fixed decimal canonicalization keeps the scientific
@@ -533,7 +584,7 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
 
     def payload_step(step):
         row = {key: item for key, item in step.to_dict().items() if key != "wall_seconds"}
-        if configuration.schema_version == "4.3.0":
+        if configuration.schema_version in {"4.3.0", "4.4.0"}:
             for name in ("proposal_probability_remove", "proposal_probability_add"):
                 row[name] = round(float(row[name]), 14)
         row["background_fault_states"] = step.background_fault_states
@@ -546,7 +597,7 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
         "benchmark": {"id": configuration.benchmark.id, "checkpoint_sha256": sha256_file(configuration.benchmark.checkpoint), "dataset_sha256": sha256_file(configuration.benchmark.dataset), "eligible_bits": len(identities), "quantization": configuration.benchmark.quantization},
         "partitions": {name: value.to_dict() for name, value in partitions.items()},
         "fault": {"probability": probability, "persistence": configuration.fault.persistence, "distribution": configuration.fault.distribution},
-        **({"protection_budget_bits": len(initial)} if configuration.schema_version in {"4.2.0", "4.3.0"} else {}),
+        **({"protection_budget_bits": len(initial)} if configuration.schema_version in {"4.2.0", "4.3.0", "4.4.0"} else {}),
         "initial_mask": [bit.key() for bit in sorted(initial)], "candidate_pool": [bit.key() for bit in pool],
         "rankings": {name: {"digest": value.digest(), "criteria": value.criteria, "estimator": value.estimator} for name, value in orderings.items()},
         "search": [{
@@ -558,7 +609,7 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
         "final_fault_states": [[bit.key() for bit in sorted(value.bits)] for value in final_states],
         **({"conditional_final_fault_states": [[bit.key() for bit in sorted(value.bits)] for value in conditional_states],
             "conditional_comparisons": [{key:item for key,item in value.to_dict().items() if key != "wall_seconds"} for value in conditional_comparisons]} if controlled else {}),
-        **({"topology_interactions": [{key:value for key,value in row.items() if key not in {"left_identity","right_identity","wall_seconds"}} for row in topology_rows]} if configuration.schema_version in {"4.2.0", "4.3.0"} else {}),
+        **({"topology_interactions": [{key:value for key,value in row.items() if key not in {"left_identity","right_identity","wall_seconds"}} for row in topology_rows]} if configuration.schema_version in {"4.2.0", "4.3.0", "4.4.0"} else {}),
         "exact_optimum": None if exact_risk is None else {"risk": exact_risk, "mask": [bit.key() for bit in sorted(exact_mask)]},
     }
     if tracker is not None: tracker.update("Scientific payload", advance=1, **context)
@@ -572,10 +623,11 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
 
 def execute_search(configuration: SearchConfiguration, *, _tracker=None) -> SearchOutcome:
     budgets = configuration.initial_mask.budgets_bits or (configuration.initial_mask.budget_bits,)
+    factor_cache = FactorCalibrationCache() if configuration.schema_version == "4.4.0" and configuration.factor_cache.enabled else None
     members = tuple(
         _execute_replication(
             replace(configuration, initial_mask=replace(configuration.initial_mask, budget_bits=budget)),
-            index, _tracker, probability=probability, condition_index=condition_index,
+            index, _tracker, probability=probability, condition_index=condition_index, factor_cache=factor_cache,
         )
         for budget in budgets
         for condition_index, probability in enumerate(configuration.fault_probabilities)
@@ -584,6 +636,6 @@ def execute_search(configuration: SearchConfiguration, *, _tracker=None) -> Sear
     if len(members) == 1:
         return members[0]
     payload = {"schema_version": configuration.schema_version, "scientific_protocol": configuration.scientific_protocol,
-               "replications": [{"name": value.replication_name, **({"logical_ber":value.logical_ber} if configuration.schema_version in {"4.1.0", "4.2.0", "4.3.0"} else {}), **({"protection_budget_bits": value.protection_budget_bits} if configuration.schema_version in {"4.2.0", "4.3.0"} else {}), "payload_sha256": value.scientific_payload_sha256} for value in members]}
+               "replications": [{"name": value.replication_name, **({"logical_ber":value.logical_ber} if configuration.schema_version in {"4.1.0", "4.2.0", "4.3.0", "4.4.0"} else {}), **({"protection_budget_bits": value.protection_budget_bits} if configuration.schema_version in {"4.2.0", "4.3.0", "4.4.0"} else {}), "payload_sha256": value.scientific_payload_sha256} for value in members]}
     first = members[0]
     return replace(first, configuration=configuration, scientific_payload=payload, replications=members)

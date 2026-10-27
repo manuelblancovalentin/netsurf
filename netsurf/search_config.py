@@ -22,6 +22,8 @@ TOPOLOGY_SEARCH_SCHEMA_VERSION = "4.2.0"
 TOPOLOGY_SEARCH_PROTOCOL = "topology-aware-conditional-search/v1"
 SCREENING_SEARCH_SCHEMA_VERSION = "4.3.0"
 SCREENING_SEARCH_PROTOCOL = "mask-aware-conditional-screening/v1"
+FAIR_SEARCH_SCHEMA_VERSION = "4.4.0"
+FAIR_SEARCH_PROTOCOL = "factorized-guidance-ablation/v1"
 
 
 class SearchConfigurationError(ValueError):
@@ -65,6 +67,10 @@ class SearchMethodConfiguration:
     dynamic_aggregate: bool = True
     pair_correction: bool = True
     polar_correction_budget: int = 0
+    proposal_model: str = "configured"
+    aggregate_shuffle_mode: str = "none"
+    sign_bit_weight: float = 1.0
+    comparison_role: str = "legacy"
 
 
 @dataclass(frozen=True)
@@ -120,6 +126,21 @@ class ScreeningConfiguration:
 
 
 @dataclass(frozen=True)
+class ProposalControlConfiguration:
+    candidate_universe: str
+    verification_budget: int
+    shared_backgrounds: bool
+    enforce_equal_iterations: bool
+
+
+@dataclass(frozen=True)
+class FactorCacheConfiguration:
+    enabled: bool
+    scope: str
+    vectorized_queries: bool
+
+
+@dataclass(frozen=True)
 class FinalEvaluationConfiguration:
     contexts: int
     seed: int
@@ -158,12 +179,14 @@ class SearchConfiguration:
     output: OutputConfiguration
     topology: TopologyConfiguration | None
     screening: ScreeningConfiguration | None
+    proposal_control: ProposalControlConfiguration | None
+    factor_cache: FactorCacheConfiguration | None
     source_path: Path
     source_text: str
 
     def resolved_document(self) -> dict[str, Any]:
-        controlled = self.schema_version in {CONTROLLED_SEARCH_SCHEMA_VERSION, TOPOLOGY_SEARCH_SCHEMA_VERSION, SCREENING_SEARCH_SCHEMA_VERSION}
-        topology_aware = self.schema_version in {TOPOLOGY_SEARCH_SCHEMA_VERSION, SCREENING_SEARCH_SCHEMA_VERSION}
+        controlled = self.schema_version in {CONTROLLED_SEARCH_SCHEMA_VERSION, TOPOLOGY_SEARCH_SCHEMA_VERSION, SCREENING_SEARCH_SCHEMA_VERSION, FAIR_SEARCH_SCHEMA_VERSION}
+        topology_aware = self.schema_version in {TOPOLOGY_SEARCH_SCHEMA_VERSION, SCREENING_SEARCH_SCHEMA_VERSION, FAIR_SEARCH_SCHEMA_VERSION}
         fault = asdict(self.fault)
         if controlled:
             fault.pop("probability", None); fault["probabilities"] = list(self.fault_probabilities)
@@ -190,6 +213,8 @@ class SearchConfiguration:
             "final_evaluation": final, "replications": asdict(self.replications),
             **({"topology": asdict(self.topology)} if topology_aware and self.topology is not None else {}),
             **({"screening": asdict(self.screening)} if self.screening is not None else {}),
+            **({"proposal_control": asdict(self.proposal_control)} if self.proposal_control is not None else {}),
+            **({"factor_cache": asdict(self.factor_cache)} if self.factor_cache is not None else {}),
             "output": {"root": str(self.output.root), "report": self.output.report, "plots": self.output.plots},
         }
 
@@ -222,12 +247,13 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
     except (OSError, tomllib.TOMLDecodeError) as error:
         raise SearchConfigurationError(f"cannot load search configuration {source}: {error}") from error
     schema_version = document.get("schema_version")
-    controlled = schema_version in {CONTROLLED_SEARCH_SCHEMA_VERSION, TOPOLOGY_SEARCH_SCHEMA_VERSION, SCREENING_SEARCH_SCHEMA_VERSION}
-    topology_aware = schema_version in {TOPOLOGY_SEARCH_SCHEMA_VERSION, SCREENING_SEARCH_SCHEMA_VERSION}
-    screening_aware = schema_version == SCREENING_SEARCH_SCHEMA_VERSION
-    if schema_version not in {SEARCH_SCHEMA_VERSION, CONTROLLED_SEARCH_SCHEMA_VERSION, TOPOLOGY_SEARCH_SCHEMA_VERSION, SCREENING_SEARCH_SCHEMA_VERSION}:
+    controlled = schema_version in {CONTROLLED_SEARCH_SCHEMA_VERSION, TOPOLOGY_SEARCH_SCHEMA_VERSION, SCREENING_SEARCH_SCHEMA_VERSION, FAIR_SEARCH_SCHEMA_VERSION}
+    topology_aware = schema_version in {TOPOLOGY_SEARCH_SCHEMA_VERSION, SCREENING_SEARCH_SCHEMA_VERSION, FAIR_SEARCH_SCHEMA_VERSION}
+    screening_aware = schema_version in {SCREENING_SEARCH_SCHEMA_VERSION, FAIR_SEARCH_SCHEMA_VERSION}
+    fairness_aware = schema_version == FAIR_SEARCH_SCHEMA_VERSION
+    if schema_version not in {SEARCH_SCHEMA_VERSION, CONTROLLED_SEARCH_SCHEMA_VERSION, TOPOLOGY_SEARCH_SCHEMA_VERSION, SCREENING_SEARCH_SCHEMA_VERSION, FAIR_SEARCH_SCHEMA_VERSION}:
         raise SearchConfigurationError(f"unsupported conditional-search schema: {document.get('schema_version')!r}")
-    expected_protocol = SCREENING_SEARCH_PROTOCOL if screening_aware else (TOPOLOGY_SEARCH_PROTOCOL if topology_aware else (CONTROLLED_SEARCH_PROTOCOL if controlled else SEARCH_PROTOCOL))
+    expected_protocol = FAIR_SEARCH_PROTOCOL if fairness_aware else (SCREENING_SEARCH_PROTOCOL if screening_aware else (TOPOLOGY_SEARCH_PROTOCOL if topology_aware else (CONTROLLED_SEARCH_PROTOCOL if controlled else SEARCH_PROTOCOL)))
     if document.get("scientific_protocol") != expected_protocol:
         raise SearchConfigurationError(f"unsupported conditional-search protocol: {document.get('scientific_protocol')!r}")
     required = {"schema_version", "scientific_protocol", "experiment", "benchmark", "samples", "estimators", "guidance", "initial_mask", "search", "polar", "fault", "final_evaluation", "replications", "output"}
@@ -237,6 +263,8 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
         required.add("topology")
     if screening_aware:
         required.add("screening")
+    if fairness_aware:
+        required |= {"proposal_control", "factor_cache"}
     _keys(document, required, set(), "root")
     experiment = _table(document, "experiment"); _keys(experiment, {"name", "description", "objective"}, set(), "experiment")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", str(experiment["name"])):
@@ -319,6 +347,8 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
             optional_method_fields = {"interaction_model", "polarity_strength", "shuffle_interactions", "iterations"}
             if screening_aware:
                 optional_method_fields |= {"aggregate_population", "dynamic_aggregate", "pair_correction", "polar_correction_budget"}
+            if fairness_aware:
+                optional_method_fields |= {"proposal_model", "aggregate_shuffle_mode", "sign_bit_weight", "comparison_role"}
             _keys(value, {"name", "strategy", "guidance"}, optional_method_fields if topology_aware else set(), f"methods[{index}]")
             method_guidance = tuple(map(str, value["guidance"]))
             if screening_aware:
@@ -341,7 +371,11 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
                                                        bool(value.get("shuffle_interactions", False)),
                                                        None if "iterations" not in value else int(value["iterations"]),
                                                        aggregate_population, bool(value.get("dynamic_aggregate", True)),
-                                                       bool(value.get("pair_correction", True)), int(value.get("polar_correction_budget", 0))))
+                                                       bool(value.get("pair_correction", True)), int(value.get("polar_correction_budget", 0)),
+                                                       str(value.get("proposal_model", "configured")),
+                                                       str(value.get("aggregate_shuffle_mode", "none")),
+                                                       float(value.get("sign_bit_weight", 1.0)),
+                                                       str(value.get("comparison_role", "legacy"))))
             if methods[-1].iterations is not None and methods[-1].iterations < 0:
                 raise SearchConfigurationError("method iterations must be nonnegative")
         if len({value.name for value in methods}) != len(methods):
@@ -414,6 +448,53 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
         if float(raw["interaction_strength"]) < 0:
             raise SearchConfigurationError("screening interaction_strength must be nonnegative")
         screening = ScreeningConfiguration(int(raw["removal_shortlist"]), int(raw["addition_shortlist"]), int(raw["verification_shortlist"]), int(raw["refresh_frequency"]), int(raw["response_cache_limit"]), float(raw["interaction_strength"]))
+    proposal_control = None
+    factor_cache = None
+    if fairness_aware:
+        raw = _table(document, "proposal_control")
+        _keys(raw, {"candidate_universe", "verification_budget", "shared_backgrounds", "enforce_equal_iterations"}, set(), "proposal_control")
+        proposal_control = ProposalControlConfiguration(str(raw["candidate_universe"]), int(raw["verification_budget"]), bool(raw["shared_backgrounds"]), bool(raw["enforce_equal_iterations"]))
+        if proposal_control.candidate_universe != "shared_candidate_pool":
+            raise SearchConfigurationError("proposal_control.candidate_universe must be shared_candidate_pool")
+        if proposal_control.verification_budget < 1 or proposal_control.verification_budget > screening.removal_shortlist * screening.addition_shortlist:
+            raise SearchConfigurationError("proposal_control.verification_budget exceeds the configured shortlist product")
+        if not proposal_control.shared_backgrounds:
+            raise SearchConfigurationError("schema 4.4 controlled comparisons require shared_backgrounds=true")
+        raw = _table(document, "factor_cache")
+        _keys(raw, {"enabled", "scope", "vectorized_queries"}, set(), "factor_cache")
+        factor_cache = FactorCacheConfiguration(bool(raw["enabled"]), str(raw["scope"]), bool(raw["vectorized_queries"]))
+        if factor_cache.scope != "run":
+            raise SearchConfigurationError("factor_cache.scope must be run")
+        proposal_models = {"gradient", "gradient_sign_enriched", "conditional_marginal", "kronecker", "stratified_kronecker", "shuffled_kronecker", "uniform", "quality_reference"}
+        shuffle_modes = {"none", "global", "layer_bit_position"}
+        roles = {"controlled", "reference", "static"}
+        screening_strategies = {"marginal_screening", "corrected_screening", "factorized_screening", "hybrid_screening"}
+        controlled_iterations = set()
+        for method in methods:
+            if method.proposal_model not in proposal_models or method.aggregate_shuffle_mode not in shuffle_modes or method.comparison_role not in roles:
+                raise SearchConfigurationError(f"unsupported schema-4.4 proposal controls for method {method.name}")
+            if method.sign_bit_weight < 1:
+                raise SearchConfigurationError("method sign_bit_weight must be >= 1")
+            if method.proposal_model == "shuffled_kronecker" and method.aggregate_shuffle_mode == "none":
+                raise SearchConfigurationError("shuffled_kronecker requires aggregate_shuffle_mode")
+            if method.proposal_model != "shuffled_kronecker" and method.aggregate_shuffle_mode != "none":
+                raise SearchConfigurationError("aggregate shuffling is restricted to shuffled_kronecker")
+            if method.proposal_model in {"kronecker", "shuffled_kronecker"} and method.interaction_model != "factorized_kronecker":
+                raise SearchConfigurationError(f"{method.proposal_model} requires factorized_kronecker")
+            if method.proposal_model == "stratified_kronecker" and method.interaction_model != "factorized_stratified_kronecker":
+                raise SearchConfigurationError("stratified_kronecker requires factorized_stratified_kronecker")
+            if method.comparison_role == "controlled" and method.strategy not in screening_strategies:
+                raise SearchConfigurationError("controlled methods must use a screening strategy")
+            if method.comparison_role == "static" and method.strategy != "static":
+                raise SearchConfigurationError("static comparison_role requires strategy=static")
+            if method.comparison_role == "reference" and (method.strategy != "conditional_greedy" or method.proposal_model != "quality_reference"):
+                raise SearchConfigurationError("reference methods must use conditional_greedy and quality_reference")
+            if method.proposal_model in {"gradient", "gradient_sign_enriched", "conditional_marginal", "uniform"} and method.interaction_model != "none":
+                raise SearchConfigurationError(f"{method.proposal_model} requires interaction_model=none")
+            if method.comparison_role == "controlled":
+                controlled_iterations.add(search["iterations"] if method.iterations is None else method.iterations)
+        if proposal_control.enforce_equal_iterations and len(controlled_iterations) > 1:
+            raise SearchConfigurationError("controlled methods must use an equal iteration budget")
     fault = _table(document, "fault")
     _keys(fault, {"target", "location", "persistence", "distribution", "probabilities" if controlled else "probability"}, set(), "fault")
     if (fault["target"], fault["location"], fault["persistence"], fault["distribution"]) != ("weight", "logical_trainable_parameter_bits", "persistent_trial", "independent_bernoulli"):
@@ -454,5 +535,6 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
         FaultConfiguration(str(fault["target"]), str(fault["location"]), str(fault["persistence"]), str(fault["distribution"]), probabilities[0]), probabilities,
         FinalEvaluationConfiguration(natural_contexts, natural_seed, float(final["confidence"]), conditional_contexts, conditional_seed),
         SearchReplications(int(reps["count"]), int(reps["search_seed_stride"]), int(reps["final_seed_stride"]), int(reps["sample_offset_stride"])),
-        OutputConfiguration(root.resolve(), bool(output["report"]), bool(output["plots"])), topology, screening, source, text,
+        OutputConfiguration(root.resolve(), bool(output["report"]), bool(output["plots"])), topology, screening,
+        proposal_control, factor_cache, source, text,
     )

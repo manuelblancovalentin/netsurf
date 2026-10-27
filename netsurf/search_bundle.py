@@ -55,7 +55,7 @@ def _rows(outcome):
             for value in result.steps:
                 row = value.to_dict(); removed, added = value.removed, value.added
                 row.update({"replication": member.replication_name, "removed_parameter": removed.parameter, "removed_flat_index": removed.flat_index, "removed_bit_index": removed.bit_index, "added_parameter": added.parameter, "added_flat_index": added.flat_index, "added_bit_index": added.bit_index})
-                if outcome.configuration.schema_version == "4.3.0": row["wall_seconds_semantics"]="exclusive_iteration_elapsed_including_exact_verification"
+                if outcome.configuration.schema_version in {"4.3.0", "4.4.0"}: row["wall_seconds_semantics"]="exclusive_iteration_elapsed_including_exact_verification"
                 row.pop("removed", None); row.pop("added", None); steps.append(row)
                 for candidate in value.evaluated_candidates:
                     candidate_row = candidate.to_dict(); candidate_row.update({"replication": member.replication_name, "strategy": result.strategy, "iteration": value.iteration, "background_schedule_sha256": value.background_schedule_sha256})
@@ -98,13 +98,13 @@ def create_search_bundle(outcome: SearchOutcome, *, repository_root: Path, run_i
     conditional_contexts=[]; conditional_summaries=[]; conditional_paths=[]
     for member in members:
         for comparison in member.conditional_comparisons:
-            common={"replication":member.replication_name,"logical_ber":member.logical_ber,**({"protection_budget_bits":member.protection_budget_bits} if config.schema_version in {"4.2.0","4.3.0"} else {}),"baseline":comparison.baseline_name,"target":comparison.target_name,"input_sample_count":comparison.input_sample_count,"swap_count":len(comparison.swaps),"path_rule":comparison.path_rule}
+            common={"replication":member.replication_name,"logical_ber":member.logical_ber,**({"protection_budget_bits":member.protection_budget_bits} if config.schema_version in {"4.2.0","4.3.0","4.4.0"} else {}),"baseline":comparison.baseline_name,"target":comparison.target_name,"input_sample_count":comparison.input_sample_count,"swap_count":len(comparison.swaps),"path_rule":comparison.path_rule}
             for contribution in comparison.contributions:
                 conditional_contexts.append({**common,**contribution.to_dict()})
             conditional_summaries.append({**common,"background_context_count":comparison.context_count,"conditional_loss_mean":comparison.conditional_loss_difference["mean"],"conditional_loss_standard_deviation":comparison.conditional_loss_difference["standard_deviation"],"conditional_loss_standard_error":comparison.conditional_loss_difference["standard_error"],"conditional_loss_ci_low":comparison.conditional_loss_difference["confidence_interval"][0],"conditional_loss_ci_high":comparison.conditional_loss_difference["confidence_interval"][1],"conditional_zero_one_mean":comparison.conditional_zero_one_risk_difference["mean"],"direct_loss_mean":comparison.direct_loss_difference["mean"],"direct_loss_standard_error":comparison.direct_loss_difference["standard_error"],"direct_loss_ci_low":comparison.direct_loss_difference["confidence_interval"][0],"direct_loss_ci_high":comparison.direct_loss_difference["confidence_interval"][1],"direct_zero_one_mean":comparison.direct_zero_one_risk_difference["mean"],"exact_evaluations":comparison.exact_evaluations,"work_proxy_macs":comparison.work_proxy_macs,"wall_seconds":comparison.wall_seconds})
             conditional_paths.extend({**common,"step":swap.index,"removed":swap.removed.key(),"added":swap.added.key()} for swap in comparison.swaps)
     proposal_diagnostics=[]
-    if config.schema_version in {"4.1.0", "4.2.0", "4.3.0"}:
+    if config.schema_version in {"4.1.0", "4.2.0", "4.3.0", "4.4.0"}:
         for member in members:
             polar_lookup={}
             for value in member.polar_measurements:
@@ -125,10 +125,11 @@ def create_search_bundle(outcome: SearchOutcome, *, repository_root: Path, run_i
         polar_values=[row for row in values if row["polar_interaction"] is not None]
         proposal_correlation=spearman(scores,benefits); polar_correlation=None if len(polar_values)<2 else spearman([float(row["polar_interaction"]) for row in polar_values],[float(row["exact_search_benefit"]) for row in polar_values])
         proposal_quality.append({"strategy":strategy,"proposal_count":len(values),"proposal_score_benefit_spearman":None if not np.isfinite(proposal_correlation) else proposal_correlation,"top_quartile_recall":len(top_score&top_benefit)/k,"accepted_count":sum(bool(row["accepted"]) for row in values),"improving_count":sum(bool(row["improved_current_mask"]) for row in values),"polar_measured_count":len(polar_values),"polar_benefit_spearman":None if polar_correlation is None or not np.isfinite(polar_correlation) else polar_correlation})
-    influence_rows=[{"replication":member.replication_name,"logical_ber":member.logical_ber,**({"protection_budget_bits":member.protection_budget_bits} if config.schema_version in {"4.2.0","4.3.0"} else {}),"strategy":result.strategy,**row} for member in members for result in member.search_results for row in result.proposal_influence]
+    influence_rows=[{"replication":member.replication_name,"logical_ber":member.logical_ber,**({"protection_budget_bits":member.protection_budget_bits} if config.schema_version in {"4.2.0","4.3.0","4.4.0"} else {}),"strategy":result.strategy,**row} for member in members for result in member.search_results for row in result.proposal_influence]
     screening_rows=[{"replication":member.replication_name,"logical_ber":member.logical_ber,"protection_budget_bits":member.protection_budget_bits,"strategy":result.strategy,**row} for member in members for result in member.search_results for row in result.screening_rows]
     screening_context_rows=[{"replication":member.replication_name,"logical_ber":member.logical_ber,"protection_budget_bits":member.protection_budget_bits,"strategy":result.strategy,**row} for member in members for result in member.search_results for row in result.screening_context_rows]
     factorized_rows=[{"replication":member.replication_name,"logical_ber":member.logical_ber,"protection_budget_bits":member.protection_budget_bits,"strategy":result.strategy,**row} for member in members for result in member.search_results for row in result.factorized_rows]
+    controlled_proposal_rows=[{"replication":member.replication_name,"logical_ber":member.logical_ber,"protection_budget_bits":member.protection_budget_bits,"strategy":result.strategy,**row} for member in members for result in member.search_results for row in result.controlled_proposal_rows]
     engine_timing_rows=[{"replication":member.replication_name,**row} for member in members for row in member.timing_records]
     summary = _summary(outcome, trials, validation, conditional_contexts, proposal_quality)
     summary["proposal_influence"] = influence_rows
@@ -144,7 +145,7 @@ def create_search_bundle(outcome: SearchOutcome, *, repository_root: Path, run_i
     }
     aggregate_rows=[row for row in factorized_rows if row.get("aggregate_population_coverage") not in (None,"")]
     direct_rows=[row for row in factorized_rows if row.get("aggregate_population_coverage") in (None,"")]
-    factor_setup=sum(float(row.get("factor_build_seconds",0.0))+float(row.get("aggregate_build_seconds",0.0)) for row in aggregate_rows)
+    factor_setup=sum(float(row.get("bit_table_build_seconds",0.0))+float(row.get("factor_build_seconds",0.0))+float(row.get("aggregate_build_seconds",0.0)) for row in aggregate_rows)
     factor_iteration=sum(float(row.get("aggregate_query_seconds",0.0))+float(row.get("aggregate_update_seconds",0.0))+float(row.get("exact_verification_seconds",0.0)) for row in aggregate_rows)
     exact_verification=sum(float(row.get("exact_verification_seconds",0.0)) for row in factorized_rows)
     direct_screening=sum(float(row.get("conditional_screening_seconds",0.0)) for row in direct_rows)
@@ -158,8 +159,19 @@ def create_search_bundle(outcome: SearchOutcome, *, repository_root: Path, run_i
         "verified_swaps_per_second":None if exact_verification<=0 else sum(int(row.get("verified_swaps",0)) for row in factorized_rows)/exact_verification,
         "component_break_even_iterations":None if not direct_rows or not aggregate_rows or per_direct<=per_factor else factor_setup/(per_direct-per_factor),
         "break_even_semantics":"hypothetical component substitution estimate; current hybrid also performs exact screening, so this is not end-to-end speedup",
+        "factor_cache_hits": sum(int(bool(row.get("calibration_cache_hit"))) for row in aggregate_rows if int(row.get("iteration",0)) == 1),
+        "factor_cache_misses": sum(int(not bool(row.get("calibration_cache_hit"))) for row in aggregate_rows if int(row.get("iteration",0)) == 1 and "calibration_cache_hit" in row),
+        "cost_scope": "factor preparation is charged to the first method that creates each exact cache key; aggregate construction and queries remain method-specific",
     }
     summary["timing_audit"] = engine_timing_rows
+    if config.schema_version == "4.4.0":
+        controlled = [result for member in members for result in member.search_results if result.proposal_provenance.get("comparison_role") == "controlled"]
+        summary["proposal_fairness"] = {
+            "candidate_pool_hashes": sorted({result.proposal_provenance.get("candidate_pool_sha256") for result in controlled}),
+            "verification_budgets": sorted({result.proposal_provenance.get("controlled_verification_budget") for result in controlled}),
+            "background_schedule_hashes_by_method": {result.strategy: [step.background_schedule_sha256 for step in result.steps] for result in controlled},
+            "interpretation": "Equality applies to controlled methods within a replication, BER, and protection budget; the full logical fault population remains eligible for background faults.",
+        }
     _write_json(staging / "summary.json", summary)
     _write_json(staging / "artifacts/sample_partitions.json", {member.replication_name: {name: value.to_dict() for name, value in member.partitions.items()} for member in members})
     _write_json(staging / "artifacts/rankings.json", {member.replication_name: {name: {"digest": value.digest(), "criteria": value.criteria, "estimator": value.estimator, "ordered_bits": [bit.key() for bit in value.identities]} for name, value in member.orderings.items()} for member in members})
@@ -169,7 +181,7 @@ def create_search_bundle(outcome: SearchOutcome, *, repository_root: Path, run_i
     _write_json(staging / "artifacts/search_fault_schedules.json", {member.replication_name: {result.strategy: [{"iteration": step.iteration, "schedule_sha256": step.background_schedule_sha256, "full_background_states": step.background_fault_states} for step in result.steps] for result in member.search_results} for member in members})
     if conditional_contexts:
         _write_json(staging/"artifacts/conditional_final_fault_schedules.json",{member.replication_name:member.scientific_payload.get("conditional_final_fault_states",[]) for member in members})
-        context_fields=["schema_version","replication","logical_ber"]+(["protection_budget_bits"] if config.schema_version in {"4.2.0","4.3.0"} else [])+["baseline","target","input_sample_count","swap_count","path_rule","context","schedule_sha256","base_fault_count","loss_difference","zero_one_risk_difference","direct_loss_difference","direct_zero_one_risk_difference","background_evaluations","incremental_evaluations","full_evaluations","work_proxy_macs","gate_changes","cache_hits","cache_misses","fallback_count","wall_seconds"]
+        context_fields=["schema_version","replication","logical_ber"]+(["protection_budget_bits"] if config.schema_version in {"4.2.0","4.3.0","4.4.0"} else [])+["baseline","target","input_sample_count","swap_count","path_rule","context","schedule_sha256","base_fault_count","loss_difference","zero_one_risk_difference","direct_loss_difference","direct_zero_one_risk_difference","background_evaluations","incremental_evaluations","full_evaluations","work_proxy_macs","gate_changes","cache_hits","cache_misses","fallback_count","wall_seconds"]
         _write_csv(staging/"measurements/conditional_context_contributions.csv",context_fields,({"schema_version":config.schema_version,**row} for row in conditional_contexts))
         summary_fields=["schema_version",*conditional_summaries[0].keys()]
         _write_csv(staging/"measurements/conditional_mask_comparisons.csv",summary_fields,({"schema_version":config.schema_version,**row} for row in conditional_summaries))
@@ -189,16 +201,19 @@ def create_search_bundle(outcome: SearchOutcome, *, repository_root: Path, run_i
     if factorized_rows:
         factorized_fields = _union_fields(factorized_rows)
         _write_csv(staging/"measurements/factorized_guidance.csv",["schema_version",*factorized_fields],({"schema_version":config.schema_version,**row} for row in factorized_rows))
-    trial_fields=["schema_version","replication"]+(["logical_ber"] if config.schema_version in {"4.1.0", "4.2.0", "4.3.0"} else [])+(["protection_budget_bits"] if config.schema_version in {"4.2.0","4.3.0"} else [])+["strategy","trial","schedule_sha256","fault_count","active_fault_count","accuracy","categorical_crossentropy"]
+    if controlled_proposal_rows:
+        fields = _union_fields(controlled_proposal_rows)
+        _write_csv(staging/"measurements/controlled_proposals.csv", ["schema_version", *fields], ({"schema_version":config.schema_version, **row} for row in controlled_proposal_rows))
+    trial_fields=["schema_version","replication"]+(["logical_ber"] if config.schema_version in {"4.1.0", "4.2.0", "4.3.0", "4.4.0"} else [])+(["protection_budget_bits"] if config.schema_version in {"4.2.0","4.3.0","4.4.0"} else [])+["strategy","trial","schedule_sha256","fault_count","active_fault_count","accuracy","categorical_crossentropy"]
     _write_csv(staging/"measurements/final_trials.csv", trial_fields, ({"schema_version":config.schema_version,**row} for row in trials))
     if steps:
-        fields=["schema_version","replication","strategy","iteration","removed_parameter","removed_flat_index","removed_bit_index","added_parameter","added_flat_index","added_bit_index","proposal_probability_remove","proposal_probability_add","estimated_risk_difference","estimated_risk_ci_low","estimated_risk_ci_high","accepted","acceptance_probability","current_estimated_risk","best_estimated_risk","exact_evaluations","work_proxy_macs","gate_changes","background_evaluations","incremental_evaluations","full_evaluations","affected_layers","reused_layers","cache_hits","cache_misses","fallback_count","background_schedule_sha256","wall_seconds"]+(["wall_seconds_semantics"] if config.schema_version=="4.3.0" else [])
+        fields=["schema_version","replication","strategy","iteration","removed_parameter","removed_flat_index","removed_bit_index","added_parameter","added_flat_index","added_bit_index","proposal_probability_remove","proposal_probability_add","estimated_risk_difference","estimated_risk_ci_low","estimated_risk_ci_high","accepted","acceptance_probability","current_estimated_risk","best_estimated_risk","exact_evaluations","work_proxy_macs","gate_changes","background_evaluations","incremental_evaluations","full_evaluations","affected_layers","reused_layers","cache_hits","cache_misses","fallback_count","background_schedule_sha256","wall_seconds"]+(["wall_seconds_semantics"] if config.schema_version in {"4.3.0","4.4.0"} else [])
         _write_csv(staging/"measurements/search_steps.csv", fields, ({"schema_version":config.schema_version,**row} for row in steps))
     if proposal_evaluations:
         fields=["schema_version","replication","strategy","iteration","candidate_index","removed","added","proposal_probability_remove","proposal_probability_add","risk_difference","risk_ci_low","risk_ci_high","exact_evaluations","work_proxy_macs","gate_changes","background_schedule_sha256"]
         _write_csv(staging/"measurements/proposal_evaluations.csv", fields, ({"schema_version":config.schema_version,**row} for row in proposal_evaluations))
-    convergence_fields=["schema_version","replication"]+(["logical_ber"] if config.schema_version in {"4.1.0", "4.2.0", "4.3.0"} else [])+(["protection_budget_bits"] if config.schema_version in {"4.2.0","4.3.0"} else [])+["strategy","iteration","exact_evaluations","work_proxy_macs","wall_seconds"]+(["wall_seconds_semantics"] if config.schema_version=="4.3.0" else [])+["heldout_loss_mean","heldout_loss_ci_low","heldout_loss_ci_high"]
-    _write_csv(staging/"measurements/convergence.csv", convergence_fields, ({"schema_version":config.schema_version,**row,**({"wall_seconds_semantics":"cumulative_search_elapsed_to_mask_state_do_not_sum"} if config.schema_version=="4.3.0" else {})} for row in convergence))
+    convergence_fields=["schema_version","replication"]+(["logical_ber"] if config.schema_version in {"4.1.0", "4.2.0", "4.3.0", "4.4.0"} else [])+(["protection_budget_bits"] if config.schema_version in {"4.2.0","4.3.0","4.4.0"} else [])+["strategy","iteration","exact_evaluations","work_proxy_macs","wall_seconds"]+(["wall_seconds_semantics"] if config.schema_version in {"4.3.0","4.4.0"} else [])+["heldout_loss_mean","heldout_loss_ci_low","heldout_loss_ci_high"]
+    _write_csv(staging/"measurements/convergence.csv", convergence_fields, ({"schema_version":config.schema_version,**row,**({"wall_seconds_semantics":"cumulative_search_elapsed_to_mask_state_do_not_sum"} if config.schema_version in {"4.3.0","4.4.0"} else {})} for row in convergence))
     validation_fields=["schema_version","replication","case","earliest_layer","changed_bits","changed_parameters","relu_gate_changes","max_logit_absolute_error","loss_absolute_error","prediction_mismatches","full_seconds_mean","full_seconds_std","incremental_seconds_mean","incremental_seconds_std","full_work_proxy_macs","incremental_work_proxy_macs","fallback"]
     _write_csv(staging/"measurements/incremental_validation.csv", validation_fields, ({"schema_version":config.schema_version,**row} for row in validation))
     _write_csv(staging/"measurements/estimator_runtime.csv", ["schema_version","replication","estimator","implementation_version","runtime_seconds"], ({"schema_version":config.schema_version,"replication":member.replication_name,"estimator":value.name,"implementation_version":value.implementation_version,"runtime_seconds":value.runtime_seconds} for member in members for value in member.estimator_outputs))
@@ -221,8 +236,10 @@ def create_search_bundle(outcome: SearchOutcome, *, repository_root: Path, run_i
                 elapsed += step.wall_seconds
                 if step.best_estimated_risk < seen:
                     seen=step.best_estimated_risk; best_iteration=step.iteration; best_time=elapsed
-            result_rows.append({"replication":member.replication_name,**({"logical_ber":member.logical_ber} if config.schema_version in {"4.1.0", "4.2.0", "4.3.0"} else {}),**({"protection_budget_bits":member.protection_budget_bits} if config.schema_version in {"4.2.0","4.3.0"} else {}),"strategy":result.strategy,"protected_bits":len(result.best_mask),"initial_risk_mean":result.initial_risk["mean"],"best_search_risk_estimate":result.best_estimated_risk,"heldout_loss_mean":result.final_risk["mean"],"heldout_loss_ci_low":result.final_risk["confidence_interval"][0],"heldout_loss_ci_high":result.final_risk["confidence_interval"][1],"accepted":result.accepted,"rejected":result.rejected,"proposals_generated":result.proposals_generated,"proposals_evaluated":result.proposals_evaluated,"exact_evaluations":result.exact_evaluations,"work_proxy_macs":result.work_proxy_macs,"wall_seconds":result.wall_seconds,**({"wall_seconds_semantics":"inclusive_method_elapsed_do_not_add_to_step_times"} if config.schema_version=="4.3.0" else {}),"iteration_to_best":best_iteration,"seconds_to_best":best_time,"restricted_exact_risk":restricted,"restricted_exact_gap":None if restricted is None or optimum is None else restricted-optimum})
-    result_fields=["schema_version","replication"]+(["logical_ber"] if config.schema_version in {"4.1.0", "4.2.0", "4.3.0"} else [])+(["protection_budget_bits"] if config.schema_version in {"4.2.0","4.3.0"} else [])+["strategy","protected_bits","initial_risk_mean","best_search_risk_estimate","heldout_loss_mean","heldout_loss_ci_low","heldout_loss_ci_high","accepted","rejected","proposals_generated","proposals_evaluated","exact_evaluations","work_proxy_macs","wall_seconds"]+(["wall_seconds_semantics"] if config.schema_version=="4.3.0" else [])+["iteration_to_best","seconds_to_best","restricted_exact_risk","restricted_exact_gap"]
+            shared_preparation = sum(float(row.get("bit_table_build_seconds",0))+float(row.get("factor_build_seconds",0)) for row in result.factorized_rows)
+            aggregate_preparation = sum(float(row.get("aggregate_build_seconds",0)) for row in result.factorized_rows)
+            result_rows.append({"replication":member.replication_name,**({"logical_ber":member.logical_ber} if config.schema_version in {"4.1.0", "4.2.0", "4.3.0", "4.4.0"} else {}),**({"protection_budget_bits":member.protection_budget_bits} if config.schema_version in {"4.2.0","4.3.0","4.4.0"} else {}),"strategy":result.strategy,"protected_bits":len(result.best_mask),"initial_risk_mean":result.initial_risk["mean"],"best_search_risk_estimate":result.best_estimated_risk,"heldout_loss_mean":result.final_risk["mean"],"heldout_loss_ci_low":result.final_risk["confidence_interval"][0],"heldout_loss_ci_high":result.final_risk["confidence_interval"][1],"accepted":result.accepted,"rejected":result.rejected,"proposals_generated":result.proposals_generated,"proposals_evaluated":result.proposals_evaluated,"exact_evaluations":result.exact_evaluations,"work_proxy_macs":result.work_proxy_macs,"wall_seconds":result.wall_seconds,**({"wall_seconds_semantics":"inclusive_method_elapsed_do_not_add_to_step_times"} if config.schema_version in {"4.3.0","4.4.0"} else {}),**({"shared_factor_preparation_seconds":shared_preparation,"method_aggregate_preparation_seconds":aggregate_preparation,"method_specific_search_seconds":result.wall_seconds+aggregate_preparation,"total_attributed_method_seconds":result.wall_seconds+aggregate_preparation+shared_preparation} if config.schema_version=="4.4.0" else {}),"iteration_to_best":best_iteration,"seconds_to_best":best_time,"restricted_exact_risk":restricted,"restricted_exact_gap":None if restricted is None or optimum is None else restricted-optimum})
+    result_fields=["schema_version","replication"]+(["logical_ber"] if config.schema_version in {"4.1.0", "4.2.0", "4.3.0", "4.4.0"} else [])+(["protection_budget_bits"] if config.schema_version in {"4.2.0","4.3.0","4.4.0"} else [])+["strategy","protected_bits","initial_risk_mean","best_search_risk_estimate","heldout_loss_mean","heldout_loss_ci_low","heldout_loss_ci_high","accepted","rejected","proposals_generated","proposals_evaluated","exact_evaluations","work_proxy_macs","wall_seconds"]+(["wall_seconds_semantics"] if config.schema_version in {"4.3.0","4.4.0"} else [])+(["shared_factor_preparation_seconds","method_aggregate_preparation_seconds","method_specific_search_seconds","total_attributed_method_seconds"] if config.schema_version=="4.4.0" else [])+["iteration_to_best","seconds_to_best","restricted_exact_risk","restricted_exact_gap"]
     _write_csv(staging/"measurements/search_results.csv",result_fields,({"schema_version":config.schema_version,**row} for row in result_rows))
     overlap_rows=[]
     for member in members:
@@ -254,8 +271,8 @@ def create_search_bundle(outcome: SearchOutcome, *, repository_root: Path, run_i
             "manifest_schema": MANIFEST_SCHEMA_VERSION, "summary_schema": SUMMARY_SCHEMA_VERSION,
             "measurement_schema": config.schema_version, "scientific_protocol": config.scientific_protocol,
             "incremental_evaluator": "dense-relu-dense-exact-incremental/v1",
-            "topology_evaluator": "dense-relu-dense-topology-exact/v1" if config.schema_version in {"4.2.0","4.3.0"} else None,
-            "conditional_estimator": "telescoping-three-state-conditional-risk/v1" if config.schema_version in {"4.1.0", "4.2.0", "4.3.0"} else "three-state matched conditional swap/v1",
+            "topology_evaluator": "dense-relu-dense-topology-exact/v1" if config.schema_version in {"4.2.0","4.3.0","4.4.0"} else None,
+            "conditional_estimator": "telescoping-three-state-conditional-risk/v1" if config.schema_version in {"4.1.0", "4.2.0", "4.3.0", "4.4.0"} else "three-state matched conditional swap/v1",
         },
         "benchmark": {**resolved["benchmark"], "checkpoint_sha256": sha256_file(config.benchmark.checkpoint), "dataset_sha256": sha256_file(config.benchmark.dataset)},
         "experiment": {**resolved["experiment"], "requested_configuration": "config.toml", "resolved_configuration": "resolved_config.json"},
@@ -264,6 +281,8 @@ def create_search_bundle(outcome: SearchOutcome, *, repository_root: Path, run_i
             **({"methods": resolved["methods"]} if "methods" in resolved else {}),
             **({"topology": resolved["topology"]} if "topology" in resolved else {}),
             **({"screening": resolved["screening"]} if "screening" in resolved else {}),
+            **({"proposal_control": resolved["proposal_control"]} if "proposal_control" in resolved else {}),
+            **({"factor_cache": resolved["factor_cache"]} if "factor_cache" in resolved else {}),
             "started_utc": now.isoformat(), "completed_utc": datetime.now(timezone.utc).isoformat(),
         },
         "outputs": _inventory(staging), "scientific_payload_sha256": outcome.scientific_payload_sha256,

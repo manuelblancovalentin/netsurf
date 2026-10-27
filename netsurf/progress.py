@@ -364,7 +364,7 @@ def search_operation_plan(configuration, *, include_bundle: bool = False) -> dic
         "Held-out final evaluation": replications * len(method_names) * configuration.final_evaluation.contexts,
         "Scientific payload": replications,
     }
-    if configuration.schema_version in {"4.1.0", "4.2.0", "4.3.0"}:
+    if configuration.schema_version in {"4.1.0", "4.2.0", "4.3.0", "4.4.0"}:
         plan["Held-out conditional evaluation"] = replications * len(method_names) * configuration.final_evaluation.conditional_contexts
     polar_contexts = 1 if configuration.polar.mode == "finite_clean" else configuration.polar.background_contexts
     if configuration.polar.enabled:

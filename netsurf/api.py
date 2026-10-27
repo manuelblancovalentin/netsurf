@@ -98,7 +98,7 @@ def load_configuration(path: str | Path):
         version = tomllib.load(stream).get("schema_version")
     if version in {"3.0.0", "3.1.0"}:
         return load_study(source)
-    if version in {"4.0.0", "4.1.0", "4.2.0", "4.3.0"}:
+    if version in {"4.0.0", "4.1.0", "4.2.0", "4.3.0", "4.4.0"}:
         return load_search(source)
     return load_experiment(source)
 
@@ -161,7 +161,7 @@ def regenerate_report(
     destination.mkdir(parents=True, exist_ok=True)
     figures: tuple[str, ...] = ()
     is_study = result.resolved_config.get("schema_version") in {"3.0.0", "3.1.0"}
-    is_search = result.resolved_config.get("schema_version") in {"4.0.0", "4.1.0", "4.2.0", "4.3.0"}
+    is_search = result.resolved_config.get("schema_version") in {"4.0.0", "4.1.0", "4.2.0", "4.3.0", "4.4.0"}
     summary = result.summary
     derived = None
     trial_rows = ()

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/measurements/v4_4.schema.json",
+  "title": "NetSuRF controlled factorized-guidance ablation measurements",
+  "schema_version": "4.4.0",
+  "tables": {
+    "controlled_proposals.csv": {"unit": "one shortlisted candidate identity at one controlled search iteration", "identity": ["replication", "logical_ber", "protection_budget_bits", "strategy", "iteration", "status", "identity"]},
+    "candidate_screening.csv": {"unit": "one exact conditional candidate marginal at one search iteration"},
+    "candidate_screening_contexts.csv": {"unit": "one paired candidate contribution under one shared search background"},
+    "factorized_guidance.csv": {"unit": "one controlled decision with cache, vectorization, aggregate, and verification timing"},
+    "timing_phases.csv": {"unit": "one mutually exclusive execution phase"},
+    "final_trials.csv": {"unit": "one held-out natural-Bernoulli field for one final mask"},
+    "conditional_context_contributions.csv": {"unit": "one independently held-out conditional contribution"},
+    "search_steps.csv": {"unit": "one exact swap-verification decision"},
+    "search_results.csv": {"unit": "one completed method, budget, BER, and search replication"}
+  },
+  "null_handling": "Empty CSV fields represent structurally unavailable quantities; JSON uses null.",
+  "units": {"exclusive_wall_seconds": "seconds", "wall_seconds": "seconds", "peak_rss_mb": "MiB", "logical_ber": "independent logical bit-flip probability", "proposal_probability": "unitless probability"}
+}
