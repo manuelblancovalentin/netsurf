@@ -1,0 +1,164 @@
+# NetSuRF M4.4 researcher-authored configuration (not an implementation change).
+# Place in config/experiments/ to preserve checkpoint-relative paths.
+# Validate via `netsurf validate config/experiments/mnist_m44_rebase_magnitude_pilot_p01_b10.toml --resolved`.
+
+schema_version = "4.4.0"
+scientific_protocol = "factorized-guidance-ablation/v1"
+
+[experiment]
+name = "mnist_m44_rebase_magnitude_pilot_p01_b10"
+description = "Exploratory post-historical identity-alignment ablation: real versus layer/bit-position-shuffled Kronecker, logical BER 0.01 at 10% protected."
+objective = "Tests whether dynamic Kronecker guidance improves an already strong per-sample-magnitude initial mask, against a layer-bit-position-shuffled control with identical candidate pools and verification budgets."
+
+[benchmark]
+adapter = "mnist_quantized"
+id = "mnist_dense32_q621-v2"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "v2_disjoint_partitions"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 128
+search_count = 64
+final_count = 128
+require_disjoint = true
+
+[[estimators]]
+name = "per_sample_first_order_magnitude"
+implementation_version = "mean-absolute-per-example-gradient-times-exact-delta/v1"
+
+[[guidance]]
+name = "per_sample_magnitude"
+estimator = "per_sample_first_order_magnitude"
+priority = ["estimator_score_desc", "stable_identity"]
+weight = 1.0
+
+[initial_mask]
+guidance = "per_sample_magnitude"
+budget_bits = 15270
+
+[[methods]]
+name = "static_per_sample_magnitude"
+strategy = "static"
+guidance = ["per_sample_magnitude"]
+interaction_model = "none"
+proposal_model = "gradient"
+comparison_role = "static"
+aggregate_shuffle_mode = "none"
+sign_bit_weight = 1.0
+
+[[methods]]
+name = "marginal_search_control"
+strategy = "corrected_screening"
+guidance = ["per_sample_magnitude"]
+interaction_model = "none"
+proposal_model = "gradient"
+comparison_role = "controlled"
+aggregate_shuffle_mode = "none"
+sign_bit_weight = 1.0
+
+[[methods]]
+name = "dynamic_kronecker"
+strategy = "factorized_screening"
+guidance = ["per_sample_magnitude"]
+interaction_model = "factorized_kronecker"
+proposal_model = "kronecker"
+comparison_role = "controlled"
+aggregate_shuffle_mode = "none"
+sign_bit_weight = 1.0
+aggregate_population = "full"
+dynamic_aggregate = true
+
+[[methods]]
+name = "shuffled_kronecker_layer_bit"
+strategy = "factorized_screening"
+guidance = ["per_sample_magnitude"]
+interaction_model = "factorized_kronecker"
+proposal_model = "shuffled_kronecker"
+comparison_role = "controlled"
+aggregate_shuffle_mode = "layer_bit_position"
+sign_bit_weight = 1.0
+aggregate_population = "full"
+dynamic_aggregate = true
+
+[search]
+evaluator = "incremental"
+iterations = 6
+candidate_pool_strategy = "top_union"
+candidate_pool_count = 20000
+uniform_exploration = 0.15
+rank_temperature = 0.15
+background_contexts = 8
+seed = 48401
+greedy_add_candidates = 4
+greedy_remove_candidates = 3
+initial_temperature = 0.01
+cooling_rate = 0.95
+cache_memory_mb = 256.0
+exact_enumeration = false
+
+[polar]
+enabled = true
+mode = "finite_background"
+pair_budget = 96
+background_contexts = 3
+seed = 48402
+strength = 0.75
+collect_cancellation_diagnostics = true
+
+[topology]
+interaction_models = ["finite_polar", "topology_corrected", "kronecker", "stratified_kronecker", "factorized_kronecker", "factorized_stratified_kronecker"]
+interaction_guidance = "mask_dependent_sparse_v1"
+confidence_strata = 4
+minimum_stratum_samples = 8
+output_layer_pair_budget = 32
+hidden_layer_pair_budget = 40
+cross_layer_pair_budget = 24
+cache_response_limit = 1024
+
+[screening]
+removal_shortlist = 4
+addition_shortlist = 8
+verification_shortlist = 6
+refresh_frequency = 1
+response_cache_limit = 1024
+interaction_strength = 0.75
+
+[proposal_control]
+candidate_universe = "shared_candidate_pool"
+verification_budget = 6
+shared_backgrounds = true
+enforce_equal_iterations = true
+
+[factor_cache]
+enabled = true
+scope = "run"
+vectorized_queries = true
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probabilities = [0.01]
+
+[final_evaluation]
+natural_contexts = 32
+natural_seed = 48203
+conditional_contexts = 32
+conditional_seed = 48404
+confidence = 0.95
+
+[replications]
+count = 4
+search_seed_stride = 1000
+final_seed_stride = 1000
+sample_offset_stride = 0
+
+[output]
+root = ""
+report = true
+plots = true

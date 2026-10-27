@@ -1,0 +1,132 @@
+# M4.4 static historical policy: absolute held-out fault risk; NOT search improvement.
+# Separate config per policy because initial_mask.guidance alone fixes the static mask.
+# Match the main M4.4 experiment natural fault schedules and dataset partitions.
+schema_version = "4.4.0"
+scientific_protocol = "factorized-guidance-ablation/v1"
+
+[experiment]
+name = "mnist_m44_hist_gradient_signed_delta_transfer_p01"
+description = "Static historical ranking gradient_signed_delta: matched natural-fault BER 0.01, 5 percent protection, transfer-study matched."
+objective = "Report absolute held-out fault cross-entropy and accuracy for distinct static top-K protection masks. Compare by matched natural fault schedules with M4.4 primary; self-conditional difference is identically zero."
+
+[benchmark]
+adapter = "mnist_quantized"
+id = "mnist_dense32_q621-v2"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "v2_disjoint_partitions"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 128
+search_count = 64
+final_count = 128
+require_disjoint = true
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+seed = 0
+probes = 16
+
+[[guidance]]
+name = "historical_policy"
+estimator = "first_order_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+weight = 1.0
+
+[initial_mask]
+guidance = "historical_policy"
+budget_bits = 7635
+
+[[methods]]
+name = "static_gradient_signed_delta"
+strategy = "static"
+guidance = ["historical_policy"]
+interaction_model = "none"
+proposal_model = "gradient"
+comparison_role = "static"
+aggregate_shuffle_mode = "none"
+sign_bit_weight = 1.0
+
+
+[search]
+evaluator = "incremental"
+iterations = 0
+candidate_pool_strategy = "top_union"
+candidate_pool_count = 20000
+uniform_exploration = 0.15
+rank_temperature = 0.15
+background_contexts = 8
+seed = 48201
+greedy_add_candidates = 4
+greedy_remove_candidates = 3
+initial_temperature = 0.01
+cooling_rate = 0.95
+cache_memory_mb = 256.0
+exact_enumeration = false
+
+[polar]
+enabled = false
+mode = "finite_background"
+pair_budget = 0
+background_contexts = 1
+seed = 48202
+strength = 0.75
+collect_cancellation_diagnostics = false
+
+[topology]
+interaction_models = ["finite_polar"]
+interaction_guidance = "mask_dependent_sparse_v1"
+confidence_strata = 4
+minimum_stratum_samples = 8
+output_layer_pair_budget = 0
+hidden_layer_pair_budget = 0
+cross_layer_pair_budget = 0
+cache_response_limit = 1024
+
+[screening]
+removal_shortlist = 4
+addition_shortlist = 8
+verification_shortlist = 6
+refresh_frequency = 1
+response_cache_limit = 1024
+interaction_strength = 0.75
+
+[proposal_control]
+candidate_universe = "shared_candidate_pool"
+verification_budget = 6
+shared_backgrounds = true
+enforce_equal_iterations = true
+
+[factor_cache]
+enabled = false
+scope = "run"
+vectorized_queries = true
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probabilities = [0.01]
+
+[final_evaluation]
+natural_contexts = 32
+natural_seed = 48303
+conditional_contexts = 1
+conditional_seed = 48304
+confidence = 0.95
+
+[replications]
+count = 8
+search_seed_stride = 1000
+final_seed_stride = 1000
+sample_offset_stride = 0
+
+[output]
+root = ""
+report = true
+plots = true
