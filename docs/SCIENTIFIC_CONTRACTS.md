@@ -16,6 +16,14 @@ and inference state use the same representation. The exhaustive
 64-code/384-flip codec test is mandatory; the NumPy reference additionally
 exhausts every parameter bit through model inference.
 
+The recovered `legacy_mnist_lite` checkpoint is a special, explicitly named
+exception: it stores off-lattice float32 shadows. Its recovered historical
+path adds the encoded delta to that shadow. This is not exact stored-state XOR.
+The identity-gate exact path first converts allocated kernel/bias tensors to
+q<6,2,1>, includes zero-valued words, and excludes learned alpha/beta until a
+separate storage or folding format is approved. Historical and exact-converted
+populations must never share an unlabeled result.
+
 ## Estimator versus policy
 
 An estimator maps bit identities to scalar scores. It does not choose protected bits. A policy combines scores, ordering constraints, costs, and a budget to produce an immutable mask.

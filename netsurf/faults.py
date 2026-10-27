@@ -129,6 +129,64 @@ def apply_persistent_schedule(
     )
 
 
+def apply_persistent_schedule_encoded_state(
+    values: Mapping[str, np.ndarray],
+    schedule: FaultSchedule,
+    protection: ProtectionMask,
+    codec: BitCodec,
+) -> tuple[dict[str, np.ndarray], InjectionReport]:
+    """Apply XOR events to an exact encoded-state baseline.
+
+    Unlike :func:`apply_persistent_schedule`, this function does not retain an
+    off-lattice float shadow.  Every input tensor must already be exactly
+    representable by ``codec`` and the returned state is the decoded XOR
+    result.  This separate entry point keeps the recovered legacy
+    delta-on-float semantics unchanged while making exact stored-state
+    conformance testable.
+    """
+
+    if schedule.model.persistence != "persistent_trial":
+        raise ValueError("schedule is not persistent_trial")
+    encoded: dict[str, np.ndarray] = {}
+    shapes: dict[str, tuple[int, ...]] = {}
+    dtypes: dict[str, np.dtype] = {}
+    for name, value in values.items():
+        array = np.asarray(value)
+        quantized = codec.quantize(array)
+        if not np.array_equal(array.astype(np.float64), quantized):
+            raise ValueError(f"{name} is not exactly representable by {codec.format}")
+        encoded[name] = codec.encode(array).reshape(-1).copy()
+        shapes[name] = tuple(array.shape)
+        dtypes[name] = array.dtype
+
+    applied: list[BitIdentity] = []
+    suppressed = 0
+    for event in schedule.events:
+        identity = event.bit
+        if identity in protection.protected:
+            suppressed += 1
+            continue
+        if identity.parameter not in encoded:
+            raise KeyError(f"unknown fault target {identity.parameter}")
+        target = encoded[identity.parameter]
+        if not 0 <= identity.flat_index < target.size:
+            raise IndexError(identity)
+        target[identity.flat_index] ^= np.uint64(1 << identity.bit_index)
+        applied.append(identity)
+
+    corrupted = {
+        name: codec.decode(codes).reshape(shapes[name]).astype(dtypes[name])
+        for name, codes in encoded.items()
+    }
+    return corrupted, InjectionReport(
+        schedule_hash=schedule.digest(),
+        proposed_events=len(schedule.events),
+        applied_events=len(applied),
+        suppressed_events=suppressed,
+        unique_applied_bits=len(set(applied)),
+    )
+
+
 def apply_per_inference_schedule(
     values: Mapping[str, np.ndarray],
     schedule: FaultSchedule,

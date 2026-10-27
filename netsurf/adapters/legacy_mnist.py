@@ -20,6 +20,7 @@ import numpy as np
 from ..identities import ParameterSpec, enumerate_bits
 from ..quantization import BitCodec
 from ..paths import legacy_source_root, legacy_workspace_root, qkeras_package_root
+from ..samples import SamplePartition, sample_identity_digest
 
 
 def _load_legacy_package():
@@ -54,9 +55,14 @@ def _load_legacy_package():
     side_effect_root = legacy_workspace_root().resolve()
     side_effect_root.mkdir(parents=True, exist_ok=True)
     previous_working_directory = Path.cwd()
+    previous_home = os.environ.get("HOME")
     sys.modules[module_name] = module
     sys.modules["netsurf"] = module
     try:
+        # Nodus and the historical package inspect HOME during import.  Keep
+        # their unavoidable compatibility state inside the gitignored v2
+        # workspace rather than the researcher's personal configuration.
+        os.environ["HOME"] = str(side_effect_root)
         os.chdir(side_effect_root)
         spec.loader.exec_module(module)
     except Exception:
@@ -64,6 +70,10 @@ def _load_legacy_package():
         raise
     finally:
         os.chdir(previous_working_directory)
+        if previous_home is None:
+            os.environ.pop("HOME", None)
+        else:
+            os.environ["HOME"] = previous_home
         if added_qkeras_parent:
             sys.path.remove(qkeras_parent)
         if canonical is None:
@@ -113,15 +123,57 @@ class LegacyMnistLiteAdapter:
         if self.model is None or self._tf is None:
             raise RuntimeError("adapter.load() must be called first")
 
-    def dataset(self, count: int) -> tuple[np.ndarray, np.ndarray]:
-        if count <= 0 or count > 10_000:
-            raise ValueError("count must be in [1, 10000]")
+    def _mnist_split(self, source_split: str) -> tuple[np.ndarray, np.ndarray]:
         with np.load(self.dataset_path) as data:
-            raw = data["x_test"][:count].astype(np.float32)
-            labels = data["y_test"][:count].astype(np.int64)
+            raw = data[f"x_{source_split}"].astype(np.float32)
+            labels = data[f"y_{source_split}"].astype(np.int64)
         low, high = self.codec.format.value_min, self.codec.format.value_max
         normalized = low + raw * ((high - low) / 255.0)
         return normalized[..., None].astype(np.float32), labels
+
+    def sample_partition(self, role: str, count: int, *, offset: int = 0):
+        """Return explicit nonoverlapping legacy-MNIST protocol partitions.
+
+        The checkpoint's original training split is not recoverable from the
+        model file.  These are v2 analysis partitions, not claims about the
+        historical training protocol.
+        """
+
+        regions = {
+            "ranking": ("train", 50_000, 60_000),
+            "calibration": ("train", 50_000, 60_000),
+            "empirical_validation": ("train", 40_000, 50_000),
+            "evaluation": ("test", 0, 10_000),
+            "final_evaluation": ("test", 0, 10_000),
+        }
+        if role not in regions:
+            raise ValueError(f"unsupported legacy MNIST sample role: {role}")
+        source_split, start, stop = regions[role]
+        if offset < 0 or count <= 0 or start + offset + count > stop:
+            raise ValueError(
+                f"{role} requires offset >= 0, count > 0, and offset + count <= {stop - start}"
+            )
+        all_inputs, all_labels = self._mnist_split(source_split)
+        indices = tuple(range(start + offset, start + offset + count))
+        inputs = all_inputs[list(indices)].copy()
+        labels = all_labels[list(indices)].copy()
+        partition = SamplePartition(
+            role=role,
+            source_split=f"mnist_{source_split}",
+            indices=indices,
+            sample_sha256=sample_identity_digest(f"mnist_{source_split}", indices, labels),
+            provenance=(
+                "NetSuRF v2 identity-gate partition; the historical checkpoint's "
+                "original training/calibration membership is unknown"
+            ),
+        )
+        return inputs, labels, partition
+
+    def dataset(
+        self, count: int, *, role: str = "evaluation"
+    ) -> tuple[np.ndarray, np.ndarray]:
+        inputs, labels, _ = self.sample_partition(role, count)
+        return inputs, labels
 
     def values(self) -> dict[str, np.ndarray]:
         self._require_loaded()
@@ -132,6 +184,39 @@ class LegacyMnistLiteAdapter:
 
     def bit_identities(self):
         return enumerate_bits(self.parameter_specs(), self.codec.format.total_bits)
+
+    @staticmethod
+    def tensor_role(name: str) -> str:
+        leaf = name.removesuffix(":0").rsplit("/", 1)[-1]
+        return leaf if leaf in {"kernel", "bias", "alpha", "beta"} else "other"
+
+    def exact_kernel_bias_values(self) -> dict[str, np.ndarray]:
+        """Return the explicit hybrid conversion used by the identity gate.
+
+        Kernel and bias tensors are q<6,2,1> values. Learned alpha/beta remain
+        float shadows and are therefore not members of the exact encoded fault
+        population. This is a conversion candidate, not the historical clean
+        state and not a claim about deployment storage.
+        """
+
+        return {
+            name: (
+                self.codec.quantize(value).astype(value.dtype)
+                if self.tensor_role(name) in {"kernel", "bias"}
+                else value.copy()
+            )
+            for name, value in self.values().items()
+        }
+
+    def exact_kernel_bias_bit_identities(self):
+        """Enumerate all allocated kernel/bias bits, including zero words."""
+
+        parameters = tuple(
+            ParameterSpec(name, tuple(value.shape))
+            for name, value in self.values().items()
+            if self.tensor_role(name) in {"kernel", "bias"}
+        )
+        return enumerate_bits(parameters, self.codec.format.total_bits)
 
     def set_values(self, values: Mapping[str, np.ndarray]) -> None:
         self._require_loaded()
@@ -174,6 +259,22 @@ class LegacyMnistLiteAdapter:
             categorical_crossentropy=float(np.mean(-np.log(selected))),
             sample_count=int(labels.size),
         )
+
+    def predict_outputs(self, inputs: np.ndarray) -> np.ndarray:
+        self._require_loaded()
+        return self.model(inputs, training=False).numpy().copy()
+
+    def predict_logits(self, inputs: np.ndarray) -> np.ndarray:
+        """Return the recovered output-Dense values before final softmax."""
+
+        self._require_loaded()
+        probe = self._tf.keras.Model(
+            inputs=self.model.inputs, outputs=self.model.get_layer("fc_out").output
+        )
+        return probe(inputs, training=False).numpy().copy()
+
+    def predict_classes(self, inputs: np.ndarray) -> np.ndarray:
+        return np.argmax(self.predict_outputs(inputs), axis=1)
 
     def gradients(self, inputs: np.ndarray, labels: np.ndarray) -> dict[str, np.ndarray]:
         """Gradient of held-out mean cross entropy plus registered model losses."""

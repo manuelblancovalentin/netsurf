@@ -53,6 +53,10 @@ FaultModel -> deterministic FaultSchedule -> InjectionEngine
   per-inference schedule generation, perfect-mask suppression, and exact
   accounting. Per-inference windows are indexed by sample, not software batch.
 - `netsurf.adapters.legacy_mnist`: isolated TensorFlow/legacy checkpoint bridge with exact state restoration.
+- `netsurf.legacy_identity`: side-effect-free identity loading plus the bounded
+  legacy MNIST conversion/fault conformance workflow. The versioned manifest
+  lives under `netsurf/benchmarks/identities/`; TensorFlow is imported only
+  when the conformance run is requested.
 - `netsurf.benchmarks.registry`: static benchmark contracts and readiness
   diagnostics with no eager ML imports.
 - `netsurf.adapters.numpy_reference`: fixed 2-3-2 quantized reference network

@@ -35,6 +35,11 @@ def _parser() -> argparse.ArgumentParser:
     benchmark_prepare_parser.add_argument("benchmark_name")
     benchmark_prepare_parser.add_argument("--epochs", type=int, default=3)
     benchmark_prepare_parser.add_argument("--train-samples", type=int, default=20000)
+    benchmark_identity_parser = benchmark_commands.add_parser(
+        "identity", help="show a versioned recovered-benchmark identity manifest"
+    )
+    benchmark_identity_parser.add_argument("benchmark_name")
+    benchmark_identity_parser.add_argument("--verify-files", action="store_true")
     pruning = subparsers.add_parser("pruning", help="prepare and inspect physical structured-pruning checkpoints")
     pruning_commands = pruning.add_subparsers(dest="pruning_command", required=True)
     pruning_validate = pruning_commands.add_parser("validate", help="validate a schema-5 pruning configuration")
@@ -303,6 +308,17 @@ def main(argv: list[str] | None = None) -> int:
                 from .adapters.mnist_quantized import prepare_checkpoint
 
                 print(prepare_checkpoint(epochs=args.epochs, train_samples=args.train_samples))
+            elif args.benchmark_command == "identity":
+                if args.benchmark_name != "legacy_mnist_lite":
+                    raise ConfigurationError(
+                        f"benchmark {args.benchmark_name!r} has no recovered identity manifest"
+                    )
+                from .legacy_identity import load_identity_manifest, verify_identity_files
+
+                identity = load_identity_manifest()
+                if args.verify_files:
+                    identity = {**identity, "file_verification": verify_identity_files(identity)}
+                print(json.dumps(identity, indent=2, sort_keys=True))
         elif args.command == "pruning":
             if args.pruning_command == "validate":
                 config = load_pruning(args.configuration)

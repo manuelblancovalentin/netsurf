@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0.0",
+  "identity": "legacy_mnist_lite.recovered_2025.v1",
+  "status": "recovered_candidate_with_unresolved_manuscript_identity",
+  "artifacts": {
+    "checkpoint": {
+      "repository_access_path": "DEPRECATED/external_links/benchmarks/mnist_fnn_lite/q6_2_1/pruned_0.125_159569_qflatten_dense10u_qapplyalpha_quantized_relu_dense10u_qsoftmax/models/pruned_0.125_159569_qflatten_dense10u_qapplyalpha_quantized_relu_dense10u_qsoftmax.20250414_152629.keras",
+      "kona_path": "/ml/experiments/netsurf/legacy/benchmarks/mnist_fnn_lite/q6_2_1/pruned_0.125_159569_qflatten_dense10u_qapplyalpha_quantized_relu_dense10u_qsoftmax/models/pruned_0.125_159569_qflatten_dense10u_qapplyalpha_quantized_relu_dense10u_qsoftmax.20250414_152629.keras",
+      "sha256": "ba48aee8adbe7d04092d74f41958ec99112ae3e5f88ed56552ea9d1c4dba3006",
+      "container": "Keras-v2 HDF5 model",
+      "stored_trainable_dtype": "float32",
+      "immutable": true
+    },
+    "dataset": {
+      "kona_path": "/ml/datasets/mnist/mnist.npz",
+      "repository_access_path": "",
+      "sha256": "731c5ac602752760c8e48fbffcf8c3b850d9dc2a2aedcf2cc48468fc17b673d1",
+      "identity": "Keras MNIST NPZ cache: 60000 train and 10000 test images",
+      "immutable": true
+    }
+  },
+  "topology": [
+    {"name": "input", "operation": "Input", "shape": [28, 28, 1]},
+    {"name": "flatten", "operation": "Flatten", "output_width": 784},
+    {"name": "fc0", "operation": "Dense", "input_width": 784, "output_width": 10},
+    {"name": "alpha0", "operation": "QQApplyAlpha", "equation": "alpha * input + beta", "width": 10},
+    {"name": "act0", "operation": "quantized_relu"},
+    {"name": "fc_out", "operation": "Dense", "input_width": 10, "output_width": 10},
+    {"name": "softmax", "operation": "softmax", "classes": 10}
+  ],
+  "preprocessing": {
+    "input_source_dtype": "uint8",
+    "mapping": "x -> -4 + x * (7.875 / 255)",
+    "output_dtype": "float32",
+    "channel_axis": "append singleton final dimension",
+    "labels": "integer class labels 0..9"
+  },
+  "analysis_partitions": {
+    "ranking_or_calibration": "mnist_train[50000:60000]",
+    "empirical_validation": "mnist_train[40000:50000]",
+    "final_evaluation": "mnist_test[0:10000]",
+    "historical_training_membership": "unknown; these are new v2 analysis partitions"
+  },
+  "quantization_claim": {
+    "notation": "q<6,2,1>",
+    "codec": "six-bit signed two's-complement; step 0.125; range [-4,3.875]",
+    "checkpoint_reality": "trainable variables are float32 shadows and are generally off the q<6,2,1> lattice",
+    "historical_fault_semantics": "decode(flip(encode(w))) - decode(encode(w)) is added to float-shadow w",
+    "exact_state_semantics": "decode(flip(encode(w))) replaces an explicitly quantized stored state",
+    "auxiliary_format": "unresolved for learned alpha/beta"
+  },
+  "trainable_tensors": [
+    {"name": "fc0/kernel:0", "role": "kernel", "shape": [784, 10], "scalars": 7840, "nonzero_scalars": 7707, "stored_dtype": "float32", "q621_on_lattice": 175, "q621_out_of_range": 0, "exact_q621_eligibility": "supported after explicit conversion"},
+    {"name": "fc0/bias:0", "role": "bias", "shape": [10], "scalars": 10, "nonzero_scalars": 10, "stored_dtype": "float32", "q621_on_lattice": 0, "q621_out_of_range": 0, "exact_q621_eligibility": "supported after explicit conversion"},
+    {"name": "alpha0/alpha:0", "role": "alpha", "shape": [10], "scalars": 10, "nonzero_scalars": 10, "stored_dtype": "float32", "q621_on_lattice": 0, "q621_out_of_range": 0, "exact_q621_eligibility": "unsupported until storage/folding precision is established"},
+    {"name": "alpha0/beta:0", "role": "beta", "shape": [10], "scalars": 10, "nonzero_scalars": 10, "stored_dtype": "float32", "q621_on_lattice": 0, "q621_out_of_range": 0, "exact_q621_eligibility": "unsupported until storage/folding precision is established"},
+    {"name": "fc_out/kernel:0", "role": "kernel", "shape": [10, 10], "scalars": 100, "nonzero_scalars": 98, "stored_dtype": "float32", "q621_on_lattice": 4, "q621_out_of_range": 0, "exact_q621_eligibility": "supported after explicit conversion"},
+    {"name": "fc_out/bias:0", "role": "bias", "shape": [10], "scalars": 10, "nonzero_scalars": 10, "stored_dtype": "float32", "q621_on_lattice": 0, "q621_out_of_range": 0, "exact_q621_eligibility": "supported after explicit conversion"}
+  ],
+  "other_checkpoint_state": {
+    "prune_masks": "float32 masks for fc0/kernel and fc_out/kernel; 135 zero entries in total",
+    "fault_delta_state": "nontrainable *_delta, *_N, and *_ranking tensors; instrumentation state, not model trainable parameters",
+    "counters_and_regularization": "nontrainable integer bit-flip counters and alpha0 regularization-loss tracker",
+    "optimizer_state": "Adam slot variables are present in the HDF5 container but are neither inference parameters nor fault targets",
+    "treatment": "excluded from trainable and eligible-bit counts; retained unchanged in the source checkpoint"
+  },
+  "populations": {
+    "trainable_scalars": 7980,
+    "nonzero_trainable_scalars": 7845,
+    "allocated_trainable_scalars": 7980,
+    "allocated_kernel_bias_scalars": 7960,
+    "nonzero_kernel_bias_scalars": 7825,
+    "auxiliary_alpha_beta_scalars": 20,
+    "historical_all_trainable_logical_bits": 47880,
+    "historical_nonzero_logical_bits": 47070,
+    "exact_q621_kernel_bias_logical_bits": 47760,
+    "exact_q621_nonzero_kernel_bias_logical_bits": 46950,
+    "zero_valued_allocated_kernel_bias_scalars": 135,
+    "physically_stored_scalars_in_deployment": null,
+    "physical_storage_status": "unknown; checkpoint allocation and nonzero count do not establish synthesized storage",
+    "corrected_default_population": "all 7960 allocated kernel/bias scalars after explicit q<6,2,1> conversion, including zero values",
+    "unsupported_population": "20 learned alpha/beta scalars pending a justified storage or folding format"
+  },
+  "manuscript_identity": {
+    "table_ii_parameter_count": 7845,
+    "observation": "the Table-II number equals this checkpoint's nonzero trainable count, not its 7980 allocated trainable count",
+    "conclusion": "suggestive numerical correspondence only; provenance does not establish that this checkpoint generated the Table-II experiment",
+    "hardware_equivalence": "not established"
+  }
+}

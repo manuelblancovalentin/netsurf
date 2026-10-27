@@ -1,6 +1,12 @@
 import numpy as np
 
-from netsurf.faults import FaultEvent, FaultModel, FaultSchedule, apply_persistent_schedule
+from netsurf.faults import (
+    FaultEvent,
+    FaultModel,
+    FaultSchedule,
+    apply_persistent_schedule,
+    apply_persistent_schedule_encoded_state,
+)
 from netsurf.identities import BitIdentity
 from netsurf.protection import ProtectionMask
 from netsurf.quantization import BitCodec, FixedPointFormat
@@ -62,3 +68,64 @@ def test_fault_delta_is_added_to_unrounded_checkpoint_value():
     # encode(0.01) == 0; flipping its LSB has delta +0.125. The historical
     # checkpoint value is retained rather than silently rounded to zero.
     np.testing.assert_allclose(corrupted["w"], np.array([0.135], dtype=np.float32))
+
+
+def test_exact_encoded_state_xor_multiple_bits_and_protection_accounting():
+    codec = BitCodec(FixedPointFormat.parse("q<6,2,1>"))
+    first = BitIdentity("w", 0, 0)
+    sign = BitIdentity("w", 0, 5)
+    protected_bit = BitIdentity("w", 1, 0)
+    schedule = FaultSchedule(
+        model(1.0),
+        19,
+        (
+            FaultEvent(None, first),
+            FaultEvent(None, sign),
+            FaultEvent(None, protected_bit),
+        ),
+        universe_size=12,
+        inference_count=1,
+    )
+    protection = ProtectionMask("one", frozenset({protected_bit}), 12, 1.0, {})
+    corrupted, report = apply_persistent_schedule_encoded_state(
+        {"w": np.array([0.0, 0.0], dtype=np.float32)}, schedule, protection, codec
+    )
+    np.testing.assert_array_equal(corrupted["w"], np.array([-3.875, 0.0], dtype=np.float32))
+    assert report.proposed_events == 3
+    assert report.applied_events == 2
+    assert report.suppressed_events == 1
+    assert report.unique_applied_bits == 2
+
+
+def test_exact_encoded_state_rejects_off_lattice_float_shadow():
+    codec = BitCodec(FixedPointFormat.parse("q<6,2,1>"))
+    schedule = FaultSchedule(model(0.0), 1, (), universe_size=6, inference_count=1)
+    protection = ProtectionMask("none", frozenset(), 6, 0.0, {})
+    with np.testing.assert_raises_regex(ValueError, "not exactly representable"):
+        apply_persistent_schedule_encoded_state(
+            {"w": np.array([0.01], dtype=np.float32)}, schedule, protection, codec
+        )
+
+
+def test_delta_on_float_equals_exact_xor_only_for_exact_baseline():
+    codec = BitCodec(FixedPointFormat.parse("q<6,2,1>"))
+    event = FaultEvent(None, BitIdentity("w", 0, 5))
+    schedule = FaultSchedule(model(1.0), 1, (event,), universe_size=6, inference_count=1)
+    protection = ProtectionMask("none", frozenset(), 6, 0.0, {})
+    exact = {"w": np.array([0.125], dtype=np.float32)}
+    legacy_result, _ = apply_persistent_schedule(exact, schedule, protection, codec)
+    xor_result, _ = apply_persistent_schedule_encoded_state(exact, schedule, protection, codec)
+    np.testing.assert_array_equal(legacy_result["w"], xor_result["w"])
+
+    shadow = {"w": np.array([0.01], dtype=np.float32)}
+    legacy_shadow, _ = apply_persistent_schedule(shadow, schedule, protection, codec)
+    exact_baseline = {"w": codec.quantize(shadow["w"]).astype(np.float32)}
+    xor_shadow, _ = apply_persistent_schedule_encoded_state(
+        exact_baseline, schedule, protection, codec
+    )
+    np.testing.assert_allclose(
+        legacy_shadow["w"] - xor_shadow["w"],
+        shadow["w"] - exact_baseline["w"],
+        rtol=1e-6,
+        atol=1e-8,
+    )
