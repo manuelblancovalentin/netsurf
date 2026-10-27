@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from itertools import combinations
 from pathlib import Path
 from time import perf_counter
+from typing import Any, Mapping
 import uuid
 import resource
 
@@ -81,7 +82,10 @@ def _summary(outcome, trials, validation, conditional_contexts=(), proposal_qual
     }
 
 
-def create_search_bundle(outcome: SearchOutcome, *, repository_root: Path, run_id: str | None = None) -> Path:
+def create_search_bundle(
+    outcome: SearchOutcome, *, repository_root: Path, run_id: str | None = None,
+    execution_provenance: Mapping[str, Any] | None = None,
+) -> Path:
     bundle_started = perf_counter()
     config = outcome.configuration; members = _members(outcome); now = datetime.now(timezone.utc)
     identifier = run_id or f"{now.strftime('%Y%m%dT%H%M%S.%fZ')}-{uuid.uuid4().hex[:8]}"
@@ -283,6 +287,7 @@ def create_search_bundle(outcome: SearchOutcome, *, repository_root: Path, run_i
             **({"screening": resolved["screening"]} if "screening" in resolved else {}),
             **({"proposal_control": resolved["proposal_control"]} if "proposal_control" in resolved else {}),
             **({"factor_cache": resolved["factor_cache"]} if "factor_cache" in resolved else {}),
+            **({"parallel_execution": dict(execution_provenance)} if execution_provenance else {}),
             "started_utc": now.isoformat(), "completed_utc": datetime.now(timezone.utc).isoformat(),
         },
         "outputs": _inventory(staging), "scientific_payload_sha256": outcome.scientific_payload_sha256,

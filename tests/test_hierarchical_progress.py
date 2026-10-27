@@ -117,5 +117,26 @@ def test_batch_runs_sequentially_continues_after_expected_failure(monkeypatch, c
 
 def test_batch_help_is_exposed():
     parser = cli._parser()
-    args = parser.parse_args(["batch", "one.toml", "two.toml", "--no-progress"])
+    args = parser.parse_args(["batch", "one.toml", "two.toml", "--workers", "4", "--threads-per-worker", "2", "--no-progress"])
     assert args.command == "batch" and len(args.configurations) == 2
+    assert (args.workers, args.threads_per_worker) == (4, 2)
+
+
+def test_hierarchical_progress_shows_worker_pool_without_ansi():
+    stream = StringIO()
+    reporter = HierarchicalProgressReporter(
+        (ExperimentQueueItem("parallel", "parallel.toml", {"work": 2}),),
+        stream, interactive=False, refresh_seconds=0,
+    )
+    reporter.start_experiment(0)
+    reporter.set_worker_pool(2, 4, completed_tasks=1)
+    reporter.update(0, ProgressEvent(
+        "parallel", "Parallel replication execution", 1, 2,
+        active_workers=2, total_workers=4,
+        remaining_work=(("work", 1),),
+    ))
+    reporter.complete_experiment(0)
+    reporter.finish()
+    output = stream.getvalue()
+    assert "workers 2/4" in output
+    assert "\x1b[" not in output

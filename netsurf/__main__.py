@@ -12,6 +12,7 @@ from .benchmarks import benchmark_info, benchmark_list
 from .doctor import doctor_report
 from .experiment_config import ConfigurationError, load_experiment, template_text
 from .paths import workspace_root
+from .parallel import ExecutionResources, LogicalTask, ParallelExecutionError, run_process_tasks
 from .plotting import PlottingDependencyError
 from .progress import ExperimentQueueItem, HierarchicalProgressReporter
 from .pruning_config import PruningConfigurationError, load_pruning
@@ -41,6 +42,10 @@ def _parser() -> argparse.ArgumentParser:
     pruning_validate.add_argument("--resolved", action="store_true")
     pruning_run = pruning_commands.add_parser("run", help="execute a bounded schema-5 pruning preparation")
     pruning_run.add_argument("configuration", type=Path)
+    pruning_batch = pruning_commands.add_parser("batch", help="prepare independent pruning configurations in parallel")
+    pruning_batch.add_argument("configurations", type=Path, nargs="+")
+    pruning_batch.add_argument("--workers", type=int, default=1)
+    pruning_batch.add_argument("--threads-per-worker", type=int, default=1)
     pruning_inspect = pruning_commands.add_parser("inspect", help="verify an immutable pruned checkpoint")
     pruning_inspect.add_argument("checkpoint", type=Path)
     initialize = subparsers.add_parser("init-experiment", help="create a validated experiment TOML template")
@@ -51,12 +56,16 @@ def _parser() -> argparse.ArgumentParser:
     validate.add_argument("--resolved", action="store_true")
     run = subparsers.add_parser("run", help="execute and finalize a new result bundle")
     run.add_argument("configuration", type=Path)
+    run.add_argument("--workers", type=int, default=1)
+    run.add_argument("--threads-per-worker", type=int, default=1)
     progress = run.add_mutually_exclusive_group()
     progress.add_argument("--progress", dest="progress", action="store_true", help="show progress even when output is redirected")
     progress.add_argument("--no-progress", dest="progress", action="store_false", help="disable live progress")
     run.set_defaults(progress=None)
-    batch = subparsers.add_parser("batch", help="execute multiple experiment configurations sequentially")
+    batch = subparsers.add_parser("batch", help="execute multiple independent experiment configurations")
     batch.add_argument("configurations", type=Path, nargs="+")
+    batch.add_argument("--workers", type=int, default=1)
+    batch.add_argument("--threads-per-worker", type=int, default=1)
     batch_progress = batch.add_mutually_exclusive_group()
     batch_progress.add_argument("--progress", dest="progress", action="store_true", help="show line-oriented progress when redirected")
     batch_progress.add_argument("--no-progress", dest="progress", action="store_false", help="disable progress display")
@@ -74,10 +83,41 @@ _EXPECTED_RUN_ERRORS = (
     ConfigurationError, StudyConfigurationError, SearchConfigurationError, PruningConfigurationError,
     ResultBundleError, PlottingDependencyError, FileExistsError, OSError,
     KeyError, ValueError,
+    ParallelExecutionError,
 )
 
 
-def _run_configurations(paths: list[Path], *, progress: bool | None, batch: bool) -> int:
+def _batch_experiment_worker(payload):
+    source, threads_per_worker, pool_workers = payload
+    try:
+        destination = run_experiment(
+            Path(source), resources=ExecutionResources(1, threads_per_worker),
+            execution_provenance_overrides={
+                "requested_workers": pool_workers,
+                "effective_workers": pool_workers,
+                "parallel_boundary": "independent batch configuration",
+                "process_start_method": "spawn",
+            },
+        )
+        result = read_result_bundle(destination)
+        return {"configuration": source, "status": "completed", "run_directory": str(destination),
+                "scientific_payload_sha256": result.scientific_payload_sha256}
+    except _EXPECTED_RUN_ERRORS as error:
+        return {"configuration": source, "status": "failed", "error": str(error)}
+
+
+def _pruning_batch_worker(payload):
+    source, _threads_per_worker = payload
+    from .pruning_pipeline import prepare_pruned_checkpoint
+    return str(prepare_pruned_checkpoint(load_pruning(Path(source))))
+
+
+def _run_configurations(
+    paths: list[Path], *, progress: bool | None, batch: bool,
+    workers: int = 1, threads_per_worker: int = 1,
+) -> int:
+    resources = ExecutionResources(workers, threads_per_worker)
+    resources.validate_capacity()
     loaded = []
     items = []
     for path in paths:
@@ -94,33 +134,77 @@ def _run_configurations(paths: list[Path], *, progress: bool | None, batch: bool
     results = []
     unexpected = None
     try:
-        for index, (source, configuration, validation_error) in enumerate(loaded):
-            if reporter is not None:
-                reporter.start_experiment(index)
-            if validation_error is not None:
+        if batch and workers > 1:
+            for index, (_source, _configuration, validation_error) in enumerate(loaded):
+                if validation_error is not None:
+                    if reporter is not None:
+                        reporter.fail_experiment(index, validation_error)
+                    results.append({"configuration": str(loaded[index][0]), "status": "failed", "error": str(validation_error)})
+            valid = [(index, source) for index, (source, configuration, error) in enumerate(loaded) if configuration is not None and error is None]
+            by_id = {f"configuration:{index:06d}": index for index, _source in valid}
+            completed_tasks = 0
+
+            def started(task_id):
                 if reporter is not None:
-                    reporter.fail_experiment(index, validation_error)
-                results.append({"configuration": str(source), "status": "failed", "error": str(validation_error)})
-                continue
-            try:
-                destination = run_experiment(configuration, progress=None if reporter is None else reporter.callback(index))
-                result = read_result_bundle(destination)
+                    reporter.start_experiment(by_id[task_id])
+
+            def pool_changed(active, total):
                 if reporter is not None:
-                    reporter.complete_experiment(index, str(destination))
-                results.append({
-                    "configuration": str(source), "status": "completed",
-                    "run_directory": str(destination),
-                    "scientific_payload_sha256": result.scientific_payload_sha256,
-                })
-            except _EXPECTED_RUN_ERRORS as error:
+                    reporter.set_worker_pool(active, total, completed_tasks=completed_tasks)
+
+            def received(task_id, value, _completion):
+                nonlocal completed_tasks
+                completed_tasks += 1
+                index = by_id[task_id]
                 if reporter is not None:
-                    reporter.fail_experiment(index, error)
-                results.append({"configuration": str(source), "status": "failed", "error": str(error)})
-            except BaseException as error:
+                    if value["status"] == "completed":
+                        reporter.complete_experiment(index, value.get("run_directory"))
+                    else:
+                        reporter.fail_experiment(index, value["error"])
+                    reporter.set_worker_pool(0, workers, completed_tasks=completed_tasks)
+
+            def worker_failed(task_id, error):
                 if reporter is not None:
-                    reporter.fail_experiment(index, error)
-                unexpected = error
-                raise
+                    reporter.fail_experiment(by_id[task_id], error)
+
+            tasks = tuple(LogicalTask(task_id, (str(loaded[index][0]), threads_per_worker, workers)) for task_id, index in by_id.items())
+            if tasks:
+                parallel = run_process_tasks(tasks, _batch_experiment_worker, resources,
+                                             on_started=started, on_result=received, on_pool_changed=pool_changed,
+                                             on_failed=worker_failed)
+                results.extend(parallel.values)
+            results.sort(key=lambda value: next(i for i, item in enumerate(loaded) if str(item[0]) == value["configuration"]))
+        else:
+            for index, (source, configuration, validation_error) in enumerate(loaded):
+                if reporter is not None:
+                    reporter.start_experiment(index)
+                if validation_error is not None:
+                    if reporter is not None:
+                        reporter.fail_experiment(index, validation_error)
+                    results.append({"configuration": str(source), "status": "failed", "error": str(validation_error)})
+                    continue
+                try:
+                    run_arguments = {"progress": None if reporter is None else reporter.callback(index)}
+                    if workers != 1 or threads_per_worker != 1:
+                        run_arguments["resources"] = resources
+                    destination = run_experiment(configuration, **run_arguments)
+                    result = read_result_bundle(destination)
+                    if reporter is not None:
+                        reporter.complete_experiment(index, str(destination))
+                    results.append({
+                        "configuration": str(source), "status": "completed",
+                        "run_directory": str(destination),
+                        "scientific_payload_sha256": result.scientific_payload_sha256,
+                    })
+                except _EXPECTED_RUN_ERRORS as error:
+                    if reporter is not None:
+                        reporter.fail_experiment(index, error)
+                    results.append({"configuration": str(source), "status": "failed", "error": str(error)})
+                except BaseException as error:
+                    if reporter is not None:
+                        reporter.fail_experiment(index, error)
+                    unexpected = error
+                    raise
     finally:
         if reporter is not None:
             reporter.finish()
@@ -137,6 +221,54 @@ def _run_configurations(paths: list[Path], *, progress: bool | None, batch: bool
     elif results:
         print(f"netsurf: {results[0]['error']}", file=sys.stderr)
     return 2 if failed else 0
+
+
+def _run_pruning_batch(paths: list[Path], *, workers: int, threads_per_worker: int) -> int:
+    resources = ExecutionResources(workers, threads_per_worker)
+    resources.validate_capacity()
+    configurations = [load_pruning(path.expanduser().resolve()) for path in paths]
+    destinations = [configuration.output.checkpoint for configuration in configurations]
+    if len(destinations) != len(set(destinations)):
+        raise PruningConfigurationError("pruning batch contains duplicate checkpoint output paths")
+    tasks = tuple(LogicalTask(f"pruning:{index:06d}", (str(configuration.source_path), threads_per_worker))
+                  for index, configuration in enumerate(configurations))
+    items = tuple(ExperimentQueueItem(
+        configuration.name, str(configuration.source_path),
+        {"Sequential pruning/training trajectory": max(1, len(configuration.pruning.target_widths) or configuration.pruning.iterations)},
+    ) for configuration in configurations)
+    reporter = HierarchicalProgressReporter(items, sys.stderr) if sys.stderr.isatty() else None
+    by_id = {task.task_id: index for index, task in enumerate(tasks)}
+    completed = 0
+
+    def started(task_id):
+        if reporter is not None:
+            reporter.start_experiment(by_id[task_id])
+
+    def received(task_id, value, _completion):
+        nonlocal completed
+        completed += 1
+        if reporter is not None:
+            reporter.complete_experiment(by_id[task_id], value)
+            reporter.set_worker_pool(0, workers, completed_tasks=completed)
+
+    def pool_changed(active, total):
+        if reporter is not None:
+            reporter.set_worker_pool(active, total, completed_tasks=completed)
+
+    def failed(task_id, error):
+        if reporter is not None:
+            reporter.fail_experiment(by_id[task_id], error)
+
+    try:
+        result = run_process_tasks(
+            tasks, _pruning_batch_worker, resources, on_started=started,
+            on_result=received, on_pool_changed=pool_changed, on_failed=failed,
+        )
+    finally:
+        if reporter is not None:
+            reporter.finish()
+    print(json.dumps({"completed": len(result.values), "checkpoints": list(result.values)}, indent=2, sort_keys=True))
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -179,6 +311,8 @@ def main(argv: list[str] | None = None) -> int:
                 from .pruning_pipeline import prepare_pruned_checkpoint
 
                 print(prepare_pruned_checkpoint(load_pruning(args.configuration)))
+            elif args.pruning_command == "batch":
+                return _run_pruning_batch(args.configurations, workers=args.workers, threads_per_worker=args.threads_per_worker)
             elif args.pruning_command == "inspect":
                 from .pruning_pipeline import inspect_pruned_checkpoint
 
@@ -193,9 +327,11 @@ def main(argv: list[str] | None = None) -> int:
             config = load_configuration(args.configuration)
             print(json.dumps(config.resolved_document(), indent=2, sort_keys=True) if args.resolved else f"valid: {config.name} (schema {config.schema_version})")
         elif args.command == "run":
-            return _run_configurations([args.configuration], progress=args.progress, batch=False)
+            return _run_configurations([args.configuration], progress=args.progress, batch=False,
+                                       workers=args.workers, threads_per_worker=args.threads_per_worker)
         elif args.command == "batch":
-            return _run_configurations(args.configurations, progress=args.progress, batch=True)
+            return _run_configurations(args.configurations, progress=args.progress, batch=True,
+                                       workers=args.workers, threads_per_worker=args.threads_per_worker)
         elif args.command == "inspect":
             result = read_result_bundle(args.run_directory)
             print(json.dumps({"run_directory": str(result.path), "run_id": result.manifest["run_id"], "experiment": result.summary["experiment_name"], "benchmark": result.summary["benchmark_id"], "trials": result.summary["trial_count"], "scientific_payload_sha256": result.scientific_payload_sha256, "checksums": "verified"}, indent=2, sort_keys=True))

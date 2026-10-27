@@ -35,6 +35,8 @@ class ProgressEvent:
     exact_evaluations: int | None = None
     screened_candidates: int | None = None
     verified_swaps: int | None = None
+    active_workers: int | None = None
+    total_workers: int | None = None
     failed: bool = False
     message: str | None = None
     work_class: str | None = None
@@ -42,6 +44,20 @@ class ProgressEvent:
 
 
 ProgressCallback = Callable[[ProgressEvent], None]
+
+
+def forward_worker_event(tracker: "ProgressTracker", event: ProgressEvent) -> None:
+    """Project worker-local detail onto coordinator-global work accounting."""
+
+    names = (
+        "stage_completed", "stage_total", "replication", "replications",
+        "logical_ber", "coverage", "policy", "trial", "trials",
+        "mean_accuracy", "mean_loss", "iteration", "iterations",
+        "protected_bits", "estimated_risk", "best_estimated_risk", "accepted",
+        "rejected", "exact_evaluations", "screened_candidates", "verified_swaps",
+    )
+    context = {name: getattr(event, name) for name in names if getattr(event, name) is not None}
+    tracker.update(event.stage, **context)
 
 
 class ProgressTracker:
@@ -355,6 +371,10 @@ class HierarchicalProgressReporter:
         self.class_rates: dict[str, float] = {}
         self.smoothed_queue_eta: float | None = None
         self.smoothed_task_eta: float | None = None
+        self.active_workers = 0
+        self.total_workers = 1
+        self.completed_worker_tasks = 0
+        self.worker_started_at = self.started
         self._live = None
         self._console = None
         self._rich_available = False
@@ -389,6 +409,15 @@ class HierarchicalProgressReporter:
             raise IndexError(index)
         return lambda event: self.update(index, event)
 
+    def set_worker_pool(self, active: int, total: int, *, completed_tasks: int | None = None) -> None:
+        """Update coordinator-owned worker status without touching science."""
+
+        self.active_workers = max(0, int(active))
+        self.total_workers = max(1, int(total))
+        if completed_tasks is not None:
+            self.completed_worker_tasks = max(0, int(completed_tasks))
+        self._render(self.clock())
+
     def start_experiment(self, index: int) -> None:
         state = self.states[index]
         if state.status != "pending":
@@ -420,6 +449,10 @@ class HierarchicalProgressReporter:
             return
         self._observe(state, event, now)
         state.event = event; state.completed = int(event.completed); state.total = max(1, int(event.total))
+        if event.active_workers is not None:
+            self.active_workers = max(0, int(event.active_workers))
+        if event.total_workers is not None:
+            self.total_workers = max(1, int(event.total_workers))
         state.stage = event.stage; state.remaining = dict(event.remaining_work)
         if event.failed:
             state.status = "failed"; state.error = event.message or "experiment failed"; state.finished = now
@@ -539,6 +572,10 @@ class HierarchicalProgressReporter:
             condition = self._condition(event)
             if condition: detail.add_row("Condition", condition)
             detail.add_row("Work", f"{state.completed} / {state.total}")
+            detail.add_row("Workers", f"{self.active_workers} active / {self.total_workers} total")
+            worker_elapsed = max(0.0, now - self.worker_started_at)
+            if self.completed_worker_tasks and worker_elapsed:
+                detail.add_row("Throughput", f"{self.completed_worker_tasks / worker_elapsed:.3g} tasks/s")
             elapsed = 0.0 if state.started is None else now - state.started
             task_eta = self._task_eta_seconds(state, now)
             queue_eta = self._queue_eta_seconds(now)
@@ -565,6 +602,7 @@ class HierarchicalProgressReporter:
         suffix = f" | {condition}" if condition else ""
         return (f"NetSuRF queue {self.current_index + 1}/{len(self.states)} | {state.item.name} | {state.stage} | "
                 f"{state.completed}/{state.total} {fraction:.1%}{suffix} | elapsed {self._duration(now-self.started)} | "
+                f"workers {self.active_workers}/{self.total_workers} | "
                 f"queue ETA {'Estimating...' if eta is None else self._duration(eta)}")
 
     def _render(self, now: float, *, force: bool = False, plain_message: str | None = None) -> None:

@@ -86,4 +86,11 @@ def runtime_provenance() -> dict[str, Any]:
             "CUDA_VISIBLE_DEVICES",
         )
     }
+    result["numerical_thread_environment"] = {
+        name: os.environ.get(name, "unset")
+        for name in (
+            "OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+            "NUMEXPR_NUM_THREADS", "TF_NUM_INTRAOP_THREADS", "TF_NUM_INTEROP_THREADS",
+        )
+    }
     return result

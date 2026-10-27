@@ -5,11 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 import csv
 import json
+import resource
 import tomllib
+from time import monotonic
 
 from .experiment_config import ExperimentConfiguration, load_experiment
 from .derived_analysis import derive_protection_analysis
 from .manifests import digest_object
+from .parallel import ExecutionResources
 from .experiment_engine import ExperimentOutcome, execute_experiment
 from .plotting import plot_protection_results, plot_study_results
 from .progress import ProgressTracker, experiment_operation_plan, search_operation_plan, study_operation_plan
@@ -119,16 +122,32 @@ def run_experiment(
     *,
     repository_root: Path | None = None,
     progress=None,
+    resources: ExecutionResources | None = None,
+    execution_provenance_overrides: dict | None = None,
 ) -> Path:
     """Validate, execute, and atomically save an experiment."""
     root = repository_root or Path(__file__).resolve().parents[1]
     config = load_configuration(configuration) if isinstance(configuration, (str, Path)) else configuration
+    requested = resources or ExecutionResources()
+    requested.validate_capacity()
+    started = monotonic()
+    def provenance():
+        value = requested.provenance(elapsed_seconds=monotonic() - started)
+        value["coordinator_peak_rss_mb"] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0
+        value["maximum_completed_child_rss_mb"] = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss / 1024.0
+        value.update(execution_provenance_overrides or {})
+        return value
     if isinstance(config, SearchConfiguration):
         tracker = ProgressTracker(config.name, search_operation_plan(config, include_bundle=True), progress)
         try:
-            outcome = execute_search(config, _tracker=tracker)
+            outcome = execute_search(config, _tracker=tracker, resources=requested)
             tracker.update("Result bundle generation")
-            destination = create_search_bundle(outcome, repository_root=root)
+            units = (len(config.initial_mask.budgets_bits) or 1) * len(config.fault_probabilities) * config.replications.count
+            execution = provenance()
+            execution.update(outcome.execution_metrics or {})
+            execution["effective_workers"] = min(requested.workers, units) if units > 1 else 1
+            execution["parallel_boundary"] = "BER/budget/search-replication" if units > 1 else "sequential single logical unit"
+            destination = create_search_bundle(outcome, repository_root=root, execution_provenance=execution)
             tracker.update("Result bundle generation", advance=1)
             tracker.finish()
             return destination
@@ -138,9 +157,13 @@ def run_experiment(
     if isinstance(config, StudyConfiguration):
         tracker = ProgressTracker(config.name, study_operation_plan(config, include_bundle=True), progress)
         try:
-            outcome = execute_study(config, _tracker=tracker)
+            outcome = execute_study(config, _tracker=tracker, resources=requested)
             tracker.update("Result bundle generation")
-            destination = create_study_bundle(outcome, repository_root=root)
+            execution = provenance()
+            execution.update(outcome.execution_metrics or {})
+            execution["effective_workers"] = min(requested.workers, config.replications.count) if config.replications.count > 1 else 1
+            execution["parallel_boundary"] = "independent configured replication" if config.replications.count > 1 else "sequential single replication"
+            destination = create_study_bundle(outcome, repository_root=root, execution_provenance=execution)
             tracker.update("Result bundle generation", advance=1)
             tracker.finish()
             return destination
@@ -151,7 +174,10 @@ def run_experiment(
     try:
         outcome = execute_experiment(config, _tracker=tracker)
         tracker.update("Result bundle generation")
-        destination = create_result_bundle(outcome, repository_root=root)
+        execution = provenance()
+        execution["effective_workers"] = 1
+        execution["parallel_boundary"] = "sequential reference; no replicated top-level unit"
+        destination = create_result_bundle(outcome, repository_root=root, execution_provenance=execution)
         tracker.update("Result bundle generation", advance=1)
         tracker.finish()
         return destination

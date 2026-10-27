@@ -16,8 +16,9 @@ from .faults import FaultModel, FaultSchedule
 from .identities import BitIdentity
 from .manifests import digest_object, sha256_file
 from .ordering import compose_ordering
+from .parallel import ExecutionResources, LogicalTask, emit_worker_progress, run_process_tasks
 from .protection import ProtectionMask, ProtectionPolicy
-from .progress import ProgressTracker, study_operation_plan
+from .progress import ProgressTracker, forward_worker_event, study_operation_plan
 from .pruning import checkpoint_pruning_contract
 from .quantization import BitCodec, FixedPointFormat
 from .ranking import Ranking
@@ -46,6 +47,7 @@ class StudyOutcome:
     replication_name: str = "replication_0"
     replication_aggregate: tuple[Mapping[str, Any], ...] = ()
     replications: tuple["StudyOutcome", ...] = ()
+    execution_metrics: Mapping[str, Any] | None = None
 
     @property
     def scientific_payload_sha256(self) -> str:
@@ -411,6 +413,7 @@ def _aggregate_replication_metrics(outcomes: Sequence[StudyOutcome]):
 def execute_study(
     configuration: StudyConfiguration, *, adapter=None, progress=None,
     _tracker: ProgressTracker | None = None,
+    resources: ExecutionResources | None = None,
 ) -> StudyOutcome:
     """Execute one or more explicit replications through the same study engine."""
 
@@ -419,32 +422,70 @@ def execute_study(
     tracker = _tracker or ProgressTracker(
         configuration.name, study_operation_plan(configuration), progress
     )
-    if plan.count == 1:
-        outcome = _execute_single_study(
-            configuration, adapter=adapter, tracker=tracker, replication_index=1,
-            replication_count=1,
-        )
-        if own_tracker:
-            tracker.finish()
-        return outcome
+    resources = resources or ExecutionResources()
+    if plan.count == 1 or resources.workers == 1:
+        if plan.count == 1:
+            outcome = _execute_single_study(
+                configuration, adapter=adapter, tracker=tracker, replication_index=1,
+                replication_count=1,
+            )
+            if own_tracker:
+                tracker.finish()
+            return outcome
     if adapter is not None:
         raise ValueError("injecting one adapter instance is unsupported for replicated studies")
-    outcomes = []
-    for index in range(plan.count):
+
+    def child_configuration(index: int) -> StudyConfiguration:
         estimators = tuple(replace(value, seed=value.seed + index * plan.hutchinson_seed_stride) for value in configuration.estimators)
-        child_config = replace(
+        return replace(
             configuration,
             candidates=replace(configuration.candidates, seed=configuration.candidates.seed + index * plan.candidate_seed_stride),
             estimators=estimators,
             execution=replace(configuration.execution, fault_seed=configuration.execution.fault_seed + index * plan.fault_seed_stride),
             replications=StudyReplications(1, 0, 0, 0, 0),
         )
-        outcomes.append(_execute_single_study(
-            child_config, replication_name=f"replication_{index}",
-            sample_offset=index * plan.sample_offset_stride,
-            tracker=tracker, replication_index=index + 1,
-            replication_count=plan.count,
-        ))
+
+    execution_metrics = None
+    if resources.workers == 1:
+        outcomes = []
+        for index in range(plan.count):
+            outcomes.append(_execute_single_study(
+                child_configuration(index), replication_name=f"replication_{index}",
+                sample_offset=index * plan.sample_offset_stride,
+                tracker=tracker, replication_index=index + 1,
+                replication_count=plan.count,
+            ))
+    else:
+        tasks = tuple(LogicalTask(
+            f"replication:{index:06d}",
+            (child_configuration(index), index, plan.count, index * plan.sample_offset_stride),
+        ) for index in range(plan.count))
+
+        def completed(_completion):
+            # Worker events provide bounded stage detail only. Advance each
+            # declared work class once its authoritative result is available;
+            # scientific results are still merged by logical task identity.
+            child_plan = study_operation_plan(child_configuration(0))
+            for stage, count in child_plan.items():
+                if count:
+                    tracker.update(stage, advance=count)
+
+        def pool_changed(active, total):
+            tracker.update("Parallel replication execution", active_workers=active, total_workers=total)
+
+        parallel = run_process_tasks(
+            tasks, _study_replication_worker, resources,
+            on_completed=completed, on_pool_changed=pool_changed,
+            on_progress=lambda _task_id, event: forward_worker_event(tracker, event),
+        )
+        outcomes = list(parallel.values)
+        execution_metrics = {
+            "worker_elapsed_seconds": parallel.elapsed_seconds,
+            "peak_aggregate_worker_rss_mb": parallel.peak_aggregate_worker_rss_mb,
+            "peak_worker_rss_mb": parallel.peak_worker_rss_mb,
+            "logical_task_count": len(tasks),
+        }
+
     tracker.update("Replication aggregation")
     aggregate = _aggregate_replication_metrics(outcomes)
     tracker.update("Replication aggregation", advance=1)
@@ -461,7 +502,23 @@ def execute_study(
     result = replace(
         primary, configuration=configuration, scientific_payload=_finite(payload),
         replication_aggregate=tuple(_finite(aggregate)), replications=tuple(outcomes),
+        execution_metrics=execution_metrics,
     )
     if own_tracker:
         tracker.finish()
     return result
+
+
+def _study_replication_worker(payload) -> StudyOutcome:
+    """Spawn entry point: one independently seeded schema-3 replication."""
+
+    configuration, index, count, sample_offset = payload
+    tracker = ProgressTracker(configuration.name, study_operation_plan(configuration), emit_worker_progress)
+    return _execute_single_study(
+        configuration,
+        replication_name=f"replication_{index}",
+        sample_offset=sample_offset,
+        tracker=tracker,
+        replication_index=index + 1,
+        replication_count=count,
+    )

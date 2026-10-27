@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from types import SimpleNamespace
 
 from netsurf.adapters.mnist_quantized import MnistQuantizedAdapter
 from netsurf.faults import FaultEvent, FaultModel, FaultSchedule, apply_persistent_schedule
@@ -238,6 +239,22 @@ checkpoint = "{output}"
     config.write_text(outside, encoding="utf-8")
     with pytest.raises(PruningConfigurationError, match="workspace"):
         load_pruning(config)
+
+
+def test_pruning_batch_rejects_duplicate_checkpoint_destinations(monkeypatch, tmp_path):
+    from netsurf import __main__ as cli
+
+    output = tmp_path / "same.npz"
+    configuration = SimpleNamespace(
+        name="duplicate", source_path=tmp_path / "source.toml",
+        output=SimpleNamespace(checkpoint=output),
+        pruning=SimpleNamespace(target_widths=(2,), iterations=1),
+    )
+    monkeypatch.setattr(cli, "load_pruning", lambda _path: configuration)
+    with pytest.raises(PruningConfigurationError, match="duplicate checkpoint"):
+        cli._run_pruning_batch(
+            [tmp_path / "a.toml", tmp_path / "b.toml"], workers=2, threads_per_worker=1,
+        )
 
 
 def test_bounded_pipeline_records_original_indices_and_provenance(tmp_path, monkeypatch):

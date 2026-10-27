@@ -119,7 +119,10 @@ def _summary(outcome: ExperimentOutcome) -> dict[str, Any]:
     return result
 
 
-def create_result_bundle(outcome: ExperimentOutcome, *, repository_root: Path, run_id: str | None = None) -> Path:
+def create_result_bundle(
+    outcome: ExperimentOutcome, *, repository_root: Path, run_id: str | None = None,
+    execution_provenance: Mapping[str, Any] | None = None,
+) -> Path:
     """Serialize an outcome through staging and atomically finalize it."""
     config = outcome.configuration
     now = datetime.now(timezone.utc)
@@ -179,6 +182,7 @@ def create_result_bundle(outcome: ExperimentOutcome, *, repository_root: Path, r
         "benchmark": {**resolved["benchmark"], "checkpoint_sha256": sha256_file(config.benchmark.checkpoint), "dataset_sha256": sha256_file(config.benchmark.dataset)},
         "experiment": {**resolved["experiment"], "requested_configuration": "config.toml", "resolved_configuration": "resolved_config.json"},
         "execution": {**resolved["execution"], "fault": resolved["fault"], "protection": resolved["protection"], "estimators": resolved["estimators"],
+                      **({"parallel_execution": dict(execution_provenance)} if execution_provenance else {}),
                       "started_utc": now.isoformat(), "completed_utc": datetime.now(timezone.utc).isoformat()},
         "outputs": _inventory(staging), "scientific_payload_sha256": outcome.scientific_payload_sha256,
     }

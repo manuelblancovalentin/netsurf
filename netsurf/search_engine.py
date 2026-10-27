@@ -19,6 +19,7 @@ from .identities import BitIdentity
 from .incremental import DenseReluDenseIncrementalEvaluator, FaultState, metrics_from_logits
 from .manifests import digest_object, sha256_file
 from .ordering import OrderedRanking, compose_ordering
+from .parallel import ExecutionResources, LogicalTask, emit_worker_progress, run_process_tasks
 from .polar import PolarPairMeasurement, interaction_map, measure_polar_pair
 from .pruning import checkpoint_pruning_contract
 from .quantization import BitCodec, FixedPointFormat
@@ -63,6 +64,7 @@ class SearchOutcome:
     topology_measurements: tuple[Mapping[str, Any], ...] = ()
     protection_budget_bits: int = 0
     timing_records: tuple[Mapping[str, Any], ...] = ()
+    execution_metrics: Mapping[str, Any] | None = None
 
     @property
     def scientific_payload_sha256(self) -> str:
@@ -626,21 +628,108 @@ def _execute_replication(configuration: SearchConfiguration, replication_index: 
     return outcome
 
 
-def execute_search(configuration: SearchConfiguration, *, _tracker=None) -> SearchOutcome:
+def _search_replication_worker(payload) -> SearchOutcome:
+    """Spawn entry point for one BER/budget/replication search unit."""
+
+    configuration, replication_index, probability, condition_index = payload
+    from .progress import ProgressTracker, search_operation_plan
+    from .search_config import SearchReplications
+
+    normalized = replace(
+        configuration,
+        initial_mask=replace(configuration.initial_mask, budgets_bits=()),
+        fault_probabilities=(probability,),
+        replications=SearchReplications(1, 0, 0, 0),
+    )
+    tracker = ProgressTracker(configuration.name, search_operation_plan(normalized), emit_worker_progress)
+    return _execute_replication(
+        configuration,
+        replication_index,
+        tracker,
+        probability=probability,
+        condition_index=condition_index,
+        factor_cache=(
+            FactorCalibrationCache()
+            if configuration.schema_version == "4.4.0" and configuration.factor_cache.enabled
+            else None
+        ),
+    )
+
+
+def execute_search(
+    configuration: SearchConfiguration,
+    *,
+    _tracker=None,
+    resources: ExecutionResources | None = None,
+) -> SearchOutcome:
     budgets = configuration.initial_mask.budgets_bits or (configuration.initial_mask.budget_bits,)
-    factor_cache = FactorCalibrationCache() if configuration.schema_version == "4.4.0" and configuration.factor_cache.enabled else None
-    members = tuple(
-        _execute_replication(
+    resources = resources or ExecutionResources()
+    task_specs = tuple(
+        (
+            budget,
+            condition_index,
+            probability,
+            index,
             replace(configuration, initial_mask=replace(configuration.initial_mask, budget_bits=budget)),
-            index, _tracker, probability=probability, condition_index=condition_index, factor_cache=factor_cache,
         )
         for budget in budgets
         for condition_index, probability in enumerate(configuration.fault_probabilities)
         for index in range(configuration.replications.count)
     )
+    execution_metrics = None
+    if resources.workers == 1 or len(task_specs) == 1:
+        factor_cache = FactorCalibrationCache() if configuration.schema_version == "4.4.0" and configuration.factor_cache.enabled else None
+        members = tuple(
+            _execute_replication(child, index, _tracker, probability=probability,
+                                 condition_index=condition_index, factor_cache=factor_cache)
+            for _budget, condition_index, probability, index, child in task_specs
+        )
+    else:
+        from .progress import forward_worker_event, search_operation_plan
+        from .search_config import SearchReplications
+
+        tasks = tuple(LogicalTask(
+            f"budget:{budget:09d}/ber:{condition_index:06d}/replication:{index:06d}",
+            (child, index, probability, condition_index),
+        ) for budget, condition_index, probability, index, child in task_specs)
+
+        def completed(_completion):
+            # Consume the declared per-unit plan only after its complete result
+            # is authoritative.  The worker itself has no terminal renderer.
+            budget, _condition_index, probability, _index, child = task_specs[0]
+            normalized = replace(
+                child,
+                initial_mask=replace(child.initial_mask, budget_bits=budget, budgets_bits=()),
+                fault_probabilities=(probability,),
+                replications=SearchReplications(1, 0, 0, 0),
+            )
+            for stage, count in search_operation_plan(normalized).items():
+                if count:
+                    _tracker.update(stage, advance=count)
+
+        def pool_changed(active, total):
+            if _tracker is not None:
+                _tracker.update("Parallel search execution", active_workers=active, total_workers=total)
+
+        parallel = run_process_tasks(
+            tasks, _search_replication_worker, resources,
+            on_completed=completed if _tracker is not None else None,
+            on_pool_changed=pool_changed if _tracker is not None else None,
+            on_progress=(lambda _task_id, event: forward_worker_event(_tracker, event)) if _tracker is not None else None,
+        )
+        members = tuple(parallel.values)
+        execution_metrics = {
+            "worker_elapsed_seconds": parallel.elapsed_seconds,
+            "peak_aggregate_worker_rss_mb": parallel.peak_aggregate_worker_rss_mb,
+            "peak_worker_rss_mb": parallel.peak_worker_rss_mb,
+            "logical_task_count": len(tasks),
+        }
     if len(members) == 1:
         return members[0]
     payload = {"schema_version": configuration.schema_version, "scientific_protocol": configuration.scientific_protocol,
                "replications": [{"name": value.replication_name, **({"logical_ber":value.logical_ber} if configuration.schema_version in {"4.1.0", "4.2.0", "4.3.0", "4.4.0"} else {}), **({"protection_budget_bits": value.protection_budget_bits} if configuration.schema_version in {"4.2.0", "4.3.0", "4.4.0"} else {}), "payload_sha256": value.scientific_payload_sha256} for value in members]}
     first = members[0]
-    return replace(first, configuration=configuration, scientific_payload=payload, replications=members)
+    return replace(
+        first, configuration=configuration, scientific_payload=payload,
+        replications=members, execution_metrics=execution_metrics,
+    )

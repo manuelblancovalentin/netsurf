@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, Mapping
 import uuid
 
 from . import __version__
@@ -105,7 +106,10 @@ def _prediction_rows(outcome: StudyOutcome, *, replication: str | None = None):
             yield row
 
 
-def create_study_bundle(outcome: StudyOutcome, *, repository_root: Path, run_id: str | None = None) -> Path:
+def create_study_bundle(
+    outcome: StudyOutcome, *, repository_root: Path, run_id: str | None = None,
+    execution_provenance: Mapping[str, Any] | None = None,
+) -> Path:
     """Atomically write and finalize a schema-3 study bundle."""
 
     config = outcome.configuration
@@ -254,6 +258,7 @@ def create_study_bundle(outcome: StudyOutcome, *, repository_root: Path, run_id:
             "samples": resolved["samples"], "candidates": resolved["candidates"], "estimators": resolved["estimators"],
             "policies": resolved["policies"], "fault": resolved["fault"], "protection": resolved["protection"],
             "randomization": resolved["execution"], "started_utc": now.isoformat(),
+            **({"parallel_execution": dict(execution_provenance)} if execution_provenance else {}),
             "completed_utc": datetime.now(timezone.utc).isoformat(),
         },
         "outputs": _inventory(staging), "scientific_payload_sha256": outcome.scientific_payload_sha256,
