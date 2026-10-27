@@ -17,7 +17,9 @@ Schema `4.4.0` corrects these controllable asymmetries without rewriting the
 optimizer. Methods whose `comparison_role` is `controlled` share the same
 iteration-indexed search-background seed, fixed candidate universe, initial
 mask, iteration count when enforcement is enabled, shortlist sizes, and exact
-verification budget. Their proposal model remains the experimental variable.
+verification budget. They also share the same base guidance, preventing hidden
+bit-significance or layer-priority access from varying between controlled
+methods. Their proposal model remains the experimental variable.
 The restricted candidate universe constrains protection moves only; logical
 fault backgrounds continue to cover the full eligible-bit population.
 

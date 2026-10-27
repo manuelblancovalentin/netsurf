@@ -470,6 +470,7 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
         roles = {"controlled", "reference", "static"}
         screening_strategies = {"marginal_screening", "corrected_screening", "factorized_screening", "hybrid_screening"}
         controlled_iterations = set()
+        controlled_guidance = set()
         for method in methods:
             if method.proposal_model not in proposal_models or method.aggregate_shuffle_mode not in shuffle_modes or method.comparison_role not in roles:
                 raise SearchConfigurationError(f"unsupported schema-4.4 proposal controls for method {method.name}")
@@ -493,8 +494,11 @@ def load_search(path: str | Path, *, check_inputs: bool = True) -> SearchConfigu
                 raise SearchConfigurationError(f"{method.proposal_model} requires interaction_model=none")
             if method.comparison_role == "controlled":
                 controlled_iterations.add(search["iterations"] if method.iterations is None else method.iterations)
+                controlled_guidance.add(method.guidance)
         if proposal_control.enforce_equal_iterations and len(controlled_iterations) > 1:
             raise SearchConfigurationError("controlled methods must use an equal iteration budget")
+        if len(controlled_guidance) > 1:
+            raise SearchConfigurationError("controlled methods must use the same base guidance")
     fault = _table(document, "fault")
     _keys(fault, {"target", "location", "persistence", "distribution", "probabilities" if controlled else "probability"}, set(), "fault")
     if (fault["target"], fault["location"], fault["persistence"], fault["distribution"]) != ("weight", "logical_trainable_parameter_bits", "persistent_trial", "independent_bernoulli"):
