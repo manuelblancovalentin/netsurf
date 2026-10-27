@@ -139,9 +139,9 @@ def render_search_report(summary: Mapping[str, Any], resolved: Mapping[str, Any]
             show=lambda value:"—" if value is None else f"{float(value):.6g}"
             lines += ["### Component cost and break-even diagnostic", "",
                       "These are measured component costs, not an end-to-end speedup claim.", "",
-                      "| Factor/aggregate setup (s) | Direct screening (s) | Factor query/update/verification (s) | Responses/s | Verified swaps/s | Estimated break-even iterations |",
-                      "|---:|---:|---:|---:|---:|---:|",
-                      f"| {show(costs.get('factor_and_aggregate_setup_seconds'))} | {show(costs.get('conditional_screening_seconds'))} | {show(costs.get('factor_query_update_and_verification_seconds'))} | {show(costs.get('candidate_responses_per_second'))} | {show(costs.get('verified_swaps_per_second'))} | {show(costs.get('component_break_even_iterations'))} |", "",
+                      "| Factor/aggregate setup (s) | Direct screening (s) | Exact verification (s) | Factor query/update/verification (s) | Responses/s | Verified swaps/s | Estimated break-even iterations |",
+                      "|---:|---:|---:|---:|---:|---:|---:|",
+                      f"| {show(costs.get('factor_and_aggregate_setup_seconds'))} | {show(costs.get('conditional_screening_seconds'))} | {show(costs.get('exact_verification_seconds'))} | {show(costs.get('factor_query_update_and_verification_seconds'))} | {show(costs.get('candidate_responses_per_second'))} | {show(costs.get('verified_swaps_per_second'))} | {show(costs.get('component_break_even_iterations'))} |", "",
                       "The break-even value is a hypothetical component substitution estimate. The current hybrid still performs exact screening, so it is not an end-to-end speedup measurement.", ""]
     timing=summary.get("timing_audit",[])
     whole=[value for value in timing if value.get("phase")=="whole_process"]

@@ -145,15 +145,17 @@ def create_search_bundle(outcome: SearchOutcome, *, repository_root: Path, run_i
     aggregate_rows=[row for row in factorized_rows if row.get("aggregate_population_coverage") not in (None,"")]
     direct_rows=[row for row in factorized_rows if row.get("aggregate_population_coverage") in (None,"")]
     factor_setup=sum(float(row.get("factor_build_seconds",0.0))+float(row.get("aggregate_build_seconds",0.0)) for row in aggregate_rows)
-    factor_iteration=sum(float(row.get("aggregate_query_seconds",0.0))+float(row.get("aggregate_update_seconds",0.0))+float(row.get("exact_verification_and_proposal_seconds",0.0)) for row in aggregate_rows)
+    factor_iteration=sum(float(row.get("aggregate_query_seconds",0.0))+float(row.get("aggregate_update_seconds",0.0))+float(row.get("exact_verification_seconds",0.0)) for row in aggregate_rows)
+    exact_verification=sum(float(row.get("exact_verification_seconds",0.0)) for row in factorized_rows)
     direct_screening=sum(float(row.get("conditional_screening_seconds",0.0)) for row in direct_rows)
     per_direct=direct_screening/max(1,len(direct_rows)); per_factor=factor_iteration/max(1,len(aggregate_rows))
     summary["computational_costs"]={
         "factor_and_aggregate_setup_seconds":factor_setup,
         "conditional_screening_seconds":direct_screening,
         "factor_query_update_and_verification_seconds":factor_iteration,
+        "exact_verification_seconds":exact_verification,
         "candidate_responses_per_second":None if not screening_rows or summary["screening_diagnostics"]["screening_exclusive_wall_seconds"]<=0 else summary["screening_diagnostics"]["screening_response_count"]/summary["screening_diagnostics"]["screening_exclusive_wall_seconds"],
-        "verified_swaps_per_second":None if factor_iteration<=0 else sum(int(row.get("verified_swaps",0)) for row in factorized_rows)/factor_iteration,
+        "verified_swaps_per_second":None if exact_verification<=0 else sum(int(row.get("verified_swaps",0)) for row in factorized_rows)/exact_verification,
         "component_break_even_iterations":None if not direct_rows or not aggregate_rows or per_direct<=per_factor else factor_setup/(per_direct-per_factor),
         "break_even_semantics":"hypothetical component substitution estimate; current hybrid also performs exact screening, so this is not end-to-end speedup",
     }
