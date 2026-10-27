@@ -112,6 +112,14 @@ separate destination and cannot alter its scientific payload hash.
 
 A finalized run contains a manifest, scientific payload, trial records, exact ranking scores, exact protection-mask identities, exact fault events, a human-readable report, and `FINALIZED` digest. Files are created exclusively and made read-only. Hashes of the exact artifacts are embedded in the scientific payload. A repeated run must produce the same canonical scientific-payload SHA-256; timestamps and run paths are excluded from that digest.
 
+Multiprocess execution preserves the single-worker scientific contract. Logical
+task identities, configured seeds, fault fields, masks, and reductions are
+independent of worker assignment and completion order. Schema-3 replications
+and schema-4 BER/budget/replication units may execute in spawned processes; an
+individual search trajectory, training run, and iterative pruning trajectory
+remain sequential. Worker/thread counts and timing are manifest provenance and
+are excluded from the scientific payload digest.
+
 ## Modern benchmark scope
 
 The MNIST source architecture is `Flatten(28x28) -> Dense(32, ReLU) ->

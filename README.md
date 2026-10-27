@@ -97,7 +97,8 @@ netsurf validate config/experiments/mnist_policy_ber_wide_v1.toml
 netsurf run config/experiments/mnist_policy_ber_wide_v1.toml
 ```
 
-Run an existing suite sequentially with one persistent queue display:
+Run an existing suite with one persistent queue display. The default remains
+sequential; independent configurations can opt into spawned workers:
 
 ```bash
 netsurf batch \
@@ -108,12 +109,24 @@ netsurf batch \
 # Line-oriented redirected progress, or no presentation output:
 netsurf batch config/experiments/first.toml config/experiments/second.toml --progress 2>progress.log
 netsurf batch config/experiments/first.toml config/experiments/second.toml --no-progress
+netsurf batch config/experiments/first.toml config/experiments/second.toml --workers 2 --threads-per-worker 2
 ```
 
-Batch execution validates the supplied files, processes them sequentially,
+Batch execution validates the supplied files, processes them sequentially by
+default or as independent whole configurations when `--workers` is greater
+than one,
 continues after expected configuration or experiment failures, and returns exit
 status `2` if any experiment failed. Its stdout is one machine-readable JSON
 summary; progress and the concise completion summary remain on stderr.
+
+Replicated schema-3 studies and schema-4 BER/budget/search-replication units
+can also run in parallel without changing their scientific task identities:
+
+```bash
+netsurf run config/experiments/study.toml --workers 8 --threads-per-worker 1
+```
+
+See `docs/PARALLEL_EXECUTION.md` for safe boundaries and sizing guidance.
 
 The Rich display uses one coordinated Live renderer. A persistent queue table
 keeps completed, running, pending, and failed experiments visible while a

@@ -144,8 +144,13 @@ fault process used by ordinary protection trials.
 proj activate netsurf
 netsurf pruning validate /path/to/research-authored-pruning.toml --resolved
 netsurf pruning run /path/to/research-authored-pruning.toml
+netsurf pruning batch prune-a.toml prune-b.toml --workers 2 --threads-per-worker 2
 netsurf pruning inspect workspace/benchmarks/my_pruned_model/checkpoint.npz
 ```
+
+A batch parallelizes only independent configurations. Each worker owns one
+sequential pruning/training trajectory and immutable output destination;
+duplicate checkpoint paths are rejected before execution.
 
 After inspection, reference the new checkpoint from an existing schema-3 or
 schema-4 experiment while keeping `adapter = "mnist_quantized"`. Start with a

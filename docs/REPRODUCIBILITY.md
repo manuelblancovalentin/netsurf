@@ -17,6 +17,22 @@ netsurf doctor
 python -m pytest -q
 ```
 
+## Deterministic CPU multiprocessing
+
+The one-worker command remains the reference. Configurations with independent
+replications or search conditions can use:
+
+```bash
+netsurf run config/experiments/study.toml --workers 8 --threads-per-worker 1
+netsurf batch a.toml b.toml --workers 2 --threads-per-worker 2
+netsurf pruning batch prune-a.toml prune-b.toml --workers 2 --threads-per-worker 2
+```
+
+Serial and parallel executions create distinct immutable run directories;
+compare their `scientific_payload_sha256` values. See
+`docs/PARALLEL_EXECUTION.md` for boundaries, thread controls, provenance,
+failure semantics, and worker-sizing guidance.
+
 On another server without `proj`:
 
 ```bash

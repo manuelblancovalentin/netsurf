@@ -89,6 +89,9 @@ FaultModel -> deterministic FaultSchedule -> InjectionEngine
   Live queue/current-experiment renderer, persistent per-task runtimes,
   phase-aware ETA estimation, and ANSI-free redirected output. Batch status
   never enters result serialization.
+- `netsurf.parallel`: spawn-safe bounded process coordination, numerical-thread
+  limits, unique logical task identities, failure cleanup, and canonical result
+  ordering. It does not create scientific seeds or mutate masks.
 - `netsurf.pruning_config`, `netsurf.pruning`, and
   `netsurf.pruning_pipeline`: strict schema-5 preparation, physical hidden
   dependency-group removal, ablatable importance terms, bounded fine-tuning,
