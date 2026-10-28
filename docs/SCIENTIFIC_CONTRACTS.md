@@ -148,6 +148,19 @@ and cross-entropy on Kona. A process that initialized TensorFlow under a
 conflicting environment must be restarted; the adapter does not silently hash
 numerically unstable results as equivalent.
 
+`mnist_lite_exact_kb_v1` is a separate v2 identity derived from one recovered
+checkpoint. Its fault population is exactly the 7,960 allocated kernel/bias
+words after deterministic `q<6,2,1>` conversion, including stored zeros. Its
+20 learned alpha/beta scalars remain float32, uncorrupted, and outside the
+47,760-bit eligible population. This hybrid contract is scientifically scoped
+and hashed; it is neither the historical float-shadow experiment nor a claim
+to reproduce a manuscript table. See `docs/BENCHMARK_EXPANSION.md`.
+
+Task metrics are part of benchmark identity. Classification accuracy and
+cross-entropy cannot be reused as labels for reconstruction MSE or anomaly
+detection. A non-classification benchmark requires a reviewed metric/result
+schema before adapter registration.
+
 ## M4.1 independent final comparison
 
 Equal-budget masks are connected by pairing sorted members of `S0 - S1` with

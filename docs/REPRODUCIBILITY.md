@@ -596,3 +596,23 @@ importance calculation, physical tensor removal, exact six-bit requantization,
 and immutable serialization only. Training cost when enabled scales with
 `stages × epochs_per_stage × training_samples / batch_size`; reliability-aware
 fine-tuning performs both clean and fault-augmented forwards per batch.
+
+## Recovered MNIST-lite exact representation
+
+Inspect the side-effect-free identity and accepted population before authoring
+a configuration:
+
+```bash
+proj activate netsurf
+netsurf benchmarks identity mnist_lite_exact_kb_v1
+netsurf benchmarks info mnist_lite_exact_kb_v1
+```
+
+Use adapter `mnist_lite_exact_kb_v1`, quantization backend
+`netsurf_bitcodec_v1`, and exactly
+`injectable_parameters = ["kernels", "biases"]`. Do not use schema-4
+Dense32-specific search configurations. The source checkpoint must be loaded in
+the preserved compatible TensorFlow/QKeras environment; conversion is
+deterministic and in memory, and the source remains unchanged. Full evidence,
+digests, configuration fields, and blocked benchmark candidates are in
+`docs/BENCHMARK_EXPANSION.md`.

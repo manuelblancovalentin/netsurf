@@ -52,7 +52,10 @@ FaultModel -> deterministic FaultSchedule -> InjectionEngine
 - `netsurf.faults`: explicit deterministic events, persistent and
   per-inference schedule generation, perfect-mask suppression, and exact
   accounting. Per-inference windows are indexed by sample, not software batch.
-- `netsurf.adapters.legacy_mnist`: isolated TensorFlow/legacy checkpoint bridge with exact state restoration.
+- `netsurf.adapters.legacy_mnist`: isolated TensorFlow/legacy checkpoint bridge
+  with exact state restoration, plus the separately identified
+  `mnist_lite_exact_kb_v1` adapter whose exact fault population is restricted
+  to converted kernels/biases and whose float alpha/beta state is excluded.
 - `netsurf.legacy_identity`: side-effect-free identity loading plus the bounded
   legacy MNIST conversion/fault conformance workflow. The versioned manifest
   lives under `netsurf/benchmarks/identities/`; TensorFlow is imported only

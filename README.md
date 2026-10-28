@@ -46,6 +46,8 @@ netsurf doctor
 netsurf benchmarks list
 netsurf benchmarks info numpy_reference
 netsurf benchmarks info mnist_quantized
+netsurf benchmarks info mnist_lite_exact_kb_v1
+netsurf benchmarks identity mnist_lite_exact_kb_v1
 
 netsurf validate config/experiments/numpy_reference.toml --resolved
 netsurf run config/experiments/numpy_reference.toml
@@ -83,6 +85,12 @@ netsurf validate config/experiments/mnist_conditional_screening_research.toml --
 netsurf inspect workspace/runs/<experiment>/<run-id>
 netsurf report workspace/runs/<experiment>/<run-id> --plots
 ```
+
+The recovered MNIST-lite exact-kernel/bias benchmark is a separate v2 identity,
+not a manuscript reproduction. Its accepted population, full-test evidence,
+configuration fields, and the blocked keyword-spotting/autoencoder candidates
+are documented in `docs/BENCHMARK_EXPANSION.md`. This gate intentionally does
+not add a maintained research TOML.
 
 `netsurf run` displays live progress automatically when stderr is an
 interactive terminal. Progress is written to stderr so the final JSON result
