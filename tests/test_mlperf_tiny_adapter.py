@@ -271,3 +271,22 @@ def test_official_tflite_storage_identity_xor_protection_and_restore(tmp_path):
     )
     assert faulted_report.applied_events == 2
     assert np.array_equal(adapter.predict_outputs(synthetic), first)
+
+
+@pytest.mark.skipif(not _official_model().is_file(), reason="official pinned TFLite asset is absent")
+def test_synthetic_runtime_signature_is_worker_count_invariant():
+    from netsurf.adapters.mlperf_tiny import bounded_synthetic_inference_signature
+    from netsurf.parallel import ExecutionResources, LogicalTask, run_process_tasks
+
+    tasks = tuple(
+        LogicalTask(f"synthetic:{index}", (str(_official_model()), 2))
+        for index in range(2)
+    )
+    sequential = run_process_tasks(
+        tasks, bounded_synthetic_inference_signature, ExecutionResources(1, 1)
+    )
+    parallel = run_process_tasks(
+        tasks, bounded_synthetic_inference_signature, ExecutionResources(2, 1)
+    )
+    assert sequential.values == parallel.values
+    assert sequential.values[0] == sequential.values[1]

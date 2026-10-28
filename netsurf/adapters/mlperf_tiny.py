@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass
+import hashlib
 import pickle
 from pathlib import Path
 import tarfile
@@ -22,6 +23,25 @@ MLPERF_TINY_COMMIT = "4addd0fa08d216e20637637874e084895f289da4"
 MLPERF_TINY_IC_INT8_SHA256 = (
     "3c002613d1b2475eb51dd78dfb85a546c8ae658dee71cf6ade43b022fe205415"
 )
+
+
+def bounded_synthetic_inference_signature(payload) -> dict[str, object]:
+    """Spawn-safe runtime check; never a substitute for task evaluation."""
+
+    checkpoint, sample_count = payload
+    adapter = MlperfTinyImageClassificationAdapter(
+        Path(checkpoint), Path(checkpoint).parent
+    )
+    adapter.load()
+    inputs = np.zeros((int(sample_count), 32, 32, 3), dtype=np.int8)
+    outputs = adapter.predict_outputs(inputs)
+    return {
+        "sample_count": int(sample_count),
+        "output_sha256": hashlib.sha256(outputs.tobytes(order="C")).hexdigest(),
+        "checkpoint_sha256": adapter.storage.sha256,
+        "eligible_bit_count": len(adapter.bit_identities()),
+        "interpretation": "fixed synthetic input runtime determinism only",
+    }
 
 
 @dataclass(frozen=True)
