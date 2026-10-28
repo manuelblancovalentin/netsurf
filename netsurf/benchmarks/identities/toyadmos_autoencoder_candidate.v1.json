@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0.0",
+  "identity": "toyadmos_autoencoder_candidate.v1",
+  "status": "traceable_but_not_onboarded",
+  "checkpoint": {
+    "path": "/ml/experiments/netsurf/legacy/benchmarks/tinyml_anomaly_detection/q6_2_1/pruned_0.125_170118_AE_320_41layers/models/pruned_0.125_170118_AE_320_41layers.20250417_121555.keras",
+    "sha256": "8991de3f87e47e4754f674ab3b3dc3b7002fe78966f98943208b33c613708b8c",
+    "topology": "320 -> 10 -> 10 -> 10 -> 10 -> 8 -> 10 -> 10 -> 10 -> 10 -> 320 with alpha and BatchNorm auxiliaries",
+    "trainable_scalars": 8560,
+    "kernel_bias_scalars": 7568,
+    "trainable_float_auxiliary_scalars": 992
+  },
+  "dataset": {
+    "normal_array_path": "/ml/datasets/netsurf-legacy/repository-datasets-2026-10-22/toyadmos/toycar_train_ds.npy",
+    "normal_array_sha256": "c265d1657b5c1a5d07ca41ca643eac1d6a1f540812ac962a0034a23a24847c43",
+    "normal_shape": [1058400, 320],
+    "anomalous_array_path": "/ml/datasets/netsurf-legacy/repository-datasets-2026-10-22/toyadmos/toycar_val_ds.npy",
+    "anomalous_array_sha256": "2f5fbbcd68ee77ee38f90d37c213917d197321ecc44493a7ae1cc392d268c388",
+    "feature_semantics": "five-frame concatenated log-mel vectors; 64 mel bins; raw reconstruction targets"
+  },
+  "recovered_preprocessing": {
+    "normalizer_fit": "per-feature min/max over normal train[0:137200]",
+    "model_input": "normalized to [-4,3.875]",
+    "reconstruction_target": "raw, unnormalized log-mel vector",
+    "warning": "input and target use different numerical domains by construction"
+  },
+  "bounded_256_anomalous_validation": {
+    "float_shadow_mse_raw_target": 162.91279416680706,
+    "q621_kernel_bias_float_aux_mse_raw_target": 161.31930625948345,
+    "note": "MSE is reconstruction error, not anomaly-detection accuracy"
+  },
+  "blockers": [
+    "Current result schemas and reports encode classification accuracy/cross-entropy rather than task-defined reconstruction metrics.",
+    "Kernel/bias conversion leaves 992 trainable alpha/beta/BatchNorm auxiliaries in unresolved float formats.",
+    "Anomaly evaluation requires a separately specified normal/anomalous protocol and threshold-free ROC-AUC or independently calibrated threshold."
+  ],
+  "minimum_next_step": "Introduce a reviewed task-metric schema with reconstruction MSE/sample-error distributions and explicit target preprocessing, then validate an exact eligible representation without coercing auxiliary tensors."
+}

@@ -241,7 +241,11 @@ def validate_experiment_document(
         set(),
         "benchmark",
     )
-    supported_adapters = {"numpy_reference", "mnist_quantized"} if modern else {"legacy_mnist_lite"}
+    supported_adapters = (
+        {"numpy_reference", "mnist_quantized", "mnist_lite_exact_kb_v1"}
+        if modern
+        else {"legacy_mnist_lite"}
+    )
     if benchmark["adapter"] not in supported_adapters:
         raise ConfigurationError(
             f"unsupported benchmark.adapter for schema {schema_version}: {benchmark['adapter']!r}; "
@@ -264,6 +268,13 @@ def validate_experiment_document(
     injectable = benchmark.get("injectable_parameters", ["all_trainable"])
     if not isinstance(injectable, list) or not injectable or not all(isinstance(value, str) for value in injectable):
         raise ConfigurationError("benchmark.injectable_parameters must be a nonempty string array")
+    if benchmark["adapter"] == "mnist_lite_exact_kb_v1" and set(injectable) != {"kernels", "biases"}:
+        raise ConfigurationError(
+            "mnist_lite_exact_kb_v1 requires injectable_parameters=['kernels', 'biases']; "
+            "alpha/beta remain uncorrupted float32 auxiliaries"
+        )
+    if benchmark["adapter"] == "mnist_lite_exact_kb_v1" and str(benchmark["quantization"]) != "q<6,2,1>":
+        raise ConfigurationError("mnist_lite_exact_kb_v1 requires quantization='q<6,2,1>'")
 
     raw_estimators = document["estimators"]
     if not isinstance(raw_estimators, list) or not raw_estimators:

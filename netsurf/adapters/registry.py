@@ -43,4 +43,12 @@ def create_adapter(
             configuration.benchmark.dataset,
             codec,
         )
+    if name == "mnist_lite_exact_kb_v1":
+        from .legacy_mnist import MnistLiteExactKernelBiasAdapter
+
+        return MnistLiteExactKernelBiasAdapter(
+            configuration.benchmark.checkpoint,
+            configuration.benchmark.dataset,
+            codec,
+        )
     raise ValueError(f"unsupported benchmark adapter: {name}")

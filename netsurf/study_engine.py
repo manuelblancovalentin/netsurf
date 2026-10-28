@@ -326,6 +326,9 @@ def _execute_single_study(
     pruning_contract = checkpoint_pruning_contract(benchmark)
     if pruning_contract is not None:
         benchmark_payload["structured_pruning"] = pruning_contract
+    representation = getattr(benchmark, "representation_manifest", None)
+    if callable(representation):
+        benchmark_payload["representation"] = representation()
     scientific_payload = _finite({
         "schema": "netsurf-m3-study/v1",
         "replication": {"name": replication_name, "sample_offset": sample_offset},

@@ -534,6 +534,9 @@ def execute_experiment(
         pruning_contract = checkpoint_pruning_contract(benchmark_adapter)
         if pruning_contract is not None:
             scientific_payload["benchmark"]["structured_pruning"] = pruning_contract
+        representation = getattr(benchmark_adapter, "representation_manifest", None)
+        if callable(representation):
+            scientific_payload["benchmark"]["representation"] = representation()
     result = ExperimentOutcome(
         configuration,
         scientific_payload,

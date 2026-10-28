@@ -31,6 +31,12 @@ from .quantization import BitCodec, FixedPointFormat
 
 IDENTITY_SCHEMA_VERSION = "1.0.0"
 IDENTITY_NAME = "legacy_mnist_lite.recovered_2025.v1"
+IDENTITY_FILES = {
+    "legacy_mnist_lite": "legacy_mnist_lite.v1.json",
+    "mnist_lite_exact_kb_v1": "mnist_lite_exact_kb_v1.json",
+    "keyword_spotting_candidate": "keyword_spotting_candidate.v1.json",
+    "toyadmos_autoencoder_candidate": "toyadmos_autoencoder_candidate.v1.json",
+}
 SUPPORTED_ENCODED_ROLES = frozenset({"kernel", "bias"})
 
 
@@ -45,6 +51,25 @@ def load_identity_manifest() -> dict[str, Any]:
         )
     if document.get("identity") != IDENTITY_NAME:
         raise ValueError(f"unexpected legacy benchmark identity: {document.get('identity')!r}")
+    return document
+
+
+def load_benchmark_identity(name: str) -> dict[str, Any]:
+    """Load any registered recovered/derived benchmark identity document."""
+
+    try:
+        filename = IDENTITY_FILES[name]
+    except KeyError as error:
+        raise KeyError(
+            f"benchmark {name!r} has no versioned identity; available: "
+            f"{', '.join(sorted(IDENTITY_FILES))}"
+        ) from error
+    resource = files("netsurf.benchmarks").joinpath(f"identities/{filename}")
+    document = json.loads(resource.read_text(encoding="utf-8"))
+    if document.get("schema_version") != IDENTITY_SCHEMA_VERSION:
+        raise ValueError(
+            f"unsupported benchmark identity schema: {document.get('schema_version')!r}"
+        )
     return document
 
 
@@ -64,19 +89,37 @@ def verify_identity_files(
     document = dict(manifest or load_identity_manifest())
     root = Path(repository_root or Path(__file__).resolve().parents[1])
     results: dict[str, Any] = {}
-    for key in ("checkpoint", "dataset"):
-        record = document["artifacts"][key]
-        path = Path(record["kona_path"])
-        if key == "checkpoint" and not path.is_file():
-            path = root / record["repository_access_path"]
+    if "artifacts" in document:
+        records = {
+            key: (
+                Path(document["artifacts"][key]["kona_path"]),
+                document["artifacts"][key]["sha256"],
+                document["artifacts"][key].get("repository_access_path"),
+            )
+            for key in ("checkpoint", "dataset")
+        }
+    elif document.get("identity") == "mnist_lite_exact_kb_v1":
+        records = {
+            key: (
+                Path(document["source"][f"{key}_path"]),
+                document["source"][f"{key}_sha256"],
+                None,
+            )
+            for key in ("checkpoint", "dataset")
+        }
+    else:
+        raise ValueError("identity does not define verifiable checkpoint/dataset records")
+    for key, (path, expected, fallback) in records.items():
+        if key == "checkpoint" and not path.is_file() and fallback:
+            path = root / fallback
         present = path.is_file()
         observed = file_sha256(path) if present else None
         results[key] = {
             "path": str(path.resolve(strict=False)),
             "present": present,
-            "expected_sha256": record["sha256"],
+            "expected_sha256": expected,
             "observed_sha256": observed,
-            "matches": present and observed == record["sha256"],
+            "matches": present and observed == expected,
         }
     results["all_match"] = all(item["matches"] for item in results.values())
     return results

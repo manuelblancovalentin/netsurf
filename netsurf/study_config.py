@@ -196,7 +196,12 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
 
     benchmark = _table(document, "benchmark")
     _keys(benchmark, {"adapter", "id", "checkpoint", "dataset", "split", "quantization", "quantization_backend", "injectable_parameters"}, set(), "benchmark")
-    if benchmark["adapter"] not in {"numpy_reference", "numpy_activation_cancellation", "mnist_quantized"}:
+    if benchmark["adapter"] not in {
+        "numpy_reference",
+        "numpy_activation_cancellation",
+        "mnist_quantized",
+        "mnist_lite_exact_kb_v1",
+    }:
         raise StudyConfigurationError("unsupported schema-3 benchmark adapter")
     checkpoint, dataset = _path(str(benchmark["checkpoint"]), source), _path(str(benchmark["dataset"]), source)
     if check_inputs and (not checkpoint.is_file() or not dataset.is_file()):
@@ -205,6 +210,18 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
     injectables = benchmark["injectable_parameters"]
     if not isinstance(injectables, list) or not injectables:
         raise StudyConfigurationError("benchmark.injectable_parameters must be nonempty")
+    if benchmark["adapter"] == "mnist_lite_exact_kb_v1" and set(injectables) != {"kernels", "biases"}:
+        raise StudyConfigurationError(
+            "mnist_lite_exact_kb_v1 requires injectable_parameters=['kernels', 'biases']; "
+            "alpha/beta remain uncorrupted float32 auxiliaries"
+        )
+    if benchmark["adapter"] == "mnist_lite_exact_kb_v1":
+        if str(benchmark["quantization"]) != "q<6,2,1>":
+            raise StudyConfigurationError("mnist_lite_exact_kb_v1 requires quantization='q<6,2,1>'")
+        if str(benchmark["quantization_backend"]) != "netsurf_bitcodec_v1":
+            raise StudyConfigurationError(
+                "mnist_lite_exact_kb_v1 requires quantization_backend='netsurf_bitcodec_v1'"
+            )
 
     samples = _table(document, "samples")
     _keys(samples, {"ranking_count", "empirical_count", "evaluation_count", "require_disjoint"}, set(), "samples")

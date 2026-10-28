@@ -53,6 +53,26 @@ def test_schema3_rejects_unsupported_version(tmp_path):
         load_study(path)
 
 
+def test_schema3_exact_mnist_population_contract(tmp_path):
+    text = (ROOT / "config/experiments/mnist_single_bit.toml").read_text(encoding="utf-8")
+    text = text.replace('adapter = "mnist_quantized"', 'adapter = "mnist_lite_exact_kb_v1"', 1)
+    path = tmp_path / "exact.toml"
+    path.write_text(text, encoding="utf-8")
+    configuration = load_study(path, check_inputs=False)
+    assert configuration.benchmark.adapter == "mnist_lite_exact_kb_v1"
+
+    path.write_text(
+        text.replace(
+            'injectable_parameters = ["kernels", "biases"]',
+            'injectable_parameters = ["all_trainable"]',
+            1,
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(StudyConfigurationError, match="alpha/beta"):
+        load_study(path, check_inputs=False)
+
+
 def test_study_bundle_is_finalized_verified_and_report_regenerates(tmp_path):
     configuration = load_study(REFERENCE)
     output = replace(configuration.output, root=tmp_path / "runs", plots=False)

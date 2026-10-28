@@ -28,6 +28,8 @@ class BenchmarkDescriptor:
     validation: str
     dependencies: tuple[str, ...]
     preparation_required: bool
+    eligible_parameter_count: int | None = None
+    eligible_bit_count: int | None = None
 
     def readiness(self) -> tuple[str, tuple[str, ...]]:
         reasons: list[str] = []
@@ -81,6 +83,23 @@ _REGISTRY = {
         "external archived MNIST", "external archived checkpoint",
         ("legacy_qpolargrad", "msb_first", "random", "first_order_gradient_delta"), ("weight",),
         ("persistent_trial",), (), "legacy compatibility only", ("tensorflow",), False,
+    ),
+    "mnist_lite_exact_kb_v1": BenchmarkDescriptor(
+        "mnist_lite_exact_kb_v1", "mnist_lite_exact_kb_v1",
+        "MNIST 10-class classification; recovered topology with a new v2 representation",
+        "Flatten(28x28) -> Dense(10) -> float alpha/beta -> quantized ReLU -> Dense(10) -> softmax",
+        7980, "q<6,2,1> kernels/biases; float32 alpha/beta auxiliaries",
+        "netsurf_bitcodec_v1 over explicitly converted kernel/bias tensors",
+        "/ml/datasets/mnist/mnist.npz",
+        "external archived checkpoint ba48aee8... with deterministic in-memory conversion",
+        (
+            "msb_first", "random", "gradient_magnitude",
+            "first_order_gradient_delta", "per_sample_first_order_magnitude",
+            "per_sample_positive_damage", "hutchinson_diagonal_second_order",
+        ),
+        ("weight",), ("persistent_trial", "per_inference"), (),
+        "bounded exact-kernel/bias inference validated; not a manuscript reproduction",
+        ("tensorflow",), False, eligible_parameter_count=7960, eligible_bit_count=47760,
     ),
 }
 

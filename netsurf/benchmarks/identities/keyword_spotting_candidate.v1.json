@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0.0",
+  "identity": "keyword_spotting_candidate.v1",
+  "status": "blocked_incompatible_checkpoint_and_dataset",
+  "checkpoint": {
+    "path": "/ml/experiments/netsurf/legacy/benchmarks/keyword_spotting/q6_2_1/pruned_0.125_DSConv/models/pruned_0.125_DSConv.20250416_012637.keras",
+    "sha256": "5fb74ea4fbb4add8eb85db555fb9067fe57b07b48c95ac8796293e92b3a9e48c",
+    "input_shape": [49, 10, 1],
+    "output_logits": 49,
+    "topology": "DSConv with Conv2D, four depthwise/pointwise blocks, float alpha/beta and BatchNorm state"
+  },
+  "available_dataset": {
+    "identity": "tensorflow_datasets speech_commands 0.0.3",
+    "path": "/ml/datasets/speech_commands/0.0.3",
+    "dataset_info_sha256": "00c4b5c58ecb3b8fd7dc9628152d28e17e0ecab0eb47371e61e441d040c32a99",
+    "features_sha256": "fe2427c801f1a2fae3d2537692654a82e2ff3df84c34835d08140d662e2fac0e",
+    "labels_sha256": "5507c04dbb2d6a558d9cbdcf9b24cbaa8c0120861475ed10bb93bb9e83eae5c0",
+    "classes": 12,
+    "labels": ["down", "go", "left", "no", "off", "on", "right", "stop", "up", "yes", "_silence_", "_unknown_"]
+  },
+  "blocker": "A 49-logit checkpoint cannot be evaluated against a 12-label dataset without an evidenced label mapping and matching preprocessing contract.",
+  "minimum_next_step": "Provide the immutable 49-class dataset vocabulary and preprocessing/calibration artifacts used for this checkpoint, or prepare a new explicitly versioned 12-class DSConv checkpoint outside this inference-only milestone."
+}

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass
+import hashlib
 import importlib.util
 import os
 from pathlib import Path
@@ -21,6 +22,22 @@ from ..identities import ParameterSpec, enumerate_bits
 from ..quantization import BitCodec
 from ..paths import legacy_source_root, legacy_workspace_root, qkeras_package_root
 from ..samples import SamplePartition, sample_identity_digest
+
+
+_MNIST_LITE_EXACT_CHECKPOINT_SHA256 = (
+    "ba48aee8adbe7d04092d74f41958ec99112ae3e5f88ed56552ea9d1c4dba3006"
+)
+_MNIST_LITE_EXACT_DATASET_SHA256 = (
+    "731c5ac602752760c8e48fbffcf8c3b850d9dc2a2aedcf2cc48468fc17b673d1"
+)
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _load_legacy_package():
@@ -359,3 +376,153 @@ class LegacyMnistLiteAdapter:
             else:
                 impacts[name] = delta
         return impacts
+
+
+def _state_sha256(values: Mapping[str, np.ndarray]) -> str:
+    """Hash named tensor identity, dtype, shape, and C-order contents."""
+
+    digest = hashlib.sha256()
+    for name in sorted(values):
+        value = np.ascontiguousarray(values[name])
+        digest.update(name.encode("utf-8") + b"\0")
+        digest.update(value.dtype.str.encode("ascii") + b"\0")
+        digest.update(repr(tuple(value.shape)).encode("ascii") + b"\0")
+        digest.update(value.tobytes(order="C"))
+    return digest.hexdigest()
+
+
+class MnistLiteExactKernelBiasAdapter(LegacyMnistLiteAdapter):
+    """Recovered MNIST-lite with an explicit exact kernel/bias baseline.
+
+    All allocated kernels and biases, including zero-valued words, are
+    converted to q<6,2,1>. Learned alpha/beta remain uncorrupted float32
+    auxiliaries. The adapter is a new v2 benchmark identity; it does not
+    reproduce the historical float-shadow fault semantics.
+    """
+
+    def __init__(self, checkpoint: Path, dataset: Path, codec: BitCodec):
+        super().__init__(checkpoint, dataset, codec)
+        self._converted_state_sha256: str | None = None
+        self._per_example_gradient_function = None
+
+    def load(self) -> None:
+        observed_checkpoint = _file_sha256(self.checkpoint)
+        observed_dataset = _file_sha256(self.dataset_path)
+        if observed_checkpoint != _MNIST_LITE_EXACT_CHECKPOINT_SHA256:
+            raise ValueError(
+                "mnist_lite_exact_kb_v1 checkpoint identity mismatch: "
+                f"{observed_checkpoint}"
+            )
+        if observed_dataset != _MNIST_LITE_EXACT_DATASET_SHA256:
+            raise ValueError(
+                "mnist_lite_exact_kb_v1 dataset identity mismatch: "
+                f"{observed_dataset}"
+            )
+        super().load()
+        converted = super().exact_kernel_bias_values()
+        self.set_values(converted)
+        self._converted_state_sha256 = _state_sha256(converted)
+
+    def parameter_specs(self) -> tuple[ParameterSpec, ...]:
+        return tuple(
+            ParameterSpec(name, tuple(value.shape))
+            for name, value in self.values().items()
+            if self.tensor_role(name) in {"kernel", "bias"}
+        )
+
+    def bit_identities(self):
+        return enumerate_bits(self.parameter_specs(), self.codec.format.total_bits)
+
+    def quantized_values(self) -> dict[str, np.ndarray]:
+        # The live kernel/bias state is exact. Float auxiliaries are intentionally
+        # retained rather than silently coerced through the common codec.
+        return self.values()
+
+    def representation_manifest(self) -> dict[str, object]:
+        self._require_loaded()
+        if self._converted_state_sha256 is None:
+            raise RuntimeError("converted state digest is unavailable")
+        values = self.values()
+        eligible = [name for name in values if self.tensor_role(name) in {"kernel", "bias"}]
+        auxiliaries = [name for name in values if self.tensor_role(name) in {"alpha", "beta"}]
+        return {
+            "identity": "mnist_lite_exact_kb_v1",
+            "representation": "q<6,2,1> kernels/biases with float32 alpha/beta auxiliaries",
+            "converted_state_sha256": self._converted_state_sha256,
+            "eligible_tensor_names": eligible,
+            "eligible_scalars": sum(values[name].size for name in eligible),
+            "eligible_bits": len(self.bit_identities()),
+            "uncorrupted_float_auxiliary_names": auxiliaries,
+            "uncorrupted_float_auxiliary_scalars": sum(values[name].size for name in auxiliaries),
+            "zero_valued_allocated_words_included": True,
+        }
+
+    def per_example_gradients(
+        self, inputs: np.ndarray, labels: np.ndarray
+    ) -> dict[str, np.ndarray]:
+        self._require_loaded()
+        tf = self._tf
+        variables = tuple(self.model.trainable_variables)
+        if self._per_example_gradient_function is None:
+            input_shape = tuple(self.model.input_shape[1:])
+
+            @tf.function(
+                input_signature=(
+                    tf.TensorSpec((None, *input_shape), tf.float32, name="inputs"),
+                    tf.TensorSpec((None,), tf.int64, name="labels"),
+                ),
+                reduce_retracing=True,
+            )
+            def compiled(input_tensor, label_tensor):
+                with tf.GradientTape() as tape:
+                    predictions = self.model(input_tensor, training=False)
+                    losses = tf.keras.losses.sparse_categorical_crossentropy(
+                        label_tensor, predictions
+                    )
+                return tuple(
+                    tape.jacobian(losses, variables, experimental_use_pfor=True)
+                )
+
+            self._per_example_gradient_function = compiled
+        jacobians = self._per_example_gradient_function(
+            tf.convert_to_tensor(np.asarray(inputs, dtype=np.float32)),
+            tf.convert_to_tensor(np.asarray(labels, dtype=np.int64)),
+        )
+        return {
+            variable.name: gradient.numpy().copy()
+            for variable, gradient in zip(variables, jacobians)
+        }
+
+    def hessian_vector_product(
+        self,
+        inputs: np.ndarray,
+        labels: np.ndarray,
+        vectors: Mapping[str, np.ndarray],
+    ) -> dict[str, np.ndarray]:
+        self._require_loaded()
+        tf = self._tf
+        variables = tuple(self.model.trainable_variables)
+        targets = tf.one_hot(labels, depth=10)
+        with tf.GradientTape() as outer:
+            with tf.GradientTape() as inner:
+                predictions = self.model(inputs, training=False)
+                loss = tf.reduce_mean(
+                    tf.keras.losses.categorical_crossentropy(targets, predictions)
+                )
+                if self.model.losses:
+                    loss = loss + tf.add_n(self.model.losses)
+            gradients = inner.gradient(loss, variables)
+            product = tf.add_n(
+                [
+                    tf.reduce_sum(
+                        gradient
+                        * tf.convert_to_tensor(vectors[variable.name], dtype=gradient.dtype)
+                    )
+                    for variable, gradient in zip(variables, gradients)
+                ]
+            )
+        products = outer.gradient(product, variables)
+        return {
+            variable.name: value.numpy().copy()
+            for variable, value in zip(variables, products)
+        }

@@ -78,6 +78,35 @@ def test_unsupported_estimator_is_not_silently_ignored():
         raise AssertionError("unsupported estimator was accepted")
 
 
+def test_exact_mnist_adapter_requires_kernel_bias_population():
+    document = tomllib.loads(
+        (ROOT / "config/experiments/numpy_reference.toml").read_text(encoding="utf-8")
+    )
+    document["benchmark"]["adapter"] = "mnist_lite_exact_kb_v1"
+    document["benchmark"]["injectable_parameters"] = ["kernels", "biases"]
+    configuration = validate_experiment_document(
+        document, Path("/tmp/config.toml"), check_inputs=False
+    )
+    assert configuration.benchmark.adapter == "mnist_lite_exact_kb_v1"
+
+    document["benchmark"]["injectable_parameters"] = ["all_trainable"]
+    try:
+        validate_experiment_document(document, Path("/tmp/config.toml"), check_inputs=False)
+    except ConfigurationError as error:
+        assert "alpha/beta" in str(error)
+    else:
+        raise AssertionError("unresolved auxiliary tensors were accepted as exact fault targets")
+
+    document["benchmark"]["injectable_parameters"] = ["kernels", "biases"]
+    document["benchmark"]["quantization"] = "q<8,3,1>"
+    try:
+        validate_experiment_document(document, Path("/tmp/config.toml"), check_inputs=False)
+    except ConfigurationError as error:
+        assert "q<6,2,1>" in str(error)
+    else:
+        raise AssertionError("an identity-changing codec was accepted")
+
+
 def test_versioned_schema_documents_are_exercised():
     experiment = load_schema("experiment")
     manifest = load_schema("manifest")

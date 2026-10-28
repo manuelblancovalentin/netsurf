@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0.0",
+  "identity": "mnist_lite_exact_kb_v1",
+  "status": "accepted_bounded_inference_benchmark",
+  "scientific_scope": "new NetSuRF v2 benchmark; not a reproduction of the rejected manuscript",
+  "source": {
+    "checkpoint_path": "/ml/experiments/netsurf/legacy/benchmarks/mnist_fnn_lite/q6_2_1/pruned_0.125_159569_qflatten_dense10u_qapplyalpha_quantized_relu_dense10u_qsoftmax/models/pruned_0.125_159569_qflatten_dense10u_qapplyalpha_quantized_relu_dense10u_qsoftmax.20250414_152629.keras",
+    "checkpoint_sha256": "ba48aee8adbe7d04092d74f41958ec99112ae3e5f88ed56552ea9d1c4dba3006",
+    "dataset_path": "/ml/datasets/mnist/mnist.npz",
+    "dataset_sha256": "731c5ac602752760c8e48fbffcf8c3b850d9dc2a2aedcf2cc48468fc17b673d1"
+  },
+  "derived_representation": {
+    "algorithm": "round kernels and biases to q<6,2,1> with nearest-ties-to-even and saturation; retain alpha/beta float32",
+    "converted_state_sha256": "4d0d6ee025d8603592de1e67d4d0164ea3f2d9591fde75f4fdc230ac12ca5e32",
+    "materialization": "deterministic in-memory conversion; source checkpoint remains unchanged",
+    "eligible_roles": ["kernel", "bias"],
+    "eligible_tensor_names": ["fc0/kernel:0", "fc0/bias:0", "fc_out/kernel:0", "fc_out/bias:0"],
+    "eligible_scalars": 7960,
+    "eligible_bits": 47760,
+    "include_zero_valued_allocations": true,
+    "uncorrupted_float_auxiliaries": ["alpha0/alpha:0", "alpha0/beta:0"],
+    "uncorrupted_float_auxiliary_scalars": 20
+  },
+  "topology": "Input(28,28,1) -> Flatten -> Dense(10) -> float32 alpha/beta -> quantized ReLU -> Dense(10) -> softmax",
+  "task": {
+    "type": "classification",
+    "classes": 10,
+    "output": "class probabilities",
+    "metrics": ["classification_accuracy", "categorical_crossentropy"]
+  },
+  "preprocessing": "uint8 pixels mapped linearly from [0,255] to [-4,3.875] and a final channel axis appended",
+  "partitions": {
+    "ranking_calibration": {"selection": "mnist_train[50000:60000]", "sample_sha256": "df50cd78a93c052dfcae39b60b78eeb90cdce9bf5cc660a4abe8318785de40ad"},
+    "empirical_validation": {"selection": "mnist_train[40000:50000]"},
+    "held_out_evaluation": {"selection": "mnist_test[0:10000]", "sample_sha256": "db1bc86b55fcf21af55231c17571b5e5e8ac6b33c4124ef4022709185ccd222b"}
+  },
+  "clean_validation": {
+    "samples": 10000,
+    "accuracy": 0.8568,
+    "categorical_crossentropy": 0.47477197647094727,
+    "output_sha256": "c267e559958630913c37aecdf980ebbbbe6b5e1a3640ea8b696788ed6f97b82c",
+    "repeated_inference_equal": true,
+    "runtime": "TensorFlow 2.11 CPU legacy compatibility environment"
+  },
+  "supported_estimators": [
+    "random",
+    "msb_first",
+    "gradient_magnitude",
+    "first_order_gradient_delta",
+    "per_sample_first_order_magnitude",
+    "per_sample_positive_damage",
+    "hutchinson_diagonal_second_order"
+  ],
+  "unsupported": [
+    "legacy float-shadow fault semantics",
+    "alpha/beta faults",
+    "Dense32-specific incremental search and factorized Kronecker search",
+    "manuscript identity claims"
+  ]
+}

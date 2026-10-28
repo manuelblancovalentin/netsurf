@@ -309,15 +309,18 @@ def main(argv: list[str] | None = None) -> int:
 
                 print(prepare_checkpoint(epochs=args.epochs, train_samples=args.train_samples))
             elif args.benchmark_command == "identity":
-                if args.benchmark_name != "legacy_mnist_lite":
-                    raise ConfigurationError(
-                        f"benchmark {args.benchmark_name!r} has no recovered identity manifest"
-                    )
-                from .legacy_identity import load_identity_manifest, verify_identity_files
+                from .legacy_identity import load_benchmark_identity, verify_identity_files
 
-                identity = load_identity_manifest()
+                identity = load_benchmark_identity(args.benchmark_name)
                 if args.verify_files:
-                    identity = {**identity, "file_verification": verify_identity_files(identity)}
+                    if args.benchmark_name not in {"legacy_mnist_lite", "mnist_lite_exact_kb_v1"}:
+                        raise ConfigurationError(
+                            "--verify-files currently supports the MNIST-lite source identities"
+                        )
+                    identity = {
+                        **identity,
+                        "file_verification": verify_identity_files(identity),
+                    }
                 print(json.dumps(identity, indent=2, sort_keys=True))
         elif args.command == "pruning":
             if args.pruning_command == "validate":
