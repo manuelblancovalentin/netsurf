@@ -10,7 +10,9 @@ suite::
 
 from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor
 import hashlib
+import multiprocessing
 from pathlib import Path
 
 import numpy as np
@@ -31,7 +33,27 @@ EXPECTED_STATE = "4d0d6ee025d8603592de1e67d4d0164ea3f2d9591fde75f4fdc230ac12ca5e
 EXPECTED_OUTPUT = "c267e559958630913c37aecdf980ebbbbe6b5e1a3640ea8b696788ed6f97b82c"
 
 
+def _worker_identity(_: int) -> tuple[str, str, int]:
+    codec = BitCodec(FixedPointFormat.parse("q<6,2,1>"))
+    adapter = MnistLiteExactKernelBiasAdapter(CHECKPOINT, DATASET, codec)
+    adapter.load()
+    inputs, _, _ = adapter.sample_partition("evaluation", 32)
+    outputs = adapter.predict_outputs(inputs)
+    return (
+        adapter.representation_manifest()["converted_state_sha256"],
+        hashlib.sha256(np.ascontiguousarray(outputs).tobytes()).hexdigest(),
+        len(adapter.bit_identities()),
+    )
+
+
 def main() -> int:
+    with ProcessPoolExecutor(
+        max_workers=2, mp_context=multiprocessing.get_context("spawn")
+    ) as executor:
+        worker_results = tuple(executor.map(_worker_identity, range(2)))
+    if worker_results[0] != worker_results[1]:
+        raise RuntimeError(f"spawn-worker identity mismatch: {worker_results}")
+
     codec = BitCodec(FixedPointFormat.parse("q<6,2,1>"))
     adapter = MnistLiteExactKernelBiasAdapter(CHECKPOINT, DATASET, codec)
     adapter.load()
