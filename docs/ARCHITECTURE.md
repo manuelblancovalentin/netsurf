@@ -137,6 +137,15 @@ already quantized arrays, and TensorFlow operations consume those exact decoded
 arrays in clean and faulted inference. HGQ2/hls4ml are installed investigation
 tools, not part of this benchmark's numerical claim.
 
+The MLPerf Tiny adapter demonstrates a second storage backend. Core scheduling
+still owns deterministic `BitIdentity` events and protection masks, while the
+adapter owns mixed-width TFLite buffer enumeration, private-copy mutation and
+runtime evaluation. `affine_quantization.py` defines signed XOR and affine
+dequantization; `tflite_storage.py` maps operator parameter inputs to immutable
+constant buffers. The engine calls an adapter-owned fault evaluator when the
+representation cannot be described by one global `BitCodec`. This does not
+change existing fixed-point adapter behavior or payloads.
+
 ## Deferred interfaces
 
 Activation injection, an accepted new qPolarGrad theory, mitigation

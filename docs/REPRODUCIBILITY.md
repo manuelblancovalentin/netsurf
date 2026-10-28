@@ -616,3 +616,20 @@ the preserved compatible TensorFlow/QKeras environment; conversion is
 deterministic and in memory, and the source remains unchanged. Full evidence,
 digests, configuration fields, and blocked benchmark candidates are in
 `docs/BENCHMARK_EXPANSION.md`.
+
+## MLPerf Tiny ResNet-8 exact-storage adapter
+
+The modern adapter has no dependency on deprecated NetSuRF, QKeras, or
+`tensorflow_model_optimization`:
+
+```bash
+proj activate netsurf
+netsurf benchmarks info mlperf_tiny_ic_resnet8_int8_v1
+netsurf benchmarks identity mlperf_tiny_ic_resnet8_int8_v1
+```
+
+The official TFLite model is present through Kona Assets, but CIFAR-10 is not
+currently resolved on Kona. Do not run or publish a task-quality experiment
+until Kona Assets supplies a verified dataset path. Exact supported fields,
+blocked estimators, storage counts and researcher-authored command structure
+are documented in `docs/MLPERF_TINY.md`.

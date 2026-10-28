@@ -48,6 +48,8 @@ netsurf benchmarks info numpy_reference
 netsurf benchmarks info mnist_quantized
 netsurf benchmarks info mnist_lite_exact_kb_v1
 netsurf benchmarks identity mnist_lite_exact_kb_v1
+netsurf benchmarks info mlperf_tiny_ic_resnet8_int8_v1
+netsurf benchmarks identity mlperf_tiny_ic_resnet8_int8_v1
 
 netsurf validate config/experiments/numpy_reference.toml --resolved
 netsurf run config/experiments/numpy_reference.toml
