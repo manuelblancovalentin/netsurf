@@ -58,5 +58,9 @@ def create_adapter(
             configuration.benchmark.checkpoint,
             configuration.benchmark.dataset,
             codec,
+            asset_lock=configuration.benchmark.asset_lock,
+            inference_backend=configuration.benchmark.inference_backend,
+            split=configuration.benchmark.split,
+            injectable_parameters=configuration.benchmark.injectable_parameters,
         )
     raise ValueError(f"unsupported benchmark adapter: {name}")

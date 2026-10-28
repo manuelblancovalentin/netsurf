@@ -140,7 +140,16 @@ class StudyConfiguration:
             "study_type": self.study_type,
             "source_configuration": str(self.source_path),
             "experiment": {"name": self.name, "description": self.description, "objective": self.objective},
-            "benchmark": {**asdict(self.benchmark), "checkpoint": str(self.benchmark.checkpoint), "dataset": str(self.benchmark.dataset)},
+            "benchmark": {
+                **asdict(self.benchmark),
+                "checkpoint": str(self.benchmark.checkpoint),
+                "dataset": str(self.benchmark.dataset),
+                "asset_lock": (
+                    None
+                    if self.benchmark.asset_lock is None
+                    else str(self.benchmark.asset_lock)
+                ),
+            },
             "samples": asdict(self.samples),
             "candidates": asdict(self.candidates),
             "estimators": [asdict(value) for value in self.estimators],
@@ -195,7 +204,16 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
         raise StudyConfigurationError("experiment.name must be filesystem-safe")
 
     benchmark = _table(document, "benchmark")
-    _keys(benchmark, {"adapter", "id", "checkpoint", "dataset", "split", "quantization", "quantization_backend", "injectable_parameters"}, set(), "benchmark")
+    benchmark_required = {
+        "adapter", "id", "checkpoint", "dataset", "split", "quantization",
+        "quantization_backend", "injectable_parameters",
+    }
+    benchmark_optional = (
+        {"asset_lock", "inference_backend"}
+        if benchmark.get("adapter") == "mlperf_tiny_ic_int8_v1"
+        else set()
+    )
+    _keys(benchmark, benchmark_required, benchmark_optional, "benchmark")
     if benchmark["adapter"] not in {
         "numpy_reference",
         "numpy_activation_cancellation",
@@ -205,10 +223,30 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
     }:
         raise StudyConfigurationError("unsupported schema-3 benchmark adapter")
     checkpoint, dataset = _path(str(benchmark["checkpoint"]), source), _path(str(benchmark["dataset"]), source)
-    if check_inputs and (not checkpoint.is_file() or not dataset.is_file()):
+    asset_lock = (
+        _path(str(benchmark["asset_lock"]), source)
+        if benchmark.get("asset_lock") is not None
+        else None
+    )
+    if check_inputs and (
+        not checkpoint.is_file()
+        or not dataset.is_file()
+        or (asset_lock is not None and not asset_lock.is_file())
+    ):
         raise StudyConfigurationError(f"missing checkpoint or dataset: {checkpoint}, {dataset}")
     affine_tflite = benchmark["adapter"] == "mlperf_tiny_ic_int8_v1"
     if affine_tflite:
+        if asset_lock is None:
+            raise StudyConfigurationError("mlperf_tiny_ic_int8_v1 requires benchmark.asset_lock")
+        if benchmark.get("inference_backend") != "tensorflow_lite_builtin_ref_v1":
+            raise StudyConfigurationError(
+                "mlperf_tiny_ic_int8_v1 requires "
+                "inference_backend='tensorflow_lite_builtin_ref_v1'"
+            )
+        if benchmark["split"] not in {"official_subset_200", "test"}:
+            raise StudyConfigurationError(
+                "mlperf_tiny_ic_int8_v1 split must be 'official_subset_200' or 'test'"
+            )
         if str(benchmark["quantization"]) != "tflite_affine_int8":
             raise StudyConfigurationError(
                 "mlperf_tiny_ic_int8_v1 requires quantization='tflite_affine_int8'"
@@ -235,9 +273,13 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
             raise StudyConfigurationError(
                 "mnist_lite_exact_kb_v1 requires quantization_backend='netsurf_bitcodec_v1'"
             )
-    if affine_tflite and set(injectables) != {"kernels", "biases"}:
+    if affine_tflite and tuple(injectables) not in {
+        ("kernels",),
+        ("kernels", "biases"),
+    }:
         raise StudyConfigurationError(
-            "mlperf_tiny_ic_int8_v1 requires injectable_parameters=['kernels', 'biases']"
+            "mlperf_tiny_ic_int8_v1 injectable_parameters must be ['kernels'] or "
+            "['kernels', 'biases']"
         )
 
     samples = _table(document, "samples")
@@ -372,7 +414,14 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
     return StudyConfiguration(
         str(schema_version), str(protocol), SUPPORTED_PROTOCOLS[protocol], str(experiment["name"]),
         str(experiment["description"]), str(experiment["objective"]),
-        BenchmarkConfiguration(str(benchmark["adapter"]), str(benchmark["id"]), checkpoint, dataset, str(benchmark["split"]), int(samples["evaluation_count"]), int(samples["ranking_count"]), str(benchmark["quantization"]), str(benchmark["quantization_backend"]), tuple(map(str, injectables))),
+        BenchmarkConfiguration(
+            str(benchmark["adapter"]), str(benchmark["id"]), checkpoint, dataset,
+            str(benchmark["split"]), int(samples["evaluation_count"]),
+            int(samples["ranking_count"]), str(benchmark["quantization"]),
+            str(benchmark["quantization_backend"]), tuple(map(str, injectables)),
+            asset_lock,
+            None if benchmark.get("inference_backend") is None else str(benchmark["inference_backend"]),
+        ),
         StudySamples(int(samples["ranking_count"]), int(samples["empirical_count"]), int(samples["evaluation_count"]), bool(samples["require_disjoint"])),
         CandidateConfiguration(str(candidates["strategy"]), int(candidates["count"]), int(candidates["seed"]), None if score_estimator is None else str(score_estimator), int(candidates["score_quantiles"])),
         tuple(estimators), tuple(policies), StudyProtection(coverages, str(protection["mitigation_model"]), probabilities),

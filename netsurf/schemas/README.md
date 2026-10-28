@@ -10,6 +10,9 @@ persistent-weight protocol. Experiment `2.0.0` adds explicit quantization
 backend, injectable parameter classes, and modern benchmark adapters;
 measurement `2.0.0` adds the corresponding control/policy rows and estimator
 runtime records. Manifest and summary remain compatible at `1.0.0`.
+The MLPerf Tiny adapter's additive `asset_lock` and `inference_backend` fields
+bind its neutral asset identity and numerical TFLite resolver/runtime contract;
+other adapters reject those fields.
 
 Experiment and measurement `3.0.0` add explicit role-specific sample
 partitions, empirical candidate inclusion metadata, estimator implementation

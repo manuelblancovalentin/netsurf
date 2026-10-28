@@ -27,6 +27,9 @@ def _modern_document():
             "id": "mlperf_tiny_ic_resnet8_int8_v1",
             "checkpoint": "/verified/pretrainedResnet_quant.tflite",
             "dataset": "/verified/cifar-10-python.tar.gz",
+            "asset_lock": "/verified/ic.lock.json",
+            "inference_backend": "tensorflow_lite_builtin_ref_v1",
+            "split": "official_subset_200",
             "quantization": "tflite_affine_int8",
             "quantization_backend": "tflite_affine_integer_v1",
             "injectable_parameters": ["kernels", "biases"],
@@ -62,7 +65,7 @@ def test_mlperf_identity_records_dataset_and_gradient_blockers():
     )
     assert identity["faultable_storage"]["eligible_scalars"] == 77_706
     assert identity["faultable_storage"]["eligible_bits"] == 629_952
-    assert identity["task"]["measured_clean_performance"] is None
+    assert identity["task"]["measured_clean_performance"]["official_subset_200_accuracy"] == 0.875
     assert "tensor-mapped" in identity["capabilities"]["gradient_blocker"]
 
 
@@ -72,6 +75,28 @@ def test_mlperf_configuration_accepts_only_exact_storage_contract():
     )
     assert configuration.benchmark.quantization_backend == "tflite_affine_integer_v1"
     assert configuration.benchmark.injectable_parameters == ("kernels", "biases")
+    assert configuration.benchmark.inference_backend == "tensorflow_lite_builtin_ref_v1"
+
+    kernels_only = _modern_document()
+    kernels_only["benchmark"]["injectable_parameters"] = ["kernels"]
+    configuration = validate_experiment_document(
+        kernels_only, Path("/tmp/mlperf.toml"), check_inputs=False
+    )
+    assert configuration.benchmark.injectable_parameters == ("kernels",)
+
+    missing_lock = _modern_document()
+    del missing_lock["benchmark"]["asset_lock"]
+    with pytest.raises(ConfigurationError, match="requires benchmark.asset_lock"):
+        validate_experiment_document(
+            missing_lock, Path("/tmp/mlperf.toml"), check_inputs=False
+        )
+
+    wrong_backend = _modern_document()
+    wrong_backend["benchmark"]["inference_backend"] = "tensorflow_lite_auto_v1"
+    with pytest.raises(ConfigurationError, match="tensorflow_lite_builtin_ref_v1"):
+        validate_experiment_document(
+            wrong_backend, Path("/tmp/mlperf.toml"), check_inputs=False
+        )
 
     invalid = _modern_document()
     invalid["estimators"][0]["name"] = "first_order_gradient_delta"
@@ -98,7 +123,9 @@ adapter = "mlperf_tiny_ic_int8_v1"
 id = "mlperf_tiny_ic_resnet8_int8_v1"
 checkpoint = "/verified/model.tflite"
 dataset = "/verified/cifar.tar.gz"
-split = "explicit_disjoint"
+asset_lock = "/verified/ic.lock.json"
+inference_backend = "tensorflow_lite_builtin_ref_v1"
+split = "official_subset_200"
 quantization = "tflite_affine_int8"
 quantization_backend = "tflite_affine_integer_v1"
 injectable_parameters = ["kernels", "biases"]
@@ -159,6 +186,7 @@ def _write_batch(path: Path, count: int, label_offset: int) -> None:
     payload = {
         b"data": (data % 256).astype(np.uint8),
         b"labels": [(label_offset + index) % 10 for index in range(count)],
+        b"filenames": [f"sample_{index}.png".encode() for index in range(count)],
     }
     with path.open("wb") as stream:
         pickle.dump(payload, stream)
@@ -185,15 +213,100 @@ def test_cifar_python_layout_and_integer_preprocessing(tmp_path):
     assert int(encoded.max()) == 127
 
 
+@pytest.mark.skipif(
+    not Path("/projects/kona-assets/manuelbv/locks/mlperf-tiny/ic.lock.json").is_file(),
+    reason="verified Kona Assets image-classification lock is absent",
+)
+def test_neutral_asset_lock_verifies_without_kona_assets_import():
+    from netsurf.asset_lock import VerifiedAssetLock
+
+    lock = VerifiedAssetLock.load(_official_lock())
+    assert lock.digest == (
+        "sha256:f953370a8b98f7a016e6907e4b001f3b099bbe216c3202d0306fbbca00702687"
+    )
+    assert lock.file(
+        "benchmark/training/image_classification/trained_models/"
+        "pretrainedResnet_quant.tflite"
+    ) == _official_model().resolve()
+    assert lock.file_record("cifar-10-python.tar.gz")["sha256"] == (
+        "6d958be074577803d12ecdefd02955f39262c83c16fe9348329d7fe0b5c001ce"
+    )
+    assert "kona_assets" not in sys.modules
+
+
 def _official_model() -> Path:
     configured = os.environ.get("NETSURF_MLPERF_TINY_IC_MODEL")
     if configured:
         return Path(configured)
     return Path(
-        "/home/manuelbv/.cache/kona-assets/models/models--mlcommons--tiny/snapshots/"
+        "/ml/models/models--mlcommons--tiny/snapshots/"
         "4addd0fa08d216e20637637874e084895f289da4/benchmark/training/"
         "image_classification/trained_models/pretrainedResnet_quant.tflite"
     )
+
+
+def _official_lock() -> Path:
+    return Path("/projects/kona-assets/manuelbv/locks/mlperf-tiny/ic.lock.json")
+
+
+def _official_dataset() -> Path:
+    return Path("/ml/datasets/cifar10/cifar-10-python.tar.gz")
+
+
+@pytest.mark.skipif(
+    not (_official_model().is_file() and _official_lock().is_file() and _official_dataset().is_file()),
+    reason="verified MLPerf Tiny image-classification assets are absent",
+)
+def test_official_subset_identity_reference_backend_and_real_image_fault():
+    import tensorflow as tf
+
+    from netsurf.adapters.mlperf_tiny import MlperfTinyImageClassificationAdapter
+    from netsurf.faults import FaultEvent, FaultModel, FaultSchedule
+    from netsurf.protection import ProtectionMask
+
+    adapter = MlperfTinyImageClassificationAdapter(
+        _official_model(),
+        _official_dataset(),
+        asset_lock=_official_lock(),
+        split="official_subset_200",
+        inference_backend="tensorflow_lite_builtin_ref_v1",
+        injectable_parameters=("kernels",),
+        require_reference_equivalence=tf.__version__ == "2.14.1",
+    )
+    adapter.load()
+    inputs, labels, partition = adapter.sample_partition("evaluation", 2)
+    assert partition.indices == (7657, 8959)
+    assert labels.tolist() == [2, 1]
+    assert adapter.representation_manifest()["eligible_bit_count"] == 618_880
+    assert adapter.representation_manifest()["available_bit_count"] == 629_952
+
+    bit = adapter.bit_identities()[7]
+    model = FaultModel(
+        "weight", "logical_trainable_parameter_bits", "persistent_trial",
+        "independent_bernoulli", 0.0,
+    )
+    schedule = FaultSchedule(model, 17, (FaultEvent(None, bit),), 618_880, 2)
+    none = ProtectionMask("none", frozenset(), 618_880, 0.0, {})
+    full = ProtectionMask(
+        "full", frozenset(adapter.bit_identities()), 618_880, 1.0, {}
+    )
+    clean_codes = adapter.predict_encoded_outputs(inputs)
+    protected, report = adapter.evaluate_fault_schedule(inputs, labels, schedule, full)
+    assert report.applied_events == 0 and report.suppressed_events == 1
+    assert protected == adapter.evaluate(inputs, labels)
+    _faulted, report = adapter.evaluate_fault_schedule(inputs, labels, schedule, none)
+    assert report.applied_events == 1 and report.suppressed_events == 0
+    assert np.array_equal(adapter.predict_encoded_outputs(inputs), clean_codes)
+
+    conformance = adapter.reference_conformance()
+    assert conformance["accuracy"] == 0.875
+    if tf.__version__ == "2.14.1":
+        assert conformance["exact_output_digest_match"] is True
+    elif tf.__version__ == "2.21.0":
+        assert conformance["exact_output_digest_match"] is False
+        assert conformance["output_sha256"] == (
+            "64003b1f1027aeac82c94b24e26c4a184ed28338a5a379007f383b9d7bab7c4a"
+        )
 
 
 @pytest.mark.skipif(not _official_model().is_file(), reason="official pinned TFLite asset is absent")

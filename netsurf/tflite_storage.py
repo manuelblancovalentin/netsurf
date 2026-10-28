@@ -59,21 +59,47 @@ class TFLiteTensorDescriptor:
 class TFLiteModelStorage:
     """Immutable reference bytes plus explicit faultable constant buffers."""
 
-    def __init__(self, model_content: bytes, *, expected_sha256: str | None = None):
+    def __init__(
+        self,
+        model_content: bytes,
+        *,
+        expected_sha256: str | None = None,
+        eligible_roles: tuple[str, ...] = ("kernel", "bias"),
+    ):
         self.reference_content = bytes(model_content)
         self.sha256 = hashlib.sha256(self.reference_content).hexdigest()
         if expected_sha256 is not None and self.sha256 != expected_sha256:
             raise ValueError(
                 f"TFLite checkpoint SHA-256 mismatch: expected {expected_sha256}, observed {self.sha256}"
             )
-        self.descriptors = self._inspect(self.reference_content)
+        if not eligible_roles or set(eligible_roles) - {"kernel", "bias"}:
+            raise ValueError("eligible TFLite roles must be kernel and/or bias")
+        if len(set(eligible_roles)) != len(eligible_roles):
+            raise ValueError("eligible TFLite roles must not contain duplicates")
+        self.eligible_roles = tuple(eligible_roles)
+        self.available_descriptors = self._inspect(self.reference_content)
+        self.descriptors = tuple(
+            descriptor
+            for descriptor in self.available_descriptors
+            if descriptor.role in self.eligible_roles
+        )
         self._by_parameter = {value.parameter: value for value in self.descriptors}
         if len(self._by_parameter) != len(self.descriptors):
             raise RuntimeError("TFLite parameter identities are not unique")
 
     @classmethod
-    def from_path(cls, path: Path, *, expected_sha256: str | None = None) -> "TFLiteModelStorage":
-        return cls(Path(path).read_bytes(), expected_sha256=expected_sha256)
+    def from_path(
+        cls,
+        path: Path,
+        *,
+        expected_sha256: str | None = None,
+        eligible_roles: tuple[str, ...] = ("kernel", "bias"),
+    ) -> "TFLiteModelStorage":
+        return cls(
+            Path(path).read_bytes(),
+            expected_sha256=expected_sha256,
+            eligible_roles=eligible_roles,
+        )
 
     @staticmethod
     def _inspect(model_content: bytes) -> tuple[TFLiteTensorDescriptor, ...]:
@@ -260,17 +286,40 @@ class TFLiteModelStorage:
 
     def manifest(self) -> dict[str, object]:
         values = self.values()
+        available_scalars = sum(value.size for value in self.available_descriptors)
+        available_bits = sum(
+            value.size * value.bit_width for value in self.available_descriptors
+        )
         return {
             "storage_format": "TFLite immutable constant buffers",
             "reference_sha256": self.sha256,
             "eligible_tensor_count": len(self.descriptors),
             "eligible_scalar_count": sum(value.size for value in self.descriptors),
             "eligible_bit_count": len(self.bit_identities()),
+            "selected_fault_population": list(self.eligible_roles),
+            "available_tensor_count": len(self.available_descriptors),
+            "available_scalar_count": available_scalars,
+            "available_bit_count": available_bits,
             "zero_valued_encoded_scalars": sum(
                 int(np.count_nonzero(values[value.parameter] == 0)) for value in self.descriptors
             ),
             "roles": {
-                role: sum(1 for value in self.descriptors if value.role == role)
+                role: {
+                    "eligible_tensors": sum(
+                        1 for value in self.descriptors if value.role == role
+                    ),
+                    "eligible_scalars": sum(
+                        value.size for value in self.descriptors if value.role == role
+                    ),
+                    "eligible_bits": sum(
+                        value.size * value.bit_width
+                        for value in self.descriptors
+                        if value.role == role
+                    ),
+                    "available_tensors": sum(
+                        1 for value in self.available_descriptors if value.role == role
+                    ),
+                }
                 for role in ("kernel", "bias")
             },
             "tensors": [value.to_dict() for value in self.descriptors],

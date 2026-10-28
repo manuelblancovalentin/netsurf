@@ -47,6 +47,8 @@ class BenchmarkConfiguration:
     quantization: str
     quantization_backend: str = "legacy_qkeras"
     injectable_parameters: tuple[str, ...] = ("all_trainable",)
+    asset_lock: Path | None = None
+    inference_backend: str | None = None
 
 
 @dataclass(frozen=True)
@@ -120,6 +122,11 @@ class ExperimentConfiguration:
                 **asdict(self.benchmark),
                 "checkpoint": str(self.benchmark.checkpoint),
                 "dataset": str(self.benchmark.dataset),
+                "asset_lock": (
+                    None
+                    if self.benchmark.asset_lock is None
+                    else str(self.benchmark.asset_lock)
+                ),
             },
             "estimators": [asdict(value) for value in self.estimators],
             "protection": asdict(self.protection),
@@ -235,10 +242,15 @@ def validate_experiment_document(
     }
     if modern:
         benchmark_required |= {"quantization_backend", "injectable_parameters"}
+    benchmark_optional = (
+        {"asset_lock", "inference_backend"}
+        if benchmark.get("adapter") == "mlperf_tiny_ic_int8_v1"
+        else set()
+    )
     _check_keys(
         benchmark,
         benchmark_required,
-        set(),
+        benchmark_optional,
         "benchmark",
     )
     supported_adapters = (
@@ -258,16 +270,36 @@ def validate_experiment_document(
         )
     checkpoint = _resolve_path(str(benchmark["checkpoint"]), source_path)
     dataset = _resolve_path(str(benchmark["dataset"]), source_path)
+    asset_lock = (
+        _resolve_path(str(benchmark["asset_lock"]), source_path)
+        if benchmark.get("asset_lock") is not None
+        else None
+    )
     if check_inputs:
         if not checkpoint.is_file():
             raise ConfigurationError(f"checkpoint does not exist: {checkpoint}")
         if not dataset.is_file():
             raise ConfigurationError(f"dataset does not exist: {dataset}")
+        if asset_lock is not None and not asset_lock.is_file():
+            raise ConfigurationError(f"asset lock does not exist: {asset_lock}")
     for field in ("evaluation_samples", "ranking_samples"):
         if not isinstance(benchmark[field], int) or not 1 <= benchmark[field] <= 10_000:
             raise ConfigurationError(f"benchmark.{field} must be an integer in [1, 10000]")
     affine_tflite = benchmark["adapter"] == "mlperf_tiny_ic_int8_v1"
     if affine_tflite:
+        if asset_lock is None:
+            raise ConfigurationError("mlperf_tiny_ic_int8_v1 requires benchmark.asset_lock")
+        if benchmark.get("inference_backend") != "tensorflow_lite_builtin_ref_v1":
+            raise ConfigurationError(
+                "mlperf_tiny_ic_int8_v1 requires "
+                "inference_backend='tensorflow_lite_builtin_ref_v1'"
+            )
+        if benchmark["split"] not in {"official_subset_200", "test"}:
+            raise ConfigurationError(
+                "mlperf_tiny_ic_int8_v1 split must be 'official_subset_200' or 'test'"
+            )
+        if benchmark["split"] == "official_subset_200" and int(benchmark["evaluation_samples"]) > 200:
+            raise ConfigurationError("official_subset_200 has only 200 evaluation samples")
         if str(benchmark["quantization"]) != "tflite_affine_int8":
             raise ConfigurationError(
                 "mlperf_tiny_ic_int8_v1 requires quantization='tflite_affine_int8'"
@@ -290,10 +322,13 @@ def validate_experiment_document(
         )
     if benchmark["adapter"] == "mnist_lite_exact_kb_v1" and str(benchmark["quantization"]) != "q<6,2,1>":
         raise ConfigurationError("mnist_lite_exact_kb_v1 requires quantization='q<6,2,1>'")
-    if affine_tflite and set(injectable) != {"kernels", "biases"}:
+    if affine_tflite and tuple(injectable) not in {
+        ("kernels",),
+        ("kernels", "biases"),
+    }:
         raise ConfigurationError(
-            "mlperf_tiny_ic_int8_v1 requires injectable_parameters=['kernels', 'biases']; "
-            "affine metadata and activation buffers are not fault targets"
+            "mlperf_tiny_ic_int8_v1 injectable_parameters must be ['kernels'] or "
+            "['kernels', 'biases']; affine metadata and activations are excluded"
         )
 
     raw_estimators = document["estimators"]
@@ -442,6 +477,8 @@ def validate_experiment_document(
             str(benchmark["quantization"]),
             quantization_backend,
             tuple(injectable),
+            asset_lock,
+            None if benchmark.get("inference_backend") is None else str(benchmark["inference_backend"]),
         ),
         tuple(estimators),
         ProtectionConfiguration(coverage, str(protection["mitigation_model"])),

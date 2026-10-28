@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+import csv
 from dataclasses import dataclass
 import hashlib
 import pickle
@@ -12,6 +13,7 @@ from typing import Iterator, Mapping
 
 import numpy as np
 
+from ..asset_lock import AssetLockError, VerifiedAssetLock, load_verified_asset_lock
 from ..faults import FaultSchedule, InjectionReport
 from ..identities import BitIdentity, ParameterSpec
 from ..protection import ProtectionMask
@@ -23,6 +25,16 @@ MLPERF_TINY_COMMIT = "4addd0fa08d216e20637637874e084895f289da4"
 MLPERF_TINY_IC_INT8_SHA256 = (
     "3c002613d1b2475eb51dd78dfb85a546c8ae658dee71cf6ade43b022fe205415"
 )
+REFERENCE_INFERENCE_BACKEND = "tensorflow_lite_builtin_ref_v1"
+OPTIMIZED_INFERENCE_BACKEND = "tensorflow_lite_builtin_without_default_delegates_v1"
+DEFAULT_INFERENCE_BACKEND = "tensorflow_lite_auto_v1"
+_MODEL_RELATIVE_PATH = (
+    "benchmark/training/image_classification/trained_models/pretrainedResnet_quant.tflite"
+)
+_OFFICIAL_INDEX_RELATIVE_PATH = (
+    "benchmark/training/image_classification/perf_samples_idxs.npy"
+)
+_OFFICIAL_LABEL_RELATIVE_PATH = "benchmark/evaluation/datasets/ic01/y_labels.csv"
 
 
 def bounded_synthetic_inference_signature(payload) -> dict[str, object]:
@@ -58,24 +70,33 @@ class ClassificationEvaluation:
         }
 
 
-def _decode_cifar_batch(stream) -> tuple[np.ndarray, np.ndarray]:
+def _decode_cifar_batch(stream) -> tuple[np.ndarray, np.ndarray, tuple[str, ...]]:
     # CIFAR-10's official Python distribution is a pickle. Callers must verify
     # the enclosing dataset artifact before treating it as trusted input.
     document = pickle.load(stream, encoding="bytes")  # noqa: S301 - official format
     data = np.asarray(document[b"data"], dtype=np.uint8)
     labels = np.asarray(document.get(b"labels", document.get(b"fine_labels")), dtype=np.int64)
+    raw_names = document.get(b"filenames")
     if data.ndim != 2 or data.shape[1] != 3 * 32 * 32 or labels.shape != (data.shape[0],):
         raise ValueError("invalid CIFAR-10 Python batch layout")
     images = np.transpose(data.reshape(-1, 3, 32, 32), (0, 2, 3, 1))
-    return np.ascontiguousarray(images), labels
+    if raw_names is None or len(raw_names) != data.shape[0]:
+        raise ValueError("CIFAR-10 Python batch lacks stable filenames")
+    names = tuple(
+        value.decode("utf-8") if isinstance(value, bytes) else str(value)
+        for value in raw_names
+    )
+    return np.ascontiguousarray(images), labels, names
 
 
-def load_cifar10_python(path: Path, split: str) -> tuple[np.ndarray, np.ndarray]:
+def _load_cifar10_python_with_names(
+    path: Path, split: str
+) -> tuple[np.ndarray, np.ndarray, tuple[str, ...]]:
     """Load the official CIFAR-10 Python archive or extracted directory."""
 
     source = Path(path)
     names = ["test_batch"] if split == "test" else [f"data_batch_{index}" for index in range(1, 6)]
-    images, labels = [], []
+    images, labels, filenames = [], [], []
     if source.is_file() and tarfile.is_tarfile(source):
         with tarfile.open(source, "r:*") as archive:
             members = {Path(member.name).name: member for member in archive.getmembers() if member.isfile()}
@@ -85,19 +106,28 @@ def load_cifar10_python(path: Path, split: str) -> tuple[np.ndarray, np.ndarray]
                 stream = archive.extractfile(members[name])
                 if stream is None:
                     raise ValueError(f"cannot read CIFAR-10 member {name}")
-                x, y = _decode_cifar_batch(stream)
+                x, y, names_in_batch = _decode_cifar_batch(stream)
                 images.append(x)
                 labels.append(y)
+                filenames.extend(names_in_batch)
     elif source.is_dir():
         root = source / "cifar-10-batches-py" if (source / "cifar-10-batches-py").is_dir() else source
         for name in names:
             with (root / name).open("rb") as stream:
-                x, y = _decode_cifar_batch(stream)
+                x, y, names_in_batch = _decode_cifar_batch(stream)
                 images.append(x)
                 labels.append(y)
+                filenames.extend(names_in_batch)
     else:
         raise FileNotFoundError(source)
-    return np.concatenate(images), np.concatenate(labels)
+    return np.concatenate(images), np.concatenate(labels), tuple(filenames)
+
+
+def load_cifar10_python(path: Path, split: str) -> tuple[np.ndarray, np.ndarray]:
+    """Load the official CIFAR-10 Python archive or extracted directory."""
+
+    images, labels, _ = _load_cifar10_python_with_names(path, split)
+    return images, labels
 
 
 class MlperfTinyImageClassificationAdapter:
@@ -108,24 +138,89 @@ class MlperfTinyImageClassificationAdapter:
     fused, per-channel-quantized TFLite graph.
     """
 
-    def __init__(self, checkpoint: Path, dataset: Path, codec=None):
+    def __init__(
+        self,
+        checkpoint: Path,
+        dataset: Path,
+        codec=None,
+        *,
+        asset_lock: Path | None = None,
+        inference_backend: str = REFERENCE_INFERENCE_BACKEND,
+        split: str = "test",
+        injectable_parameters: tuple[str, ...] = ("kernels", "biases"),
+        require_reference_equivalence: bool = True,
+    ):
         self.checkpoint = Path(checkpoint).expanduser().resolve()
         self.dataset_path = Path(dataset).expanduser().resolve()
         if not self.checkpoint.is_file():
             raise FileNotFoundError(self.checkpoint)
         if not self.dataset_path.exists():
             raise FileNotFoundError(self.dataset_path)
+        if inference_backend not in {
+            REFERENCE_INFERENCE_BACKEND,
+            OPTIMIZED_INFERENCE_BACKEND,
+            DEFAULT_INFERENCE_BACKEND,
+        }:
+            raise ValueError(f"unsupported TFLite inference backend: {inference_backend}")
+        if split not in {"test", "official_subset_200"}:
+            raise ValueError("MLPerf Tiny split must be 'test' or 'official_subset_200'")
+        if tuple(injectable_parameters) not in {("kernels",), ("kernels", "biases")}:
+            raise ValueError(
+                "injectable_parameters must be ('kernels',) or ('kernels', 'biases')"
+            )
+        self.asset_lock_path = (
+            None if asset_lock is None else Path(asset_lock).expanduser().resolve()
+        )
+        self.asset_lock: VerifiedAssetLock | None = None
+        self.inference_backend = inference_backend
+        self.split = split
+        self.injectable_parameters = tuple(injectable_parameters)
+        self.require_reference_equivalence = bool(require_reference_equivalence)
         self.storage: TFLiteModelStorage | None = None
         self._model_content: bytes | None = None
         self._interpreter = None
         self._interpreter_backend: str | None = None
-        self._dataset_cache: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+        self._runtime_provenance: dict[str, object] = {}
+        self._dataset_cache: dict[
+            str, tuple[np.ndarray, np.ndarray, tuple[str, ...]]
+        ] = {}
+        self._official_index_cache: np.ndarray | None = None
 
     def load(self) -> None:
+        if self.asset_lock_path is not None:
+            self.asset_lock = load_verified_asset_lock(str(self.asset_lock_path))
+            locked_model = self.asset_lock.file(_MODEL_RELATIVE_PATH)
+            if locked_model != self.checkpoint:
+                raise AssetLockError(
+                    f"checkpoint {self.checkpoint} is not the model resolved by {self.asset_lock_path}"
+                )
+            dataset_root = Path(
+                self.asset_lock.document["resolved"]["datasets"]["cifar10"]
+            ).resolve()
+            archive = self.asset_lock.file("cifar-10-python.tar.gz")
+            if self.dataset_path not in {dataset_root, archive} and dataset_root not in self.dataset_path.parents:
+                raise AssetLockError(
+                    f"dataset {self.dataset_path} is not resolved by {self.asset_lock_path}"
+                )
         self.storage = TFLiteModelStorage.from_path(
-            self.checkpoint, expected_sha256=MLPERF_TINY_IC_INT8_SHA256
+            self.checkpoint,
+            expected_sha256=MLPERF_TINY_IC_INT8_SHA256,
+            eligible_roles=tuple(
+                {"kernels": "kernel", "biases": "bias"}[value]
+                for value in self.injectable_parameters
+            ),
         )
         self._set_model_content(self.storage.reference_content)
+        if self.asset_lock is not None and self.require_reference_equivalence:
+            conformance = self.reference_conformance()
+            if not conformance["exact_output_digest_match"]:
+                raise RuntimeError(
+                    "configured TFLite runtime is not byte-equivalent to the registered "
+                    "TensorFlow 2.14.1 BUILTIN_REF backend: official 200-output digest "
+                    f"{conformance['output_sha256']} != "
+                    f"{conformance['expected_output_sha256']}; use the recorded reference "
+                    "environment or an explicit diagnostic adapter with equivalence disabled"
+                )
 
     def _require_loaded(self) -> TFLiteModelStorage:
         if self.storage is None or self._model_content is None:
@@ -133,17 +228,22 @@ class MlperfTinyImageClassificationAdapter:
         return self.storage
 
     def _set_model_content(self, content: bytes) -> None:
-        try:
-            from ai_edge_litert.interpreter import Interpreter
+        import tensorflow as tf
 
-            backend = "ai_edge_litert"
-        except ImportError:
-            import tensorflow as tf
-
-            Interpreter = tf.lite.Interpreter
-            backend = "tensorflow.lite (deprecated upstream fallback)"
-
-        interpreter = Interpreter(model_content=bytes(content), num_threads=1)
+        resolver_by_backend = {
+            REFERENCE_INFERENCE_BACKEND: tf.lite.experimental.OpResolverType.BUILTIN_REF,
+            OPTIMIZED_INFERENCE_BACKEND: (
+                tf.lite.experimental.OpResolverType.BUILTIN_WITHOUT_DEFAULT_DELEGATES
+            ),
+            DEFAULT_INFERENCE_BACKEND: tf.lite.experimental.OpResolverType.AUTO,
+        }
+        resolver = resolver_by_backend[self.inference_backend]
+        interpreter = tf.lite.Interpreter(
+            model_content=bytes(content),
+            experimental_delegates=[],
+            experimental_op_resolver_type=resolver,
+            num_threads=1,
+        )
         interpreter.allocate_tensors()
         input_detail = interpreter.get_input_details()
         output_detail = interpreter.get_output_details()
@@ -155,7 +255,22 @@ class MlperfTinyImageClassificationAdapter:
             raise ValueError("unexpected MLPerf Tiny image-classification output contract")
         self._model_content = bytes(content)
         self._interpreter = interpreter
-        self._interpreter_backend = backend
+        self._interpreter_backend = self.inference_backend
+        if self.inference_backend == DEFAULT_INFERENCE_BACKEND:
+            delegates = "default delegates permitted; XNNPACK observed on Kona"
+        else:
+            delegates = "none"
+        self._runtime_provenance = {
+            "library": "tensorflow",
+            "tensorflow_version": tf.__version__,
+            "interpreter": "tf.lite.Interpreter",
+            "operator_resolver": f"tf.lite.experimental.OpResolverType.{resolver.name}",
+            "delegates": delegates,
+            "threads": 1,
+            "recorded_reference_tensorflow_version": "2.14.1",
+            "recorded_runtime_version_match": tf.__version__ == "2.14.1",
+            "reference_equivalence_enforced": self.require_reference_equivalence,
+        }
 
     @staticmethod
     def preprocess(images: np.ndarray) -> np.ndarray:
@@ -164,11 +279,46 @@ class MlperfTinyImageClassificationAdapter:
             raise ValueError("CIFAR-10 inputs must be NHWC uint8 with shape (N,32,32,3)")
         return (values.astype(np.int16) - 128).astype(np.int8)
 
-    def _split(self, split: str) -> tuple[np.ndarray, np.ndarray]:
+    def _split(self, split: str) -> tuple[np.ndarray, np.ndarray, tuple[str, ...]]:
         if split not in self._dataset_cache:
-            images, labels = load_cifar10_python(self.dataset_path, split)
-            self._dataset_cache[split] = (self.preprocess(images), labels)
+            images, labels, filenames = _load_cifar10_python_with_names(
+                self.dataset_path, split
+            )
+            self._dataset_cache[split] = (
+                self.preprocess(images),
+                labels,
+                filenames,
+            )
         return self._dataset_cache[split]
+
+    def _official_indices(self) -> np.ndarray:
+        if self.asset_lock is None:
+            raise AssetLockError(
+                "official_subset_200 requires a verified Kona Assets lock"
+            )
+        if self._official_index_cache is None:
+            index_path = self.asset_lock.file(_OFFICIAL_INDEX_RELATIVE_PATH)
+            indices = np.asarray(np.load(index_path, allow_pickle=False), dtype=np.int64)
+            if indices.shape != (200,) or len(np.unique(indices)) != 200:
+                raise AssetLockError("official performance index must contain 200 unique rows")
+            if int(indices.min()) < 0 or int(indices.max()) >= 10_000:
+                raise AssetLockError("official performance index is outside CIFAR-10 test")
+            _, labels, filenames = self._split("test")
+            label_path = self.asset_lock.file(_OFFICIAL_LABEL_RELATIVE_PATH)
+            with label_path.open("r", encoding="utf-8", newline="") as stream:
+                rows = tuple(csv.reader(stream))
+            if len(rows) != 200:
+                raise AssetLockError("official label index must contain 200 rows")
+            for row_index, (dataset_index, row) in enumerate(zip(indices, rows)):
+                if len(row) != 3:
+                    raise AssetLockError(f"official label row {row_index} is malformed")
+                expected_name = str(Path(filenames[int(dataset_index)]).with_suffix(".bin"))
+                if row[0] != expected_name or int(row[2]) != int(labels[int(dataset_index)]):
+                    raise AssetLockError(
+                        f"official sample identity differs at selected row {row_index}"
+                    )
+            self._official_index_cache = indices
+        return self._official_index_cache.copy()
 
     def sample_partition(self, role: str, count: int, *, offset: int = 0):
         regions = {
@@ -181,20 +331,39 @@ class MlperfTinyImageClassificationAdapter:
         if role not in regions:
             raise ValueError(f"unsupported MLPerf Tiny CIFAR-10 sample role: {role}")
         split, start, stop = regions[role]
+        official = role in {"evaluation", "final_evaluation"} and self.split == "official_subset_200"
+        if official:
+            stop = 200
         if count <= 0 or offset < 0 or start + offset + count > stop:
             raise ValueError(f"invalid {role} offset/count within [{start},{stop})")
-        inputs, labels = self._split(split)
-        indices = tuple(range(start + offset, start + offset + count))
+        inputs, labels, _ = self._split(split)
+        if official:
+            indices = tuple(
+                int(value)
+                for value in self._official_indices()[offset : offset + count]
+            )
+            dataset_identity = "cifar10_test_mlperf_tiny_ic01_official_200"
+            notes = (
+                "Official MLPerf Tiny ic01 performance subset in perf_samples_idxs.npy order; "
+                "filenames and labels independently matched to y_labels.csv"
+            )
+        else:
+            indices = tuple(range(start + offset, start + offset + count))
+            dataset_identity = f"cifar10_{split}"
+            notes = (
+                "MLPerf Tiny pinned-source CIFAR-10 partition; train roles are disjoint "
+                "from held-out test evaluation"
+            )
         selected_labels = labels[list(indices)].copy()
         return (
             inputs[list(indices)].copy(),
             selected_labels,
             SamplePartition(
                 role,
-                f"cifar10_{split}",
+                dataset_identity,
                 indices,
-                sample_identity_digest(f"cifar10_{split}", indices, selected_labels),
-                "MLPerf Tiny pinned-source CIFAR-10 partition; train roles are disjoint from held-out test evaluation",
+                sample_identity_digest(dataset_identity, indices, selected_labels),
+                notes,
             ),
         )
 
@@ -269,6 +438,11 @@ class MlperfTinyImageClassificationAdapter:
         encoded = self._outputs(inputs)
         return (encoded.astype(np.float64) + 128.0) / 256.0
 
+    def predict_encoded_outputs(self, inputs: np.ndarray) -> np.ndarray:
+        """Return the exact INT8 output codes produced by the selected runtime."""
+
+        return self._outputs(inputs)
+
     def predict_classes(self, inputs: np.ndarray) -> np.ndarray:
         return np.argmax(self._outputs(inputs), axis=1)
 
@@ -286,6 +460,44 @@ class MlperfTinyImageClassificationAdapter:
             float(np.mean(-np.log(selected))),
             int(len(labels)),
         )
+
+    def reference_conformance(self, *, full_test: bool = False) -> dict[str, object]:
+        """Measure clean outputs against the immutable lock's registered digest.
+
+        The full test evaluates 10,000 images; the default is the bounded
+        official 200-image gate.  This method never changes model state.
+        """
+
+        if self.asset_lock is None:
+            raise AssetLockError("reference conformance requires a verified asset lock")
+        if full_test:
+            inputs, labels, _ = self._split("test")
+            expected_key = "full_outputs_sha256"
+            reference_key = "full_test_10000"
+        else:
+            inputs, labels, _ = self._split("test")
+            indices = self._official_indices()
+            inputs, labels = inputs[indices], labels[indices]
+            expected_key = "subset_outputs_sha256"
+            reference_key = "official_subset_200"
+        outputs = self.predict_encoded_outputs(inputs)
+        digest = hashlib.sha256(outputs.tobytes(order="C")).hexdigest()
+        prediction = np.argmax(outputs, axis=1)
+        reference = self.asset_lock.benchmark["reference_results"]
+        expected_digest = reference["output_digests"][expected_key]
+        expected_accuracy = float(reference[reference_key]["value"])
+        accuracy = float(np.mean(prediction == labels))
+        return {
+            "scope": reference_key,
+            "sample_count": int(len(labels)),
+            "output_sha256": digest,
+            "expected_output_sha256": expected_digest,
+            "exact_output_digest_match": digest == expected_digest,
+            "accuracy": accuracy,
+            "expected_accuracy": expected_accuracy,
+            "accuracy_match": accuracy == expected_accuracy,
+            "backend": dict(self._runtime_provenance),
+        }
 
     def encoded_bit_transition(self, identity: BitIdentity):
         return self._require_loaded().bit_transition(self.values(), identity)
@@ -336,12 +548,20 @@ class MlperfTinyImageClassificationAdapter:
         ), InjectionReport(schedule.digest(), proposed, applied, suppressed, len(unique))
 
     def representation_manifest(self) -> dict[str, object]:
-        return {
+        result = {
             "identity": "mlperf_tiny_ic_resnet8_int8_v1",
             "suite_commit": MLPERF_TINY_COMMIT,
             "interpreter_backend": self._interpreter_backend,
+            "runtime": dict(self._runtime_provenance),
+            "fault_population_assumption": (
+                "equal per-bit Bernoulli probability across selected storage classes is a "
+                "logical software model, not evidence of equal physical upset rates"
+            ),
             **self._require_loaded().manifest(),
         }
+        if self.asset_lock is not None:
+            result["asset_lock"] = self.asset_lock.manifest()
+        return result
 
     def quantization_manifest(self) -> dict[str, object]:
         return {
@@ -361,6 +581,7 @@ class MlperfTinyImageClassificationAdapter:
             "input_shape": [1, 32, 32, 3],
             "input_scale": 1.0,
             "input_zero_point": -128,
+            "selection": self.split,
         }
 
     def task_metric_manifest(self) -> dict[str, object]:
@@ -371,6 +592,10 @@ class MlperfTinyImageClassificationAdapter:
                 "categorical_crossentropy": {
                     "direction": "minimize",
                     "units": "natural-log nats per sample",
+                    "definition": (
+                        "mean -ln(max((int8_output[label]+128)/256, 1e-12)); "
+                        "no renormalization after integer softmax"
+                    ),
                 },
             },
             "future_metric_families": [

@@ -8,7 +8,7 @@
     "schema_version": {"const": "3.1.0"},
     "scientific_protocol": {"enum": ["single-bit-susceptibility/v1", "estimator-validation/v1", "ranking-policy-comparison/v1", "multi-coverage-protection/v1"]},
     "experiment": {"type": "object"},
-    "benchmark": {"type": "object"},
+    "benchmark": {"type": "object", "properties": {"asset_lock": {"type": "string"}, "inference_backend": {"type": "string"}}},
     "samples": {"type": "object"},
     "candidates": {
       "type": "object",

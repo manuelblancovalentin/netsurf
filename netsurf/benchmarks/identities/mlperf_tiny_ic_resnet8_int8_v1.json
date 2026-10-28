@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "identity": "mlperf_tiny_ic_resnet8_int8_v1",
-  "status": "exact_storage_validated_clean_task_evaluation_blocked",
+  "status": "reference_backend_validated_tensorflow_2_21_not_bit_equivalent",
   "scientific_scope": "modern NetSuRF v2 benchmark; not a historical NetSuRF reproduction",
   "source": {
     "repository": "https://github.com/mlcommons/tiny",
@@ -16,8 +16,12 @@
     "float_companion_sha256": "5f938a8eea605438cc7360aa13c987bc6d7bd0c8d931b2917361ae7ae4eeda2f",
     "dataset_identity": "CIFAR-10 official Python batches",
     "dataset_revision": "Krizhevsky and Hinton 2009 distribution",
-    "dataset_availability": "absent from configured Kona dataset roots on 2026-10-27",
-    "dataset_hash": null
+    "dataset_availability": "verified and published read-only at /ml/datasets/cifar10",
+    "dataset_archive_sha256": "6d958be074577803d12ecdefd02955f39262c83c16fe9348329d7fe0b5c001ce",
+    "test_batch_sha256": "f53d8d457504f7cff4ea9e021afcf0e0ad8e24a91f3fc42091b8adef61157831",
+    "asset_lock_digest": "sha256:f953370a8b98f7a016e6907e4b001f3b099bbe216c3202d0306fbbca00702687",
+    "official_subset_index_sha256": "3bd4a88eeb4c50fad652d0f24c8af13bc9219ba2878aea47c6536bfbeb43024d",
+    "official_subset_labels_sha256": "79e1f19ad731f046983a1a4480bda6369df26c5acee47505a860f164fb58ccd4"
   },
   "task": {
     "type": "classification",
@@ -28,7 +32,13 @@
     "output_dtype": "int8",
     "metrics": ["classification_accuracy", "categorical_crossentropy"],
     "official_quality_target": {"metric": "top-1 accuracy", "minimum": 0.85},
-    "measured_clean_performance": null
+    "measured_clean_performance": {
+      "registered_backend": "TensorFlow Lite 2.14.1 BUILTIN_REF, no delegates, one thread",
+      "official_subset_200_accuracy": 0.875,
+      "full_test_10000_accuracy": 0.8707,
+      "official_subset_output_sha256": "f045f8f11e923bb37c467d1969e3e53c5b966061f1134688bd69b3e7f01338b9",
+      "full_test_output_sha256": "2cd2747d949fe123a144160c6e2b8c45277c438812803058c49cb4a123b9cfd1"
+    }
   },
   "preprocessing": {
     "layout": "CIFAR Python planar RGB reshaped NCHW then transposed to NHWC",
@@ -46,6 +56,7 @@
   },
   "faultable_storage": {
     "eligible_roles": ["kernel", "bias"],
+    "selectable_populations": [["kernel"], ["kernel", "bias"]],
     "kernel_tensors": 10,
     "kernel_dtype": "int8",
     "kernel_scalars": 77360,
@@ -64,7 +75,8 @@
     "excluded": ["activations", "scales", "zero points", "operator metadata", "non-parameter constants", "unsupported constant dtypes"]
   },
   "capabilities": {
-    "clean_inference_runtime": "implemented; task metric validation blocked by missing dataset",
+    "clean_inference_runtime": "implemented; registered results exactly reproduced by TensorFlow Lite 2.14.1 BUILTIN_REF",
+    "tensorflow_2_21_boundary": "BUILTIN_REF preserves 0.875 subset accuracy but differs on 5/200 output arrays (13 elements, maximum 8 int8 steps); not bit-equivalent to the registered backend",
     "persistent_faults": "implemented",
     "per_inference_faults": "implemented",
     "private_copy_patching": "implemented; shared reference bytes remain immutable",
