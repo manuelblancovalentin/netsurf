@@ -242,3 +242,11 @@ Schema 4.1 adds independent conditional-risk evaluation for closely related
 final masks. Begin with
 `config/experiments/numpy_pgcs_conditional_validation.toml`; matched MNIST
 smoke and research configurations reuse the existing prepared checkpoint.
+### MLPerf Tiny INT8 static estimators (M9)
+
+The pinned ResNet-8 adapter supports kernel-only MSB, exact numerical jump,
+global gradient-times-delta, per-example absolute and per-example positive
+rankings through an explicitly labeled straight-through companion. Exact
+TFLite 2.14.1 `BUILTIN_REF` inference remains authoritative. See
+`docs/MLPERF_TINY_M9_STATIC_ESTIMATORS.md` and the two maintained
+`m9_resnet8_static_*_v1.toml` configurations before running them.

@@ -103,15 +103,17 @@ def render_study_report(summary: Mapping[str, Any], resolved: Mapping[str, Any],
             f"Exactly one encoded bit was flipped for each of `{summary['empirical_candidate_count']}` candidates. Signed loss changes were retained.",
             "The reference addresses isolated-fault prediction and damaging-bit identification; it does not prove optimality under multi-fault schedules.",
             "", "### Ranking-quality summary", "",
-            "| Estimator | Spearman (positive damage) | Kendall tau-b | Top-10 recall | Zero-score fraction | Wall time (s) |",
-            "|---|---:|---:|---:|---:|---:|",
+            "| Estimator | Spearman (positive damage) | Kendall tau-b | Top-10 recall | Tie-aware expected top-10 | Random expected top-10 | Zero-score fraction | Wall time (s) |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|",
         ])
         for row in summary.get("ranking_metrics_overall", []):
             def show(value):
                 return "N/A" if value is None else f"{value:.6f}"
             lines.append(
                 f"| {row['estimator']} | {show(row['spearman_positive_damage'])} | {show(row['kendall_positive_damage'])} | "
-                f"{show(row['top_10_recall'])} | {show(row['zero_score_fraction'])} | {row['runtime_seconds']:.6f} |"
+                f"{show(row['top_10_recall'])} | {show(row.get('top_10_tie_aware_expected_recall'))} | "
+                f"{show(row.get('top_10_random_expected_recall'))} | {show(row['zero_score_fraction'])} | "
+                f"{row['runtime_seconds']:.6f} |"
             )
         if summary.get("sample_limited"):
             lines.extend(["", "These metrics are sample-limited to the recorded candidate set and are not whole-network top-k claims. Consult the saved inclusion rule and probabilities for the sampling design."])

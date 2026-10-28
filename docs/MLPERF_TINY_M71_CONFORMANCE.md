@@ -88,3 +88,8 @@ map float checkpoint tensor names/layouts to fused TFLite constants, reproduce
 per-channel folding, establish clean-output equivalence, and compare
 representative exact-bit fault effects. Existence of the HDF5 companion is not
 sufficient.
+
+This paragraph records the M7.1 boundary at that time. M9 subsequently passed
+the kernel-only mapping gate for explicitly labeled straight-through
+first-order estimators. Hessian, qPolarGrad and INT32-bias gradients remain
+blocked; see `docs/MLPERF_TINY_M9_STATIC_ESTIMATORS.md`.

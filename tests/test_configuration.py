@@ -127,3 +127,7 @@ def test_versioned_schema_documents_are_exercised():
     assert study_measurements["schema_version"] == "3.0.0"
     assert "signed_loss_difference" in study_measurements["tables"]["empirical_bits.csv"]["columns"]
     assert "p_value_holm" in study_measurements["tables"]["paired_comparisons.csv"]["columns"]
+    m9_experiment = load_schema("experiment", "v3_2")
+    m9_measurements = load_schema("measurements", "v3_2")
+    assert m9_experiment["properties"]["schema_version"]["const"] == "3.2.0"
+    assert "top_10_tie_aware_expected_recall" in m9_measurements["tables"]["ranking_metrics.csv"]["added_columns"]

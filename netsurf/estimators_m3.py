@@ -49,14 +49,42 @@ def _bit_value(matrix: Mapping[str, np.ndarray], identity: BitIdentity) -> float
     return float(value.reshape(-1, value.shape[-1])[identity.flat_index, identity.bit_index])
 
 
-def _deltas(values, codec: BitCodec):
-    return {name: codec.perturbation_matrix(value) for name, value in values.items()}
+def _deltas(adapter, codec: BitCodec | None):
+    provider = getattr(adapter, "bit_perturbations", None)
+    if callable(provider):
+        return provider()
+    if codec is None:
+        raise ValueError("estimator requires a fixed-point codec or affine bit-delta provider")
+    return {
+        name: codec.perturbation_matrix(value)
+        for name, value in adapter.values().items()
+    }
 
 
-def first_order(adapter, inputs, labels, identities, codec: BitCodec) -> EstimatorOutput:
+def numerical_bit_jump(adapter, identities) -> EstimatorOutput:
+    """Rank bits by the absolute exact decoded XOR perturbation."""
+
+    started = perf_counter()
+    deltas = _deltas(adapter, None)
+    signed = {identity: _bit_value(deltas, identity) for identity in identities}
+    return EstimatorOutput(
+        "numerical_bit_jump",
+        "absolute-affine-xor-jump/v1",
+        {identity: abs(value) for identity, value in signed.items()},
+        None,
+        perf_counter() - started,
+        {
+            "signed_expression": "decode(code XOR 2^b) - decode(code)",
+            "ranking_expression": "abs(decode(code XOR 2^b) - decode(code))",
+            "warning": "numerical jump contains no loss or task sensitivity",
+        },
+    )
+
+
+def first_order(adapter, inputs, labels, identities, codec: BitCodec | None) -> EstimatorOutput:
     started = perf_counter()
     gradients = adapter.gradients(inputs, labels)
-    deltas = _deltas(adapter.values(), codec)
+    deltas = _deltas(adapter, codec)
     signed = {
         identity: _parameter_value(gradients, identity) * _bit_value(deltas, identity)
         for identity in identities
@@ -90,7 +118,7 @@ def gradient_magnitude(adapter, inputs, labels, identities) -> EstimatorOutput:
 
 
 def per_sample_first_order_family(
-    adapter, inputs, labels, identities, codec: BitCodec, *, requested: Sequence[str]
+    adapter, inputs, labels, identities, codec: BitCodec | None, *, requested: Sequence[str]
 ) -> Mapping[str, EstimatorOutput]:
     """Compute absolute and positive per-example scores from one Jacobian."""
 
@@ -100,7 +128,7 @@ def per_sample_first_order_family(
         raise ValueError(f"unsupported per-example first-order variants: {sorted(unknown)}")
     started = perf_counter()
     gradients = adapter.per_example_gradients(inputs, labels)
-    deltas = _deltas(adapter.values(), codec)
+    deltas = _deltas(adapter, codec)
     absolute_scores, positive_scores = {}, {}
     for identity in identities:
         per_example = gradients[identity.parameter].reshape(len(labels), -1)[:, identity.flat_index]
@@ -129,7 +157,7 @@ def per_sample_first_order_family(
     return {name: outputs[name] for name in requested}
 
 
-def per_sample_first_order(adapter, inputs, labels, identities, codec: BitCodec) -> EstimatorOutput:
+def per_sample_first_order(adapter, inputs, labels, identities, codec: BitCodec | None) -> EstimatorOutput:
     return per_sample_first_order_family(
         adapter, inputs, labels, identities, codec,
         requested=("per_sample_first_order_magnitude",),
@@ -191,7 +219,7 @@ def exact_diagonal_second_order(adapter, inputs, labels, identities, codec: BitC
     gradients = adapter.gradients(inputs, labels)
     hessian = adapter.exact_hessian(inputs, labels)
     diagonal = _unflatten(values, np.diag(hessian))
-    deltas = _deltas(values, codec)
+    deltas = _deltas(adapter, codec)
     signed = {}
     for identity in identities:
         delta = _bit_value(deltas, identity)
@@ -215,7 +243,7 @@ def hutchinson_second_order(
     inputs,
     labels,
     identities,
-    codec: BitCodec,
+    codec: BitCodec | None,
     *,
     probes: int,
     seed: int,
@@ -244,7 +272,7 @@ def hutchinson_second_order(
     else:
         se_rms = se_max = float("nan")
     gradients = adapter.gradients(inputs, labels)
-    deltas = _deltas(values, codec)
+    deltas = _deltas(adapter, codec)
     signed = {}
     for identity in identities:
         delta = _bit_value(deltas, identity)
@@ -273,13 +301,15 @@ def compute_estimator(
     inputs,
     labels,
     identities: Sequence[BitIdentity],
-    codec: BitCodec,
+    codec: BitCodec | None,
     *,
     seed: int = 0,
     probes: int = 16,
 ) -> EstimatorOutput:
     if name == "first_order_gradient_delta":
         return first_order(adapter, inputs, labels, identities, codec)
+    if name == "numerical_bit_jump":
+        return numerical_bit_jump(adapter, identities)
     if name == "gradient_magnitude":
         return gradient_magnitude(adapter, inputs, labels, identities)
     if name == "per_sample_first_order_magnitude":
@@ -298,7 +328,7 @@ def compute_estimator(
     raise ValueError(f"unsupported M3 estimator: {name}")
 
 
-def compute_estimators(specifications, adapter, inputs, labels, identities, codec: BitCodec):
+def compute_estimators(specifications, adapter, inputs, labels, identities, codec: BitCodec | None):
     """Compute configured estimators while sharing per-example gradients."""
 
     family_names = {

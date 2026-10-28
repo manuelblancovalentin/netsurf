@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "identity": "mlperf_tiny_ic_resnet8_int8_v1",
-  "status": "reference_backend_validated_tensorflow_2_21_not_bit_equivalent",
+  "status": "reference_backend_and_kernel_only_static_estimators_validated",
   "scientific_scope": "modern NetSuRF v2 benchmark; not a historical NetSuRF reproduction",
   "source": {
     "repository": "https://github.com/mlcommons/tiny",
@@ -80,8 +80,9 @@
     "persistent_faults": "implemented",
     "per_inference_faults": "implemented",
     "private_copy_patching": "implemented; shared reference bytes remain immutable",
-    "supported_rankings": ["random", "msb_first", "empirical_single_bit"],
-    "blocked_rankings": ["gradient_magnitude", "first_order_gradient_delta", "per_sample_first_order_magnitude", "per_sample_positive_damage", "Hessian-based estimators", "qPolarGrad variants"],
-    "gradient_blocker": "the official float companion has not been tensor-mapped and exact-fault-equivalence-validated against fused per-channel TFLite tensors"
+    "supported_rankings": ["random", "msb_first", "numerical_bit_jump", "gradient_magnitude_kernel_only", "first_order_gradient_delta_kernel_only", "per_sample_first_order_magnitude_kernel_only", "per_sample_positive_damage_kernel_only", "empirical_single_bit"],
+    "blocked_rankings": ["gradient rankings over INT32 biases", "Hessian-based estimators", "qPolarGrad variants"],
+    "differentiable_companion": "architecture-specific dequantized TFLite-kernel graph with activation requantization and straight-through round/clip; not authoritative inference",
+    "companion_validation": "official 200: class agreement 0.985, probability MAE 0.00423046875, authoritative accuracy 0.875, companion accuracy 0.870; exact TFLite empirical validation remains mandatory"
   }
 }

@@ -636,3 +636,21 @@ requires TensorFlow Lite 2.14.1 `BUILTIN_REF`, no delegates, one thread;
 TensorFlow 2.21 preserves clean accuracy but is not byte-equivalent. Exact
 fields, output digests, storage counts, blocked estimators and commands are in
 `docs/MLPERF_TINY.md`.
+## M9 bounded MLPerf Tiny static-estimator gate
+
+Run M9 only with the registered TensorFlow 2.14.1 reference environment:
+
+```bash
+/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf validate \
+  config/experiments/m9_resnet8_static_estimator_validation_v1.toml --resolved
+/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf run \
+  config/experiments/m9_resnet8_static_estimator_validation_v1.toml
+/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf run \
+  config/experiments/m9_resnet8_static_protection_smoke_v1.toml
+```
+
+These are bounded validation commands, not publication campaigns. Do not
+replace the reference runtime with the canonical TensorFlow 2.21 runtime.
+See `docs/MLPERF_TINY_M9_STATIC_ESTIMATORS.md` for the mapping gate,
+provisional acceptance criteria, measured resource costs and interpretation
+limits.

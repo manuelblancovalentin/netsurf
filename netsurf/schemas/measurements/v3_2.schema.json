@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/measurements/v3_2.schema.json",
+  "title": "NetSuRF M9 estimator-validation measurements",
+  "schema_version": "3.2.0",
+  "compatibility": "Extends v3.1; existing v3.0 and v3.1 readers and bundles remain supported and unchanged.",
+  "null_representation": "empty CSV field for explicitly nullable values",
+  "tables": {
+    "empirical_bits.csv": {
+      "sampling": "Exact isolated-bit measurements on the recorded sampled population; inclusion_rule and sampling_probability identify selection."
+    },
+    "estimator_predictions.csv": {
+      "semantics": "Raw estimator score and an optional signed loss-change prediction. Numerical bit jump is not a signed loss predictor."
+    },
+    "ranking_metrics.csv": {
+      "scopes": ["overall", "layer:<name>", "bit:<index>"],
+      "added_columns": [
+        "top_5_tie_aware_expected_recall",
+        "top_5_random_expected_recall",
+        "top_10_tie_aware_expected_recall",
+        "top_10_random_expected_recall",
+        "top_20_tie_aware_expected_recall",
+        "top_20_random_expected_recall"
+      ],
+      "tie_semantics": "Expected recall randomizes selection only within the estimator-score tie at the top-k boundary, conditional on the recorded empirical top-k set. Random expected recall is k/N. Neither is a whole-network claim for sampled candidates."
+    },
+    "estimator_runtime.csv": {
+      "warning": "Shared per-example gradient time is repeated for dependent estimator rows and must not be summed."
+    }
+  }
+}

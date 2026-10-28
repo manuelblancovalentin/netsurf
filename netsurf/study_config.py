@@ -13,8 +13,8 @@ from .paths import workspace_root
 from .quantization import FixedPointFormat
 
 
-STUDY_SCHEMA_VERSION = "3.1.0"
-SUPPORTED_STUDY_SCHEMA_VERSIONS = {"3.0.0", STUDY_SCHEMA_VERSION}
+STUDY_SCHEMA_VERSION = "3.2.0"
+SUPPORTED_STUDY_SCHEMA_VERSIONS = {"3.0.0", "3.1.0", STUDY_SCHEMA_VERSION}
 SUPPORTED_PROTOCOLS = {
     "single-bit-susceptibility/v1": "single_bit",
     "estimator-validation/v1": "estimator_validation",
@@ -25,6 +25,7 @@ SUPPORTED_ESTIMATORS = {
     "msb_first",
     "random",
     "gradient_magnitude",
+    "numerical_bit_jump",
     "first_order_gradient_delta",
     "per_sample_first_order_magnitude",
     "per_sample_positive_damage",
@@ -38,6 +39,7 @@ ESTIMATOR_IMPLEMENTATION_VERSIONS = {
     "msb_first": "encoded-bit-index/v1",
     "random": "seeded-uniform-score/v1",
     "gradient_magnitude": "absolute-mean-loss-gradient/v2",
+    "numerical_bit_jump": "absolute-affine-xor-jump/v1",
     "first_order_gradient_delta": "signed-gradient-times-exact-delta/v2",
     "per_sample_first_order_magnitude": "mean-absolute-per-example-gradient-times-exact-delta/v1",
     "per_sample_positive_damage": "mean-positive-per-example-gradient-times-exact-delta/v1",
@@ -195,7 +197,7 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
     protocol = document.get("scientific_protocol")
     if protocol not in SUPPORTED_PROTOCOLS:
         raise StudyConfigurationError(f"unsupported schema-3 protocol: {protocol!r}")
-    optional_root = {"replications"} if schema_version == "3.1.0" else set()
+    optional_root = {"replications"} if schema_version != "3.0.0" else set()
     _keys(document, {"schema_version", "scientific_protocol", "experiment", "benchmark", "samples", "candidates", "estimators", "policies", "protection", "fault", "execution", "output"}, optional_root, "root")
 
     experiment = _table(document, "experiment")
@@ -309,13 +311,34 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
     for index, value in enumerate(raw_estimators):
         if not isinstance(value, dict):
             raise StudyConfigurationError(f"estimators[{index}] must be a table")
-        _keys(value, {"name", "implementation_version"}, {"seed", "probes", "result_name"} if schema_version == "3.1.0" else {"seed", "probes"}, f"estimators[{index}]")
+        _keys(value, {"name", "implementation_version"}, {"seed", "probes", "result_name"} if schema_version != "3.0.0" else {"seed", "probes"}, f"estimators[{index}]")
         if value["name"] not in SUPPORTED_ESTIMATORS:
             raise StudyConfigurationError(f"unsupported estimator: {value['name']}")
-        if affine_tflite and value["name"] not in {"msb_first", "random"}:
+        if not affine_tflite and value["name"] == "numerical_bit_jump":
+            raise StudyConfigurationError(
+                "numerical_bit_jump is currently defined only for affine TFLite storage"
+            )
+        if affine_tflite and value["name"] not in {
+            "msb_first",
+            "random",
+            "numerical_bit_jump",
+            "gradient_magnitude",
+            "first_order_gradient_delta",
+            "per_sample_first_order_magnitude",
+            "per_sample_positive_damage",
+        }:
             raise StudyConfigurationError(
                 f"estimator {value['name']!r} is blocked for mlperf_tiny_ic_int8_v1: "
-                "no validated differentiable-to-TFLite parameter mapping exists"
+                "M9 validates only static first-order kernel estimators"
+            )
+        if (
+            affine_tflite
+            and value["name"] not in {"msb_first", "random", "numerical_bit_jump"}
+            and tuple(injectables) != ("kernels",)
+        ):
+            raise StudyConfigurationError(
+                "MLPerf Tiny gradient estimators require injectable_parameters=['kernels']; "
+                "INT32 biases have not passed the M9 differentiable mapping gate"
             )
         if schema_version == "3.0.0" and value["name"] == "per_sample_positive_damage":
             raise StudyConfigurationError("per_sample_positive_damage requires schema_version='3.1.0'")
@@ -370,7 +393,7 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
         raise StudyConfigurationError("protection protocols require at least one policy")
 
     protection = _table(document, "protection")
-    _keys(protection, {"coverages", "mitigation_model"}, {"probabilities"} if schema_version == "3.1.0" else set(), "protection")
+    _keys(protection, {"coverages", "mitigation_model"}, {"probabilities"} if schema_version != "3.0.0" else set(), "protection")
     coverages = tuple(float(value) for value in protection["coverages"])
     if SUPPORTED_PROTOCOLS[protocol] == "protection" and (not coverages or any(not 0 <= value <= 1 for value in coverages)):
         raise StudyConfigurationError("protection protocols require coverages in [0,1]")

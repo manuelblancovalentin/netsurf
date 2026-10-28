@@ -129,7 +129,11 @@ def _execute_single_study(
     advanced_specifications = tuple(
         value for value in configuration.estimators if value.name not in {"msb_first", "random"}
     )
-    if advanced_specifications and codec is None:
+    if (
+        advanced_specifications
+        and codec is None
+        and not callable(getattr(benchmark, "bit_perturbations", None))
+    ):
         raise ValueError("advanced estimators require a validated encoded-delta provider")
     advanced_outputs = iter(
         compute_estimators(
@@ -213,7 +217,11 @@ def _execute_single_study(
         )
         if tracker is not None:
             tracker.update("Ranking analysis", **context)
-        metrics = ranking_quality(empirical, outputs)
+        metrics = ranking_quality(
+            empirical,
+            outputs,
+            tie_aware_baselines=configuration.schema_version == "3.2.0",
+        )
         if tracker is not None:
             tracker.update("Ranking analysis", advance=1, **context)
 

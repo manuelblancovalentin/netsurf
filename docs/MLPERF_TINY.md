@@ -70,26 +70,30 @@ digest during loading and fail before scientific execution on TensorFlow 2.21.
 The non-enforcing constructor switch exists only for explicit backend
 diagnostics such as the M7.1 comparison and is not a TOML experiment option.
 
-Immediately supported after the dataset is resolved:
+Supported after M9:
 
 - deterministic clean TFLite inference;
 - random and word-relative MSB rankings;
 - persistent-trial and per-inference exact stored-bit faults;
 - paired ideal `perfect_event_suppression` masks;
 - bounded exact empirical single-bit measurements.
+- exact numerical affine-XOR jump ranking;
+- kernel-only straight-through gradient magnitude, gradient-times-delta,
+  per-example magnitude and positive-damage estimators.
 
-Blocked pending a separate equivalence gate:
+Still blocked pending separate gates:
 
-- gradient magnitude and gradient times exact delta;
-- per-example magnitude and positive-damage estimators;
+- gradient ranking of INT32 biases;
 - Hessian-derived estimators;
 - every qPolarGrad variant.
 
 The official float Keras checkpoint exists (SHA-256
 `5f938a8eea605438cc7360aa13c987bc6d7bd0c8d931b2917361ae7ae4eeda2f`),
-but its tensors have not been mapped to the fused, per-channel-quantized TFLite
-constants. Clean output agreement and representative exact-bit fault agreement
-must be demonstrated before its gradients can score TFLite bits.
+was mapped diagnostically to the fused, per-channel-quantized TFLite kernels in
+M9. The implemented gradient graph is derived from the TFLite constants and is
+an explicitly recorded straight-through surrogate, not exact TFLite inference.
+See `docs/MLPERF_TINY_M9_STATIC_ESTIMATORS.md` for correspondence results and
+remaining limitations.
 
 ## Configuration fields
 

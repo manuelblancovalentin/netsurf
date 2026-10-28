@@ -50,7 +50,14 @@ protection studies use `trials.csv`, `protection_results.csv`,
 `artifacts/sample_partitions.json`; sampled empirical populations also record
 the inclusion rule and conditional stratum probability. Column contracts and
 null semantics are defined in `netsurf/schemas/measurements/v3.schema.json`
-and `v3_1.schema.json` for their respective versions.
+`v3_1.schema.json`, and `v3_2.schema.json` for their respective versions.
+
+Schema `3.2.0` is additive and is used by the M9 MLPerf Tiny static-estimator
+gate. It adds the explicitly named `numerical_bit_jump` estimator and records
+top-k random expectations plus expected recall under randomized selection at
+an estimator-score tie boundary. The latter remains conditional on the saved
+sampled candidate set; it is not whole-network top-k recall. Schema-3.0 and
+3.1 readers and finalized bundles remain unchanged.
 
 Schema `3.1.0` is additive. It adds:
 

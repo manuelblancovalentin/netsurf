@@ -185,6 +185,7 @@ class MlperfTinyImageClassificationAdapter:
             str, tuple[np.ndarray, np.ndarray, tuple[str, ...]]
         ] = {}
         self._official_index_cache: np.ndarray | None = None
+        self._differentiable_companion = None
 
     def load(self) -> None:
         if self.asset_lock_path is not None:
@@ -502,6 +503,83 @@ class MlperfTinyImageClassificationAdapter:
     def encoded_bit_transition(self, identity: BitIdentity):
         return self._require_loaded().bit_transition(self.values(), identity)
 
+    def bit_perturbations(self) -> dict[str, np.ndarray]:
+        """Exact decoded XOR jumps for the selected affine storage population."""
+
+        from ..mlperf_companion import affine_bit_perturbations
+
+        storage = self._require_loaded()
+        return affine_bit_perturbations(self.values(), storage.descriptors)
+
+    def _companion(self):
+        if self.injectable_parameters != ("kernels",):
+            raise ValueError(
+                "the M9 differentiable companion is validated for INT8 kernels only; "
+                "INT32 biases require an independent mapping gate"
+            )
+        if self._differentiable_companion is None:
+            from ..mlperf_companion import MlperfResnet8DifferentiableCompanion
+
+            self._differentiable_companion = MlperfResnet8DifferentiableCompanion(
+                self._require_loaded().reference_content
+            )
+        return self._differentiable_companion
+
+    def companion_correspondence(
+        self, inputs: np.ndarray, labels: np.ndarray | None = None
+    ) -> dict[str, object]:
+        """Measure, never assume, clean straight-through forward correspondence."""
+
+        from ..mlperf_companion import CompanionCorrespondence
+
+        exact = self.predict_encoded_outputs(inputs)
+        approximate = self._companion().encoded_probabilities(inputs)
+        difference = np.abs(
+            approximate.astype(np.int16) - exact.astype(np.int16)
+        )
+        exact_classes = np.argmax(exact, axis=1)
+        approximate_classes = np.argmax(approximate, axis=1)
+        exact_accuracy = approximate_accuracy = None
+        if labels is not None:
+            label_values = np.asarray(labels, dtype=np.int64)
+            exact_accuracy = float(np.mean(exact_classes == label_values))
+            approximate_accuracy = float(np.mean(approximate_classes == label_values))
+        result = CompanionCorrespondence(
+            sample_count=len(exact),
+            exact_code_fraction=float(np.mean(difference == 0)),
+            exact_output_vector_fraction=float(np.mean(np.all(difference == 0, axis=1))),
+            class_agreement=float(np.mean(exact_classes == approximate_classes)),
+            probability_mae=float(np.mean(difference) / 256.0),
+            probability_max_error=float(np.max(difference) / 256.0),
+            authoritative_accuracy=exact_accuracy,
+            companion_accuracy=approximate_accuracy,
+        )
+        return {
+            **result.to_dict(),
+            "acceptance_criteria": {
+                "minimum_class_agreement": 0.95,
+                "maximum_probability_mae": 0.01,
+                "maximum_accuracy_difference": 0.02,
+            },
+            "accepted": bool(
+                result.class_agreement >= 0.95
+                and result.probability_mae <= 0.01
+                and (
+                    exact_accuracy is None
+                    or abs(exact_accuracy - approximate_accuracy) <= 0.02
+                )
+            ),
+            "warning": (
+                "acceptance authorizes a straight-through ranking surrogate, not "
+                "replacement of authoritative TFLite inference"
+            ),
+        }
+
+    def companion_kernel_correspondence(self, hdf5_checkpoint: Path):
+        """Return the per-layer HDF5-to-TFLite kernel mapping diagnostic."""
+
+        return self._companion().keras_kernel_correspondence(hdf5_checkpoint)
+
     def evaluate_fault_schedule(
         self,
         inputs: np.ndarray,
@@ -559,6 +637,8 @@ class MlperfTinyImageClassificationAdapter:
             ),
             **self._require_loaded().manifest(),
         }
+        if self._differentiable_companion is not None:
+            result["differentiable_companion"] = self._differentiable_companion.manifest()
         if self.asset_lock is not None:
             result["asset_lock"] = self.asset_lock.manifest()
         return result
@@ -617,11 +697,13 @@ class MlperfTinyImageClassificationAdapter:
         }
 
     def gradients(self, inputs, labels):
-        raise NotImplementedError(
-            "gradient ranking is blocked until the official differentiable checkpoint is mapped "
-            "and fault-equivalence-validated against the INT8 TFLite graph"
-        )
+        return self._companion().gradients(inputs, labels)
 
-    per_example_gradients = gradients
-    hessian_vector_product = gradients
-    polar_impacts = gradients
+    def per_example_gradients(self, inputs, labels):
+        return self._companion().per_example_gradients(inputs, labels)
+
+    def hessian_vector_product(self, inputs, labels, vectors):
+        raise NotImplementedError("M9 does not validate a TFLite companion Hessian")
+
+    def polar_impacts(self, inputs, activation_source):
+        raise NotImplementedError("M9 does not define qPolarGrad for ResNet-8")

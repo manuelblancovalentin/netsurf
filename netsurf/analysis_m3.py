@@ -53,6 +53,7 @@ def ranking_quality(
     estimator_outputs,
     *,
     top_ks: Sequence[int] = (5, 10, 20),
+    tie_aware_baselines: bool = False,
 ) -> tuple[dict[str, object], ...]:
     measured = {value.identity: value for value in measurements}
     rows: list[dict[str, object]] = []
@@ -91,6 +92,27 @@ def ranking_quality(
                 overlap = len(set(empirical_order[:k]) & set(predicted_order[:k]))
                 row[f"top_{requested}_recall"] = overlap / k
                 row[f"top_{requested}_overlap"] = overlap
+                if tie_aware_baselines:
+                    threshold = float(output.scores[predicted_order[k - 1]])
+                    strict = {
+                        value for value in identities
+                        if float(output.scores[value]) > threshold
+                    }
+                    tied_boundary = {
+                        value for value in identities
+                        if float(output.scores[value]) == threshold
+                    }
+                    empirical_top = set(empirical_order[:k])
+                    draws = k - len(strict)
+                    expected_overlap = len(strict & empirical_top)
+                    if tied_boundary and draws:
+                        expected_overlap += (
+                            draws * len(tied_boundary & empirical_top) / len(tied_boundary)
+                        )
+                    row[f"top_{requested}_tie_aware_expected_recall"] = (
+                        expected_overlap / k
+                    )
+                    row[f"top_{requested}_random_expected_recall"] = k / len(identities)
             if output.signed_predictions is not None:
                 predicted = np.asarray([output.signed_predictions[value] for value in identities], dtype=np.float64)
                 actual = np.asarray(signed, dtype=np.float64)

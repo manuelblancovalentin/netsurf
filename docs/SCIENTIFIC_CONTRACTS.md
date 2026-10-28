@@ -167,10 +167,10 @@ both include allocated zeros. Experiments select kernels alone or kernels plus
 biases explicitly; equal logical BER across those storage classes is a model
 assumption, not a physical exposure claim. Exact XOR occurs in a private
 flatbuffer copy.
-Scales, zero points, activations and graph metadata are excluded. Random and
-word-relative MSB rankings are accepted. Gradient and curvature rankings are
-blocked until a differentiable companion is tensor-mapped and its clean and
-faulted behavior validated against the reference TFLite runtime. The numerical
+Scales, zero points, activations and graph metadata are excluded. Random,
+word-relative MSB, numerical-jump and kernel-only straight-through first-order
+rankings are accepted. The companion is not authoritative inference; INT32
+bias gradients, curvature and qPolarGrad remain blocked. The numerical
 backend is part of benchmark identity: the registered TensorFlow Lite 2.14.1
 `BUILTIN_REF` outputs are not byte-equivalent to TensorFlow 2.21 even when the
 same resolver name is selected. See `docs/MLPERF_TINY.md`.
@@ -269,3 +269,12 @@ Post-pruning topology records exact parameter and encoded-bit counts, dense MAC
 count, and packed encoded storage bytes. MAC reduction is not a FIT reduction
 without an approved physical exposure model. Each pruned model is evaluated
 relative to its own clean baseline.
+## MLPerf Tiny differentiable companion
+
+The MLPerf Tiny ResNet-8 differentiable companion is a static susceptibility
+surrogate, never an inference authority. Its variables are dequantized values
+of the exact frozen TFLite INT8 kernel buffers. TFLite 2.14.1 `BUILTIN_REF`
+remains authoritative for every clean and faulted measurement. Straight-
+through gradients, exact affine XOR jumps, and empirical TFLite damage must be
+identified separately in manifests and reports. M9 excludes INT32 biases from
+gradient-based ranking until they pass an independent mapping gate.

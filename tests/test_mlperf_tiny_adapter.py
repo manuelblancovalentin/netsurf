@@ -58,7 +58,7 @@ def test_modern_adapter_import_has_no_deprecated_runtime_dependencies():
     assert not [name for name in loaded if name.startswith(forbidden)]
 
 
-def test_mlperf_identity_records_dataset_and_gradient_blockers():
+def test_mlperf_identity_records_dataset_and_m9_gradient_boundary():
     identity = load_benchmark_identity("mlperf_tiny_ic_resnet8_int8_v1")
     assert identity["source"]["checkpoint_sha256"] == (
         "3c002613d1b2475eb51dd78dfb85a546c8ae658dee71cf6ade43b022fe205415"
@@ -66,7 +66,8 @@ def test_mlperf_identity_records_dataset_and_gradient_blockers():
     assert identity["faultable_storage"]["eligible_scalars"] == 77_706
     assert identity["faultable_storage"]["eligible_bits"] == 629_952
     assert identity["task"]["measured_clean_performance"]["official_subset_200_accuracy"] == 0.875
-    assert "tensor-mapped" in identity["capabilities"]["gradient_blocker"]
+    assert "straight-through" in identity["capabilities"]["differentiable_companion"]
+    assert "gradient rankings over INT32 biases" in identity["capabilities"]["blocked_rankings"]
 
 
 def test_mlperf_configuration_accepts_only_exact_storage_contract():
@@ -98,10 +99,8 @@ def test_mlperf_configuration_accepts_only_exact_storage_contract():
             wrong_backend, Path("/tmp/mlperf.toml"), check_inputs=False
         )
 
-    invalid = _modern_document()
-    invalid["estimators"][0]["name"] = "first_order_gradient_delta"
-    with pytest.raises(ConfigurationError, match="differentiable checkpoint"):
-        validate_experiment_document(invalid, Path("/tmp/mlperf.toml"), check_inputs=False)
+    # Schema-2 remains a historical runner; M9 first-order support is exposed
+    # through the schema-3 study interface and kernel-only population.
 
     invalid = _modern_document()
     invalid["estimators"][0]["policy"] = "position_first"
@@ -179,6 +178,47 @@ plots = false
     path.write_text(invalid, encoding="utf-8")
     with pytest.raises(StudyConfigurationError, match="raw bit_significance_desc"):
         load_study(path, check_inputs=False)
+
+
+def test_schema3_accepts_m9_kernel_estimators_and_rejects_bias_gradients(tmp_path):
+    source = Path(__file__).resolve().parents[1] / "config/experiments/m9_resnet8_static_estimator_validation_v1.toml"
+    configuration = load_study(source, check_inputs=False)
+    assert configuration.benchmark.injectable_parameters == ("kernels",)
+    assert {value.name for value in configuration.estimators} == {
+        "msb_first", "numerical_bit_jump", "first_order_gradient_delta",
+        "per_sample_first_order_magnitude", "per_sample_positive_damage", "random",
+    }
+
+    invalid = source.read_text(encoding="utf-8").replace(
+        'injectable_parameters = ["kernels"]',
+        'injectable_parameters = ["kernels", "biases"]',
+        1,
+    )
+    path = tmp_path / "invalid.toml"
+    path.write_text(invalid, encoding="utf-8")
+    with pytest.raises(StudyConfigurationError, match="INT32 biases"):
+        load_study(path, check_inputs=False)
+
+
+def test_affine_bit_perturbations_match_scalar_xor_for_all_int8_codes():
+    from netsurf.affine_quantization import AffineQuantization, affine_bit_transition
+    from netsurf.mlperf_companion import affine_bit_perturbations
+    from netsurf.tflite_storage import TFLiteTensorDescriptor
+
+    encoded = np.arange(-128, 128, dtype=np.int8).reshape(2, 128)
+    descriptor = TFLiteTensorDescriptor(
+        "kernel", 8, 1, "kernel", "kernel", encoded.shape, "int8", 8,
+        AffineQuantization((0.25, 0.5), (0, 0), 0),
+    )
+    matrix = affine_bit_perturbations({"kernel": encoded}, (descriptor,))["kernel"]
+    for flat_index in range(encoded.size):
+        for bit_index in range(8):
+            transition = affine_bit_transition(
+                encoded, descriptor.quantization, flat_index, bit_index
+            )
+            assert matrix.reshape(-1, 8)[flat_index, bit_index] == pytest.approx(
+                transition[3] - transition[2]
+            )
 
 
 def _write_batch(path: Path, count: int, label_offset: int) -> None:
@@ -384,6 +424,37 @@ def test_official_tflite_storage_identity_xor_protection_and_restore(tmp_path):
     )
     assert faulted_report.applied_events == 2
     assert np.array_equal(adapter.predict_outputs(synthetic), first)
+
+
+@pytest.mark.skipif(
+    not (_official_model().is_file() and _official_dataset().is_file()),
+    reason="verified MLPerf Tiny image-classification assets are absent",
+)
+def test_m9_companion_gradients_correspondence_and_exact_delta():
+    from netsurf.adapters.mlperf_tiny import MlperfTinyImageClassificationAdapter
+
+    adapter = MlperfTinyImageClassificationAdapter(
+        _official_model(), _official_dataset(),
+        injectable_parameters=("kernels",), require_reference_equivalence=False,
+    )
+    adapter.load()
+    inputs, labels, _ = adapter.sample_partition("ranking", 2)
+    before = adapter.predict_encoded_outputs(inputs)
+    correspondence = adapter.companion_correspondence(inputs, labels)
+    assert correspondence["accepted"] is True
+    assert correspondence["class_agreement"] >= 0.95
+
+    gradients = adapter.gradients(inputs, labels)
+    assert len(gradients) == 10
+    assert sum(value.size for value in gradients.values()) == 77_360
+    assert all(np.isfinite(value).all() for value in gradients.values())
+
+    identity = next(value for value in adapter.bit_identities() if value.bit_index == 7)
+    transition = adapter.encoded_bit_transition(identity)
+    deltas = adapter.bit_perturbations()
+    observed = deltas[identity.parameter].reshape(-1, 8)[identity.flat_index, 7]
+    assert observed == pytest.approx(transition[3] - transition[2])
+    assert np.array_equal(adapter.predict_encoded_outputs(inputs), before)
 
 
 @pytest.mark.skipif(not _official_model().is_file(), reason="official pinned TFLite asset is absent")

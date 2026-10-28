@@ -5,7 +5,7 @@ import numpy as np
 from netsurf.analysis_m3 import ranking_quality
 from netsurf.adapters.numpy_reference import NumpyReferenceAdapter
 from netsurf.empirical import measure_single_bits, select_all
-from netsurf.estimators_m3 import compute_estimator
+from netsurf.estimators_m3 import EstimatorOutput, compute_estimator
 from netsurf.experiment_config import load_experiment
 from netsurf.quantization import BitCodec, FixedPointFormat
 from netsurf.samples import require_disjoint
@@ -40,6 +40,22 @@ def test_exact_empirical_reference_records_signed_damage_and_restores_state():
     assert any(value.signed_loss_difference < 0.0 for value in measurements)
     assert any(value.accuracy_damage > 0.0 for value in measurements)
     assert all(np.array_equal(before[name], adapter.values()[name]) for name in before)
+
+
+def test_tie_aware_top_k_expected_recall_randomizes_boundary_only():
+    adapter, codec = _reference()
+    inputs, labels, partition = adapter.sample_partition("empirical_validation", 2)
+    measurements = measure_single_bits(
+        adapter, inputs, labels, select_all(adapter.bit_identities()[:4]), codec,
+        evaluation_sample_sha256=partition.sample_sha256,
+    )
+    scores = {value.identity: 1.0 for value in measurements}
+    output = EstimatorOutput("tied", "test/v1", scores, None, 0.0, {})
+    row = ranking_quality(
+        measurements, (output,), top_ks=(2,), tie_aware_baselines=True
+    )[0]
+    assert row["top_2_tie_aware_expected_recall"] == 0.5
+    assert row["top_2_random_expected_recall"] == 0.5
 
 
 def test_exact_hessian_hvp_and_estimator_metrics_are_numerically_characterized():
