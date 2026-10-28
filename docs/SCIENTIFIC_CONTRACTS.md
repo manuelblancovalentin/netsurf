@@ -163,12 +163,17 @@ schema before adapter registration.
 
 `mlperf_tiny_ic_resnet8_int8_v1` uses the official affine-quantized TFLite
 constant buffers, not `q<6,2,1>`. Kernels are INT8 and fused biases are INT32;
-both include allocated zeros. Exact XOR occurs in a private flatbuffer copy.
+both include allocated zeros. Experiments select kernels alone or kernels plus
+biases explicitly; equal logical BER across those storage classes is a model
+assumption, not a physical exposure claim. Exact XOR occurs in a private
+flatbuffer copy.
 Scales, zero points, activations and graph metadata are excluded. Random and
 word-relative MSB rankings are accepted. Gradient and curvature rankings are
 blocked until a differentiable companion is tensor-mapped and its clean and
-faulted behavior validated against the reference TFLite runtime. See
-`docs/MLPERF_TINY.md`.
+faulted behavior validated against the reference TFLite runtime. The numerical
+backend is part of benchmark identity: the registered TensorFlow Lite 2.14.1
+`BUILTIN_REF` outputs are not byte-equivalent to TensorFlow 2.21 even when the
+same resolver name is selected. See `docs/MLPERF_TINY.md`.
 
 ## M4.1 independent final comparison
 

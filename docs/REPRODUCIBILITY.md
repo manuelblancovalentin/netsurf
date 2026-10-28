@@ -628,8 +628,11 @@ netsurf benchmarks info mlperf_tiny_ic_resnet8_int8_v1
 netsurf benchmarks identity mlperf_tiny_ic_resnet8_int8_v1
 ```
 
-The official TFLite model is present through Kona Assets, but CIFAR-10 is not
-currently resolved on Kona. Do not run or publish a task-quality experiment
-until Kona Assets supplies a verified dataset path. Exact supported fields,
-blocked estimators, storage counts and researcher-authored command structure
-are documented in `docs/MLPERF_TINY.md`.
+The official TFLite model, CIFAR-10 Python archive, official 200-image index,
+and label identities are present through a verified neutral Kona Assets lock.
+Use `asset_lock`, `inference_backend = "tensorflow_lite_builtin_ref_v1"`, and
+an explicit `injectable_parameters` population. The registered output identity
+requires TensorFlow Lite 2.14.1 `BUILTIN_REF`, no delegates, one thread;
+TensorFlow 2.21 preserves clean accuracy but is not byte-equivalent. Exact
+fields, output digests, storage counts, blocked estimators and commands are in
+`docs/MLPERF_TINY.md`.

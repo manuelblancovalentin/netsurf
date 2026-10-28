@@ -12,12 +12,12 @@ SHA-256
 Kona Assets owns retrieval and path resolution; NetSuRF consumes the verified
 path read-only.
 
-The model is locally present in the Kona Assets model cache. The required
-official CIFAR-10 Python batches are not present as of 2026-10-27. Therefore
-the TFLite graph, storage mapping, deterministic synthetic inference and exact
-fault path are validated, while CIFAR-10 accuracy, cross-entropy and the
-official 0.85 quality target are **not measured**. A synthetic input is not a
-substitute for task validation.
+The model and official CIFAR-10 Python batches are locally present and verified
+by the neutral Kona Assets lock `mlperf-tiny/ic`, digest
+`sha256:f953370a8b98f7a016e6907e4b001f3b099bbe216c3202d0306fbbca00702687`.
+NetSuRF independently verifies the lock digest plus every recorded file size
+and SHA-256 without importing `kona_assets`. The archive SHA-256 is
+`6d958be074577803d12ecdefd02955f39262c83c16fe9348329d7fe0b5c001ce`.
 
 ## Representation and eligible population
 
@@ -30,6 +30,11 @@ fully-connected operators:
 | kernels | 10 | signed INT8 | 77,360 | 618,880 |
 | fused biases | 10 | signed INT32 | 346 | 11,072 |
 | total | 20 | mixed width | 77,706 | 629,952 |
+
+Experiments explicitly select either `injectable_parameters = ["kernels"]`
+(618,880 bits) or `injectable_parameters = ["kernels", "biases"]` (629,952
+bits). Equal logical BER across INT8 kernels and INT32 biases is a software
+fault-model assumption, not evidence of equal physical upset exposure.
 
 All 811 zero-valued allocated words remain eligible. Tensor scales, zero
 points, activations, non-parameter constants and graph metadata are excluded.
@@ -45,10 +50,25 @@ adapter because raw indices 31 and 7 are not comparable.
 
 ## Runtime and ranking boundary
 
-The adapter prefers `ai_edge_litert` when installed and otherwise uses the
-installed `tensorflow.lite.Interpreter` fallback. The fallback is deprecated
-upstream in TensorFlow 2.21 but remains functional; NetSuRF does not hide that
-warning or install its replacement.
+The registered numerical identity is TensorFlow Lite 2.14.1
+`BUILTIN_REF`, no delegates, one thread. It exactly reproduces the official
+200-output digest
+`f045f8f11e923bb37c467d1969e3e53c5b966061f1134688bd69b3e7f01338b9`
+and accuracy 0.875, and the 10,000-output digest
+`2cd2747d949fe123a144160c6e2b8c45277c438812803058c49cb4a123b9cfd1`
+with accuracy 0.8707.
+
+TensorFlow 2.21 is **not byte-equivalent**, even with `BUILTIN_REF`: 5 of the
+200 output arrays change (13 integer elements, maximum absolute difference 8),
+although predictions and 0.875 accuracy are preserved. The optimized built-in
+path changes 87 arrays and 3 predictions (maximum 54); AUTO/XNNPACK changes 98
+arrays and 3 predictions (maximum 79). NetSuRF therefore records the runtime,
+resolver, delegates and thread count. Reference scientific execution requires
+the recorded 2.14.1 backend or a newly reviewed output-equivalence gate.
+Normal lock-backed experiment adapters enforce the registered 200-output
+digest during loading and fail before scientific execution on TensorFlow 2.21.
+The non-enforcing constructor switch exists only for explicit backend
+diagnostics such as the M7.1 comparison and is not a TOML experiment option.
 
 Immediately supported after the dataset is resolved:
 
@@ -85,12 +105,14 @@ adapter = "mlperf_tiny_ic_int8_v1"
 id = "mlperf_tiny_ic_resnet8_int8_v1"
 checkpoint = "/verified/path/pretrainedResnet_quant.tflite"
 dataset = "/verified/path/cifar-10-python.tar.gz"
-split = "test"
+asset_lock = "/verified/path/ic.lock.json"
+inference_backend = "tensorflow_lite_builtin_ref_v1"
+split = "official_subset_200" # or "test" for the complete 10,000 images
 evaluation_samples = 32
 ranking_samples = 32
 quantization = "tflite_affine_int8"
 quantization_backend = "tflite_affine_integer_v1"
-injectable_parameters = ["kernels", "biases"]
+injectable_parameters = ["kernels", "biases"] # alternatively ["kernels"]
 
 [[estimators]]
 name = "msb_first"
@@ -141,4 +163,3 @@ specialize classification accuracy and categorical cross-entropy. Future
 reconstruction MSE, anomaly ROC-AUC, negative log-likelihood and perplexity
 must retain their names and receive a reviewed result schema; they are never
 relabeled as classification metrics.
-
