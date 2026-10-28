@@ -149,7 +149,7 @@ def measure_single_bits(
     inputs: np.ndarray,
     labels: np.ndarray,
     candidates: Sequence[CandidateSelection],
-    codec: BitCodec,
+    codec: BitCodec | None,
     *,
     evaluation_sample_sha256: str,
     progress=None,
@@ -164,13 +164,25 @@ def measure_single_bits(
     measurements: list[SingleBitMeasurement] = []
     for candidate in candidates:
         identity = candidate.identity
-        changed = adapter.values()
-        flat = changed[identity.parameter].reshape(-1)
-        original_encoded = int(codec.encode(flat[identity.flat_index]))
-        flipped_encoded = int(codec.flip(np.uint64(original_encoded), identity.bit_index))
-        original_value = float(codec.decode(np.uint64(original_encoded)))
-        flipped_value = float(codec.decode(np.uint64(flipped_encoded)))
-        flat[identity.flat_index] = flipped_value
+        transition = getattr(adapter, "encoded_bit_transition", None)
+        if callable(transition):
+            (
+                original_encoded,
+                flipped_encoded,
+                original_value,
+                flipped_value,
+                changed,
+            ) = transition(identity)
+        else:
+            if codec is None:
+                raise ValueError("empirical injection requires a codec or adapter bit transition")
+            changed = adapter.values()
+            flat = changed[identity.parameter].reshape(-1)
+            original_encoded = int(codec.encode(flat[identity.flat_index]))
+            flipped_encoded = int(codec.flip(np.uint64(original_encoded), identity.bit_index))
+            original_value = float(codec.decode(np.uint64(original_encoded)))
+            flipped_value = float(codec.decode(np.uint64(flipped_encoded)))
+            flat[identity.flat_index] = flipped_value
         started = perf_counter()
         with adapter.temporary_values(changed):
             faulted = adapter.evaluate(inputs, labels)

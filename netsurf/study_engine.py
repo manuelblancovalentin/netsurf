@@ -97,7 +97,11 @@ def _execute_single_study(
 ) -> StudyOutcome:
     """Execute a validated M3 study without writing any files."""
 
-    codec = BitCodec(FixedPointFormat.parse(configuration.benchmark.quantization))
+    codec = (
+        None
+        if configuration.benchmark.quantization_backend == "tflite_affine_integer_v1"
+        else BitCodec(FixedPointFormat.parse(configuration.benchmark.quantization))
+    )
     context = {"replication": replication_index, "replications": replication_count}
     if tracker is not None:
         tracker.update("Model loading", **context)
@@ -125,11 +129,28 @@ def _execute_single_study(
     advanced_specifications = tuple(
         value for value in configuration.estimators if value.name not in {"msb_first", "random"}
     )
-    advanced_outputs = iter(compute_estimators(
-        advanced_specifications, benchmark, ranking_x, ranking_y, identities, codec,
-    ))
+    if advanced_specifications and codec is None:
+        raise ValueError("advanced estimators require a validated encoded-delta provider")
+    advanced_outputs = iter(
+        compute_estimators(
+            advanced_specifications, benchmark, ranking_x, ranking_y, identities, codec,
+        )
+    )
     for specification in configuration.estimators:
-        output = basic_estimator(specification.name, identities, seed=specification.seed) if specification.name in {"msb_first", "random"} else next(advanced_outputs)
+        if specification.name == "msb_first" and callable(getattr(benchmark, "msb_scores", None)):
+            scores, metadata = benchmark.msb_scores(identities)
+            output = EstimatorOutput(
+                "msb_first",
+                str(metadata["implementation_version"]),
+                scores,
+                None,
+                0.0,
+                metadata,
+            )
+        elif specification.name in {"msb_first", "random"}:
+            output = basic_estimator(specification.name, identities, seed=specification.seed)
+        else:
+            output = next(advanced_outputs)
         if output.implementation_version != specification.implementation_version:
             raise ValueError(
                 f"estimator {specification.name} implementation version mismatch: "
@@ -329,12 +350,19 @@ def _execute_single_study(
     representation = getattr(benchmark, "representation_manifest", None)
     if callable(representation):
         benchmark_payload["representation"] = representation()
+    task_metrics = getattr(benchmark, "task_metric_manifest", None)
+    if callable(task_metrics):
+        benchmark_payload["task_metrics"] = task_metrics()
+    quantization_manifest = getattr(benchmark, "quantization_manifest", None)
+    quantization_payload = (
+        quantization_manifest() if callable(quantization_manifest) else codec.format.to_dict()
+    )
     scientific_payload = _finite({
         "schema": "netsurf-m3-study/v1",
         "replication": {"name": replication_name, "sample_offset": sample_offset},
         "scientific_protocol": configuration.scientific_protocol,
         "benchmark": benchmark_payload,
-        "quantization": codec.format.to_dict(),
+        "quantization": quantization_payload,
         "estimator_definitions": {output.name: {"implementation_version": output.implementation_version, **dict(output.metadata)} for output in outputs},
         "candidate_selection": list(candidate_rows),
         "empirical_measurements": empirical_payload,

@@ -99,7 +99,7 @@ def _construct_rankings(
     ranking_inputs: np.ndarray,
     ranking_labels: np.ndarray,
     checkpoint_state: Mapping[str, np.ndarray],
-    codec: BitCodec,
+    codec: BitCodec | None,
 ) -> tuple[tuple[Ranking, ...], Mapping[str, Ranking], Mapping[str, float]]:
     requested = {value.name for value in configuration.estimators}
     needs_gradients = bool(
@@ -113,6 +113,8 @@ def _construct_rankings(
     gradients = (
         adapter.gradients(ranking_inputs, ranking_labels) if needs_gradients else {}
     )
+    if "first_order_gradient_delta" in requested and codec is None:
+        raise ValueError("first-order gradient-delta ranking requires an encoded-delta provider")
     deltas = (
         {
             name: codec.perturbation_matrix(value)
@@ -136,7 +138,12 @@ def _construct_rankings(
                 activation_source=source,
             )
         elif specification.name == "msb_first":
-            ranking = MSBEstimator().estimate(identities)
+            adapter_scores = getattr(adapter, "msb_scores", None)
+            if callable(adapter_scores):
+                scores, metadata = adapter_scores(identities)
+                ranking = Ranking("msb_first", scores, metadata)
+            else:
+                ranking = MSBEstimator().estimate(identities)
         elif specification.name == "random":
             ranking = RandomEstimator(
                 configuration.execution.random_ranking_seed
@@ -181,8 +188,14 @@ def _evaluate_faulted(
     checkpoint_state: Mapping[str, np.ndarray],
     schedule: FaultSchedule,
     mask: ProtectionMask,
-    codec: BitCodec,
+    codec: BitCodec | None,
 ) -> tuple[float, float, Any]:
+    adapter_evaluation = getattr(adapter, "evaluate_fault_schedule", None)
+    if callable(adapter_evaluation):
+        evaluation, accounting = adapter_evaluation(inputs, labels, schedule, mask)
+        return evaluation.accuracy, evaluation.categorical_crossentropy, accounting
+    if codec is None:
+        raise ValueError("adapter has neither an owned fault evaluator nor a fixed-point codec")
     if schedule.model.persistence == "persistent_trial":
         corrupted, accounting = apply_persistent_schedule(checkpoint_state, schedule, mask, codec)
         with adapter.temporary_values(corrupted):
@@ -229,7 +242,11 @@ def execute_experiment(
         configuration.name, experiment_operation_plan(configuration), progress
     )
     tracker.update("Model loading")
-    codec = BitCodec(FixedPointFormat.parse(configuration.benchmark.quantization))
+    codec = (
+        None
+        if configuration.benchmark.quantization_backend == "tflite_affine_integer_v1"
+        else BitCodec(FixedPointFormat.parse(configuration.benchmark.quantization))
+    )
     benchmark_adapter = adapter or create_adapter(configuration, codec)
     benchmark_adapter.load()
     tracker.update("Model loading", advance=1)
@@ -426,7 +443,7 @@ def execute_experiment(
         None,
     )
     full_msb_equivalent = False
-    if qpolar_name is not None and msb_name is not None:
+    if qpolar_name is not None and msb_name is not None and codec is not None:
         full_tier = 1.0 / codec.format.total_bits
         full_msb_equivalent = (
             ProtectionPolicy.position_first(
@@ -438,6 +455,35 @@ def execute_experiment(
         )
 
     tracker.update("Scientific aggregation")
+    preprocessing = getattr(benchmark_adapter, "preprocessing_manifest", None)
+    quantization_manifest = getattr(benchmark_adapter, "quantization_manifest", None)
+    quantization_verification = getattr(benchmark_adapter, "quantization_verification", None)
+    normalization = (
+        preprocessing()
+        if callable(preprocessing)
+        else {
+            "source_range": [0, 255],
+            "target_range": [codec.format.value_min, codec.format.value_max],
+        }
+    )
+    quantization_payload = (
+        quantization_manifest() if callable(quantization_manifest) else codec.format.to_dict()
+    )
+    verification_payload = (
+        quantization_verification()
+        if callable(quantization_verification)
+        else {
+            "maximum_absolute_quantization_error": max(quantization_errors.values()),
+            "per_parameter_maximum_absolute_error": quantization_errors,
+            "encoded_values_round_trip": all(
+                np.array_equal(
+                    codec.encode(codec.decode(codec.encode(value))),
+                    codec.encode(value),
+                )
+                for value in checkpoint_state.values()
+            ),
+        }
+    )
     scientific_payload: dict[str, Any] = {
         "schema": (
             "netsurf-quantized-weight-experiment/v2"
@@ -451,17 +497,14 @@ def execute_experiment(
             "split": configuration.benchmark.split,
             "sample_count": configuration.benchmark.evaluation_samples,
             "ranking_sample_count": configuration.benchmark.ranking_samples,
-            "normalization": {
-                "source_range": [0, 255],
-                "target_range": [codec.format.value_min, codec.format.value_max],
-            },
+            "normalization": normalization,
             "trainable_scalars": sum(
                 specification.size
                 for specification in benchmark_adapter.parameter_specs()
             ),
             "logical_bits": len(identities),
         },
-        "quantization": codec.format.to_dict(),
+        "quantization": quantization_payload,
         "fault_model": asdict(fault_model),
         "configuration": {
             "trials": configuration.execution.trials,
@@ -474,17 +517,7 @@ def execute_experiment(
             - 1,
         },
         "baseline": {"checkpoint": asdict(checkpoint_baseline)},
-        "quantization_verification": {
-            "maximum_absolute_quantization_error": max(quantization_errors.values()),
-            "per_parameter_maximum_absolute_error": quantization_errors,
-            "encoded_values_round_trip": all(
-                np.array_equal(
-                    codec.encode(codec.decode(codec.encode(value))),
-                    codec.encode(value),
-                )
-                for value in checkpoint_state.values()
-            ),
-        },
+        "quantization_verification": verification_payload,
         "rankings": {
             ranking.estimator: {"sha256": ranking.digest(), **ranking.metadata}
             for ranking in rankings
@@ -497,7 +530,9 @@ def execute_experiment(
             "fault_schedules": digest_object(exact_schedules),
         },
         "checks": {
-            "codec_exhaustive": _codec_exhaustive(codec),
+            "codec_exhaustive": (
+                _codec_exhaustive(codec) if codec is not None else "not_applicable_affine_tflite"
+            ),
             "full_msb_mask_equivalent": full_msb_equivalent,
             "state_restored": pre_trials_state == post_trials_state,
             "matched_schedules": all(
@@ -537,6 +572,9 @@ def execute_experiment(
         representation = getattr(benchmark_adapter, "representation_manifest", None)
         if callable(representation):
             scientific_payload["benchmark"]["representation"] = representation()
+        task_metrics = getattr(benchmark_adapter, "task_metric_manifest", None)
+        if callable(task_metrics):
+            scientific_payload["benchmark"]["task_metrics"] = task_metrics()
     result = ExperimentOutcome(
         configuration,
         scientific_payload,

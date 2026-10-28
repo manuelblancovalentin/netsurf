@@ -36,6 +36,7 @@ IDENTITY_FILES = {
     "mnist_lite_exact_kb_v1": "mnist_lite_exact_kb_v1.json",
     "keyword_spotting_candidate": "keyword_spotting_candidate.v1.json",
     "toyadmos_autoencoder_candidate": "toyadmos_autoencoder_candidate.v1.json",
+    "mlperf_tiny_ic_resnet8_int8_v1": "mlperf_tiny_ic_resnet8_int8_v1.json",
 }
 SUPPORTED_ENCODED_ROLES = frozenset({"kernel", "bias"})
 

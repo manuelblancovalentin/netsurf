@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from importlib.util import find_spec
+import os
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +42,17 @@ class BenchmarkDescriptor:
                 reasons.append("missing dataset: mnist/mnist.npz")
             if not (workspace_root() / "benchmarks" / "mnist_quantized" / "checkpoint.npz").is_file():
                 reasons.append("missing checkpoint: run benchmarks prepare")
+        if self.name == "mlperf_tiny_ic_resnet8_int8_v1":
+            model = os.environ.get("NETSURF_MLPERF_TINY_IC_MODEL")
+            dataset = os.environ.get("NETSURF_CIFAR10_PYTHON")
+            if not model or not Path(model).is_file():
+                reasons.append(
+                    "missing checkpoint path: set NETSURF_MLPERF_TINY_IC_MODEL to the verified TFLite file"
+                )
+            if not dataset or not Path(dataset).exists():
+                reasons.append(
+                    "missing dataset path: set NETSURF_CIFAR10_PYTHON to the verified CIFAR-10 Python archive"
+                )
         if reasons:
             status = "missing dependency" if any("dependency" in value for value in reasons) else "missing checkpoint" if any("checkpoint" in value for value in reasons) else "missing dataset"
             return status, tuple(reasons)
@@ -100,6 +112,26 @@ _REGISTRY = {
         ("weight",), ("persistent_trial", "per_inference"), (),
         "bounded exact-kernel/bias inference validated; not a manuscript reproduction",
         ("tensorflow",), False, eligible_parameter_count=7960, eligible_bit_count=47760,
+    ),
+    "mlperf_tiny_ic_resnet8_int8_v1": BenchmarkDescriptor(
+        "mlperf_tiny_ic_resnet8_int8_v1",
+        "mlperf_tiny_ic_int8_v1",
+        "MLPerf Tiny CIFAR-10 10-class image classification",
+        "official MLPerf Tiny ResNet-8 INT8 TFLite graph",
+        77706,
+        "TFLite affine int8 kernels and int32 fused biases",
+        "tflite_affine_integer_v1",
+        "official CIFAR-10 Python batches; not currently present on Kona",
+        "Kona Assets mlperf-tiny-ic-int8@pinned, SHA-256 3c002613...5415",
+        ("msb_first", "random", "empirical_single_bit"),
+        ("weight",),
+        ("persistent_trial", "per_inference"),
+        ("official TFLite Micro deployment artifact; hardware equivalence not revalidated" ,),
+        "exact storage and private-copy fault path validated; clean task accuracy blocked by missing dataset",
+        ("tensorflow",),
+        False,
+        eligible_parameter_count=77706,
+        eligible_bit_count=629952,
     ),
 }
 

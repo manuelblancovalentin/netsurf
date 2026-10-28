@@ -35,11 +35,15 @@ def test_benchmark_registry_and_doctor_are_explicit():
         "mnist_quantized",
         "legacy_mnist_lite",
         "mnist_lite_exact_kb_v1",
+        "mlperf_tiny_ic_resnet8_int8_v1",
     } <= names
     exact = benchmark_info("mnist_lite_exact_kb_v1").to_dict()
     assert exact["parameter_count"] == 7_980
     assert exact["eligible_parameter_count"] == 7_960
     assert exact["eligible_bit_count"] == 47_760
+    mlperf = benchmark_info("mlperf_tiny_ic_resnet8_int8_v1").to_dict()
+    assert mlperf["eligible_parameter_count"] == 77_706
+    assert mlperf["eligible_bit_count"] == 629_952
     descriptor = benchmark_info("numpy_reference")
     assert descriptor.parameter_count == 17
     assert descriptor.supported_fault_targets == ("weight",)

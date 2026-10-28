@@ -201,12 +201,25 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
         "numpy_activation_cancellation",
         "mnist_quantized",
         "mnist_lite_exact_kb_v1",
+        "mlperf_tiny_ic_int8_v1",
     }:
         raise StudyConfigurationError("unsupported schema-3 benchmark adapter")
     checkpoint, dataset = _path(str(benchmark["checkpoint"]), source), _path(str(benchmark["dataset"]), source)
     if check_inputs and (not checkpoint.is_file() or not dataset.is_file()):
         raise StudyConfigurationError(f"missing checkpoint or dataset: {checkpoint}, {dataset}")
-    FixedPointFormat.parse(str(benchmark["quantization"]))
+    affine_tflite = benchmark["adapter"] == "mlperf_tiny_ic_int8_v1"
+    if affine_tflite:
+        if str(benchmark["quantization"]) != "tflite_affine_int8":
+            raise StudyConfigurationError(
+                "mlperf_tiny_ic_int8_v1 requires quantization='tflite_affine_int8'"
+            )
+        if str(benchmark["quantization_backend"]) != "tflite_affine_integer_v1":
+            raise StudyConfigurationError(
+                "mlperf_tiny_ic_int8_v1 requires "
+                "quantization_backend='tflite_affine_integer_v1'"
+            )
+    else:
+        FixedPointFormat.parse(str(benchmark["quantization"]))
     injectables = benchmark["injectable_parameters"]
     if not isinstance(injectables, list) or not injectables:
         raise StudyConfigurationError("benchmark.injectable_parameters must be nonempty")
@@ -222,6 +235,10 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
             raise StudyConfigurationError(
                 "mnist_lite_exact_kb_v1 requires quantization_backend='netsurf_bitcodec_v1'"
             )
+    if affine_tflite and set(injectables) != {"kernels", "biases"}:
+        raise StudyConfigurationError(
+            "mlperf_tiny_ic_int8_v1 requires injectable_parameters=['kernels', 'biases']"
+        )
 
     samples = _table(document, "samples")
     _keys(samples, {"ranking_count", "empirical_count", "evaluation_count", "require_disjoint"}, set(), "samples")
@@ -253,9 +270,18 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
         _keys(value, {"name", "implementation_version"}, {"seed", "probes", "result_name"} if schema_version == "3.1.0" else {"seed", "probes"}, f"estimators[{index}]")
         if value["name"] not in SUPPORTED_ESTIMATORS:
             raise StudyConfigurationError(f"unsupported estimator: {value['name']}")
+        if affine_tflite and value["name"] not in {"msb_first", "random"}:
+            raise StudyConfigurationError(
+                f"estimator {value['name']!r} is blocked for mlperf_tiny_ic_int8_v1: "
+                "no validated differentiable-to-TFLite parameter mapping exists"
+            )
         if schema_version == "3.0.0" and value["name"] == "per_sample_positive_damage":
             raise StudyConfigurationError("per_sample_positive_damage requires schema_version='3.1.0'")
-        expected_version = ESTIMATOR_IMPLEMENTATION_VERSIONS[value["name"]]
+        expected_version = (
+            "relative-word-bit-index/v1"
+            if affine_tflite and value["name"] == "msb_first"
+            else ESTIMATOR_IMPLEMENTATION_VERSIONS[value["name"]]
+        )
         if value["implementation_version"] != expected_version:
             raise StudyConfigurationError(
                 f"estimator {value['name']} requires implementation_version={expected_version!r}"
@@ -288,6 +314,11 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
         unknown_criteria = set(map(str, value["priority"])) - supported_criteria
         if unknown_criteria:
             raise StudyConfigurationError(f"unsupported ordering criteria: {sorted(unknown_criteria)}")
+        if affine_tflite and "bit_significance_desc" in value["priority"]:
+            raise StudyConfigurationError(
+                "mixed-width TFLite storage must order msb_first with "
+                "priority=['estimator_score_desc', ...], not raw bit_significance_desc"
+            )
         if "random" in value["priority"] and "seed" not in value:
             raise StudyConfigurationError("random ordering criterion requires policy seed")
         policies.append(StudyPolicy(str(value["name"]), str(value["estimator"]), tuple(map(str, value["priority"])), None if "seed" not in value else int(value["seed"]), bool(value["prespecified"])))

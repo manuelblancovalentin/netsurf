@@ -242,7 +242,12 @@ def validate_experiment_document(
         "benchmark",
     )
     supported_adapters = (
-        {"numpy_reference", "mnist_quantized", "mnist_lite_exact_kb_v1"}
+        {
+            "numpy_reference",
+            "mnist_quantized",
+            "mnist_lite_exact_kb_v1",
+            "mlperf_tiny_ic_int8_v1",
+        }
         if modern
         else {"legacy_mnist_lite"}
     )
@@ -261,10 +266,20 @@ def validate_experiment_document(
     for field in ("evaluation_samples", "ranking_samples"):
         if not isinstance(benchmark[field], int) or not 1 <= benchmark[field] <= 10_000:
             raise ConfigurationError(f"benchmark.{field} must be an integer in [1, 10000]")
-    FixedPointFormat.parse(str(benchmark["quantization"]))
+    affine_tflite = benchmark["adapter"] == "mlperf_tiny_ic_int8_v1"
+    if affine_tflite:
+        if str(benchmark["quantization"]) != "tflite_affine_int8":
+            raise ConfigurationError(
+                "mlperf_tiny_ic_int8_v1 requires quantization='tflite_affine_int8'"
+            )
+    else:
+        FixedPointFormat.parse(str(benchmark["quantization"]))
     quantization_backend = str(benchmark.get("quantization_backend", "legacy_qkeras"))
-    if modern and quantization_backend != "netsurf_bitcodec_v1":
-        raise ConfigurationError("modern experiments currently require quantization_backend='netsurf_bitcodec_v1'")
+    expected_backend = "tflite_affine_integer_v1" if affine_tflite else "netsurf_bitcodec_v1"
+    if modern and quantization_backend != expected_backend:
+        raise ConfigurationError(
+            f"{benchmark['adapter']} requires quantization_backend={expected_backend!r}"
+        )
     injectable = benchmark.get("injectable_parameters", ["all_trainable"])
     if not isinstance(injectable, list) or not injectable or not all(isinstance(value, str) for value in injectable):
         raise ConfigurationError("benchmark.injectable_parameters must be a nonempty string array")
@@ -275,6 +290,11 @@ def validate_experiment_document(
         )
     if benchmark["adapter"] == "mnist_lite_exact_kb_v1" and str(benchmark["quantization"]) != "q<6,2,1>":
         raise ConfigurationError("mnist_lite_exact_kb_v1 requires quantization='q<6,2,1>'")
+    if affine_tflite and set(injectable) != {"kernels", "biases"}:
+        raise ConfigurationError(
+            "mlperf_tiny_ic_int8_v1 requires injectable_parameters=['kernels', 'biases']; "
+            "affine metadata and activation buffers are not fault targets"
+        )
 
     raw_estimators = document["estimators"]
     if not isinstance(raw_estimators, list) or not raw_estimators:
@@ -300,8 +320,30 @@ def validate_experiment_document(
         )
         if value["name"] not in supported_estimators:
             raise ConfigurationError(f"unsupported estimator: {value['name']}")
+        if affine_tflite and value["name"] not in {"msb_first", "random"}:
+            raise ConfigurationError(
+                f"estimator {value['name']!r} is blocked for mlperf_tiny_ic_int8_v1: "
+                "the official differentiable checkpoint has not been mapped and validated "
+                "against the fused INT8 TFLite tensors"
+            )
+        if affine_tflite:
+            expected_version = (
+                "relative-word-bit-index/v1"
+                if value["name"] == "msb_first"
+                else "seeded-uniform-score/v1"
+            )
+            if value["implementation_version"] != expected_version:
+                raise ConfigurationError(
+                    f"estimator {value['name']} requires "
+                    f"implementation_version={expected_version!r} for mlperf_tiny_ic_int8_v1"
+                )
         if value["policy"] not in {"global_ranking", "position_first"}:
             raise ConfigurationError(f"unsupported protection policy: {value['policy']}")
+        if affine_tflite and value["policy"] == "position_first":
+            raise ConfigurationError(
+                "mlperf_tiny_ic_int8_v1 requires policy='global_ranking'; position_first "
+                "compares raw bit indices and is invalid across INT8 kernels and INT32 biases"
+            )
         if value["result_name"] in result_names:
             raise ConfigurationError(f"duplicate estimator result_name: {value['result_name']}")
         result_names.add(value["result_name"])

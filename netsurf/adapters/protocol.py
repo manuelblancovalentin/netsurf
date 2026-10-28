@@ -11,10 +11,20 @@ from ..identities import BitIdentity, ParameterSpec
 from ..samples import SamplePartition
 
 
-class EvaluationResult(Protocol):
+class TaskEvaluation(Protocol):
+    """Framework-neutral named task metrics for future non-classification adapters."""
+
+    sample_count: int
+
+    @property
+    def metrics(self) -> Mapping[str, float]: ...
+
+
+class EvaluationResult(TaskEvaluation, Protocol):
+    """Classification specialization retained by current result schemas."""
+
     accuracy: float
     categorical_crossentropy: float
-    sample_count: int
 
 
 class BenchmarkAdapter(Protocol):

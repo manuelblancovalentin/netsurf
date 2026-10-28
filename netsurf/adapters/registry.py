@@ -8,7 +8,7 @@ from .protocol import BenchmarkAdapter
 
 
 def create_adapter(
-    configuration: ExperimentConfiguration, codec: BitCodec
+    configuration: ExperimentConfiguration, codec: BitCodec | None
 ) -> BenchmarkAdapter:
     name = configuration.benchmark.adapter
     if name == "numpy_reference":
@@ -47,6 +47,14 @@ def create_adapter(
         from .legacy_mnist import MnistLiteExactKernelBiasAdapter
 
         return MnistLiteExactKernelBiasAdapter(
+            configuration.benchmark.checkpoint,
+            configuration.benchmark.dataset,
+            codec,
+        )
+    if name == "mlperf_tiny_ic_int8_v1":
+        from .mlperf_tiny import MlperfTinyImageClassificationAdapter
+
+        return MlperfTinyImageClassificationAdapter(
             configuration.benchmark.checkpoint,
             configuration.benchmark.dataset,
             codec,

@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.0.0",
+  "identity": "mlperf_tiny_ic_resnet8_int8_v1",
+  "status": "exact_storage_validated_clean_task_evaluation_blocked",
+  "scientific_scope": "modern NetSuRF v2 benchmark; not a historical NetSuRF reproduction",
+  "source": {
+    "repository": "https://github.com/mlcommons/tiny",
+    "commit": "4addd0fa08d216e20637637874e084895f289da4",
+    "protocol_version": "mlperf-tiny/4addd0fa08d2/ic01",
+    "checkpoint_registry_identity": "Kona Assets mlperf-tiny-ic-int8 revision pinned",
+    "checkpoint_repository_path": "benchmark/training/image_classification/trained_models/pretrainedResnet_quant.tflite",
+    "checkpoint_sha256": "3c002613d1b2475eb51dd78dfb85a546c8ae658dee71cf6ade43b022fe205415",
+    "checkpoint_size_bytes": 98496,
+    "checkpoint_format": "TFLite flatbuffer TFL3",
+    "float_companion_repository_path": "benchmark/training/image_classification/trained_models/pretrainedResnet.h5",
+    "float_companion_sha256": "5f938a8eea605438cc7360aa13c987bc6d7bd0c8d931b2917361ae7ae4eeda2f",
+    "dataset_identity": "CIFAR-10 official Python batches",
+    "dataset_revision": "Krizhevsky and Hinton 2009 distribution",
+    "dataset_availability": "absent from configured Kona dataset roots on 2026-10-27",
+    "dataset_hash": null
+  },
+  "task": {
+    "type": "classification",
+    "input_shape": [1, 32, 32, 3],
+    "input_dtype": "int8",
+    "classes": ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"],
+    "output_shape": [1, 10],
+    "output_dtype": "int8",
+    "metrics": ["classification_accuracy", "categorical_crossentropy"],
+    "official_quality_target": {"metric": "top-1 accuracy", "minimum": 0.85},
+    "measured_clean_performance": null
+  },
+  "preprocessing": {
+    "layout": "CIFAR Python planar RGB reshaped NCHW then transposed to NHWC",
+    "integer_transform": "int8 = uint8 - 128",
+    "input_scale": 1.0,
+    "input_zero_point": -128,
+    "output_scale": 0.00390625,
+    "output_zero_point": -128
+  },
+  "graph": {
+    "subgraphs": 1,
+    "tensors": 38,
+    "operators": 16,
+    "operator_counts": {"CONV_2D": 9, "ADD": 3, "AVERAGE_POOL_2D": 1, "FULLY_CONNECTED": 1, "RESHAPE": 1, "SOFTMAX": 1}
+  },
+  "faultable_storage": {
+    "eligible_roles": ["kernel", "bias"],
+    "kernel_tensors": 10,
+    "kernel_dtype": "int8",
+    "kernel_scalars": 77360,
+    "kernel_bits": 618880,
+    "bias_tensors": 10,
+    "bias_dtype": "int32",
+    "bias_scalars": 346,
+    "bias_bits": 11072,
+    "eligible_tensors": 20,
+    "eligible_scalars": 77706,
+    "eligible_bits": 629952,
+    "zero_valued_encoded_scalars": 811,
+    "encoding": "signed two's-complement XOR",
+    "quantization": "per-tensor and per-channel affine scale/zero-point metadata",
+    "include_zero_valued_allocations": true,
+    "excluded": ["activations", "scales", "zero points", "operator metadata", "non-parameter constants", "unsupported constant dtypes"]
+  },
+  "capabilities": {
+    "clean_inference_runtime": "implemented; task metric validation blocked by missing dataset",
+    "persistent_faults": "implemented",
+    "per_inference_faults": "implemented",
+    "private_copy_patching": "implemented; shared reference bytes remain immutable",
+    "supported_rankings": ["random", "msb_first", "empirical_single_bit"],
+    "blocked_rankings": ["gradient_magnitude", "first_order_gradient_delta", "per_sample_first_order_magnitude", "per_sample_positive_damage", "Hessian-based estimators", "qPolarGrad variants"],
+    "gradient_blocker": "the official float companion has not been tensor-mapped and exact-fault-equivalence-validated against fused per-channel TFLite tensors"
+  }
+}
