@@ -207,3 +207,72 @@ def derive_protection_analysis(
         "pooled": pooled, "replications": replications, "paired": paired,
         "paired_replications": paired_replications, "paired_differences": paired_differences,
     }
+
+
+def derive_task_protection_analysis(
+    trial_rows: Iterable[Mapping[str, Any]], *, confidence: float = 0.95,
+    permutation_seed: int = 0, default_ber: float | None = None,
+    expected_replications: int | None = None,
+) -> dict[str, Any]:
+    """Aggregate saved task-generic trials without relabeling their metrics.
+
+    The established replication/pairing implementation is reused internally,
+    but its historical classification field names never escape this function.
+    Every input row must describe the same primary and loss metric contract.
+    """
+
+    source = tuple(trial_rows)
+    if not source:
+        return {
+            "pooled": [], "replications": [], "paired": [],
+            "paired_replications": [], "paired_differences": [],
+        }
+    contracts = {
+        (
+            str(row["primary_metric_name"]), str(row["primary_metric_direction"]),
+            str(row["loss_metric_name"]), str(row["loss_metric_direction"]),
+        )
+        for row in source
+    }
+    if len(contracts) != 1:
+        raise ValueError("saved task trials contain inconsistent metric contracts")
+    primary_name, primary_direction, loss_name, loss_direction = next(iter(contracts))
+    mapped = tuple({
+        **row,
+        "accuracy": float(row["primary_metric_value"]),
+        "categorical_crossentropy": float(row["loss_metric_value"]),
+    } for row in source)
+    result = derive_protection_analysis(
+        mapped, confidence=confidence, permutation_seed=permutation_seed,
+        default_ber=default_ber, expected_replications=expected_replications,
+    )
+
+    def aggregate(row):
+        value = dict(row)
+        value["primary_metric_name"] = primary_name
+        value["primary_metric_direction"] = primary_direction
+        value["loss_metric_name"] = loss_name
+        value["loss_metric_direction"] = loss_direction
+        value["primary_metric"] = value.pop("accuracy")
+        value["loss_metric"] = value.pop("categorical_crossentropy")
+        return value
+
+    def comparison(row):
+        value = dict(row)
+        value["metric"] = primary_name if value["metric"] == "accuracy" else loss_name
+        if "multiplicity_family" in value:
+            value["multiplicity_family"] = (
+                f"logical_ber={value['logical_ber']:.8g}, metric={value['metric']}"
+            )
+        return value
+
+    result["pooled"] = [aggregate(row) for row in result["pooled"]]
+    result["replications"] = [aggregate(row) for row in result["replications"]]
+    result["paired"] = [comparison(row) for row in result["paired"]]
+    result["paired_replications"] = [comparison(row) for row in result["paired_replications"]]
+    result["paired_differences"] = [comparison(row) for row in result["paired_differences"]]
+    result["metric_contract"] = {
+        "primary": {"name": primary_name, "direction": primary_direction},
+        "loss": {"name": loss_name, "direction": loss_direction},
+    }
+    return result

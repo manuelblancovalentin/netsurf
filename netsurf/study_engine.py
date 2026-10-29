@@ -25,6 +25,7 @@ from .ranking import Ranking
 from .samples import SamplePartition, require_disjoint
 from .statistics import summarize
 from .study_config import StudyConfiguration, StudyReplications
+from .task_metrics import TaskSingleBitMeasurement, TaskTrialMeasurement, evaluation_contract
 
 
 @dataclass(frozen=True)
@@ -33,10 +34,10 @@ class StudyOutcome:
     scientific_payload: Mapping[str, Any]
     partitions: Mapping[str, SamplePartition]
     estimator_outputs: tuple[EstimatorOutput, ...]
-    empirical_measurements: tuple[SingleBitMeasurement, ...]
+    empirical_measurements: tuple[SingleBitMeasurement | TaskSingleBitMeasurement, ...]
     ranking_metrics: tuple[Mapping[str, Any], ...]
     estimator_agreement: tuple[Mapping[str, Any], ...]
-    trials: tuple[TrialMeasurement, ...]
+    trials: tuple[TrialMeasurement | TaskTrialMeasurement, ...]
     protection_results: tuple[Mapping[str, Any], ...]
     paired_comparisons: Mapping[str, Any]
     composition: tuple[Mapping[str, Any], ...]
@@ -85,6 +86,41 @@ def _summaries(rows: Sequence[TrialMeasurement], masks: Mapping[str, ProtectionM
             "mean_suppressed_events": float(np.mean([row.suppressed_events for row in selected])),
             "minimum_accuracy": float(min(row.accuracy for row in selected)),
             "minimum_accuracy_trial": int(min(selected, key=lambda row: row.accuracy).trial),
+        })
+    return tuple(result)
+
+
+def _task_summaries(
+    rows: Sequence[TaskTrialMeasurement],
+    masks: Mapping[str, ProtectionMask],
+    confidence: float,
+):
+    result = []
+    for name, mask in masks.items():
+        selected = [row for row in rows if row.policy == name]
+        primary = summarize(
+            [row.primary_metric_value for row in selected],
+            confidence=confidence,
+            bounds=(0.0, 1.0),
+        ).to_dict()
+        loss = summarize(
+            [row.loss_metric_value for row in selected], confidence=confidence
+        ).to_dict()
+        result.append({
+            "policy": name,
+            "protected_bits": len(mask.protected),
+            "coverage": mask.coverage,
+            "mask_sha256": mask.digest(),
+            "primary_metric_name": selected[0].primary_metric_name,
+            "primary_metric_direction": selected[0].primary_metric_direction,
+            "primary_metric": primary,
+            "loss_metric_name": selected[0].loss_metric_name,
+            "loss_metric_direction": selected[0].loss_metric_direction,
+            "loss_metric": loss,
+            "mean_applied_events": float(np.mean([row.applied_events for row in selected])),
+            "mean_suppressed_events": float(np.mean([row.suppressed_events for row in selected])),
+            "minimum_primary_metric": float(min(row.primary_metric_value for row in selected)),
+            "minimum_primary_metric_trial": int(min(selected, key=lambda row: row.primary_metric_value).trial),
         })
     return tuple(result)
 
@@ -220,10 +256,10 @@ def _execute_single_study(
         metrics = ranking_quality(
             empirical,
             outputs,
-            tie_aware_baselines=configuration.schema_version in {"3.2.0", "3.3.0"},
+            tie_aware_baselines=configuration.schema_version in {"3.2.0", "3.3.0", "3.4.0"},
             bootstrap_seed=(
                 configuration.execution.permutation_seed
-                if configuration.schema_version == "3.3.0"
+                if configuration.schema_version in {"3.3.0", "3.4.0"}
                 else None
             ),
             bootstrap_confidence=configuration.execution.confidence,
@@ -231,7 +267,8 @@ def _execute_single_study(
         if tracker is not None:
             tracker.update("Ranking analysis", advance=1, **context)
 
-    trial_rows: list[TrialMeasurement] = []
+    task_generic = configuration.benchmark.adapter == "mlperf_tiny_ad_int8_v1"
+    trial_rows: list[TrialMeasurement | TaskTrialMeasurement] = []
     masks: dict[str, ProtectionMask] = {}
     schedules: list[FaultSchedule] = []
     compositions: tuple[Mapping[str, Any], ...] = ()
@@ -288,13 +325,34 @@ def _execute_single_study(
                     )
                 for name, mask in masks.items():
                     condition_name = f"ber={probability:.8g}/{name}" if multi_ber else name
-                    accuracy, loss, accounting = _evaluate_faulted(benchmark, evaluation_x, evaluation_y, original, schedule, mask, codec)
-                    trial_rows.append(TrialMeasurement(
-                        trial, condition_name, schedule.digest(), accuracy, loss, accounting.schedule_hash,
-                        accounting.proposed_events, accounting.applied_events,
-                        accounting.suppressed_events, accounting.unique_applied_bits,
-                    ))
-                    running.setdefault(condition_name, []).append((accuracy, loss))
+                    if task_generic:
+                        evaluation, accounting = benchmark.evaluate_fault_schedule(
+                            evaluation_x, evaluation_y, schedule, mask
+                        )
+                        (
+                            primary_name, primary_value, primary_direction,
+                            loss_name, loss_value, loss_direction,
+                        ) = evaluation_contract(evaluation)
+                        trial_rows.append(TaskTrialMeasurement(
+                            trial, condition_name, schedule.digest(),
+                            primary_name, primary_value, primary_direction,
+                            loss_name, loss_value, loss_direction,
+                            accounting.schedule_hash, accounting.proposed_events,
+                            accounting.applied_events, accounting.suppressed_events,
+                            accounting.unique_applied_bits,
+                        ))
+                        current_primary, current_loss = primary_value, loss_value
+                    else:
+                        accuracy, loss, accounting = _evaluate_faulted(
+                            benchmark, evaluation_x, evaluation_y, original, schedule, mask, codec
+                        )
+                        trial_rows.append(TrialMeasurement(
+                            trial, condition_name, schedule.digest(), accuracy, loss, accounting.schedule_hash,
+                            accounting.proposed_events, accounting.applied_events,
+                            accounting.suppressed_events, accounting.unique_applied_bits,
+                        ))
+                        current_primary, current_loss = accuracy, loss
+                    running.setdefault(condition_name, []).append((current_primary, current_loss))
                     fault_stage_completed += 1
                     if tracker is not None:
                         values = running[condition_name]
@@ -303,7 +361,7 @@ def _execute_single_study(
                             stage_completed=fault_stage_completed, stage_total=fault_stage_total,
                             logical_ber=probability, coverage=mask.coverage, policy=name,
                             trial=trial + 1, trials=configuration.execution.trials,
-                            mean_accuracy=float(np.mean([value[0] for value in values])),
+                            mean_accuracy=(None if task_generic else float(np.mean([value[0] for value in values]))),
                             mean_loss=float(np.mean([value[1] for value in values])),
                             **context,
                         )
@@ -311,19 +369,31 @@ def _execute_single_study(
             raise RuntimeError("model state was not restored after protection trials")
         if tracker is not None:
             tracker.update("Statistical aggregation", **context)
-        protection_results = _summaries(trial_rows, evaluation_masks, configuration.execution.confidence)
-        accuracy_comparisons, loss_comparisons = {}, {}
+        protection_results = (
+            _task_summaries(trial_rows, evaluation_masks, configuration.execution.confidence)
+            if task_generic
+            else _summaries(trial_rows, evaluation_masks, configuration.execution.confidence)
+        )
+        primary_comparisons, loss_comparisons = {}, {}
         for probability in probabilities:
             names = [f"ber={probability:.8g}/{name}" if multi_ber else name for name in masks]
-            accuracy_vectors = {name: [row.accuracy for row in trial_rows if row.policy == name] for name in names}
-            loss_vectors = {name: [row.categorical_crossentropy for row in trial_rows if row.policy == name] for name in names}
-            accuracy_comparisons.update(paired_policy_comparisons(accuracy_vectors, confidence=configuration.execution.confidence, seed=configuration.execution.permutation_seed))
+            if task_generic:
+                primary_vectors = {name: [row.primary_metric_value for row in trial_rows if row.policy == name] for name in names}
+                loss_vectors = {name: [row.loss_metric_value for row in trial_rows if row.policy == name] for name in names}
+            else:
+                primary_vectors = {name: [row.accuracy for row in trial_rows if row.policy == name] for name in names}
+                loss_vectors = {name: [row.categorical_crossentropy for row in trial_rows if row.policy == name] for name in names}
+            primary_comparisons.update(paired_policy_comparisons(primary_vectors, confidence=configuration.execution.confidence, seed=configuration.execution.permutation_seed))
             loss_comparisons.update(paired_policy_comparisons(loss_vectors, confidence=configuration.execution.confidence, seed=configuration.execution.permutation_seed))
-        comparisons = {
-            "accuracy": accuracy_comparisons,
+        comparisons = ({
+            "roc_auc": primary_comparisons,
+            "reconstruction_mse": loss_comparisons,
+            "multiplicity": "Holm adjustment within each BER and reported metric family",
+        } if task_generic else {
+            "accuracy": primary_comparisons,
             "categorical_crossentropy": loss_comparisons,
             "multiplicity": "Holm adjustment within each BER and reported metric family",
-        }
+        })
         compositions = mask_composition({name: tuple(mask.protected) for name, mask in masks.items()}, identities)
         if tracker is not None:
             tracker.update("Statistical aggregation", advance=1, **context)
@@ -353,11 +423,19 @@ def _execute_single_study(
     benchmark_payload = {
         "id": configuration.benchmark.id,
         "checkpoint_sha256": sha256_file(configuration.benchmark.checkpoint),
-        "dataset_sha256": sha256_file(configuration.benchmark.dataset),
         "eligible_parameters": sum(value.size for value in benchmark.parameter_specs()),
         "eligible_bits": len(identities),
         "partitions": {name: value.to_dict() for name, value in partitions.items()},
     }
+    if configuration.benchmark.dataset.is_file():
+        benchmark_payload["dataset_sha256"] = sha256_file(configuration.benchmark.dataset)
+    else:
+        dataset_identity = getattr(benchmark, "dataset_identity_manifest", None)
+        if not callable(dataset_identity):
+            raise ValueError(
+                "directory-backed datasets require an adapter dataset identity manifest"
+            )
+        benchmark_payload["dataset_identity"] = dataset_identity()
     pruning_contract = checkpoint_pruning_contract(benchmark)
     if pruning_contract is not None:
         benchmark_payload["structured_pruning"] = pruning_contract
@@ -481,7 +559,7 @@ def execute_study(
         raise ValueError("injecting one adapter instance is unsupported for replicated studies")
 
     def child_configuration(index: int) -> StudyConfiguration:
-        if configuration.schema_version == "3.3.0":
+        if configuration.schema_version in {"3.3.0", "3.4.0"}:
             # Schema 3.3 separates independently randomized ranking masks from
             # Hutchinson probe randomness.  Older schemas retain their exact
             # historical broad seed-stride behavior for reproducibility.
@@ -555,7 +633,7 @@ def execute_study(
     tracker.update("Replication aggregation", advance=1)
     primary = outcomes[0]
     replication_plan = asdict(plan)
-    if configuration.schema_version != "3.3.0":
+    if configuration.schema_version not in {"3.3.0", "3.4.0"}:
         replication_plan.pop("estimator_seed_stride", None)
     payload = {
         "schema": "netsurf-m3-replicated-study/v1",

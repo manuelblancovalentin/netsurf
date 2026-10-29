@@ -38,6 +38,12 @@ This prevents ranking-mask variability, curvature-probe variability and fault
 schedule variability from being conflated. Schema 3.0--3.2 execution and
 serialized scientific payloads retain their historical behavior.
 
+Experiment and measurement `3.4.0` add explicit task-level primary and loss
+metric names. Classification retains the established accuracy and categorical
+cross-entropy columns. Anomaly detection uses file-level ROC-AUC and
+float-domain reconstruction MSE and never aliases them as classification
+metrics.
+
 The Python validators enforce the executable subset and load these documents as
 the machine-readable field contract. Breaking changes require a new schema file
 and a new reader. Experiment and measurement `4.0.0` add the conditional-search

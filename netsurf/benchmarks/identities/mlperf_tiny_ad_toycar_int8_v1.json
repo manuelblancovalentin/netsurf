@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0.0",
+  "identity": "mlperf_tiny_ad_toycar_int8_v1",
+  "status": "reference_backend_and_kernel_only_static_estimators_validated",
+  "scientific_scope": "modern NetSuRF v2 anomaly-detection benchmark; distinct from the historical 320-input candidate",
+  "source": {
+    "repository": "https://github.com/mlcommons/tiny",
+    "commit": "4addd0fa08d216e20637637874e084895f289da4",
+    "protocol_version": "mlperf-tiny/4addd0fa08d2/ad01",
+    "checkpoint_repository_path": "benchmark/training/anomaly_detection/trained_models/ad01_int8.tflite",
+    "checkpoint_sha256": "87cf24194ef93d1d9b11a591d805526b98008e351655d29883c825c9c106ba24",
+    "checkpoint_size_bytes": 276976,
+    "asset_lock_digest": "sha256:6a49d8dc1ac764b7109b7015b52c1db13021342a8e4624d41dea5b963398cf46",
+    "dataset_identity": "DCASE 2020 ToyCar pinned local extraction; restricted, use in place",
+    "sample_index_sha256": "4ecd91868e197ee0a6739d4bd7abde73eac2fa31e9a88d6bc6aedefa136ff2a4"
+  },
+  "task": {
+    "type": "anomaly_detection",
+    "input_shape": [1, 640],
+    "output_shape": [1, 640],
+    "ranking_loss": "per-window float-domain reconstruction MSE",
+    "final_metric": "file-level ROC-AUC",
+    "official_files": 248,
+    "registered_roc_auc": 0.862037037037037,
+    "objective_alignment": "ranking loss and final ROC-AUC are related but not identical objectives",
+    "measured_clean_conformance": {
+      "backend": "TensorFlow 2.14.1 TFLite BUILTIN_REF, no delegates, one thread",
+      "official_248_file_roc_auc": 0.862037037037037,
+      "file_scores_sha256": "f5174517de344da8126ea1875baae36dfd53bf37151ed18e058bd5a57e0fb4b5",
+      "exact_registered_digest_match": true
+    },
+    "study_partitions": "ranking uses development-train; empirical and final evaluation use deterministic disjoint label-containing halves of the official development test"
+  },
+  "graph": {
+    "topology": [640, 128, 128, 128, 128, 8, 128, 128, 128, 128, 640],
+    "fully_connected_operators": 10,
+    "kernel_tensors": 10,
+    "kernel_scalars": 264192,
+    "kernel_bits": 2113536
+  },
+  "faultable_storage": {
+    "eligible_roles": ["kernel"],
+    "dtype": "int8",
+    "encoding": "signed two's-complement XOR",
+    "include_zero_valued_allocations": true,
+    "excluded": ["INT32 biases", "activations", "affine metadata", "operator metadata"]
+  },
+  "companion": {
+    "implementation": "mlperf-toycar-dense-ae-tflite-constants-ste/v1",
+    "purpose": "S4-S6 reconstruction-loss ranking derivatives only",
+    "authoritative_inference": false,
+    "bounded_two_window_diagnostic": {
+      "exact_output_code_fraction": 0.61015625,
+      "encoded_mae": 0.39453125,
+      "encoded_max_error": 2,
+      "authoritative_reconstruction_mse": 10.35879715887604,
+      "companion_reconstruction_mse": 10.418792491320154
+    }
+  }
+}

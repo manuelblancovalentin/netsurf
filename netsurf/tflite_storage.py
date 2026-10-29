@@ -116,7 +116,15 @@ class TFLiteModelStorage:
         }
         for operation_index in range(subgraph.OperatorsLength()):
             operation = subgraph.Operators(operation_index)
-            opcode = model.OperatorCodes(operation.OpcodeIndex()).BuiltinCode()
+            operator_code = model.OperatorCodes(operation.OpcodeIndex())
+            opcode = int(operator_code.BuiltinCode())
+            # Older official TFLite flatbuffers store the actual operator in
+            # DeprecatedBuiltinCode while BuiltinCode remains zero.  Recent
+            # models use BuiltinCode directly.  Accept both encodings without
+            # changing the tensor-role contract.
+            deprecated_opcode = int(operator_code.DeprecatedBuiltinCode())
+            if opcode == schema.BuiltinOperator.ADD and deprecated_opcode != opcode:
+                opcode = deprecated_opcode
             if opcode not in supported_ops or operation.InputsLength() < 2:
                 continue
             inputs = operation.InputsAsNumpy()

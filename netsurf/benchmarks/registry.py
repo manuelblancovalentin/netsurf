@@ -33,6 +33,8 @@ class BenchmarkDescriptor:
     eligible_bit_count: int | None = None
 
     def readiness(self) -> tuple[str, tuple[str, ...]]:
+        if self.adapter == "blocked":
+            return "unsupported configuration", (self.validation,)
         reasons: list[str] = []
         for dependency in self.dependencies:
             if find_spec(dependency) is None:
@@ -68,9 +70,45 @@ class BenchmarkDescriptor:
                 reasons.append(
                     "missing asset lock: set NETSURF_MLPERF_TINY_IC_LOCK to verified ic.lock.json"
                 )
+        if self.name in {"mlperf_tiny_kws_dscnn_int8_v1", "mlperf_tiny_ad_toycar_int8_v1"}:
+            kws = self.name == "mlperf_tiny_kws_dscnn_int8_v1"
+            model_variable = "NETSURF_MLPERF_TINY_KWS_MODEL" if kws else "NETSURF_MLPERF_TINY_AD_MODEL"
+            dataset_variable = "NETSURF_SPEECH_COMMANDS" if kws else "NETSURF_TOYCAR"
+            lock_variable = "NETSURF_MLPERF_TINY_KWS_LOCK" if kws else "NETSURF_MLPERF_TINY_AD_LOCK"
+            model_relative = (
+                "keyword_spotting/trained_models/kws_ref_model.tflite"
+                if kws else "anomaly_detection/trained_models/ad01_int8.tflite"
+            )
+            model = Path(os.environ.get(
+                model_variable,
+                "/ml/models/models--mlcommons--tiny/snapshots/"
+                "4addd0fa08d216e20637637874e084895f289da4/benchmark/training/"
+                + model_relative,
+            ))
+            dataset = Path(os.environ.get(
+                dataset_variable,
+                "/ml/datasets/speech_commands/0.0.3" if kws else "/ml/datasets/dcase2020-toycar",
+            ))
+            lock = Path(os.environ.get(
+                lock_variable,
+                "/projects/kona-assets/manuelbv/locks/mlperf-tiny/"
+                + ("kws.lock.json" if kws else "ad.lock.json"),
+            ))
+            if not model.is_file():
+                reasons.append(f"missing checkpoint path: set {model_variable}")
+            if not dataset.exists():
+                reasons.append(f"missing dataset path: set {dataset_variable}")
+            if not lock.is_file():
+                reasons.append(f"missing asset lock: set {lock_variable}")
         if reasons:
             status = "missing dependency" if any("dependency" in value for value in reasons) else "missing checkpoint" if any("checkpoint" in value for value in reasons) else "missing dataset"
             return status, tuple(reasons)
+        if self.name in {
+            "mlperf_tiny_ic_resnet8_int8_v1",
+            "mlperf_tiny_kws_dscnn_int8_v1",
+            "mlperf_tiny_ad_toycar_int8_v1",
+        }:
+            return "ready", ()
         return ("ready" if self.validation == "scientifically validated" else "experimental"), ()
 
     def to_dict(self) -> dict[str, Any]:
@@ -152,6 +190,53 @@ _REGISTRY = {
         False,
         eligible_parameter_count=77706,
         eligible_bit_count=629952,
+    ),
+    "mlperf_tiny_kws_dscnn_int8_v1": BenchmarkDescriptor(
+        "mlperf_tiny_kws_dscnn_int8_v1", "mlperf_tiny_kws_int8_v1",
+        "MLPerf Tiny Speech Commands 12-class keyword spotting",
+        "official DS-CNN INT8 TFLite graph: Conv + four depthwise/pointwise blocks",
+        22016, "TFLite affine INT8 kernels; INT32 fused biases excluded",
+        "tflite_affine_integer_v1", "pinned TFDS Speech Commands 0.0.3 shards",
+        "Kona Assets mlperf-tiny/kws lock; SHA-256 aeea4368...d0ae",
+        (
+            "msb_first", "random", "numerical_bit_jump", "gradient_magnitude",
+            "first_order_gradient_delta", "per_sample_first_order_magnitude",
+            "per_sample_positive_damage", "empirical_single_bit",
+        ),
+        ("weight",), ("persistent_trial",),
+        ("official TFLite Micro deployment artifact; hardware equivalence not revalidated",),
+        "official 1,000-example reference digest verified; exact kernel XOR and straight-through companion validated",
+        ("tensorflow",), False, eligible_parameter_count=22016,
+        eligible_bit_count=176128,
+    ),
+    "mlperf_tiny_ad_toycar_int8_v1": BenchmarkDescriptor(
+        "mlperf_tiny_ad_toycar_int8_v1", "mlperf_tiny_ad_int8_v1",
+        "MLPerf Tiny ToyCar file-level anomaly detection",
+        "official ten-layer dense INT8 autoencoder (640-128-128-128-128-8-128-128-128-128-640)",
+        264192, "TFLite affine INT8 kernels; INT32 fused biases excluded",
+        "tflite_affine_integer_v1", "pinned DCASE 2020 ToyCar assets (restricted, use in place)",
+        "Kona Assets mlperf-tiny/ad lock; SHA-256 87cf2419...ba24",
+        (
+            "msb_first", "random", "numerical_bit_jump", "gradient_magnitude",
+            "first_order_gradient_delta", "per_sample_first_order_magnitude",
+            "per_sample_positive_damage", "empirical_single_bit",
+        ),
+        ("weight",), ("persistent_trial",),
+        ("official TFLite Micro deployment artifact; hardware equivalence not revalidated",),
+        "official 248-file score digest verified; exact kernel XOR and reconstruction companion validated",
+        ("tensorflow", "librosa"), False, eligible_parameter_count=264192,
+        eligible_bit_count=2113536,
+    ),
+    "mlperf_tiny_vww_mobilenetv1_int8_candidate_v1": BenchmarkDescriptor(
+        "mlperf_tiny_vww_mobilenetv1_int8_candidate_v1", "blocked",
+        "MLPerf Tiny Visual Wake Words binary classification",
+        "official MobileNetV1-0.25 INT8 TFLite candidate",
+        None, "TFLite affine INT8 candidate", "tflite_affine_integer_v1",
+        "local MLTK derivative; official archive pixel identity not independently verified",
+        "pinned model SHA-256 597a384c...d6b7b",
+        (), (), (), (),
+        "BLOCKED: evaluation-image provenance does not meet the source contract",
+        ("tensorflow",), False,
     ),
 }
 

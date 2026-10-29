@@ -210,6 +210,28 @@ def plot_study_results(
         figure.savefig(destination, dpi=160)
         plt.close(figure)
         generated.append(destination)
+    task_results = summary.get("protection_results", [])
+    if task_results and "primary_metric" in task_results[0]:
+        names = [row["policy"] for row in task_results]
+        for metric_key, name_key, filename in (
+            ("primary_metric", "primary_metric_name", "task_primary_metric_by_policy.png"),
+            ("loss_metric", "loss_metric_name", "task_loss_metric_by_policy.png"),
+        ):
+            means = [row[metric_key]["mean"] for row in task_results]
+            low = [mean - row[metric_key]["confidence_interval"][0] for mean, row in zip(means, task_results)]
+            high = [row[metric_key]["confidence_interval"][1] - mean for mean, row in zip(means, task_results)]
+            destination = output / filename
+            figure, axis = plt.subplots(figsize=(max(7.0, len(names) * 1.1), 4.8))
+            axis.errorbar(names, means, yerr=[low, high], fmt="o", capsize=4)
+            axis.set_ylabel(str(task_results[0][name_key]))
+            axis.set_title(f"{task_results[0][name_key]} by protection policy")
+            axis.tick_params(axis="x", rotation=30)
+            axis.grid(axis="y", alpha=0.25)
+            figure.tight_layout()
+            figure.savefig(destination, dpi=160)
+            plt.close(figure)
+            generated.append(destination)
+        return tuple(generated)
     if summary.get("protection_results") and not trial_rows:
         results = summary["protection_results"]
         destination = output / "accuracy_by_policy_coverage.png"

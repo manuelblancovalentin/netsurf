@@ -47,7 +47,13 @@ class VerifiedAssetLock:
     resolved_files: Mapping[tuple[str, str], Path]
 
     @classmethod
-    def load(cls, path: Path, *, verify_files: bool = True) -> "VerifiedAssetLock":
+    def load(
+        cls,
+        path: Path,
+        *,
+        verify_files: bool = True,
+        expected_benchmark_id: str = "mlperf-tiny/ic",
+    ) -> "VerifiedAssetLock":
         source = Path(path).expanduser().resolve()
         try:
             document = json.loads(source.read_text(encoding="utf-8"))
@@ -61,8 +67,11 @@ class VerifiedAssetLock:
                 f"asset-lock digest mismatch: expected {expected}, observed {document.get('digest')!r}"
             )
         benchmark = document.get("benchmark")
-        if not isinstance(benchmark, dict) or benchmark.get("id") != "mlperf-tiny/ic":
-            raise AssetLockError("asset lock is not the MLPerf Tiny image-classification lock")
+        if not isinstance(benchmark, dict) or benchmark.get("id") != expected_benchmark_id:
+            raise AssetLockError(
+                f"asset lock benchmark is not {expected_benchmark_id!r}: "
+                f"observed {None if not isinstance(benchmark, dict) else benchmark.get('id')!r}"
+            )
         mandatory = (
             "execution_backend",
             "reference_results",
@@ -154,3 +163,24 @@ def load_verified_asset_lock(path: str) -> VerifiedAssetLock:
     """Verify an immutable published lock once per process."""
 
     return VerifiedAssetLock.load(Path(path), verify_files=True)
+
+
+@lru_cache(maxsize=16)
+def load_benchmark_asset_lock(
+    path: str, expected_benchmark_id: str, verify_files: bool = False
+) -> VerifiedAssetLock:
+    """Load a benchmark lock with an explicit identity contract.
+
+    The KWS and anomaly-detection locks enumerate multi-gigabyte datasets.
+    Rehashing every registered file during adapter construction would make a
+    bounded experiment unexpectedly scan the entire dataset.  Those adapters
+    therefore validate the lock digest and benchmark identity here, and hash
+    the concrete model/index files they consume separately.  ``verify_files``
+    remains available for an explicit full asset audit.
+    """
+
+    return VerifiedAssetLock.load(
+        Path(path),
+        verify_files=verify_files,
+        expected_benchmark_id=expected_benchmark_id,
+    )

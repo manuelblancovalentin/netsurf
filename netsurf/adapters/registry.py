@@ -63,4 +63,24 @@ def create_adapter(
             split=configuration.benchmark.split,
             injectable_parameters=configuration.benchmark.injectable_parameters,
         )
+    if name in {"mlperf_tiny_kws_int8_v1", "mlperf_tiny_ad_int8_v1"}:
+        from .mlperf_tiny_multibench import (
+            MlperfTinyKwsDscnnAdapter,
+            MlperfTinyToyCarAdapter,
+        )
+
+        adapter_type = (
+            MlperfTinyKwsDscnnAdapter
+            if name == "mlperf_tiny_kws_int8_v1"
+            else MlperfTinyToyCarAdapter
+        )
+        return adapter_type(
+            configuration.benchmark.checkpoint,
+            configuration.benchmark.dataset,
+            codec,
+            asset_lock=configuration.benchmark.asset_lock,
+            inference_backend=configuration.benchmark.inference_backend,
+            split=configuration.benchmark.split,
+            injectable_parameters=configuration.benchmark.injectable_parameters,
+        )
     raise ValueError(f"unsupported benchmark adapter: {name}")

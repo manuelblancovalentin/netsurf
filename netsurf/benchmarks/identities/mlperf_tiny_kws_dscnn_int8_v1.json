@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0.0",
+  "identity": "mlperf_tiny_kws_dscnn_int8_v1",
+  "status": "reference_backend_and_kernel_only_static_estimators_validated",
+  "scientific_scope": "modern NetSuRF v2 benchmark; independent of the blocked historical 49-logit KWS checkpoint",
+  "source": {
+    "repository": "https://github.com/mlcommons/tiny",
+    "commit": "4addd0fa08d216e20637637874e084895f289da4",
+    "protocol_version": "mlperf-tiny/4addd0fa08d2/kws01",
+    "checkpoint_repository_path": "benchmark/training/keyword_spotting/trained_models/kws_ref_model.tflite",
+    "checkpoint_sha256": "aeea436800704fce17b17292e4412630ad856e9d777c044c64ef748a880bd0ae",
+    "checkpoint_size_bytes": 53936,
+    "asset_lock_digest": "sha256:9de0816f7973b31febc84d04667068b3ad583ab2cb5d17c0f44da1a2c4ddd3d2",
+    "dataset_identity": "TFDS Speech Commands 0.0.3 pinned shards",
+    "sample_index_sha256": "6cb3709762d53fe64eb00eaf4a75796248bb3c1386f1d1f93ccdb07b071e9698"
+  },
+  "task": {
+    "type": "classification",
+    "input_shape": [1, 49, 10, 1],
+    "output_shape": [1, 12],
+    "official_subset_samples": 1000,
+    "registered_accuracy": 0.901,
+    "full_test_samples": 4890,
+    "registered_full_test_accuracy": 0.9161554192229039,
+    "measured_clean_conformance": {
+      "backend": "TensorFlow 2.14.1 TFLite BUILTIN_REF, no delegates, one thread",
+      "official_subset_accuracy": 0.901,
+      "official_subset_output_sha256": "a62256c3f761c18a7ce7f39c44ff4134df5052d96e95b5867e7f6e8db0120b96",
+      "exact_registered_digest_match": true
+    }
+  },
+  "graph": {
+    "operators": {"CONV_2D": 5, "DEPTHWISE_CONV_2D": 4, "AVERAGE_POOL_2D": 1, "RESHAPE": 1, "FULLY_CONNECTED": 1, "SOFTMAX": 1},
+    "kernel_tensors": 10,
+    "kernel_scalars": 22016,
+    "kernel_bits": 176128
+  },
+  "faultable_storage": {
+    "eligible_roles": ["kernel"],
+    "dtype": "int8",
+    "encoding": "signed two's-complement XOR",
+    "include_zero_valued_allocations": true,
+    "excluded": ["INT32 biases", "activations", "affine metadata", "operator metadata"]
+  },
+  "companion": {
+    "implementation": "mlperf-kws-dscnn-tflite-constants-ste/v1",
+    "purpose": "S4-S6 ranking derivatives only",
+    "authoritative_inference": false,
+    "bounded_eight_sample_diagnostic": {
+      "exact_output_code_fraction": 0.90625,
+      "exact_output_vector_fraction": 0.625,
+      "encoded_mae": 0.19791666666666666,
+      "encoded_max_error": 5
+    }
+  }
+}

@@ -10,7 +10,7 @@ import tomllib
 from time import monotonic
 
 from .experiment_config import ExperimentConfiguration, load_experiment
-from .derived_analysis import derive_protection_analysis
+from .derived_analysis import derive_protection_analysis, derive_task_protection_analysis
 from .manifests import digest_object
 from .parallel import ExecutionResources
 from .experiment_engine import ExperimentOutcome, execute_experiment
@@ -39,39 +39,101 @@ def _write_derived_analysis(destination: Path, derived: dict) -> None:
             writer.writeheader()
             writer.writerows(rows)
 
-    aggregate_fields = [
-        "replication", "logical_ber", "condition", "policy", "coverage", "realized_coverage", "protected_bits", "mask_sha256", "trial_count",
-        "fault_realization_count", "replication_count", "ranking_mask_count", "accuracy_mean",
-        "accuracy_standard_deviation", "accuracy_standard_error", "accuracy_ci_low", "accuracy_ci_high",
-        "accuracy_median", "accuracy_quantile_05", "accuracy_minimum", "loss_mean",
-        "loss_standard_deviation", "loss_standard_error", "loss_ci_low", "loss_ci_high",
-        "loss_median", "loss_quantile_05", "loss_maximum", "mean_proposed_events", "proposed_events_q05", "proposed_events_q95",
-        "mean_applied_events", "applied_events_q05", "applied_events_q95", "mean_suppressed_events", "suppressed_events_q05", "suppressed_events_q95",
-        "mean_unique_applied_bits", "unique_applied_bits_q05", "unique_applied_bits_q95",
-    ]
+    task_generic = bool(derived.get("pooled")) and "primary_metric" in derived["pooled"][0]
+    if task_generic:
+        fields = [
+            "replication", "logical_ber", "condition", "policy", "coverage",
+            "realized_coverage", "protected_bits", "mask_sha256", "trial_count",
+            "fault_realization_count", "replication_count", "ranking_mask_count",
+            "primary_metric_name", "primary_metric_direction", "primary_metric_mean",
+            "primary_metric_standard_deviation", "primary_metric_standard_error",
+            "primary_metric_ci_low", "primary_metric_ci_high", "primary_metric_median",
+            "primary_metric_quantile_05", "primary_metric_minimum", "loss_metric_name",
+            "loss_metric_direction", "loss_metric_mean", "loss_metric_standard_deviation",
+            "loss_metric_standard_error", "loss_metric_ci_low", "loss_metric_ci_high",
+            "loss_metric_median", "loss_metric_quantile_95", "loss_metric_maximum",
+            "mean_proposed_events", "mean_applied_events", "mean_suppressed_events",
+            "mean_unique_applied_bits",
+        ]
 
-    def aggregate(value, replication=""):
-        accuracy, loss = value["accuracy"], value["categorical_crossentropy"]
-        return {
-            "replication": replication, "logical_ber": value["logical_ber"], "condition": value["condition"],
-            "policy": value["policy"], "coverage": value["coverage"], "realized_coverage": value["realized_coverage"],
-            "protected_bits": value["protected_bits"], "mask_sha256": value["ranking_mask_sha256"], "trial_count": value["trial_count"],
-            "fault_realization_count": value["fault_realization_count"], "replication_count": value["replication_count"],
-            "ranking_mask_count": value["ranking_mask_count"], "accuracy_mean": accuracy["mean"],
-            "accuracy_standard_deviation": accuracy["standard_deviation"], "accuracy_standard_error": accuracy["standard_error"],
-            "accuracy_ci_low": accuracy["confidence_interval"][0], "accuracy_ci_high": accuracy["confidence_interval"][1],
-            "accuracy_median": accuracy["median"], "accuracy_quantile_05": accuracy["quantile_05"], "accuracy_minimum": accuracy["minimum"],
-            "loss_mean": loss["mean"], "loss_standard_deviation": loss["standard_deviation"], "loss_standard_error": loss["standard_error"],
-            "loss_ci_low": loss["confidence_interval"][0], "loss_ci_high": loss["confidence_interval"][1],
-            "loss_median": loss["median"], "loss_quantile_05": loss["quantile_05"], "loss_maximum": loss["maximum"],
-            "mean_proposed_events": value["proposed_events"]["mean"], "proposed_events_q05": value["proposed_events"]["quantile_05"], "proposed_events_q95": value["proposed_events"]["quantile_95"],
-            "mean_applied_events": value["applied_events"]["mean"], "applied_events_q05": value["applied_events"]["quantile_05"], "applied_events_q95": value["applied_events"]["quantile_95"],
-            "mean_suppressed_events": value["suppressed_events"]["mean"], "suppressed_events_q05": value["suppressed_events"]["quantile_05"], "suppressed_events_q95": value["suppressed_events"]["quantile_95"],
-            "mean_unique_applied_bits": value["unique_applied_bits"]["mean"], "unique_applied_bits_q05": value["unique_applied_bits"]["quantile_05"], "unique_applied_bits_q95": value["unique_applied_bits"]["quantile_95"],
-        }
+        def task_aggregate(value, replication=""):
+            primary, loss = value["primary_metric"], value["loss_metric"]
+            return {
+                "replication": replication, "logical_ber": value["logical_ber"],
+                "condition": value["condition"], "policy": value["policy"],
+                "coverage": value["coverage"], "realized_coverage": value["realized_coverage"],
+                "protected_bits": value["protected_bits"], "mask_sha256": value["ranking_mask_sha256"],
+                "trial_count": value["trial_count"], "fault_realization_count": value["fault_realization_count"],
+                "replication_count": value["replication_count"], "ranking_mask_count": value["ranking_mask_count"],
+                "primary_metric_name": value["primary_metric_name"],
+                "primary_metric_direction": value["primary_metric_direction"],
+                "primary_metric_mean": primary["mean"],
+                "primary_metric_standard_deviation": primary["standard_deviation"],
+                "primary_metric_standard_error": primary["standard_error"],
+                "primary_metric_ci_low": primary["confidence_interval"][0],
+                "primary_metric_ci_high": primary["confidence_interval"][1],
+                "primary_metric_median": primary["median"],
+                "primary_metric_quantile_05": primary["quantile_05"],
+                "primary_metric_minimum": primary["minimum"],
+                "loss_metric_name": value["loss_metric_name"],
+                "loss_metric_direction": value["loss_metric_direction"],
+                "loss_metric_mean": loss["mean"],
+                "loss_metric_standard_deviation": loss["standard_deviation"],
+                "loss_metric_standard_error": loss["standard_error"],
+                "loss_metric_ci_low": loss["confidence_interval"][0],
+                "loss_metric_ci_high": loss["confidence_interval"][1],
+                "loss_metric_median": loss["median"],
+                "loss_metric_quantile_95": loss["quantile_95"],
+                "loss_metric_maximum": loss["maximum"],
+                "mean_proposed_events": value["proposed_events"]["mean"],
+                "mean_applied_events": value["applied_events"]["mean"],
+                "mean_suppressed_events": value["suppressed_events"]["mean"],
+                "mean_unique_applied_bits": value["unique_applied_bits"]["mean"],
+            }
 
-    write("protection_results.csv", aggregate_fields[1:], ({key: value for key, value in aggregate(row).items() if key != "replication"} for row in derived["pooled"]))
-    write("replication_protection_results.csv", aggregate_fields, (aggregate(row, row["replication"]) for row in derived["replications"]))
+        write(
+            "protection_results.csv", fields[1:],
+            ({key: value for key, value in task_aggregate(row).items() if key != "replication"}
+             for row in derived["pooled"]),
+        )
+        write(
+            "replication_protection_results.csv", fields,
+            (task_aggregate(row, row["replication"]) for row in derived["replications"]),
+        )
+    else:
+        aggregate_fields = [
+            "replication", "logical_ber", "condition", "policy", "coverage", "realized_coverage", "protected_bits", "mask_sha256", "trial_count",
+            "fault_realization_count", "replication_count", "ranking_mask_count", "accuracy_mean",
+            "accuracy_standard_deviation", "accuracy_standard_error", "accuracy_ci_low", "accuracy_ci_high",
+            "accuracy_median", "accuracy_quantile_05", "accuracy_minimum", "loss_mean",
+            "loss_standard_deviation", "loss_standard_error", "loss_ci_low", "loss_ci_high",
+            "loss_median", "loss_quantile_05", "loss_maximum", "mean_proposed_events", "proposed_events_q05", "proposed_events_q95",
+            "mean_applied_events", "applied_events_q05", "applied_events_q95", "mean_suppressed_events", "suppressed_events_q05", "suppressed_events_q95",
+            "mean_unique_applied_bits", "unique_applied_bits_q05", "unique_applied_bits_q95",
+        ]
+
+        def aggregate(value, replication=""):
+            accuracy, loss = value["accuracy"], value["categorical_crossentropy"]
+            return {
+                "replication": replication, "logical_ber": value["logical_ber"], "condition": value["condition"],
+                "policy": value["policy"], "coverage": value["coverage"], "realized_coverage": value["realized_coverage"],
+                "protected_bits": value["protected_bits"], "mask_sha256": value["ranking_mask_sha256"], "trial_count": value["trial_count"],
+                "fault_realization_count": value["fault_realization_count"], "replication_count": value["replication_count"],
+                "ranking_mask_count": value["ranking_mask_count"], "accuracy_mean": accuracy["mean"],
+                "accuracy_standard_deviation": accuracy["standard_deviation"], "accuracy_standard_error": accuracy["standard_error"],
+                "accuracy_ci_low": accuracy["confidence_interval"][0], "accuracy_ci_high": accuracy["confidence_interval"][1],
+                "accuracy_median": accuracy["median"], "accuracy_quantile_05": accuracy["quantile_05"], "accuracy_minimum": accuracy["minimum"],
+                "loss_mean": loss["mean"], "loss_standard_deviation": loss["standard_deviation"], "loss_standard_error": loss["standard_error"],
+                "loss_ci_low": loss["confidence_interval"][0], "loss_ci_high": loss["confidence_interval"][1],
+                "loss_median": loss["median"], "loss_quantile_05": loss["quantile_05"], "loss_maximum": loss["maximum"],
+                "mean_proposed_events": value["proposed_events"]["mean"], "proposed_events_q05": value["proposed_events"]["quantile_05"], "proposed_events_q95": value["proposed_events"]["quantile_95"],
+                "mean_applied_events": value["applied_events"]["mean"], "applied_events_q05": value["applied_events"]["quantile_05"], "applied_events_q95": value["applied_events"]["quantile_95"],
+                "mean_suppressed_events": value["suppressed_events"]["mean"], "suppressed_events_q05": value["suppressed_events"]["quantile_05"], "suppressed_events_q95": value["suppressed_events"]["quantile_95"],
+                "mean_unique_applied_bits": value["unique_applied_bits"]["mean"], "unique_applied_bits_q05": value["unique_applied_bits"]["quantile_05"], "unique_applied_bits_q95": value["unique_applied_bits"]["quantile_95"],
+            }
+
+        write("protection_results.csv", aggregate_fields[1:], ({key: value for key, value in aggregate(row).items() if key != "replication"} for row in derived["pooled"]))
+        write("replication_protection_results.csv", aggregate_fields, (aggregate(row, row["replication"]) for row in derived["replications"]))
     paired_fields = ["logical_ber", "coverage", "metric", "comparison", "left", "right", "matched_pairs", "mean_difference", "standard_deviation", "ci_low", "ci_high", "p_value_raw", "p_value_holm", "test", "pairing_identity", "multiplicity_family"]
     write("paired_comparisons.csv", paired_fields, ({
         "logical_ber": row["logical_ber"], "coverage": row["coverage"], "metric": row["metric"],
@@ -99,7 +161,7 @@ def load_configuration(path: str | Path):
     source = Path(path).expanduser().resolve()
     with source.open("rb") as stream:
         version = tomllib.load(stream).get("schema_version")
-    if version in {"3.0.0", "3.1.0", "3.2.0", "3.3.0"}:
+    if version in {"3.0.0", "3.1.0", "3.2.0", "3.3.0", "3.4.0"}:
         return load_study(source)
     if version in {"4.0.0", "4.1.0", "4.2.0", "4.3.0", "4.4.0"}:
         return load_search(source)
@@ -197,7 +259,7 @@ def regenerate_report(
     destination = Path(output).expanduser().resolve()
     destination.mkdir(parents=True, exist_ok=True)
     figures: tuple[str, ...] = ()
-    is_study = result.resolved_config.get("schema_version") in {"3.0.0", "3.1.0", "3.2.0", "3.3.0"}
+    is_study = result.resolved_config.get("schema_version") in {"3.0.0", "3.1.0", "3.2.0", "3.3.0", "3.4.0"}
     is_search = result.resolved_config.get("schema_version") in {"4.0.0", "4.1.0", "4.2.0", "4.3.0", "4.4.0"}
     summary = result.summary
     derived = None
@@ -223,7 +285,12 @@ def regenerate_report(
                     enriched.append(row)
                 trial_rows = tuple(enriched)
             expected = int(result.resolved_config.get("replications", {}).get("count", 1))
-            derived = derive_protection_analysis(
+            analyzer = (
+                derive_task_protection_analysis
+                if trial_rows and "primary_metric_value" in trial_rows[0]
+                else derive_protection_analysis
+            )
+            derived = analyzer(
                 trial_rows,
                 confidence=float(result.resolved_config["execution"]["confidence"]),
                 permutation_seed=int(result.resolved_config["execution"]["permutation_seed"]),

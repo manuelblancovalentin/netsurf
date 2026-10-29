@@ -13,8 +13,8 @@ from .paths import workspace_root
 from .quantization import FixedPointFormat
 
 
-STUDY_SCHEMA_VERSION = "3.3.0"
-SUPPORTED_STUDY_SCHEMA_VERSIONS = {"3.0.0", "3.1.0", "3.2.0", STUDY_SCHEMA_VERSION}
+STUDY_SCHEMA_VERSION = "3.4.0"
+SUPPORTED_STUDY_SCHEMA_VERSIONS = {"3.0.0", "3.1.0", "3.2.0", "3.3.0", STUDY_SCHEMA_VERSION}
 SUPPORTED_PROTOCOLS = {
     "single-bit-susceptibility/v1": "single_bit",
     "estimator-validation/v1": "estimator_validation",
@@ -138,7 +138,7 @@ class StudyConfiguration:
 
     def resolved_document(self) -> dict[str, Any]:
         replications = asdict(self.replications)
-        if self.schema_version != "3.3.0":
+        if self.schema_version not in {"3.3.0", "3.4.0"}:
             # Preserve byte-for-byte scientific configuration semantics for
             # historical schema-3 readers and finalized reruns.
             replications.pop("estimator_seed_stride", None)
@@ -216,9 +216,14 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
         "adapter", "id", "checkpoint", "dataset", "split", "quantization",
         "quantization_backend", "injectable_parameters",
     }
+    tflite_adapters = {
+        "mlperf_tiny_ic_int8_v1",
+        "mlperf_tiny_kws_int8_v1",
+        "mlperf_tiny_ad_int8_v1",
+    }
     benchmark_optional = (
         {"asset_lock", "inference_backend"}
-        if benchmark.get("adapter") == "mlperf_tiny_ic_int8_v1"
+        if benchmark.get("adapter") in tflite_adapters
         else set()
     )
     _keys(benchmark, benchmark_required, benchmark_optional, "benchmark")
@@ -228,6 +233,8 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
         "mnist_quantized",
         "mnist_lite_exact_kb_v1",
         "mlperf_tiny_ic_int8_v1",
+        "mlperf_tiny_kws_int8_v1",
+        "mlperf_tiny_ad_int8_v1",
     }:
         raise StudyConfigurationError("unsupported schema-3 benchmark adapter")
     checkpoint, dataset = _path(str(benchmark["checkpoint"]), source), _path(str(benchmark["dataset"]), source)
@@ -236,32 +243,40 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
         if benchmark.get("asset_lock") is not None
         else None
     )
+    dataset_ready = dataset.exists() if benchmark["adapter"] in {
+        "mlperf_tiny_kws_int8_v1", "mlperf_tiny_ad_int8_v1"
+    } else dataset.is_file()
     if check_inputs and (
         not checkpoint.is_file()
-        or not dataset.is_file()
+        or not dataset_ready
         or (asset_lock is not None and not asset_lock.is_file())
     ):
         raise StudyConfigurationError(f"missing checkpoint or dataset: {checkpoint}, {dataset}")
-    affine_tflite = benchmark["adapter"] == "mlperf_tiny_ic_int8_v1"
+    affine_tflite = benchmark["adapter"] in tflite_adapters
     if affine_tflite:
         if asset_lock is None:
-            raise StudyConfigurationError("mlperf_tiny_ic_int8_v1 requires benchmark.asset_lock")
+            raise StudyConfigurationError("MLPerf Tiny affine adapters require benchmark.asset_lock")
         if benchmark.get("inference_backend") != "tensorflow_lite_builtin_ref_v1":
             raise StudyConfigurationError(
-                "mlperf_tiny_ic_int8_v1 requires "
+                "MLPerf Tiny affine adapters require "
                 "inference_backend='tensorflow_lite_builtin_ref_v1'"
             )
-        if benchmark["split"] not in {"official_subset_200", "test"}:
+        allowed_splits = {
+            "mlperf_tiny_ic_int8_v1": {"official_subset_200", "test"},
+            "mlperf_tiny_kws_int8_v1": {"official_subset_1000", "test"},
+            "mlperf_tiny_ad_int8_v1": {"official_248_files", "test"},
+        }[benchmark["adapter"]]
+        if benchmark["split"] not in allowed_splits:
             raise StudyConfigurationError(
-                "mlperf_tiny_ic_int8_v1 split must be 'official_subset_200' or 'test'"
+                f"{benchmark['adapter']} split must be one of {sorted(allowed_splits)}"
             )
         if str(benchmark["quantization"]) != "tflite_affine_int8":
             raise StudyConfigurationError(
-                "mlperf_tiny_ic_int8_v1 requires quantization='tflite_affine_int8'"
+                "MLPerf Tiny affine adapters require quantization='tflite_affine_int8'"
             )
         if str(benchmark["quantization_backend"]) != "tflite_affine_integer_v1":
             raise StudyConfigurationError(
-                "mlperf_tiny_ic_int8_v1 requires "
+                "MLPerf Tiny affine adapters require "
                 "quantization_backend='tflite_affine_integer_v1'"
             )
     else:
@@ -281,13 +296,9 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
             raise StudyConfigurationError(
                 "mnist_lite_exact_kb_v1 requires quantization_backend='netsurf_bitcodec_v1'"
             )
-    if affine_tflite and tuple(injectables) not in {
-        ("kernels",),
-        ("kernels", "biases"),
-    }:
+    if affine_tflite and tuple(injectables) not in ({("kernels",), ("kernels", "biases")} if benchmark["adapter"] == "mlperf_tiny_ic_int8_v1" else {("kernels",)}):
         raise StudyConfigurationError(
-            "mlperf_tiny_ic_int8_v1 injectable_parameters must be ['kernels'] or "
-            "['kernels', 'biases']"
+            "MLPerf Tiny injectable_parameters do not match the validated storage population"
         )
 
     samples = _table(document, "samples")
@@ -334,8 +345,9 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
             "per_sample_positive_damage",
         }:
             raise StudyConfigurationError(
-                f"estimator {value['name']!r} is blocked for mlperf_tiny_ic_int8_v1: "
-                "M9 validates only static first-order kernel estimators"
+                f"estimator {value['name']!r} is blocked for {benchmark['adapter']}: "
+                "the validated affine-TFLite contract includes only static "
+                "first-order kernel estimators"
             )
         if (
             affine_tflite
@@ -431,7 +443,7 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
             "count", "candidate_seed_stride", "hutchinson_seed_stride",
             "sample_offset_stride", "fault_seed_stride",
         }
-        if schema_version == "3.3.0":
+        if schema_version in {"3.3.0", "3.4.0"}:
             required_replication_fields.add("estimator_seed_stride")
         optional_replication_fields: set[str] = set()
         _keys(
@@ -448,6 +460,22 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
     )
     if replications.count < 1 or any(value < 0 for value in asdict(replications).values()):
         raise StudyConfigurationError("replication count must be positive and strides nonnegative")
+
+    if benchmark["adapter"] in {"mlperf_tiny_kws_int8_v1", "mlperf_tiny_ad_int8_v1"} and fault["persistence"] != "persistent_trial":
+        raise StudyConfigurationError(
+            f"{benchmark['adapter']} currently validates persistent_trial faults only"
+        )
+    if benchmark["adapter"] == "mlperf_tiny_ad_int8_v1" and schema_version != "3.4.0":
+        raise StudyConfigurationError(
+            "ToyCar task-specific reconstruction/AUC metrics require schema_version='3.4.0'"
+        )
+    if benchmark["adapter"] == "mlperf_tiny_ad_int8_v1" and (
+        samples["empirical_count"] < 2 or samples["evaluation_count"] < 2
+    ):
+        raise StudyConfigurationError(
+            "ToyCar empirical and final evaluation each require at least two "
+            "files so both anomaly labels are represented"
+        )
 
     output = _table(document, "output")
     _keys(output, {"report", "plots"}, {"root"}, "output")

@@ -84,6 +84,14 @@ def render_study_report(summary: Mapping[str, Any], resolved: Mapping[str, Any],
 
     experiment = resolved["experiment"]
     benchmark = resolved["benchmark"]
+    clean = summary["clean_evaluation"]
+    task_generic = "roc_auc" in clean and "reconstruction_mse" in clean
+    clean_line = (
+        f"File-level ROC-AUC: `{clean['roc_auc']:.6f}`; mean window reconstruction MSE: `{clean['reconstruction_mse']:.6f}`; "
+        f"files: `{clean['sample_count']}`; windows: `{clean['window_count']}`."
+        if task_generic
+        else f"Accuracy: `{clean['accuracy']:.6f}`; categorical cross-entropy: `{clean['categorical_crossentropy']:.6f}`."
+    )
     lines = [
         f"# {experiment['name']}", "", experiment.get("description", ""), "",
         "## Objective", "", experiment.get("objective", "Not specified."), "",
@@ -95,7 +103,7 @@ def render_study_report(summary: Mapping[str, Any], resolved: Mapping[str, Any],
         f"- Sample partitions are required to be disjoint: `{resolved['samples']['require_disjoint']}`.",
         "- Estimator scores, ordering policies, and protection-budget allocation are separate recorded objects.",
         "", "## Clean evaluation", "",
-        f"Accuracy: `{summary['clean_evaluation']['accuracy']:.6f}`; categorical cross-entropy: `{summary['clean_evaluation']['categorical_crossentropy']:.6f}`.",
+        clean_line,
     ]
     if summary.get("empirical_candidate_count", 0):
         lines.extend([
@@ -145,7 +153,41 @@ def render_study_report(summary: Mapping[str, Any], resolved: Mapping[str, Any],
             f"Exact score equality: `{row['identical_scores']}`; exact deterministic order equality: `{row['identical_order']}`.",
             "Different scores need not imply different orderings; both are recorded explicitly.",
         ])
-    if summary.get("protection_results"):
+    if task_generic and summary.get("protection_results"):
+        lines.extend([
+            "", "## Matched anomaly-detection protection experiment", "",
+            "The ranking loss is per-window float-domain reconstruction MSE. The final task metric is file-level ROC-AUC; ROC-AUC is not differentiated.",
+            "All policies use matched persistent logical fault schedules and ideal event suppression.", "",
+            "| Policy | Coverage | n | Mean ROC-AUC | ROC-AUC CI | Mean reconstruction MSE | MSE CI |",
+            "|---|---:|---:|---:|---:|---:|---:|",
+        ])
+        for result in summary["protection_results"]:
+            primary, loss = result["primary_metric"], result["loss_metric"]
+            lines.append(
+                f"| {result['policy']} | {result['coverage']:.6f} | {primary['count']} | "
+                f"{primary['mean']:.6f} | [{primary['confidence_interval'][0]:.6f}, {primary['confidence_interval'][1]:.6f}] | "
+                f"{loss['mean']:.6f} | [{loss['confidence_interval'][0]:.6f}, {loss['confidence_interval'][1]:.6f}] |"
+            )
+        lines.extend([
+            "", "Intervals describe variation across the recorded logical fault realizations conditional on the fixed model, data, masks, and preprocessing. They are not uncertainty over independently trained models.",
+        ])
+        if summary.get("paired_comparisons"):
+            lines.extend([
+                "", "### Paired policy differences", "",
+                "Pairs match replication, logical BER, trial, and fault-schedule identity. Positive ROC-AUC differences favor the left policy; positive reconstruction-MSE differences indicate larger loss.", "",
+                "| BER | Coverage | Metric | Comparison | n | Mean difference | 95% CI | Holm-adjusted p |",
+                "|---:|---:|---|---|---:|---:|---:|---:|",
+            ])
+            for comparison in summary["paired_comparisons"]:
+                difference = comparison["difference"]
+                lines.append(
+                    f"| {comparison['logical_ber']:.8g} | {comparison['coverage']:.6f} | "
+                    f"{comparison['metric']} | {comparison['left']} − {comparison['right']} | "
+                    f"{comparison['matched_pairs']} | {difference['mean']:.6f} | "
+                    f"[{difference['confidence_interval'][0]:.6f}, {difference['confidence_interval'][1]:.6f}] | "
+                    f"{comparison['p_value_holm']:.6g} |"
+                )
+    elif summary.get("protection_results"):
         probabilities = resolved["protection"].get("probabilities") or [resolved["fault"]["probability"]]
         probability_text = ", ".join(str(value) for value in probabilities)
         lines.extend([
@@ -221,7 +263,7 @@ def render_study_report(summary: Mapping[str, Any], resolved: Mapping[str, Any],
         lines.extend([
             "", "Dispersion across candidate samples is not fault-trial uncertainty or Hutchinson probe uncertainty. Per-layer and per-bit-position replication summaries are stored in `measurements/replication_aggregate.csv`.",
         ])
-        if summary.get("replication_protection_results"):
+        if summary.get("replication_protection_results") and not task_generic:
             lines.extend([
                 "", "### Replication-level protection summaries", "",
                 "These rows preserve between-replication variation separately from pooled fault-trial uncertainty. Identical masks across replications do not constitute independent ranking-mask samples.", "",
@@ -232,6 +274,19 @@ def render_study_report(summary: Mapping[str, Any], resolved: Mapping[str, Any],
                 lines.append(
                     f"| {row['replication']} | {row['logical_ber']:.8g} | {row['policy']} | {row['coverage']:.6f} | "
                     f"{row['fault_realization_count']} | {row['accuracy']['mean']:.6f} | {row['accuracy']['standard_deviation']:.6f} | {row['accuracy']['minimum']:.6f} |"
+                )
+        elif summary.get("replication_protection_results") and task_generic:
+            lines.extend([
+                "", "### Replication-level task summaries", "",
+                "These rows keep ranking-mask/sample replication separate from pooled fault-realization variability.", "",
+                "| Replication | BER | Policy | Coverage | Trials | Mean ROC-AUC | Mean reconstruction MSE |",
+                "|---|---:|---|---:|---:|---:|---:|",
+            ])
+            for row in summary["replication_protection_results"]:
+                lines.append(
+                    f"| {row['replication']} | {row['logical_ber']:.8g} | {row['policy']} | "
+                    f"{row['coverage']:.6f} | {row['fault_realization_count']} | "
+                    f"{row['primary_metric']['mean']:.6f} | {row['loss_metric']['mean']:.6f} |"
                 )
     if figure_paths:
         lines.extend(["", "## Figures", ""])

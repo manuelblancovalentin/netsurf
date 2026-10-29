@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/measurements/v3_4.schema.json",
+  "title": "NetSuRF M9.3 task-generic measurements",
+  "schema_version": "3.4.0",
+  "compatibility": "Extends v3.3. Existing v3.0-v3.3 readers and finalized bundles remain unchanged.",
+  "task_metric_contract": {
+    "primary_metric": "Explicit task-level metric name, direction, and value; classification accuracy or anomaly ROC-AUC.",
+    "loss_metric": "Explicit ranking/evaluation loss name, direction, and value; categorical cross-entropy or reconstruction MSE.",
+    "prohibition": "Anomaly ROC-AUC and reconstruction MSE must not be serialized under accuracy or categorical_crossentropy labels."
+  },
+  "tables": {
+    "empirical_bits.csv": {
+      "added_columns": ["loss_metric_name", "primary_metric_name", "primary_metric_direction", "clean_primary_metric", "faulted_primary_metric", "primary_metric_damage"]
+    },
+    "trials.csv": {
+      "task_generic_columns": ["primary_metric_name", "primary_metric_value", "primary_metric_direction", "loss_metric_name", "loss_metric_value", "loss_metric_direction"]
+    },
+    "protection_results.csv": {
+      "semantics": "Task-named pooled primary and loss summaries across every saved replication and matched fault trial.",
+      "statistical_unit": ["replication", "logical_ber", "trial", "schedule_sha256"]
+    },
+    "replication_protection_results.csv": {
+      "semantics": "Within-replication task-named summaries kept separate from pooled fault-realization variation."
+    },
+    "paired_comparisons.csv": {
+      "pair_identity": ["replication", "logical_ber", "trial", "schedule_sha256"],
+      "metrics": ["roc_auc", "reconstruction_mse"],
+      "multiplicity": "Holm adjustment within logical BER and metric family"
+    }
+  }
+}

@@ -10,6 +10,7 @@ import numpy as np
 
 from .identities import BitIdentity
 from .quantization import BitCodec
+from .task_metrics import TaskSingleBitMeasurement, evaluation_contract
 
 
 def layer_name(parameter: str) -> str:
@@ -153,15 +154,23 @@ def measure_single_bits(
     *,
     evaluation_sample_sha256: str,
     progress=None,
-) -> tuple[SingleBitMeasurement, ...]:
+) -> tuple[SingleBitMeasurement | TaskSingleBitMeasurement, ...]:
     """Measure exact isolated encoded-bit effects with restoration after each bit."""
 
     baseline = adapter.evaluate(inputs, labels)
+    task_generic = not (
+        hasattr(baseline, "accuracy")
+        and hasattr(baseline, "categorical_crossentropy")
+    )
+    (
+        primary_name, baseline_primary, primary_direction,
+        loss_name, baseline_loss, _loss_direction,
+    ) = evaluation_contract(baseline)
     baseline_predictions = adapter.predict_classes(inputs) if hasattr(adapter, "predict_classes") else None
     if progress is not None:
         progress(0, len(candidates), None)
     original = adapter.values()
-    measurements: list[SingleBitMeasurement] = []
+    measurements: list[SingleBitMeasurement | TaskSingleBitMeasurement] = []
     for candidate in candidates:
         identity = candidate.identity
         transition = getattr(adapter, "encoded_bit_transition", None)
@@ -190,8 +199,16 @@ def measure_single_bits(
             if baseline_predictions is not None:
                 prediction_changes = int(np.sum(adapter.predict_classes(inputs) != baseline_predictions))
         elapsed = perf_counter() - started
-        signed_loss = faulted.categorical_crossentropy - baseline.categorical_crossentropy
-        measurement = SingleBitMeasurement(
+        (
+            faulted_primary_name, faulted_primary, faulted_primary_direction,
+            faulted_loss_name, faulted_loss, _faulted_loss_direction,
+        ) = evaluation_contract(faulted)
+        if (primary_name, primary_direction, loss_name) != (
+            faulted_primary_name, faulted_primary_direction, faulted_loss_name
+        ):
+            raise RuntimeError("task metric contract changed during isolated-bit evaluation")
+        signed_loss = faulted_loss - baseline_loss
+        common = (
                 identity.parameter,
                 identity.flat_index,
                 identity.bit_index,
@@ -200,20 +217,47 @@ def measure_single_bits(
                 original_encoded,
                 flipped_encoded,
                 flipped_value - original_value,
-                baseline.categorical_crossentropy,
-                faulted.categorical_crossentropy,
+        )
+        tail = (
+                baseline_loss,
+                faulted_loss,
                 signed_loss,
                 max(0.0, signed_loss),
                 abs(signed_loss),
-                baseline.accuracy,
-                faulted.accuracy,
-                baseline.accuracy - faulted.accuracy,
+        )
+        provenance = (
                 prediction_changes,
                 evaluation_sample_sha256,
                 elapsed,
                 candidate.inclusion_rule,
                 candidate.sampling_probability,
                 candidate.score_quantile,
+        )
+        if task_generic:
+            primary_damage = (
+                baseline_primary - faulted_primary
+                if primary_direction == "maximize"
+                else faulted_primary - baseline_primary
+            )
+            measurement = TaskSingleBitMeasurement(
+                *common,
+                loss_name,
+                *tail,
+                primary_name,
+                primary_direction,
+                baseline_primary,
+                faulted_primary,
+                primary_damage,
+                *provenance,
+            )
+        else:
+            measurement = SingleBitMeasurement(
+                *common,
+                *tail,
+                baseline_primary,
+                faulted_primary,
+                baseline_primary - faulted_primary,
+                *provenance,
             )
         measurements.append(measurement)
         if progress is not None:

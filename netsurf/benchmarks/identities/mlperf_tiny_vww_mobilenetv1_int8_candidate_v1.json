@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "identity": "mlperf_tiny_vww_mobilenetv1_int8_candidate_v1",
+  "status": "blocked_dataset_provenance",
+  "checkpoint": {
+    "sha256": "597a384c8c2c8a1276f04702f25013b7838f2f814f1ca7c174d295b73e3d6b7b",
+    "asset_lock_digest": "sha256:6e7b331f97bae11465de77cc5150e208a21c94f602b9f88520a91d2a9deae0fa"
+  },
+  "provisional_record": {
+    "accuracy": 0.858,
+    "samples": 1000,
+    "status": "not an official-comparability claim"
+  },
+  "blocker": "The local MLTK derivative has matching evaluation IDs and labels, but pixel identity with the official vw_coco2014_96 archive has not been independently verified.",
+  "required_action": "Obtain and checksum the official archive or another authoritative pixel-identity record, then repeat preprocessing and clean-reference conformance before adapter implementation."
+}

@@ -37,6 +37,9 @@ IDENTITY_FILES = {
     "keyword_spotting_candidate": "keyword_spotting_candidate.v1.json",
     "toyadmos_autoencoder_candidate": "toyadmos_autoencoder_candidate.v1.json",
     "mlperf_tiny_ic_resnet8_int8_v1": "mlperf_tiny_ic_resnet8_int8_v1.json",
+    "mlperf_tiny_kws_dscnn_int8_v1": "mlperf_tiny_kws_dscnn_int8_v1.json",
+    "mlperf_tiny_ad_toycar_int8_v1": "mlperf_tiny_ad_toycar_int8_v1.json",
+    "mlperf_tiny_vww_mobilenetv1_int8_candidate_v1": "mlperf_tiny_vww_mobilenetv1_int8_candidate_v1.json",
 }
 SUPPORTED_ENCODED_ROLES = frozenset({"kernel", "bias"})
 
