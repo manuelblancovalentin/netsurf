@@ -1,5 +1,10 @@
 # Benchmark expansion gate
 
+> This document's historical QKeras candidate decisions remain valid for those
+> identities. Modern pinned TFLite DS-CNN and ToyCar support was subsequently
+> accepted by M9.3; see `docs/MLPERF_TINY_M93_MULTIBENCH.md`. The modern models
+> are not conversions of the blocked historical candidates.
+
 This document records the inference-only benchmark gate performed on 2026-10-27.
 It is evidence for new NetSuRF v2 benchmark identities, not an attempt to
 reproduce the rejected TCAD manuscript. Source assets were read but not

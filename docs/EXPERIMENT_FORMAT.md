@@ -1,6 +1,6 @@
 # Versioned experiments and result bundles
 
-Experiment TOML schemas `1.0.0`, `2.0.0`, `3.0.0`, and `3.1.0` are supported user-authored
+Experiment TOML schemas `1.0.0`, `2.0.0`, and `3.0.0` through `3.4.0` are supported user-authored
 contracts. Version 1 preserves the historical adapter; version 2 adds explicit
 benchmark, quantization-backend, injectable-parameter, and persistent or
 per-inference fault semantics. Version 3 adds explicit sample partitions,
@@ -50,7 +50,16 @@ protection studies use `trials.csv`, `protection_results.csv`,
 `artifacts/sample_partitions.json`; sampled empirical populations also record
 the inclusion rule and conditional stratum probability. Column contracts and
 null semantics are defined in `netsurf/schemas/measurements/v3.schema.json`
-`v3_1.schema.json`, and `v3_2.schema.json` for their respective versions.
+`v3_1.schema.json`, `v3_2.schema.json`, `v3_3.schema.json`, and
+`v3_4.schema.json` for their respective versions.
+
+Schema `3.4.0` is additive and introduces task-named primary and loss metrics
+for MLPerf Tiny anomaly detection. ROC-AUC and reconstruction MSE are never
+serialized as classification accuracy or categorical cross-entropy. It also
+registers the pinned DS-CNN KWS and ToyCar adapters, directory-backed dataset
+identity manifests, and the validated kernel-only persistent-fault contract.
+Replicated task-metric studies pool every saved replication and pair policies
+by replication, logical BER, trial, and fault-schedule digest.
 
 Schema `3.2.0` is additive and is used by the M9 MLPerf Tiny static-estimator
 gate. It adds the explicitly named `numerical_bit_jump` estimator and records

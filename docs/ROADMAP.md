@@ -77,6 +77,21 @@ Freeze one checkpoint and verify NetSuRF checkpoint → folded QKeras → HLS C 
 
 Every method must share stated physical targets, matched fault conditions where meaningful, and measured area/power/latency/timing—not a forced per-bit abstraction.
 
+## M9.3 — independent modern TFLite benchmarks
+
+- [x] Add exact kernel-only DS-CNN KWS and ToyCar anomaly-detection adapters.
+- [x] Reproduce pinned clean-reference output/score digests with TensorFlow Lite
+  2.14.1 `BUILTIN_REF`.
+- [x] Add architecture-specific ranking companions and bounded S2--S6 and
+  isolated-bit validation.
+- [x] Add task-named reconstruction-MSE/ROC-AUC schema and reports without
+  changing classification bundles.
+- [x] Gate VWW on unresolved official evaluation-image provenance.
+
+The next step is researcher-authored, independently executed publication
+studies. Companion gradients remain surrogates and require exact empirical
+validation; M9.3 itself establishes no cross-model estimator advantage.
+
 ## M4.1 — independent conditional comparison
 
 - [x] Whole-path held-out conditional-risk contributions and paired intervals.

@@ -9,6 +9,15 @@
 5. Historical qPolarGrad is retained by name and warning; it is not silently promoted as the accepted estimator.
 6. `proj` project `netsurf` selects the dedicated Python 3.11 environment. The canonical core is installed editable with NumPy 1.26.4. The TensorFlow 2.11 milestone remains isolated in the preserved Python 3.10 `netsurf-legacy` environment until equivalence is validated on Python 3.11.
 7. Wolf is reserved for hardware stages; its Cadence backend is currently a compatibility path and must be validated against NetSuRF's historical scripts before use.
+8. Pinned MLPerf Tiny DS-CNN and ToyCar TFLite models are accepted as distinct
+   modern benchmark identities. Their exact inference backend is TensorFlow
+   Lite 2.14.1 `BUILTIN_REF`; architecture-specific STE companions provide
+   ranking derivatives only.
+9. ToyCar ranking uses reconstruction MSE while final task evaluation uses
+   file-level ROC-AUC. The objectives and their uncertainty are reported
+   separately under schema 3.4.
+10. VWW remains blocked until official evaluation-image pixel provenance is
+    independently verified.
 
 ## Not yet approved scientifically
 

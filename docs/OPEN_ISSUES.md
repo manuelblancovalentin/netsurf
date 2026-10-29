@@ -6,6 +6,11 @@
 2. Legacy qPolarGrad uses globally corrupted downstream activations and a trained-point gradient. Its theoretical interpretation and empirical rank correlation with single-bit effects remain unvalidated.
 3. Position-first qPolarGrad and correct MSB-first are necessarily identical at full one-MSB coverage; historical contrary comparisons require regeneration.
 4. A physical fault-exposure model, logical-to-physical register map, and trustworthy zero/full synthesis endpoints are absent.
+5. KWS and ToyCar STE companions are not exact integer-program derivatives.
+   Their ranking value must be established through exact TFLite isolated-bit
+   and protection studies on independent samples.
+6. VWW evaluation-image provenance is unresolved; local derivative images are
+   not accepted as the official MLPerf benchmark dataset.
 
 ## Engineering blockers
 
@@ -17,3 +22,9 @@
 - `proj` shell integration and Lmod function are not initialized in the execution shell, but the private metadata profile is valid.
 - Wolf exists at `/home/manuelbv/wolf` commit `a3f967b` on `multibackend` with two unrelated modified TSMC28 templates. It is not on PATH. No NetSuRF Wolf manifest has been created yet.
 - Wolf provides numbered immutable ASIC runs and provenance, but not a general ML dependency solver, sweep scheduler, or content-addressed stage cache.
+- ToyCar preprocessing requires librosa, which is not installed in every
+  NetSuRF Python environment. The validated pinned reference environment has it;
+  environment changes remain researcher-managed.
+- ToyCar's 2,113,536 Python bit identities and score maps have significant
+  memory cost. Bounded validation peaked near 880 MiB before publication-scale
+  result serialization.
