@@ -5,6 +5,11 @@ unchanged under `DEPRECATED/legacy_source/netsurf` and is accessed only through
 explicit adapters. Importing canonical `netsurf` does not initialize Nodus,
 TensorFlow, a database, or user configuration.
 
+`netsurf.mechanism_audit` is a derived-analysis layer. It streams finalized
+measurement tables and exact masks without invoking benchmark adapters. Its
+reports never replace or mutate source bundles. Optional ToyCar per-file score
+artifacts are explicit bounded diagnostics rather than default production output.
+
 ```text
 Benchmark artifact + held-out split
               |

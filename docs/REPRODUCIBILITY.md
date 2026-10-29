@@ -201,6 +201,25 @@ conservative estimate from the six-trial policy run is under two minutes and
 roughly 50 MB. These estimates are machine- and filesystem-dependent. Neither
 command is an exhaustive 152,700-bit susceptibility campaign.
 
+## Offline cross-benchmark mechanism audit
+
+The mechanism audit reads finalized bundles only. It does not import
+TensorFlow, rerun inference, or alter source manifests:
+
+```bash
+netsurf mechanism-audit \
+  --benchmark resnet8 /path/to/estimator-bundle /path/to/protection-bundle \
+  --benchmark kws /path/to/estimator-bundle /path/to/protection-bundle \
+  --benchmark toycar /path/to/estimator-bundle /path/to/protection-bundle \
+  --output workspace/mechanism-audit/cross_benchmark_v1
+```
+
+Used source files are checked against their finalized bundle checksums. Score
+CSVs and mask JSON are streamed, so multi-gigabyte artifacts are not loaded in
+memory. The output is a separate checksummed derived analysis and must not be
+presented as a new scientific experiment or causal mechanism. See
+`docs/M93_CROSS_BENCHMARK_MECHANISMS.md`.
+
 ## M3.1 researcher-driven estimator studies
 
 Validate before launching:

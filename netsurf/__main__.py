@@ -81,6 +81,20 @@ def _parser() -> argparse.ArgumentParser:
     report.add_argument("run_directory", type=Path)
     report.add_argument("--output", type=Path)
     report.add_argument("--plots", action="store_true")
+    mechanism = subparsers.add_parser(
+        "mechanism-audit",
+        help="derive memory-bounded exploratory mechanism diagnostics from finalized bundles",
+    )
+    mechanism.add_argument(
+        "--benchmark", action="append", nargs=3, required=True,
+        metavar=("NAME", "ESTIMATOR_BUNDLE", "PROTECTION_BUNDLE"),
+        help="benchmark label and its finalized estimator/protection bundles",
+    )
+    mechanism.add_argument("--output", type=Path, required=True)
+    mechanism.add_argument("--no-plots", action="store_true")
+    mechanism.add_argument("--skip-checksums", action="store_true")
+    mechanism.add_argument("--bootstrap-seed", type=int, default=930401)
+    mechanism.add_argument("--bootstrap-replicates", type=int, default=1000)
     return parser
 
 
@@ -358,6 +372,20 @@ def main(argv: list[str] | None = None) -> int:
             result = read_result_bundle(args.run_directory)
             output = args.output or workspace_root() / "scratch" / "reports" / result.manifest["run_id"]
             print(regenerate_report(result, output, plots=args.plots))
+        elif args.command == "mechanism-audit":
+            from .mechanism_audit import MechanismBundleSpec, run_mechanism_audit
+
+            specifications = tuple(
+                MechanismBundleSpec(name, Path(estimator), Path(protection))
+                for name, estimator, protection in args.benchmark
+            )
+            print(run_mechanism_audit(
+                specifications, args.output,
+                verify=not args.skip_checksums,
+                plots=not args.no_plots,
+                bootstrap_seed=args.bootstrap_seed,
+                bootstrap_replicates=args.bootstrap_replicates,
+            ))
         return 0
     except _EXPECTED_RUN_ERRORS as error:
         print(f"netsurf: {error}", file=sys.stderr)

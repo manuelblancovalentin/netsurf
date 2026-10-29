@@ -767,6 +767,56 @@ class MlperfTinyToyCarAdapter(_ExactTFLiteKernelAdapter):
             len(unique_files), len(window_errors), tuple(float(value) for value in scores),
         )
 
+    def file_score_records(
+        self,
+        inputs,
+        labels,
+        *,
+        schedule: FaultSchedule | None = None,
+        protection: ProtectionMask | None = None,
+    ) -> tuple[tuple[dict[str, object], ...], InjectionReport | None]:
+        """Return bounded file-level score evidence with optional exact faults.
+
+        This is an opt-in diagnostic API.  Production bundles are unchanged;
+        callers decide whether the additional per-file evidence is warranted.
+        """
+
+        def records():
+            targets, file_ids, file_labels_by_window = self._targets(labels)
+            outputs = self.predict_outputs(inputs)
+            window_errors = np.mean((targets - outputs) ** 2, axis=1)
+            result = []
+            for file_id in np.unique(file_ids):
+                selected = file_ids == file_id
+                label = int(file_labels_by_window[np.flatnonzero(selected)[0]])
+                score = float(np.mean(window_errors[selected]))
+                result.append({
+                    "file_id": int(file_id),
+                    "label": label,
+                    "score": score,
+                    "score_float64_hex": score.hex(),
+                    "window_count": int(np.sum(selected)),
+                })
+            return tuple(result)
+
+        if schedule is None:
+            if protection is not None:
+                raise ValueError("protection requires a fault schedule")
+            return records(), None
+        if protection is None:
+            raise ValueError("faulted file-score diagnostics require a protection mask")
+        storage = self._require_loaded()
+        content, report = storage.apply_schedule(schedule, protection)
+        before = self._model_content
+        self._set_model_content(content)
+        try:
+            result = records()
+        finally:
+            self._set_model_content(before)
+        if self._model_content != before:
+            raise RuntimeError("TFLite reference model was not restored")
+        return result, report
+
     def _companion(self):
         if self._companion_instance is None:
             from ..mlperf_multibench_companion import MlperfToyCarDifferentiableCompanion
