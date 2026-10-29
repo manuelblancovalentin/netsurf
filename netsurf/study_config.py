@@ -13,8 +13,8 @@ from .paths import workspace_root
 from .quantization import FixedPointFormat
 
 
-STUDY_SCHEMA_VERSION = "3.2.0"
-SUPPORTED_STUDY_SCHEMA_VERSIONS = {"3.0.0", "3.1.0", STUDY_SCHEMA_VERSION}
+STUDY_SCHEMA_VERSION = "3.3.0"
+SUPPORTED_STUDY_SCHEMA_VERSIONS = {"3.0.0", "3.1.0", "3.2.0", STUDY_SCHEMA_VERSION}
 SUPPORTED_PROTOCOLS = {
     "single-bit-susceptibility/v1": "single_bit",
     "estimator-validation/v1": "estimator_validation",
@@ -112,6 +112,7 @@ class StudyReplications:
     hutchinson_seed_stride: int
     sample_offset_stride: int
     fault_seed_stride: int
+    estimator_seed_stride: int = 0
 
 
 @dataclass(frozen=True)
@@ -136,6 +137,11 @@ class StudyConfiguration:
     source_text: str
 
     def resolved_document(self) -> dict[str, Any]:
+        replications = asdict(self.replications)
+        if self.schema_version != "3.3.0":
+            # Preserve byte-for-byte scientific configuration semantics for
+            # historical schema-3 readers and finalized reruns.
+            replications.pop("estimator_seed_stride", None)
         return {
             "schema_version": self.schema_version,
             "scientific_protocol": self.scientific_protocol,
@@ -159,7 +165,7 @@ class StudyConfiguration:
             "protection": asdict(self.protection),
             "fault": asdict(self.fault),
             "execution": asdict(self.execution),
-            "replications": asdict(self.replications),
+            "replications": replications,
             "output": {"root": str(self.output.root), "report": self.output.report, "plots": self.output.plots},
         }
 
@@ -421,11 +427,24 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
     if not isinstance(raw_replications, dict):
         raise StudyConfigurationError("replications must be a table")
     if raw_replications:
-        _keys(raw_replications, {"count", "candidate_seed_stride", "hutchinson_seed_stride", "sample_offset_stride", "fault_seed_stride"}, set(), "replications")
+        required_replication_fields = {
+            "count", "candidate_seed_stride", "hutchinson_seed_stride",
+            "sample_offset_stride", "fault_seed_stride",
+        }
+        if schema_version == "3.3.0":
+            required_replication_fields.add("estimator_seed_stride")
+        optional_replication_fields: set[str] = set()
+        _keys(
+            raw_replications,
+            required_replication_fields,
+            optional_replication_fields,
+            "replications",
+        )
     replications = StudyReplications(
         int(raw_replications.get("count", 1)), int(raw_replications.get("candidate_seed_stride", 0)),
         int(raw_replications.get("hutchinson_seed_stride", 0)), int(raw_replications.get("sample_offset_stride", 0)),
         int(raw_replications.get("fault_seed_stride", 0)),
+        int(raw_replications.get("estimator_seed_stride", 0)),
     )
     if replications.count < 1 or any(value < 0 for value in asdict(replications).values()):
         raise StudyConfigurationError("replication count must be positive and strides nonnegative")

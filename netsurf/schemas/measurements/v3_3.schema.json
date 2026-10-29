@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/measurements/v3_3.schema.json",
+  "title": "NetSuRF M9.1 estimator-validation measurements",
+  "schema_version": "3.3.0",
+  "compatibility": "Extends v3.2; existing v3.0, v3.1 and v3.2 readers and finalized bundles remain unchanged.",
+  "null_representation": "empty CSV field for explicitly nullable values",
+  "tables": {
+    "empirical_bits.csv": {
+      "sampling": "Exact isolated-bit measurements on the recorded sampled population; inclusion_rule and sampling_probability identify selection."
+    },
+    "estimator_predictions.csv": {
+      "semantics": "Raw estimator score and an optional signed loss-change prediction. Numerical bit jump is not a signed loss predictor."
+    },
+    "ranking_metrics.csv": {
+      "scopes": ["overall", "layer:<name>", "bit:<index>"],
+      "tie_semantics": "Tie-aware expected recall is conditional on the measured candidate set and is not a whole-network claim.",
+      "added_columns": ["spearman_positive_damage_ci_low", "spearman_positive_damage_ci_high", "spearman_absolute_change_ci_low", "spearman_absolute_change_ci_high", "bootstrap_replicates", "bootstrap_design"],
+      "interval_semantics": "Percentile intervals from deterministic within-recorded-stratum candidate resampling; sample-limited, not population-wide."
+    },
+    "estimator_runtime.csv": {
+      "warning": "Shared per-example gradient time is repeated for dependent estimator rows and must not be summed."
+    }
+  },
+  "replication_seed_semantics": {
+    "estimator_seed_stride": "Advances independently randomized estimator or ranking-mask seeds between replications.",
+    "hutchinson_seed_stride": "Advances only Hutchinson probe seeds between replications.",
+    "fault_seed_stride": "Advances only logical fault-schedule seeds between replications."
+  }
+}

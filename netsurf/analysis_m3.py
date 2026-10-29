@@ -54,8 +54,50 @@ def ranking_quality(
     *,
     top_ks: Sequence[int] = (5, 10, 20),
     tie_aware_baselines: bool = False,
+    bootstrap_seed: int | None = None,
+    bootstrap_confidence: float = 0.95,
+    bootstrap_replicates: int = 1000,
 ) -> tuple[dict[str, object], ...]:
     measured = {value.identity: value for value in measurements}
+    bootstrap: dict[str, dict[str, object]] = {}
+    if bootstrap_seed is not None:
+        if bootstrap_replicates < 1 or not 0.0 < bootstrap_confidence < 1.0:
+            raise ValueError("invalid ranking bootstrap configuration")
+        # Resample within each recorded design stratum. These intervals are
+        # descriptive for the sampled-candidate design; they do not turn a
+        # stratified candidate set into a whole-population estimate.
+        strata: dict[tuple[str, str, int, int | None], list[BitIdentity]] = {}
+        for value in measurements:
+            key = (value.layer, value.parameter_class, value.bit_index, value.score_quantile)
+            strata.setdefault(key, []).append(value.identity)
+        generator = np.random.default_rng(int(bootstrap_seed))
+        draws: list[tuple[BitIdentity, ...]] = []
+        for _ in range(bootstrap_replicates):
+            sample: list[BitIdentity] = []
+            for key in sorted(strata):
+                values = strata[key]
+                selected = generator.integers(0, len(values), size=len(values))
+                sample.extend(values[int(index)] for index in selected)
+            draws.append(tuple(sample))
+        alpha = (1.0 - bootstrap_confidence) / 2.0
+        for output in estimator_outputs:
+            positive_values, absolute_values = [], []
+            for sample in draws:
+                scores = [float(output.scores[value]) for value in sample]
+                positive_values.append(spearman(
+                    scores, [measured[value].positive_loss_damage for value in sample]
+                ))
+                absolute_values.append(spearman(
+                    scores, [measured[value].absolute_loss_difference for value in sample]
+                ))
+            bootstrap[output.name] = {
+                "spearman_positive_damage_ci_low": float(np.nanquantile(positive_values, alpha)),
+                "spearman_positive_damage_ci_high": float(np.nanquantile(positive_values, 1.0 - alpha)),
+                "spearman_absolute_change_ci_low": float(np.nanquantile(absolute_values, alpha)),
+                "spearman_absolute_change_ci_high": float(np.nanquantile(absolute_values, 1.0 - alpha)),
+                "bootstrap_replicates": bootstrap_replicates,
+                "bootstrap_design": "within-recorded-stratum candidate resampling; sample-limited",
+            }
     rows: list[dict[str, object]] = []
     scopes: list[tuple[str, tuple[BitIdentity, ...]]] = [("overall", tuple(measured))]
     for layer in sorted({value.layer for value in measurements}):
@@ -85,6 +127,18 @@ def ranking_quality(
                 "runtime_seconds": output.runtime_seconds,
                 "sample_limited": any(measured[value].sampling_probability < 1.0 for value in identities),
             }
+            if bootstrap_seed is not None:
+                if scope == "overall":
+                    row.update(bootstrap[output.name])
+                else:
+                    row.update({
+                        "spearman_positive_damage_ci_low": None,
+                        "spearman_positive_damage_ci_high": None,
+                        "spearman_absolute_change_ci_low": None,
+                        "spearman_absolute_change_ci_high": None,
+                        "bootstrap_replicates": None,
+                        "bootstrap_design": None,
+                    })
             empirical_order = sorted(identities, key=lambda value: (-measured[value].positive_loss_damage, value))
             predicted_order = sorted(identities, key=lambda value: (-float(output.scores[value]), value))
             for requested in top_ks:

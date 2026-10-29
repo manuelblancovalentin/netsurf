@@ -46,7 +46,7 @@ def test_all_maintained_m3_templates_validate_without_framework_import():
 
 
 def test_schema3_rejects_unsupported_version(tmp_path):
-    text = REFERENCE.read_text(encoding="utf-8").replace('schema_version = "3.0.0"', 'schema_version = "3.3.0"', 1)
+    text = REFERENCE.read_text(encoding="utf-8").replace('schema_version = "3.0.0"', 'schema_version = "3.4.0"', 1)
     path = tmp_path / "bad.toml"
     path.write_text(text, encoding="utf-8")
     with pytest.raises(StudyConfigurationError, match="version"):

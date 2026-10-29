@@ -1,0 +1,97 @@
+# Prespecified M9.1 susceptibility-validation study. This is a stratified
+# candidate-set analysis, not a whole-population estimator of top-k recall.
+schema_version = "3.3.0"
+scientific_protocol = "estimator-validation/v1"
+policies = []
+
+[experiment]
+name = "m91_resnet8_estimator_validation_stratified320_v1"
+description = "Prespecified 320-candidate INT8 ResNet-8 kernel-bit validation with four candidates in every kernel-by-bit-position stratum."
+objective = "Test whether structural and straight-through gradient estimators predict exact isolated-bit TFLite damage on data disjoint from ranking and final evaluation."
+
+[benchmark]
+adapter = "mlperf_tiny_ic_int8_v1"
+id = "mlperf_tiny_ic_resnet8_int8_v1"
+checkpoint = "/ml/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4/benchmark/training/image_classification/trained_models/pretrainedResnet_quant.tflite"
+dataset = "/ml/datasets/cifar10/cifar-10-python.tar.gz"
+asset_lock = "/projects/kona-assets/manuelbv/locks/mlperf-tiny/ic.lock.json"
+inference_backend = "tensorflow_lite_builtin_ref_v1"
+split = "official_subset_200"
+quantization = "tflite_affine_int8"
+quantization_backend = "tflite_affine_integer_v1"
+injectable_parameters = ["kernels"]
+
+[samples]
+ranking_count = 64
+empirical_count = 64
+evaluation_count = 200
+require_disjoint = true
+
+[candidates]
+strategy = "stratified"
+count = 320
+seed = 910101
+# No score_estimator is supplied. score_quantiles=1 makes the 80 strata the
+# Cartesian product of ten kernel tensors and eight stored bit positions.
+score_quantiles = 1
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "relative-word-bit-index/v1"
+result_name = "s2_msb_first"
+
+[[estimators]]
+name = "numerical_bit_jump"
+implementation_version = "absolute-affine-xor-jump/v1"
+result_name = "s3_numerical_jump"
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+result_name = "s4_gradient_delta"
+
+[[estimators]]
+name = "per_sample_first_order_magnitude"
+implementation_version = "mean-absolute-per-example-gradient-times-exact-delta/v1"
+result_name = "s5_per_example_absolute"
+
+[[estimators]]
+name = "per_sample_positive_damage"
+implementation_version = "mean-positive-per-example-gradient-times-exact-delta/v1"
+result_name = "s6_per_example_positive"
+
+[[estimators]]
+name = "random"
+implementation_version = "seeded-uniform-score/v1"
+result_name = "random_reference"
+seed = 910102
+
+[protection]
+coverages = []
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.0001
+
+[execution]
+trials = 1
+confidence = 0.95
+fault_seed = 910201
+permutation_seed = 910301
+
+[replications]
+count = 1
+candidate_seed_stride = 0
+hutchinson_seed_stride = 0
+sample_offset_stride = 0
+fault_seed_stride = 0
+estimator_seed_stride = 0
+
+[output]
+root = ""
+report = true
+plots = false

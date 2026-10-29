@@ -99,7 +99,7 @@ def load_configuration(path: str | Path):
     source = Path(path).expanduser().resolve()
     with source.open("rb") as stream:
         version = tomllib.load(stream).get("schema_version")
-    if version in {"3.0.0", "3.1.0", "3.2.0"}:
+    if version in {"3.0.0", "3.1.0", "3.2.0", "3.3.0"}:
         return load_study(source)
     if version in {"4.0.0", "4.1.0", "4.2.0", "4.3.0", "4.4.0"}:
         return load_search(source)
@@ -197,7 +197,7 @@ def regenerate_report(
     destination = Path(output).expanduser().resolve()
     destination.mkdir(parents=True, exist_ok=True)
     figures: tuple[str, ...] = ()
-    is_study = result.resolved_config.get("schema_version") in {"3.0.0", "3.1.0", "3.2.0"}
+    is_study = result.resolved_config.get("schema_version") in {"3.0.0", "3.1.0", "3.2.0", "3.3.0"}
     is_search = result.resolved_config.get("schema_version") in {"4.0.0", "4.1.0", "4.2.0", "4.3.0", "4.4.0"}
     summary = result.summary
     derived = None
@@ -255,6 +255,14 @@ def regenerate_report(
         output_path = destination / "report.md"
         output_path.write_text(render_search_report(summary, result.resolved_config, figure_paths=figures), encoding="utf-8")
         return output_path
+    if is_study:
+        ranking_path = result.path / "measurements/ranking_metrics.csv"
+        if ranking_path.is_file():
+            with ranking_path.open(newline="", encoding="utf-8") as stream:
+                summary = {
+                    **summary,
+                    "ranking_metrics_by_scope": tuple(dict(row) for row in csv.DictReader(stream)),
+                }
     if plots and is_study:
         def rows(name):
             path = result.path / "measurements" / name

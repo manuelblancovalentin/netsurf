@@ -444,6 +444,18 @@ def test_m9_companion_gradients_correspondence_and_exact_delta():
     assert correspondence["accepted"] is True
     assert correspondence["class_agreement"] >= 0.95
 
+    companion = adapter._companion()
+    stored = adapter.values()
+    assert tuple(companion.variables) == tuple(
+        descriptor.parameter for descriptor in companion.kernel_descriptors
+    )
+    for descriptor in companion.kernel_descriptors:
+        expected = descriptor.quantization.dequantize(
+            stored[descriptor.parameter]
+        ).astype(np.float32)
+        assert companion.variables[descriptor.parameter].shape == expected.shape
+        assert np.array_equal(companion.variables[descriptor.parameter].numpy(), expected)
+
     gradients = adapter.gradients(inputs, labels)
     assert len(gradients) == 10
     assert sum(value.size for value in gradients.values()) == 77_360

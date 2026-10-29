@@ -29,6 +29,15 @@ aggregates, pairwise estimator-order diagnostics, and multiple logical-BER
 conditions. The schema-3.0 reader and serialization path are retained; its
 validated scientific digest is unchanged.
 
+Experiment and measurement `3.2.0` add the affine-TFLite numerical-bit-jump
+baseline and tie-aware top-k boundary metrics used by the M9 ResNet-8 gate.
+
+Experiment and measurement `3.3.0` separate independently randomized
+estimator/ranking-mask seeds from Hutchinson probe seeds across replications.
+This prevents ranking-mask variability, curvature-probe variability and fault
+schedule variability from being conflated. Schema 3.0--3.2 execution and
+serialized scientific payloads retain their historical behavior.
+
 The Python validators enforce the executable subset and load these documents as
 the machine-readable field contract. Breaking changes require a new schema file
 and a new reader. Experiment and measurement `4.0.0` add the conditional-search

@@ -220,7 +220,13 @@ def _execute_single_study(
         metrics = ranking_quality(
             empirical,
             outputs,
-            tie_aware_baselines=configuration.schema_version == "3.2.0",
+            tie_aware_baselines=configuration.schema_version in {"3.2.0", "3.3.0"},
+            bootstrap_seed=(
+                configuration.execution.permutation_seed
+                if configuration.schema_version == "3.3.0"
+                else None
+            ),
+            bootstrap_confidence=configuration.execution.confidence,
         )
         if tracker is not None:
             tracker.update("Ranking analysis", advance=1, **context)
@@ -475,13 +481,32 @@ def execute_study(
         raise ValueError("injecting one adapter instance is unsupported for replicated studies")
 
     def child_configuration(index: int) -> StudyConfiguration:
-        estimators = tuple(replace(value, seed=value.seed + index * plan.hutchinson_seed_stride) for value in configuration.estimators)
+        if configuration.schema_version == "3.3.0":
+            # Schema 3.3 separates independently randomized ranking masks from
+            # Hutchinson probe randomness.  Older schemas retain their exact
+            # historical broad seed-stride behavior for reproducibility.
+            estimators = tuple(
+                replace(
+                    value,
+                    seed=value.seed + index * (
+                        plan.hutchinson_seed_stride
+                        if value.name == "hutchinson_diagonal_second_order"
+                        else plan.estimator_seed_stride
+                    ),
+                )
+                for value in configuration.estimators
+            )
+        else:
+            estimators = tuple(
+                replace(value, seed=value.seed + index * plan.hutchinson_seed_stride)
+                for value in configuration.estimators
+            )
         return replace(
             configuration,
             candidates=replace(configuration.candidates, seed=configuration.candidates.seed + index * plan.candidate_seed_stride),
             estimators=estimators,
             execution=replace(configuration.execution, fault_seed=configuration.execution.fault_seed + index * plan.fault_seed_stride),
-            replications=StudyReplications(1, 0, 0, 0, 0),
+            replications=StudyReplications(1, 0, 0, 0, 0, 0),
         )
 
     execution_metrics = None
@@ -529,10 +554,13 @@ def execute_study(
     aggregate = _aggregate_replication_metrics(outcomes)
     tracker.update("Replication aggregation", advance=1)
     primary = outcomes[0]
+    replication_plan = asdict(plan)
+    if configuration.schema_version != "3.3.0":
+        replication_plan.pop("estimator_seed_stride", None)
     payload = {
         "schema": "netsurf-m3-replicated-study/v1",
         "scientific_protocol": configuration.scientific_protocol,
-        "replication_plan": asdict(plan),
+        "replication_plan": replication_plan,
         "replications": [outcome.scientific_payload for outcome in outcomes],
         # Wall-clock runtime is reported, but is intentionally excluded from
         # the reproducibility-critical scientific digest.

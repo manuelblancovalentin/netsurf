@@ -103,20 +103,38 @@ def render_study_report(summary: Mapping[str, Any], resolved: Mapping[str, Any],
             f"Exactly one encoded bit was flipped for each of `{summary['empirical_candidate_count']}` candidates. Signed loss changes were retained.",
             "The reference addresses isolated-fault prediction and damaging-bit identification; it does not prove optimality under multi-fault schedules.",
             "", "### Ranking-quality summary", "",
-            "| Estimator | Spearman (positive damage) | Kendall tau-b | Top-10 recall | Tie-aware expected top-10 | Random expected top-10 | Zero-score fraction | Wall time (s) |",
-            "|---|---:|---:|---:|---:|---:|---:|---:|",
+            "| Estimator | Spearman (positive damage) | 95% stratified-bootstrap CI | Kendall tau-b | Top-10 recall | Tie-aware expected top-10 | Random expected top-10 | Zero-score fraction | Wall time (s) |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
         ])
         for row in summary.get("ranking_metrics_overall", []):
             def show(value):
                 return "N/A" if value is None else f"{value:.6f}"
             lines.append(
-                f"| {row['estimator']} | {show(row['spearman_positive_damage'])} | {show(row['kendall_positive_damage'])} | "
+                f"| {row['estimator']} | {show(row['spearman_positive_damage'])} | "
+                f"{('[%s, %s]' % (show(row.get('spearman_positive_damage_ci_low')), show(row.get('spearman_positive_damage_ci_high')))) if row.get('bootstrap_replicates') else 'N/A'} | "
+                f"{show(row['kendall_positive_damage'])} | "
                 f"{show(row['top_10_recall'])} | {show(row.get('top_10_tie_aware_expected_recall'))} | "
                 f"{show(row.get('top_10_random_expected_recall'))} | {show(row['zero_score_fraction'])} | "
                 f"{row['runtime_seconds']:.6f} |"
             )
         if summary.get("sample_limited"):
-            lines.extend(["", "These metrics are sample-limited to the recorded candidate set and are not whole-network top-k claims. Consult the saved inclusion rule and probabilities for the sampling design."])
+            lines.extend(["", "These metrics are sample-limited to the recorded candidate set and are not whole-network top-k claims. Consult the saved inclusion rule and probabilities for the sampling design. Schema-3.3 correlation intervals resample candidates within each recorded stratum; they describe candidate-sample sensitivity and are not population-wide confidence intervals."])
+        scoped = summary.get("ranking_metrics_by_scope", [])
+        for prefix, heading in (("bit:", "By stored bit position"), ("layer:", "By TFLite kernel tensor")):
+            selected = [row for row in scoped if str(row.get("scope", "")).startswith(prefix)]
+            if selected:
+                lines.extend([
+                    "", f"### {heading}", "",
+                    "| Estimator | Scope | n | Spearman positive damage | Spearman absolute change | Kendall positive damage |",
+                    "|---|---|---:|---:|---:|---:|",
+                ])
+                for row in selected:
+                    lines.append(
+                        f"| {row['estimator']} | {str(row['scope'])[len(prefix):]} | {row['candidate_count']} | "
+                        f"{show(None if row['spearman_positive_damage'] == '' else float(row['spearman_positive_damage']))} | "
+                        f"{show(None if row['spearman_absolute_change'] == '' else float(row['spearman_absolute_change']))} | "
+                        f"{show(None if row['kendall_positive_damage'] == '' else float(row['kendall_positive_damage']))} |"
+                    )
     agreement = summary.get("estimator_agreement", [])
     qpolar_agreement = [row for row in agreement if {row["left"], row["right"]} == {"clean_activation_qpolargrad", "uncancelled_activation_drift"}]
     if qpolar_agreement:

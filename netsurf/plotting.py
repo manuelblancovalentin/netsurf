@@ -124,6 +124,44 @@ def plot_study_results(
         plt.close(figure)
         generated.append(destination)
 
+        scoped = summary.get("ranking_metrics_by_scope", [])
+        for prefix, filename, title in (
+            ("layer:", "ranking_correlation_by_tensor.png", "Positive-damage rank correlation by TFLite kernel tensor"),
+            ("bit:", "ranking_correlation_by_bit.png", "Positive-damage rank correlation by stored bit position"),
+        ):
+            selected = [row for row in scoped if str(row.get("scope", "")).startswith(prefix)]
+            if not selected:
+                continue
+            estimators = list(dict.fromkeys(str(row["estimator"]) for row in selected))
+            scopes = list(dict.fromkeys(str(row["scope"])[len(prefix):] for row in selected))
+            if prefix == "bit:":
+                scopes.sort(key=int)
+            else:
+                scopes.sort()
+            lookup = {
+                (str(row["estimator"]), str(row["scope"])[len(prefix):]): (
+                    float("nan")
+                    if row.get("spearman_positive_damage") in {None, "", "None"}
+                    else float(row["spearman_positive_damage"])
+                )
+                for row in selected
+            }
+            matrix = [[lookup.get((estimator, scope), float("nan")) for scope in scopes] for estimator in estimators]
+            destination = output / filename
+            figure, axis = plt.subplots(
+                figsize=(max(7.0, 0.9 * len(scopes)), max(4.8, 0.65 * len(estimators)))
+            )
+            image = axis.imshow(matrix, vmin=-1.0, vmax=1.0, cmap="coolwarm", aspect="auto")
+            axis.set_xticks(range(len(scopes)), scopes, rotation=35, ha="right")
+            axis.set_yticks(range(len(estimators)), estimators)
+            axis.set_xlabel("TFLite kernel tensor" if prefix == "layer:" else "Stored INT8 bit position (7 is sign)")
+            axis.set_title(title)
+            figure.colorbar(image, ax=axis, label="Spearman correlation")
+            figure.tight_layout()
+            figure.savefig(destination, dpi=160)
+            plt.close(figure)
+            generated.append(destination)
+
         destination = output / "top_k_recall.png"
         figure, axis = plt.subplots(figsize=(max(6.4, len(names) * 1.2), 4.8))
         for row in metrics:

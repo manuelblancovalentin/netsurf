@@ -654,3 +654,12 @@ replace the reference runtime with the canonical TensorFlow 2.21 runtime.
 See `docs/MLPERF_TINY_M9_STATIC_ESTIMATORS.md` for the mapping gate,
 provisional acceptance criteria, measured resource costs and interpretation
 limits.
+
+## M9.1 publication-scale static comparison
+
+The full correspondence audit, prespecified candidate design, finalized
+320-candidate payload and protection-pilot resource estimate are in
+`docs/M91_PUBLICATION_EVIDENCE.md`. Validate and run only with the explicit
+TensorFlow 2.14.1 interpreter recorded there. The 32-realization protection
+pilot is intended for a researcher-controlled `tmux` session and is not part
+of the bounded regression suite.
