@@ -602,15 +602,36 @@ def execute_study(
             f"replication:{index:06d}",
             (child_configuration(index), index, plan.count, index * plan.sample_offset_stride),
         ) for index in range(plan.count))
+        child_plan = study_operation_plan(child_configuration(0))
+        reported_by_task: dict[str, dict[str, int]] = {
+            task.task_id: {stage: 0 for stage in child_plan}
+            for task in tasks
+        }
 
-        def completed(_completion):
-            # Worker events provide bounded stage detail only. Advance each
-            # declared work class once its authoritative result is available;
-            # scientific results are still merged by logical task identity.
-            child_plan = study_operation_plan(child_configuration(0))
+        def completed(completion):
+            # Event delivery is deliberately best-effort.  Fill any work not
+            # observed through the queue from the authoritative completed
+            # replication result, without counting observed operations twice.
+            reported = reported_by_task[completion.task_id]
             for stage, count in child_plan.items():
-                if count:
-                    tracker.update(stage, advance=count)
+                remainder = count - reported[stage]
+                if remainder > 0:
+                    tracker.update(stage, advance=remainder)
+                    reported[stage] = count
+
+        def worker_progress(task_id, event):
+            # Each worker event carries its complete remaining-work snapshot.
+            # Derive monotonic per-stage deltas from that snapshot so dropped
+            # queue messages cannot misattribute work to a later stage.
+            remaining = dict(event.remaining_work)
+            reported = reported_by_task[task_id]
+            for stage, count in child_plan.items():
+                observed = count - int(remaining.get(stage, count))
+                delta = observed - reported[stage]
+                if delta > 0:
+                    tracker.update(stage, advance=delta)
+                    reported[stage] = observed
+            forward_worker_event(tracker, event)
 
         def pool_changed(active, total):
             tracker.update("Parallel replication execution", active_workers=active, total_workers=total)
@@ -618,7 +639,7 @@ def execute_study(
         parallel = run_process_tasks(
             tasks, _study_replication_worker, resources,
             on_completed=completed, on_pool_changed=pool_changed,
-            on_progress=lambda _task_id, event: forward_worker_event(tracker, event),
+            on_progress=worker_progress,
         )
         outcomes = list(parallel.values)
         execution_metrics = {

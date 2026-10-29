@@ -10,6 +10,7 @@ import pytest
 from netsurf import __main__ as cli
 from netsurf.api import run_experiment
 from netsurf.progress import LiveProgressReporter, ProgressEvent
+from netsurf.parallel import ExecutionResources
 from netsurf.study_config import StudyExecution, StudyPolicy, StudyProtection, StudyReplications, load_study
 from netsurf.study_engine import execute_study
 
@@ -76,6 +77,24 @@ def test_replicated_multi_ber_progress_reports_actual_condition_and_trial():
         and event.trials == 2
         for event in events
     )
+
+
+def test_parallel_replication_progress_advances_before_replication_completion():
+    events = []
+    outcome = execute_study(
+        _small_protection_study(replications=2),
+        progress=events.append,
+        resources=ExecutionResources(2, 1),
+    )
+    assert len(outcome.replications) == 2
+    detailed = [
+        event for event in events
+        if event.stage == "Fault evaluation" and event.trial is not None
+    ]
+    assert detailed
+    assert any(0 < event.completed < event.total for event in detailed)
+    assert events[-1].completed == events[-1].total
+    assert all(event.completed <= event.total for event in events)
 
 
 def test_redirected_progress_is_plain_text_without_ansi():

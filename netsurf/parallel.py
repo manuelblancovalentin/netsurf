@@ -236,7 +236,14 @@ def run_process_tasks(
     peak_worker_rss = 0.0
     iterator = iter(ordered)
     executor: ProcessPoolExecutor | None = None
-    event_queue = context.Queue(maxsize=max(8, resources.workers * 4)) if on_progress is not None else None
+    # Keep presentation traffic bounded, but retain enough detail for short,
+    # fast replications to finish before the coordinator's first drain.  The
+    # former four-events-per-worker queue routinely discarded every fault-
+    # evaluation update after setup events filled it.
+    event_queue = (
+        context.Queue(maxsize=max(256, resources.workers * 128))
+        if on_progress is not None else None
+    )
 
     def drain_events() -> None:
         if event_queue is None or on_progress is None:
