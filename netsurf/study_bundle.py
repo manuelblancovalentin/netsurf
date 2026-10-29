@@ -367,7 +367,7 @@ def create_study_bundle(
         },
         "benchmark": {
             **resolved["benchmark"], "checkpoint_sha256": sha256_file(config.benchmark.checkpoint),
-            **({"dataset_sha256": sha256_file(config.benchmark.dataset)} if config.benchmark.dataset.is_file() else {"dataset_identity": primary.scientific_payload["benchmark"]["dataset_identity"]}),
+            **({"dataset_sha256": sha256_file(config.benchmark.dataset)} if config.benchmark.dataset.is_file() else {"dataset_identity": members[0].scientific_payload["benchmark"]["dataset_identity"]}),
             "sample_partitions": ({member.replication_name: {name: value.to_dict() for name, value in member.partitions.items()} for member in members} if replicated else {name: value.to_dict() for name, value in outcome.partitions.items()}),
         },
         "experiment": {**resolved["experiment"], "requested_configuration": "config.toml", "resolved_configuration": "resolved_config.json"},
