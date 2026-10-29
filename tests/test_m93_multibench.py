@@ -19,6 +19,7 @@ from netsurf.legacy_identity import load_benchmark_identity
 from netsurf.benchmarks.registry import benchmark_info
 from netsurf.api import _write_derived_analysis
 from netsurf.protection import ProtectionMask
+from netsurf.parallel import ExecutionResources, LogicalTask, run_process_tasks
 from netsurf.reporting import render_study_report
 from netsurf.study_config import StudyConfigurationError, load_study
 
@@ -26,13 +27,32 @@ from netsurf.study_config import StudyConfigurationError, load_study
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = Path("/projects/kona-assets/manuelbv/locks/mlperf-tiny")
 MODELS = Path(
-    "/ml/models/models--mlcommons--tiny/snapshots/"
+    "/data/models/models--mlcommons--tiny/snapshots/"
     "4addd0fa08d216e20637637874e084895f289da4"
 )
 KWS_MODEL = MODELS / "benchmark/training/keyword_spotting/trained_models/kws_ref_model.tflite"
 AD_MODEL = MODELS / "benchmark/training/anomaly_detection/trained_models/ad01_int8.tflite"
-KWS_DATA = Path("/ml/datasets/speech_commands/0.0.3")
-AD_DATA = Path("/ml/datasets/dcase2020-toycar")
+KWS_DATA = Path("/data/datasets/speech_commands/0.0.3")
+AD_DATA = Path("/data/datasets/dcase2020-toycar")
+
+
+def _parallel_bounded_conformance(kind: str):
+    if kind == "kws":
+        from netsurf.adapters.mlperf_tiny_multibench import MlperfTinyKwsDscnnAdapter
+
+        adapter = MlperfTinyKwsDscnnAdapter(
+            KWS_MODEL, KWS_DATA, asset_lock=ASSETS / "kws.lock.json"
+        )
+    elif kind == "toycar":
+        from netsurf.adapters.mlperf_tiny_multibench import MlperfTinyToyCarAdapter
+
+        adapter = MlperfTinyToyCarAdapter(
+            AD_MODEL, AD_DATA, asset_lock=ASSETS / "ad.lock.json"
+        )
+    else:
+        raise ValueError(kind)
+    adapter.load()
+    return adapter.bounded_reference_diagnostics()
 
 
 def _study_text(adapter: str, identity: str, checkpoint: Path, dataset: Path, lock: Path, split: str) -> str:
@@ -360,3 +380,41 @@ def test_toycar_task_metrics_companion_and_kernel_restoration():
     )
     assert empirical[0].primary_metric_name == "roc_auc"
     assert empirical[0].loss_metric_name == "reconstruction_mse"
+
+
+@pytest.mark.skipif(
+    not (
+        KWS_MODEL.is_file() and KWS_DATA.is_dir()
+        and AD_MODEL.is_file() and AD_DATA.is_dir()
+        and (ASSETS / "kws.lock.json").is_file()
+        and (ASSETS / "ad.lock.json").is_file()
+        and find_spec("librosa") is not None
+        and find_spec("threadpoolctl") is not None
+    ),
+    reason="pinned KWS/ToyCar assets or preprocessing dependencies are absent",
+)
+def test_parallel_kws_and_toycar_bounded_conformance_is_bitwise_deterministic():
+    tasks = tuple(
+        LogicalTask(f"{kind}:{index}", kind)
+        for kind in ("kws", "toycar")
+        for index in range(2)
+    )
+    result = run_process_tasks(
+        tasks, _parallel_bounded_conformance, ExecutionResources(2, 1)
+    )
+    for kind, offset, match_key in (
+        ("kws", 0, "exact_output_digest_match"),
+        ("toycar", 2, "exact_score_digest_match"),
+    ):
+        left, right = result.values[offset : offset + 2]
+        assert left[match_key] is True and right[match_key] is True
+        assert left["sample_ids"] == right["sample_ids"]
+        assert left["sample_sha256"] == right["sample_sha256"]
+        assert left["preprocessed_int8_sha256"] == right["preprocessed_int8_sha256"]
+        assert left["exact_tflite_output_sha256"] == right["exact_tflite_output_sha256"]
+        assert left["runtime"]["pid"] != right["runtime"]["pid"]
+        if kind == "toycar":
+            assert left["file_scores_sha256"] == right["file_scores_sha256"]
+            assert left["file_score_float64_hex"] == right["file_score_float64_hex"]
+            assert left["first_differing_value"] is None
+            assert left["preprocessing_blas_threads"] == 2

@@ -6,7 +6,11 @@ from contextlib import contextmanager
 import csv
 from dataclasses import dataclass
 import hashlib
+import multiprocessing
+import os
 from pathlib import Path
+import platform
+import sys
 from typing import Iterator, Mapping
 
 import numpy as np
@@ -37,6 +41,14 @@ KWS_MODEL_RELATIVE = "benchmark/training/keyword_spotting/trained_models/kws_ref
 KWS_INDEX_RELATIVE = "benchmark/evaluation/datasets/kws01/y_labels.csv"
 AD_MODEL_RELATIVE = "benchmark/training/anomaly_detection/trained_models/ad01_int8.tflite"
 AD_INDEX_RELATIVE = "benchmark/evaluation/datasets/ad01/y_labels.csv"
+TOYCAR_PREPROCESSING_BLAS_THREADS = 2
+TOYCAR_BOUNDED_EXPECTED_SCORES = (
+    10.168487922577622,
+    11.777840215450889,
+)
+TOYCAR_BOUNDED_EXPECTED_SCORE_SHA256 = (
+    "cd135be4abd970a9856891741a8fb09b7f67af6bd0552a9c23be28c848ef9fb1"
+)
 
 
 @dataclass(frozen=True)
@@ -332,6 +344,34 @@ class _ExactTFLiteKernelAdapter:
     def _bounded_reference_conformance(self) -> dict[str, object]:
         raise NotImplementedError
 
+    def _runtime_debug_identity(self) -> dict[str, object]:
+        """Return diagnostic-only process identity, never scientific payload data."""
+
+        import tensorflow as tf
+
+        return {
+            "pid": os.getpid(),
+            "python": sys.version.split()[0],
+            "platform": platform.platform(),
+            "multiprocessing_start_method": multiprocessing.get_start_method(
+                allow_none=True
+            ),
+            "tensorflow": tf.__version__,
+            "numpy": np.__version__,
+            "thread_environment": {
+                name: os.environ.get(name)
+                for name in (
+                    "OMP_NUM_THREADS",
+                    "OPENBLAS_NUM_THREADS",
+                    "MKL_NUM_THREADS",
+                    "NUMEXPR_NUM_THREADS",
+                    "TF_NUM_INTRAOP_THREADS",
+                    "TF_NUM_INTEROP_THREADS",
+                    "TF_ENABLE_ONEDNN_OPTS",
+                )
+            },
+        }
+
 
 class MlperfTinyKwsDscnnAdapter(_ExactTFLiteKernelAdapter):
     benchmark_id = "mlperf-tiny/kws"
@@ -492,20 +532,39 @@ class MlperfTinyKwsDscnnAdapter(_ExactTFLiteKernelAdapter):
             "exact_output_digest_match": digest == reference["output_digests"][key],
         }
 
-    def _bounded_reference_conformance(self) -> dict[str, object]:
+    def bounded_reference_diagnostics(self) -> dict[str, object]:
+        """Replay the KWS gate and expose process-local byte identities."""
+
         inputs, labels, partition = self.sample_partition("evaluation", 16)
         outputs = self._outputs(inputs)
         digest = hashlib.sha256(outputs.tobytes(order="C")).hexdigest()
         expected = "b88c99a8768eb1fcf3b563246501d277dbe55543883ffd58122b138dca87ef42"
-        if digest != expected:
+        return {
+            "runtime": self._runtime_debug_identity(),
+            "sample_ids": list(partition.indices),
+            "sample_sha256": partition.sample_sha256,
+            "preprocessed_int8_sha256": hashlib.sha256(
+                inputs.tobytes(order="C")
+            ).hexdigest(),
+            "exact_tflite_output_sha256": digest,
+            "expected_output_sha256": expected,
+            "accuracy": float(np.mean(np.argmax(outputs, axis=1) == labels)),
+            "exact_output_digest_match": digest == expected,
+        }
+
+    def _bounded_reference_conformance(self) -> dict[str, object]:
+        diagnostics = self.bounded_reference_diagnostics()
+        if not diagnostics["exact_output_digest_match"]:
             raise AssetLockError(
                 "KWS bounded preprocessing/reference output digest differs from "
                 "the full-conformance-derived gate"
             )
         return {
-            "sample_count": 16, "sample_sha256": partition.sample_sha256,
-            "output_sha256": digest, "expected_output_sha256": expected,
-            "accuracy": float(np.mean(np.argmax(outputs, axis=1) == labels)),
+            "sample_count": 16,
+            "sample_sha256": diagnostics["sample_sha256"],
+            "output_sha256": diagnostics["exact_tflite_output_sha256"],
+            "expected_output_sha256": diagnostics["expected_output_sha256"],
+            "accuracy": diagnostics["accuracy"],
             "exact_output_digest_match": True,
         }
 
@@ -533,12 +592,29 @@ class MlperfTinyToyCarAdapter(_ExactTFLiteKernelAdapter):
     def _vectors(path: Path) -> np.ndarray:
         import librosa
         import sys
+        try:
+            from threadpoolctl import threadpool_limits
+        except ImportError as error:
+            raise ImportError(
+                "ToyCar exact preprocessing requires threadpoolctl so the pinned "
+                "two-thread OpenBLAS reduction can be reproduced"
+            ) from error
 
         audio, sample_rate = librosa.load(str(path), sr=None, mono=False)
-        mel = librosa.feature.melspectrogram(
-            y=audio, sr=sample_rate, n_fft=1024, hop_length=512,
-            n_mels=128, power=2.0, pad_mode="reflect",
-        )
+        # The locked full-conformance scores were produced by the pinned NumPy
+        # OpenBLAS build, whose compile-time default is two threads.  NetSuRF's
+        # spawned workers otherwise reduce OpenBLAS to one thread and alter the
+        # float64 reconstruction targets by a few ulps even though encoded
+        # inputs and exact TFLite outputs remain byte-identical.  Scope the
+        # original numerical contract to preprocessing only; TFLite remains a
+        # one-thread BUILTIN_REF interpreter.
+        with threadpool_limits(
+            limits=TOYCAR_PREPROCESSING_BLAS_THREADS, user_api="blas"
+        ):
+            mel = librosa.feature.melspectrogram(
+                y=audio, sr=sample_rate, n_fft=1024, hop_length=512,
+                n_mels=128, power=2.0, pad_mode="reflect",
+            )
         logmel = 10.0 * np.log10(mel + sys.float_info.epsilon)[:, 50:250]
         width = logmel.shape[1] - 4
         vectors = np.zeros((width, 640), dtype=np.float64)
@@ -754,28 +830,94 @@ class MlperfTinyToyCarAdapter(_ExactTFLiteKernelAdapter):
             "exact_score_digest_match": digest == expected,
         }
 
-    def _bounded_reference_conformance(self) -> dict[str, object]:
+    def bounded_reference_diagnostics(self) -> dict[str, object]:
+        """Replay the exact two-file gate with process-local diagnostic evidence."""
+
         inputs, labels, partition = self.sample_partition("evaluation", 2)
+        outputs = self.predict_encoded_outputs(inputs)
         result = self.evaluate(inputs, labels)
-        digest = hashlib.sha256(
-            np.asarray(result.file_scores, dtype=np.float64).tobytes(order="C")
-        ).hexdigest()
-        expected = "cd135be4abd970a9856891741a8fb09b7f67af6bd0552a9c23be28c848ef9fb1"
-        if digest != expected:
+        scores = np.asarray(result.file_scores, dtype=np.float64)
+        expected_scores = np.asarray(
+            TOYCAR_BOUNDED_EXPECTED_SCORES, dtype=np.float64
+        )
+        differing = np.flatnonzero(
+            scores.view(np.uint64) != expected_scores.view(np.uint64)
+        )
+        first_difference = None
+        if len(differing):
+            index = int(differing[0])
+            first_difference = {
+                "index": index,
+                "observed": float(scores[index]),
+                "observed_hex": float(scores[index]).hex(),
+                "expected": float(expected_scores[index]),
+                "expected_hex": float(expected_scores[index]).hex(),
+                "absolute_difference": float(
+                    abs(scores[index] - expected_scores[index])
+                ),
+            }
+        digest = hashlib.sha256(scores.tobytes(order="C")).hexdigest()
+        return {
+            "runtime": self._runtime_debug_identity(),
+            "preprocessing_blas_threads": TOYCAR_PREPROCESSING_BLAS_THREADS,
+            "sample_ids": list(partition.indices),
+            "sample_sha256": partition.sample_sha256,
+            "preprocessed_int8_sha256": hashlib.sha256(
+                inputs.tobytes(order="C")
+            ).hexdigest(),
+            "exact_tflite_output_sha256": hashlib.sha256(
+                outputs.tobytes(order="C")
+            ).hexdigest(),
+            "file_scores": [float(value) for value in scores],
+            "file_score_float64_hex": [float(value).hex() for value in scores],
+            "file_scores_sha256": digest,
+            "expected_file_scores_sha256": TOYCAR_BOUNDED_EXPECTED_SCORE_SHA256,
+            "first_differing_value": first_difference,
+            "window_count": result.window_count,
+            "roc_auc": result.roc_auc,
+            "exact_score_digest_match": (
+                digest == TOYCAR_BOUNDED_EXPECTED_SCORE_SHA256
+            ),
+        }
+
+    def _bounded_reference_conformance(self) -> dict[str, object]:
+        diagnostics = self.bounded_reference_diagnostics()
+        if not diagnostics["exact_score_digest_match"]:
             raise AssetLockError(
                 "ToyCar bounded preprocessing/reference score digest differs "
-                "from the full-conformance-derived gate"
+                "from the full-conformance-derived gate; first difference: "
+                f"{diagnostics['first_differing_value']}"
             )
         return {
-            "file_count": 2, "window_count": result.window_count,
-            "sample_sha256": partition.sample_sha256,
-            "file_scores_sha256": digest,
-            "expected_file_scores_sha256": expected,
-            "roc_auc": result.roc_auc, "exact_score_digest_match": True,
+            "file_count": 2,
+            "window_count": diagnostics["window_count"],
+            "sample_sha256": diagnostics["sample_sha256"],
+            "preprocessed_int8_sha256": diagnostics[
+                "preprocessed_int8_sha256"
+            ],
+            "exact_tflite_output_sha256": diagnostics[
+                "exact_tflite_output_sha256"
+            ],
+            "file_scores_sha256": diagnostics["file_scores_sha256"],
+            "expected_file_scores_sha256": diagnostics[
+                "expected_file_scores_sha256"
+            ],
+            "preprocessing_blas_threads": diagnostics[
+                "preprocessing_blas_threads"
+            ],
+            "roc_auc": diagnostics["roc_auc"],
+            "exact_score_digest_match": True,
         }
 
     def preprocessing_manifest(self):
-        return {"id": "mlperf-tiny/ad01/librosa-logmel-128x5/1", "input_shape": [1, 640], "rounding": "numpy_round_half_to_even", "file_windows": 196}
+        return {
+            "id": "mlperf-tiny/ad01/librosa-logmel-128x5/1",
+            "input_shape": [1, 640],
+            "rounding": "numpy_round_half_to_even",
+            "file_windows": 196,
+            "blas_threads": TOYCAR_PREPROCESSING_BLAS_THREADS,
+            "blas_thread_reason": "pinned full-conformance float64 target identity",
+        }
 
     def task_metric_manifest(self):
         return {

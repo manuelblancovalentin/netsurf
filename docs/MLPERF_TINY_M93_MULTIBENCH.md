@@ -63,10 +63,16 @@ remains available for an explicit audit.
 
 The official pinned pipeline uses 128-bin librosa mel power, FFT 1024, hop 512,
 reflect padding, frames 50:250, five-frame concatenation, and 196 windows per
-file. The complete 248-file run produced ROC-AUC `0.862037037037037` and
+file. Its float64 target identity additionally pins the validated NumPy
+OpenBLAS build's two-thread reduction mode; spawned workers enforce this only
+during feature extraction while TFLite remains single-threaded. The complete
+248-file run produced ROC-AUC `0.862037037037037` and
 file-score SHA-256
 `f5174517de344da8126ea1875baae36dfd53bf37151ed18e058bd5a57e0fb4b5`,
 exactly matching the lock.
+
+The parallel-initialization root cause, exact intermediate digests, and
+diagnostic replay are documented in `docs/TOYCAR_PARALLEL_CONFORMANCE.md`.
 
 Ordinary adapter loading replays a two-file, 392-window file-score digest
 derived from the full gate. The full 248-file conformance remains an explicit
