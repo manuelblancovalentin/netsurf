@@ -79,3 +79,11 @@ separately weighted reliability components, fine-tuning mode, and workspace
 checkpoint destination. Its executable validator is
 `netsurf.pruning_config.load_pruning`. Existing experiment, study, search,
 manifest, summary, and measurement readers remain unchanged.
+
+Exact conditional-damage schema `6.0.0` is a separate bounded evidence
+contract. It requires an explicit candidate-bit list, disjoint calibration and
+held-out samples, independently seeded Bernoulli background fields, and exact
+paired encoded-XOR measurements of `D_b(G) = R(G ∪ {b}) - R(G)` with the
+candidate excluded from `G`. Its executable validator is
+`netsurf.conditional_config.load_conditional`. It does not select a global
+protection mask or redefine an existing susceptibility estimator.

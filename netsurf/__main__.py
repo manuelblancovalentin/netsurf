@@ -19,6 +19,7 @@ from .pruning_config import PruningConfigurationError, load_pruning
 from .result_bundle import ResultBundleError
 from .study_config import StudyConfigurationError
 from .search_config import SearchConfigurationError
+from .conditional_config import ConditionalConfigurationError
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -95,11 +96,21 @@ def _parser() -> argparse.ArgumentParser:
     mechanism.add_argument("--skip-checksums", action="store_true")
     mechanism.add_argument("--bootstrap-seed", type=int, default=930401)
     mechanism.add_argument("--bootstrap-replicates", type=int, default=1000)
+    conditional = subparsers.add_parser(
+        "conditional", help="validate or run an exact common-background conditional-damage study"
+    )
+    conditional_commands = conditional.add_subparsers(dest="conditional_command", required=True)
+    conditional_validate = conditional_commands.add_parser("validate", help="validate schema-6 conditional-damage TOML")
+    conditional_validate.add_argument("configuration", type=Path)
+    conditional_validate.add_argument("--resolved", action="store_true")
+    conditional_run = conditional_commands.add_parser("run", help="execute and finalize a bounded exact conditional-damage study")
+    conditional_run.add_argument("configuration", type=Path)
     return parser
 
 
 _EXPECTED_RUN_ERRORS = (
     ConfigurationError, StudyConfigurationError, SearchConfigurationError, PruningConfigurationError,
+    ConditionalConfigurationError,
     ResultBundleError, PlottingDependencyError, FileExistsError, OSError,
     KeyError, ValueError,
     ParallelExecutionError,
@@ -386,6 +397,32 @@ def main(argv: list[str] | None = None) -> int:
                 bootstrap_seed=args.bootstrap_seed,
                 bootstrap_replicates=args.bootstrap_replicates,
             ))
+        elif args.command == "conditional":
+            from .conditional_bundle import create_conditional_bundle
+            from .conditional_config import load_conditional
+            from .conditional_damage import execute_conditional_damage
+
+            configuration = load_conditional(args.configuration)
+            if args.conditional_command == "validate":
+                print(
+                    json.dumps(configuration.resolved_document(), indent=2, sort_keys=True)
+                    if args.resolved else
+                    f"valid: {configuration.name} (schema {configuration.schema_version})"
+                )
+            elif args.conditional_command == "run":
+                outcome = execute_conditional_damage(
+                    configuration,
+                    progress=lambda stage, completed, total: print(
+                        f"conditional: {completed}/{total} | {stage}", file=sys.stderr
+                    ),
+                )
+                destination = create_conditional_bundle(
+                    outcome, repository_root=Path(__file__).resolve().parents[1]
+                )
+                print(json.dumps({
+                    "run_directory": str(destination),
+                    "scientific_payload_sha256": outcome.scientific_payload_sha256,
+                }, indent=2, sort_keys=True))
         return 0
     except _EXPECTED_RUN_ERRORS as error:
         print(f"netsurf: {error}", file=sys.stderr)
