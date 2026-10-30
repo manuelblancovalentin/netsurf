@@ -131,3 +131,14 @@ plan without relaxing schema 6.4 or selecting new masks. The optional workflow
 input/field identities. Replication-plan and statistical artifacts independently
 identify version `1.0.0`. See `docs/M957_FROZEN_MASK_REPLICATION.md` for exact
 keys, primary/secondary inference and exposure limitations.
+
+Cross-pool member schema `6.6.0` binds existing selection/final execution to a
+probability-sampled pool in a frozen campaign. It does not alter schema 6.4/6.5
+inference, estimator or field semantics. All selections must be sealed before
+any final member executes. Campaign requests independently use `1.0.0`
+(`campaign/v1.schema.json`); `cross_pool.freeze_campaign` strictly validates
+fields and source/exposure/seed constraints. Frozen campaigns, receipts,
+selection registries and aggregates independently declare `1.0.0`. Complete
+matched fields and all pools are required for aggregation. Unknown versions
+fail; finalized files are never migrated in place. See
+`docs/M96_CROSS_POOL_PROTOCOL.md`.

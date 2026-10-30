@@ -100,6 +100,8 @@ def selection_contract(configuration):
     context = configuration.protection_context.to_dict()
     context.pop("source_bundle")
     return {
+        **({"campaign_sha256": configuration.workflow["campaign_sha256"], "pool_id": configuration.workflow["pool_id"]}
+           if configuration.schema_version == "6.6.0" else {}),
         "benchmark": benchmark,
         "checkpoint_sha256": sha256_file(configuration.benchmark.checkpoint),
         "asset_lock_sha256": sha256_file(configuration.benchmark.asset_lock),

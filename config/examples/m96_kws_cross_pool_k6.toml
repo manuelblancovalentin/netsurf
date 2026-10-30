@@ -1,0 +1,27 @@
+schema_version = "1.0.0"
+name = "m96_kws_cross_pool_k6"
+purpose = "confirmation"
+# Read-only source of pinned benchmark/context and established exact protocol.
+benchmark_template = "m956_kws_s5_selection_k8.toml"
+
+[design]
+candidate_count = 6
+pool_seeds = [960101, 960102, 960103, 960104, 960105, 960106, 960107, 960108, 960109, 960110, 960111, 960112]
+selection_seed_bases = [960201, 960205, 960209, 960213, 960217, 960221, 960225, 960229, 960233, 960237, 960241, 960245]
+selection_replicates = 4
+selection_fields_per_seed = 8
+final_seeds = [960501, 960502, 960503, 960504, 960505, 960506, 960507, 960508, 960509, 960510, 960511, 960512]
+final_fields = 128
+logical_ber = 0.01
+
+[samples]
+# Original source indices: selection 2088–2151; shared final 3450–3961.
+selection_offset = 64
+selection_count = 64
+final_offset = 402
+final_count = 512
+
+[statistics]
+bootstrap_seed = 960801
+bootstrap_replicates = 1000
+confidence = 0.95

@@ -108,6 +108,24 @@ def _parser() -> argparse.ArgumentParser:
     conditional_freeze.add_argument("--output", type=Path, required=True)
     conditional_run = conditional_commands.add_parser("run", help="execute and finalize a bounded exact conditional-damage study")
     conditional_run.add_argument("configuration", type=Path)
+    campaign = subparsers.add_parser("campaign", help="freeze and execute a prespecified cross-pool study")
+    campaign_commands = campaign.add_subparsers(dest="campaign_command", required=True)
+    freeze = campaign_commands.add_parser("freeze", help="audit assets/exposure and freeze all pools without inference")
+    freeze.add_argument("configuration", type=Path)
+    freeze.add_argument("--output", type=Path, required=True)
+    validate_campaign = campaign_commands.add_parser("validate")
+    validate_campaign.add_argument("manifest", type=Path)
+    seal = campaign_commands.add_parser("seal", help="bind all finalized selection masks before any final run")
+    seal.add_argument("manifest", type=Path)
+    campaign_run = campaign_commands.add_parser("run")
+    campaign_run.add_argument("manifest", type=Path)
+    campaign_run.add_argument("--phase", choices=("selection", "final"), required=True)
+    campaign_run.add_argument("--pools", nargs="+", help="operational batch of already frozen pool IDs")
+    campaign_run.add_argument("--no-progress", action="store_true")
+    aggregate = campaign_commands.add_parser("aggregate", help="offline analysis; requires all finalized pool results")
+    aggregate.add_argument("manifest", type=Path)
+    aggregate.add_argument("--output", type=Path, required=True)
+    aggregate.add_argument("--no-plots", action="store_true")
     return parser
 
 
@@ -400,6 +418,20 @@ def main(argv: list[str] | None = None) -> int:
                 bootstrap_seed=args.bootstrap_seed,
                 bootstrap_replicates=args.bootstrap_replicates,
             ))
+        elif args.command == "campaign":
+            from .cross_pool import freeze_campaign, validate_campaign, run_campaign, seal_selections
+            if args.campaign_command == "freeze":
+                result = freeze_campaign(args.configuration, args.output)
+            elif args.campaign_command == "validate":
+                result = validate_campaign(args.manifest)
+            elif args.campaign_command == "seal":
+                result = seal_selections(args.manifest)
+            elif args.campaign_command == "run":
+                result = run_campaign(args.manifest, args.phase, pool_ids=args.pools, progress=not args.no_progress)
+            else:
+                from .cross_pool_analysis import aggregate_campaign
+                result = aggregate_campaign(args.manifest, args.output, plots=not args.no_plots)
+            print(json.dumps(result, indent=2, sort_keys=True))
         elif args.command == "conditional":
             from .conditional_bundle import create_conditional_bundle
             from .conditional_config import load_conditional

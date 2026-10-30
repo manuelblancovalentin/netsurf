@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/conditional/6.6.0",
+  "title": "NetSuRF frozen cross-pool member",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scientific_protocol",
+    "experiment",
+    "benchmark",
+    "samples",
+    "risk",
+    "candidates",
+    "backgrounds",
+    "execution",
+    "restricted_oracle",
+    "protection_context",
+    "paired_swap_evaluation",
+    "output",
+    "workflow"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "6.6.0"
+    },
+    "scientific_protocol": {
+      "const": "cross-pool-frozen-protection/v7"
+    },
+    "experiment": {
+      "type": "object"
+    },
+    "benchmark": {
+      "type": "object"
+    },
+    "samples": {
+      "type": "object"
+    },
+    "risk": {
+      "type": "object"
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 12
+    },
+    "backgrounds": {
+      "type": "object"
+    },
+    "execution": {
+      "type": "object"
+    },
+    "restricted_oracle": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "budget",
+        "calibration_background_count",
+        "evaluation_background_count",
+        "calibration_seed",
+        "evaluation_seed",
+        "calibration_replicate_seeds"
+      ]
+    },
+    "protection_context": {
+      "type": "object"
+    },
+    "paired_swap_evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "background_count",
+        "seed",
+        "comparisons"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "background_count": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "comparisons": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "restricted_selected_vs_original_s5",
+              "restricted_selected_vs_exact_isolated",
+              "exact_isolated_vs_original_s5"
+            ]
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object"
+    },
+    "workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "purpose",
+        "candidate_provenance",
+        "campaign_manifest",
+        "campaign_sha256",
+        "pool_id",
+        "record_per_input"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "selection_only",
+            "final_only"
+          ]
+        },
+        "purpose": {
+          "enum": [
+            "engineering",
+            "confirmation"
+          ]
+        },
+        "candidate_provenance": {
+          "const": "independent_s5_status_stratified_uniform_without_replacement/v1"
+        },
+        "selection_bundle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "selection_payload_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "selection_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "campaign_manifest": {
+          "type": "string"
+        },
+        "campaign_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "pool_id": {
+          "type": "string",
+          "pattern": "^pool_[0-9]{3}$"
+        },
+        "record_per_input": {
+          "const": true
+        },
+        "final_registry": {
+          "type": "string"
+        },
+        "final_registry_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "workflow": {
+            "properties": {
+              "mode": {
+                "const": "selection_only"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "paired_swap_evaluation": {
+            "properties": {
+              "enabled": {
+                "const": false
+              }
+            }
+          },
+          "workflow": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "selection_bundle"
+                  ]
+                },
+                {
+                  "required": [
+                    "selection_payload_sha256"
+                  ]
+                },
+                {
+                  "required": [
+                    "selection_artifact_sha256"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "paired_swap_evaluation": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            }
+          },
+          "workflow": {
+            "required": [
+              "selection_bundle",
+              "selection_payload_sha256",
+              "selection_artifact_sha256",
+              "final_registry",
+              "final_registry_sha256"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

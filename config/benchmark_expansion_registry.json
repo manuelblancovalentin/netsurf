@@ -1,0 +1,1503 @@
+{
+  "schema_version": "1.0.0",
+  "audit_date": "2026-10-30",
+  "scope": "Shared /data/models, /data/datasets, pinned Kona Assets registry/locks and NetSuRF adapters. Private caches not searched. No downloads or new precision conversions.",
+  "status_meanings": {
+    "Ready": "existing static exact backend/asset evidence; not automatically schema-6 conditional-ready",
+    "Adapter required": "usable source artifacts exist, but conformance/injection or task protocol remains incomplete",
+    "Asset acquisition required": "essential verified source data/model missing",
+    "Research-stage": "new quantization or numeric fault semantics must be agreed"
+  },
+  "entries": [
+    {
+      "id": "resnet8_int8",
+      "family": "resnet8",
+      "track": "A",
+      "priority": 1,
+      "status": "Ready",
+      "target_precision": "INT8",
+      "model": {
+        "registry_id": "mlperf-tiny-ic-int8",
+        "source": "mlcommons/tiny",
+        "revision": "4addd0fa08d216e20637637874e084895f289da4",
+        "registry_sha256": "8a341054e4e82c092dd13f1f56dfab1bd8cdcf129fd76948bd6c491fe88baf51",
+        "architecture": "ResNet-8 (CIFAR-10, 10 classes)",
+        "source_storage": "tflite",
+        "files": [
+          {
+            "path": "benchmark/training/image_classification/trained_models/pretrainedResnet_quant.tflite",
+            "sha256": "3c002613d1b2475eb51dd78dfb85a546c8ae658dee71cf6ade43b022fe205415",
+            "size": 98496
+          }
+        ],
+        "license": "Apache-2.0 (repository LICENSE.md at the pinned commit)",
+        "local_available": true,
+        "local_root": "/data/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4",
+        "source_dtype_caveat": "inspect acquired tensor headers; target precision is not an observed conversion"
+      },
+      "dataset": {
+        "id": "cifar10",
+        "local_available": true,
+        "source": "uoft-cs/cifar10",
+        "license": "no licence is stated on the official page (read 2026-10-27), which asks users to cite the technical report (Krizhevsky, 2009); the Hugging Face card also declares none",
+        "access": "open",
+        "registry_version": "official-python",
+        "source_record": {
+          "provider": "university-of-toronto",
+          "url": "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz",
+          "page": "https://www.cs.toronto.edu/~kriz/cifar.html",
+          "md5": "c58f30108f718f92721af3b95e74349a",
+          "verified_on": "2026-10-27"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": 618880,
+      "bit_count_status": "verified existing eligible population",
+      "runtime": "TensorFlow 2.14.1 BUILTIN_REF, one thread, no delegates; Python 3.11/NumPy 1.26.4",
+      "quantization": "Pinned official affine INT8 TFLite kernel codes; INT32 biases and affine metadata excluded",
+      "exact_bit_mutation": "verified private TFLite kernel-buffer XOR",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "persistent independent Bernoulli kernel-storage events; ideal suppression; proposed=applied+suppressed",
+      "task_metric": "top-1 accuracy and cross-entropy",
+      "clean_reference": {
+        "backend": "BUILTIN_REF",
+        "deterministic_rerun_identical": true,
+        "full_test_10000": {
+          "correct": 8707,
+          "metric": "top-1 accuracy",
+          "n": 10000,
+          "passed": true,
+          "target_minimum": 0.85,
+          "value": 0.8707
+        },
+        "input_type": {
+          "dtype": "int8",
+          "scale": 1,
+          "shape": [
+            1,
+            32,
+            32,
+            3
+          ],
+          "zero_point": -128
+        },
+        "model_sha256": "3c002613d1b2475eb51dd78dfb85a546c8ae658dee71cf6ade43b022fe205415",
+        "model_size": 98496,
+        "official_subset_200": {
+          "correct": 175,
+          "metric": "top-1 accuracy",
+          "n": 200,
+          "passed": true,
+          "target_minimum": 0.85,
+          "value": 0.875
+        },
+        "output_digests": {
+          "full_outputs_sha256": "2cd2747d949fe123a144160c6e2b8c45277c438812803058c49cb4a123b9cfd1",
+          "subset_outputs_sha256": "f045f8f11e923bb37c467d1969e3e53c5b966061f1134688bd69b3e7f01338b9"
+        },
+        "output_type": {
+          "dtype": "int8",
+          "scale": 0.00390625,
+          "shape": [
+            1,
+            10
+          ],
+          "zero_point": -128
+        },
+        "preprocessing_id": "mlperf-tiny/ic01/uint8-minus-128/1",
+        "provisional": false,
+        "result_file": "validation/mlperf-tiny/ic.result.json",
+        "run_utc": "2026-10-28T03:50:41Z",
+        "sample_index_file": "perf_samples_idxs.npy",
+        "sample_index_sha256": "3bd4a88eeb4c50fad652d0f24c8af13bc9219ba2878aea47c6536bfbeb43024d"
+      },
+      "reference_lock": {
+        "path": "/projects/kona-assets/manuelbv/locks/mlperf-tiny/ic.lock.json",
+        "file_sha256": "65226641813cf4192d4898293b09d3861a2ccbcae0e4aca04beb3d15bd3bbbc9",
+        "canonical_digest": "sha256:d0daf561e681b5a31f23350192c6b5d7041b27024bf054d13a2eb793e581abd9"
+      },
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [
+        "random",
+        "S2",
+        "S3",
+        "S4 surrogate",
+        "S5 surrogate",
+        "S6 surrogate",
+        "bounded exact isolated"
+      ],
+      "resource_plan": "CPU engineering first; roughly 1–2 GiB for existing TinyML adapters, larger if all bit identities/scores materialized. No GPU required. See measured costs in roadmap.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": []
+    },
+    {
+      "id": "toycar_int8",
+      "family": "toycar",
+      "track": "A",
+      "priority": 1,
+      "status": "Ready",
+      "target_precision": "INT8",
+      "model": {
+        "registry_id": "mlperf-tiny-ad-int8",
+        "source": "mlcommons/tiny",
+        "revision": "4addd0fa08d216e20637637874e084895f289da4",
+        "registry_sha256": "01e0c9e1925a2ffebc3448eee2e2d556e31673605e7fa7a3b5f9dbb532f4efd7",
+        "architecture": "Deep AutoEncoder (640-in, 8-dim bottleneck, dense + batch-norm folded)",
+        "source_storage": "tflite",
+        "files": [
+          {
+            "path": "benchmark/training/anomaly_detection/trained_models/ad01_int8.tflite",
+            "sha256": "87cf24194ef93d1d9b11a591d805526b98008e351655d29883c825c9c106ba24",
+            "size": 276976
+          }
+        ],
+        "license": "Apache-2.0 (repository LICENSE.md at the pinned commit); anomaly-detection training code MIT (Hitachi)",
+        "local_available": true,
+        "local_root": "/data/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4",
+        "source_dtype_caveat": "inspect acquired tensor headers; target precision is not an observed conversion"
+      },
+      "dataset": {
+        "id": "dcase2020-toycar",
+        "local_available": true,
+        "source": "3678171+3727685",
+        "license": "CC-BY-NC-SA-4.0 (Zenodo records 3678171 and 3727685, read 2026-10-27). Attribution: credit the authors (Koizumi, Kawaguchi, Imoto, Nakamura, Nikaido, Tanabe, Purohit, Suefusa, Endo, Yasuda, Harada), cite 'DCASE 2020 Challenge Task 2 Development Dataset', doi 10.5281/zenodo.3678171, and 'DCASE 2020 Challenge Task 2 Additional Training Dataset', doi 10.5281/zenodo.3727685, link the licence, and indicate changes. NonCommercial: no commercial use. ShareAlike: derivatives (for example derived features or models trained on the data) that are distributed must carry the same licence. No further restrictions may be imposed. Access on this server is owner-only (directories 0700, files 0400) until an approved research group is named; sharing with a group would use directories 2750 and files 0440, read-only.",
+        "access": "restricted",
+        "registry_version": "zenodo-3678171-3727685-local",
+        "source_record": {
+          "provider": "zenodo",
+          "development_record": "https://zenodo.org/records/3678171",
+          "development_md5": "4dec75ca8d9f666aa9e4c1894a740501",
+          "additional_training_record": "https://zenodo.org/records/3727685",
+          "additional_training_md5": "a5d4ccd498af70b04dd74b644b820006",
+          "verified_on": "2026-10-27"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": 2113536,
+      "bit_count_status": "verified existing eligible population",
+      "runtime": "TensorFlow 2.14.1 BUILTIN_REF, one thread, no delegates; Python 3.11/NumPy 1.26.4",
+      "quantization": "Pinned official affine INT8 TFLite kernel codes; INT32 biases and affine metadata excluded",
+      "exact_bit_mutation": "verified private TFLite kernel-buffer XOR",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "persistent independent Bernoulli kernel-storage events; ideal suppression; proposed=applied+suppressed",
+      "task_metric": "file ROC-AUC; reconstruction MSE separately",
+      "clean_reference": {
+        "backend": "BUILTIN_REF",
+        "deterministic_rerun_identical": true,
+        "input_type": {
+          "dtype": "int8",
+          "scale": 0.391015231609,
+          "shape": [
+            1,
+            640
+          ],
+          "zero_point": 89
+        },
+        "model_sha256": "87cf24194ef93d1d9b11a591d805526b98008e351655d29883c825c9c106ba24",
+        "model_size": 276976,
+        "official_248_files": {
+          "auc_eembc_calculate_ae_auc": 0.861838624338624,
+          "metric": "ROC-AUC (scikit-learn roc_auc_score)",
+          "n": 248,
+          "passed": true,
+          "target_minimum": 0.85,
+          "value": 0.862037037037037
+        },
+        "output_digests": {
+          "file_scores_sha256": "f5174517de344da8126ea1875baae36dfd53bf37151ed18e058bd5a57e0fb4b5"
+        },
+        "output_type": {
+          "dtype": "int8",
+          "scale": 0.364498466253,
+          "shape": [
+            1,
+            640
+          ],
+          "zero_point": 96
+        },
+        "preprocessing_id": "mlperf-tiny/ad01/librosa-logmel-128x5/1",
+        "provisional": false,
+        "result_file": "validation/mlperf-tiny/ad.result.json",
+        "run_utc": "2026-10-28T03:54:16Z",
+        "sample_index_file": "ad01/y_labels.csv",
+        "sample_index_sha256": "4ecd91868e197ee0a6739d4bd7abde73eac2fa31e9a88d6bc6aedefa136ff2a4"
+      },
+      "reference_lock": {
+        "path": "/projects/kona-assets/manuelbv/locks/mlperf-tiny/ad.lock.json",
+        "file_sha256": "7fafb690025f40903d92fecbd88adc1c5ebab2bd41626073ed82174d1ce12a84",
+        "canonical_digest": "sha256:2e362d617a104ca3749d47e1fd6a24ba0558b2be996bd16fb2fdd3cefa499b8c"
+      },
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 protocol is KWS-only; file-AUC risk and non-additive input resampling require separate extension.",
+      "baselines": [
+        "random",
+        "S2",
+        "S3",
+        "S4 surrogate",
+        "S5 surrogate",
+        "S6 surrogate",
+        "bounded exact isolated"
+      ],
+      "resource_plan": "CPU engineering first; roughly 1–2 GiB for existing TinyML adapters, larger if all bit identities/scores materialized. No GPU required. See measured costs in roadmap.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": []
+    },
+    {
+      "id": "kws_dscnn_int8",
+      "family": "kws_dscnn",
+      "track": "A",
+      "priority": 1,
+      "status": "Ready",
+      "target_precision": "INT8",
+      "model": {
+        "registry_id": "mlperf-tiny-kws-int8",
+        "source": "mlcommons/tiny",
+        "revision": "4addd0fa08d216e20637637874e084895f289da4",
+        "registry_sha256": "370d5af2b657a1f232b59c8e0b33cc8731b8ee653d0552421a451e14b5db9039",
+        "architecture": "DS-CNN (12 classes, 49x10 MFCC input)",
+        "source_storage": "tflite",
+        "files": [
+          {
+            "path": "benchmark/training/keyword_spotting/trained_models/kws_ref_model.tflite",
+            "sha256": "aeea436800704fce17b17292e4412630ad856e9d777c044c64ef748a880bd0ae",
+            "size": 53936
+          }
+        ],
+        "license": "Apache-2.0 (repository LICENSE.md at the pinned commit)",
+        "local_available": true,
+        "local_root": "/data/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4",
+        "source_dtype_caveat": "inspect acquired tensor headers; target precision is not an observed conversion"
+      },
+      "dataset": {
+        "id": "speech-commands",
+        "local_available": true,
+        "source": "local",
+        "license": "CC-BY-4.0 (as stated by the dataset authors; not re-verified on this server)",
+        "access": "open",
+        "registry_version": "tfds-0.0.3",
+        "source_record": {
+          "provider": "tensorflow-datasets",
+          "builder": "speech_commands",
+          "version": "0.0.3",
+          "paper": "arXiv:1804.03209"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": 176128,
+      "bit_count_status": "verified existing eligible population",
+      "runtime": "TensorFlow 2.14.1 BUILTIN_REF, one thread, no delegates; Python 3.11/NumPy 1.26.4",
+      "quantization": "Pinned official affine INT8 TFLite kernel codes; INT32 biases and affine metadata excluded",
+      "exact_bit_mutation": "verified private TFLite kernel-buffer XOR",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "persistent independent Bernoulli kernel-storage events; ideal suppression; proposed=applied+suppressed",
+      "task_metric": "top-1 accuracy and cross-entropy",
+      "clean_reference": {
+        "backend": "BUILTIN_REF",
+        "deterministic_rerun_identical": true,
+        "full_test_4890": {
+          "correct": 4480,
+          "metric": "top-1 accuracy",
+          "n": 4890,
+          "passed": true,
+          "target_minimum": 0.9,
+          "value": 0.9161554192229039
+        },
+        "input_type": {
+          "dtype": "int8",
+          "scale": 0.5847029089927673,
+          "shape": [
+            1,
+            49,
+            10,
+            1
+          ],
+          "zero_point": 83
+        },
+        "model_sha256": "aeea436800704fce17b17292e4412630ad856e9d777c044c64ef748a880bd0ae",
+        "model_size": 53936,
+        "official_subset_1000": {
+          "correct": 901,
+          "metric": "top-1 accuracy",
+          "n": 1000,
+          "passed": true,
+          "target_minimum": 0.9,
+          "value": 0.901
+        },
+        "output_digests": {
+          "full_outputs_sha256": "71d0302582ef6808e5cac245f84b70c66ba26ef6f557c5c57a1b3d86a793c283",
+          "subset_outputs_sha256": "a62256c3f761c18a7ce7f39c44ff4134df5052d96e95b5867e7f6e8db0120b96",
+          "subset_predictions_sha256": "0a2d12d0aaff1a08f896adb3b0b666bac3e1a79563dc3984438e6063c40edcc9"
+        },
+        "output_type": {
+          "dtype": "int8",
+          "scale": 0.00390625,
+          "shape": [
+            1,
+            12
+          ],
+          "zero_point": -128
+        },
+        "preprocessing_id": "mlperf-tiny/kws01/tf-signal-mfcc-10x49/1",
+        "provisional": false,
+        "result_file": "validation/mlperf-tiny/kws.result.json",
+        "run_utc": "2026-10-28T03:53:40Z",
+        "sample_index_file": "kws01/y_labels.csv",
+        "sample_index_sha256": "6cb3709762d53fe64eb00eaf4a75796248bb3c1386f1d1f93ccdb07b071e9698"
+      },
+      "reference_lock": {
+        "path": "/projects/kona-assets/manuelbv/locks/mlperf-tiny/kws.lock.json",
+        "file_sha256": "09fc5867d721363a0156e2f9f6fdedefe2aa0ae7384cc72396bc594e283bfac7",
+        "canonical_digest": "sha256:d87daf0dbc24bbc334589dae83e200504a9624008f647d461c6c4721ce1bcf6f"
+      },
+      "conditional_protocol_ready": true,
+      "conditional_blocker": null,
+      "baselines": [
+        "random",
+        "S2",
+        "S3",
+        "S4 surrogate",
+        "S5 surrogate",
+        "S6 surrogate",
+        "bounded exact isolated"
+      ],
+      "resource_plan": "CPU engineering first; roughly 1–2 GiB for existing TinyML adapters, larger if all bit identities/scores materialized. No GPU required. See measured costs in roadmap.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": []
+    },
+    {
+      "id": "vww_mobilenetv1_int8",
+      "family": "vww_mobilenetv1",
+      "track": "A",
+      "priority": 2,
+      "status": "Asset acquisition required",
+      "target_precision": "INT8",
+      "model": {
+        "registry_id": "mlperf-tiny-vww-int8",
+        "source": "mlcommons/tiny",
+        "revision": "4addd0fa08d216e20637637874e084895f289da4",
+        "registry_sha256": "56d23bc1eb227a57ac7921a211673d034c841034e8518d4c08aafac84b3b6857",
+        "architecture": "MobileNetV1 alpha 0.25 (96x96 RGB, 2 classes)",
+        "source_storage": "tflite",
+        "files": [
+          {
+            "path": "benchmark/training/visual_wake_words/trained_models/vww_96_int8.tflite",
+            "sha256": "597a384c8c2c8a1276f04702f25013b7838f2f814f1ca7c174d295b73e3d6b7b",
+            "size": 333288
+          }
+        ],
+        "license": "Apache-2.0 (repository LICENSE.md at the pinned commit)",
+        "local_available": true,
+        "local_root": "/data/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4",
+        "source_dtype_caveat": "inspect acquired tensor headers; target precision is not an observed conversion"
+      },
+      "dataset": {
+        "id": "visual-wake-words",
+        "local_available": true,
+        "source": "local",
+        "license": "COCO 2014: annotations CC-BY-4.0, images under their individual Flickr terms (not re-verified)",
+        "access": "open",
+        "registry_version": "mltk-vw-coco2014-96",
+        "source_record": {
+          "provider": "mlcommons-tiny / siliconlabs-mltk",
+          "derivation": "MSCOCO14 person annotations, minimal person box 2.5 percent, 96x96 antialiased resize, RGB, train and val combined"
+        },
+        "provenance_limit": "pixels unverified"
+      },
+      "eligible_kernel_bits": 1664896,
+      "bit_count_status": "metadata-only parsed candidate population; not injection-validated",
+      "runtime": "TensorFlow 2.14.1 BUILTIN_REF, one thread, no delegates; Python 3.11/NumPy 1.26.4",
+      "quantization": "Pinned official affine INT8 TFLite kernel codes; INT32 biases and affine metadata excluded",
+      "exact_bit_mutation": "private flatbuffer XOR technically available; model-specific tests and conformance outstanding",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "persistent independent Bernoulli kernel-storage events; ideal suppression; proposed=applied+suppressed",
+      "task_metric": "top-1 accuracy and cross-entropy",
+      "clean_reference": {
+        "backend": "BUILTIN_REF",
+        "deterministic_rerun_identical": true,
+        "input_type": {
+          "dtype": "int8",
+          "scale": 0.003921568859368563,
+          "shape": [
+            1,
+            96,
+            96,
+            3
+          ],
+          "zero_point": -128
+        },
+        "model_sha256": "597a384c8c2c8a1276f04702f25013b7838f2f814f1ca7c174d295b73e3d6b7b",
+        "model_size": 333288,
+        "official_ids_1000": {
+          "correct": 858,
+          "metric": "top-1 accuracy",
+          "n": 1000,
+          "passed": true,
+          "target_minimum": 0.8,
+          "value": 0.858
+        },
+        "output_digests": {
+          "outputs_sha256": "77bd7a994013ff0f0b8ed8983cca09394bd07f29ea71f7007183df76e7b7ca5a",
+          "predictions_sha256": "46de033e66a0f5c0e3dc199a4db85e991e46e6281ae510732652aadea0780f29"
+        },
+        "output_type": {
+          "dtype": "int8",
+          "scale": 0.00390625,
+          "shape": [
+            1,
+            2
+          ],
+          "zero_point": -128
+        },
+        "preprocessing_id": "mlperf-tiny/vww01/uint8-minus-128/1",
+        "provisional": true,
+        "result_file": "validation/mlperf-tiny/vww.result.json",
+        "run_utc": "2026-10-28T03:52:10Z",
+        "sample_index_file": "vww01/y_labels.csv",
+        "sample_index_sha256": "3697ca57c48b23b21602ae9bdb32b1925407a1d41d79167cdfb365054cb9c33d"
+      },
+      "reference_lock": {
+        "path": "/projects/kona-assets/manuelbv/locks/mlperf-tiny/vww.lock.json",
+        "file_sha256": "72b5f8f1d040c8ee2c98225be9ec1af4f2a4787cb2a92481913ef710f9529796",
+        "canonical_digest": "sha256:1f39b74d91882a68a0e72bcba13dd56c5cd0707f90eca87a9280859ede499976"
+      },
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [],
+      "resource_plan": "CPU engineering first; roughly 1–2 GiB for existing TinyML adapters, larger if all bit identities/scores materialized. No GPU required. See measured costs in roadmap.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": [
+        "Local derivative JPEG pixels lack independently verified official archive identity; provisional 0.858 accuracy is not official conformance."
+      ]
+    },
+    {
+      "id": "streaming_dscnn1d_int8",
+      "family": "streaming_dscnn1d",
+      "track": "A",
+      "priority": 2,
+      "status": "Adapter required",
+      "target_precision": "INT8",
+      "model": {
+        "registry_id": "mlperf-tiny-sww-int8",
+        "source": "mlcommons/tiny",
+        "revision": "4addd0fa08d216e20637637874e084895f289da4",
+        "registry_sha256": "b8dc52be1cae9d40d46b1df1e48a904ebdceec9ffb624c3d1c887bf46ee7a41b",
+        "architecture": "Streaming conv model (40 features, 3 classes)",
+        "source_storage": "tflite",
+        "files": [
+          {
+            "path": "benchmark/training/streaming_wakeword/trained_models/str_ww_ref_model.tflite",
+            "sha256": "3af8550895ba7d5c584277102b5075c52dcfa63ba9d2b2240f37c4e6abd5dd2b",
+            "size": 74520
+          }
+        ],
+        "license": "Apache-2.0 (repository LICENSE.md at the pinned commit)",
+        "local_available": true,
+        "local_root": "/data/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4",
+        "source_dtype_caveat": "inspect acquired tensor headers; target precision is not an observed conversion"
+      },
+      "dataset": {
+        "id": "Speech Commands v0.02 + MUSAN",
+        "local_available": false,
+        "source": "Speech Commands v0.02 + MUSAN",
+        "license": "See pinned DCASE/MLCommons source and constituent audio licenses; no redistribution assumed",
+        "access": "partial; long streaming waveform absent",
+        "registry_version": null,
+        "source_record": null,
+        "provenance_limit": "10-second engineering example only"
+      },
+      "eligible_kernel_bits": 368320,
+      "bit_count_status": "metadata-only parsed candidate population; not injection-validated",
+      "runtime": "TensorFlow 2.14.1 BUILTIN_REF, one thread, no delegates; Python 3.11/NumPy 1.26.4",
+      "quantization": "Pinned official affine INT8 TFLite kernel codes; INT32 biases and affine metadata excluded",
+      "exact_bit_mutation": "private flatbuffer XOR technically available; model-specific tests and conformance outstanding",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "persistent independent Bernoulli kernel-storage events; ideal suppression; proposed=applied+suppressed",
+      "task_metric": "event false positives and false negatives with pinned debounce/suppression",
+      "clean_reference": null,
+      "reference_lock": null,
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [],
+      "resource_plan": "CPU engineering first; roughly 1–2 GiB for existing TinyML adapters, larger if all bit identities/scores materialized. No GPU required. See measured costs in roadmap.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": [
+        "No NetSuRF adapter or clean conformance lock. Official 10-second example and INT8 model hash verified; medium clip missing. Long waveform requires unapproved MUSAN acquisition and exact reconstruction."
+      ]
+    },
+    {
+      "id": "resnet18_fp32",
+      "family": "resnet18",
+      "track": "B",
+      "priority": 3,
+      "status": "Asset acquisition required",
+      "target_precision": "FP32",
+      "model": {
+        "registry_id": "resnet18-hf",
+        "source": "microsoft/resnet-18",
+        "revision": "65a5785d9156231087c481e0c7dd33a5ff6f7e3e",
+        "registry_sha256": "3940e049d4e9776353afe9983005b962263b3cff87d42735a08d14b3c98de117",
+        "architecture": "ResNetForImageClassification",
+        "source_storage": "safetensors",
+        "files": [
+          {
+            "path": "config.json",
+            "size": 69548
+          },
+          {
+            "path": "model.safetensors",
+            "size": 46812324,
+            "sha256": "1cf00ee468998c23d084361b02cffadabacb5074105564c596b8079f77ecb126"
+          },
+          {
+            "path": "preprocessor_config.json",
+            "size": 266
+          }
+        ],
+        "license": "apache-2.0",
+        "local_available": false,
+        "local_root": null,
+        "source_dtype_caveat": "inspect acquired tensor headers; target precision is not an observed conversion"
+      },
+      "dataset": {
+        "id": "imagenet-1k",
+        "local_available": false,
+        "source": "ILSVRC/imagenet-1k",
+        "license": "custom ImageNet terms (research, non-commercial); provider card says 'other'",
+        "access": "gated",
+        "registry_version": "hf-49e2ee26f381",
+        "source_record": {
+          "provider": "huggingface",
+          "id": "ILSVRC/imagenet-1k",
+          "revision": "49e2ee26f3810fb5a7536bbf732a7b07389a47b5",
+          "verified_on": "2026-10-27"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": null,
+      "bit_count_status": "unknown until representation and target tensors are approved",
+      "runtime": "PyTorch+Transformers; exact versions/backend not validated",
+      "quantization": "Native target dtype requires byte-level representation/backend contract",
+      "exact_bit_mutation": "unimplemented; byte layout, weight tying, kernel packing and runtime dtype must be established",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "new reviewed representation-aware contract required; no NaN/Inf clipping or implicit precision conversion",
+      "task_metric": "top-1 accuracy and cross-entropy",
+      "clean_reference": null,
+      "reference_lock": null,
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [],
+      "resource_plan": "Source weights ~10–47 MB; CPU possible; allow 2–4 GiB RAM or modest GPU for bounded gradients, not measured.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": [
+        "Model and dataset not in audited shared storage; registry pin is metadata, not acquisition. Explicit architecture/backend adapter and new representation contract required.",
+        "ImageNet access terms require researcher acceptance; Imagenette is not a substitute."
+      ]
+    },
+    {
+      "id": "resnet18_int8",
+      "family": "resnet18",
+      "track": "B",
+      "priority": 3,
+      "status": "Research-stage",
+      "target_precision": "INT8",
+      "model": {
+        "registry_id": "resnet18-hf",
+        "source": "microsoft/resnet-18",
+        "revision": "65a5785d9156231087c481e0c7dd33a5ff6f7e3e",
+        "registry_sha256": "3940e049d4e9776353afe9983005b962263b3cff87d42735a08d14b3c98de117",
+        "architecture": "ResNetForImageClassification",
+        "source_storage": "safetensors",
+        "files": [
+          {
+            "path": "config.json",
+            "size": 69548
+          },
+          {
+            "path": "model.safetensors",
+            "size": 46812324,
+            "sha256": "1cf00ee468998c23d084361b02cffadabacb5074105564c596b8079f77ecb126"
+          },
+          {
+            "path": "preprocessor_config.json",
+            "size": 266
+          }
+        ],
+        "license": "apache-2.0",
+        "local_available": false,
+        "local_root": null,
+        "source_dtype_caveat": "inspect acquired tensor headers; target precision is not an observed conversion"
+      },
+      "dataset": {
+        "id": "imagenet-1k",
+        "local_available": false,
+        "source": "ILSVRC/imagenet-1k",
+        "license": "custom ImageNet terms (research, non-commercial); provider card says 'other'",
+        "access": "gated",
+        "registry_version": "hf-49e2ee26f381",
+        "source_record": {
+          "provider": "huggingface",
+          "id": "ILSVRC/imagenet-1k",
+          "revision": "49e2ee26f3810fb5a7536bbf732a7b07389a47b5",
+          "verified_on": "2026-10-27"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": null,
+      "bit_count_status": "unknown until representation and target tensors are approved",
+      "runtime": "PyTorch+Transformers; exact versions/backend not validated",
+      "quantization": "Unapproved derivative; recipe, calibration, packing and conformance required",
+      "exact_bit_mutation": "unimplemented; byte layout, weight tying, kernel packing and runtime dtype must be established",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "new reviewed representation-aware contract required; no NaN/Inf clipping or implicit precision conversion",
+      "task_metric": "top-1 accuracy and cross-entropy",
+      "clean_reference": null,
+      "reference_lock": null,
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [],
+      "resource_plan": "Source weights ~10–47 MB; CPU possible; allow 2–4 GiB RAM or modest GPU for bounded gradients, not measured.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": [
+        "Model and dataset not in audited shared storage; registry pin is metadata, not acquisition. Explicit architecture/backend adapter and new representation contract required.",
+        "No pinned quantization recipe, calibration corpus, executable packed-storage definition or clean conformance for this variant.",
+        "ImageNet access terms require researcher acceptance; Imagenette is not a substitute."
+      ]
+    },
+    {
+      "id": "mobilenetv3_small_fp32",
+      "family": "mobilenetv3_small",
+      "track": "B",
+      "priority": 3,
+      "status": "Asset acquisition required",
+      "target_precision": "FP32",
+      "model": {
+        "registry_id": "mobilenetv3-small",
+        "source": "timm/mobilenetv3_small_100.lamb_in1k",
+        "revision": "1824797e7887cbec1990e4adbd6675960a36c589",
+        "registry_sha256": "7b1806bce0783e28d59422e5a712233383039bf596437fa2b331dcdc862b2cb7",
+        "architecture": "mobilenetv3_small_100",
+        "source_storage": "safetensors",
+        "files": [
+          {
+            "path": "config.json",
+            "size": 586
+          },
+          {
+            "path": "model.safetensors",
+            "size": 10241912,
+            "sha256": "46d2c063b18125884c48937afa4c49e18128869e52e8db96df48bf0a4d7ff697"
+          }
+        ],
+        "license": "apache-2.0",
+        "local_available": false,
+        "local_root": null,
+        "source_dtype_caveat": "inspect acquired tensor headers; target precision is not an observed conversion"
+      },
+      "dataset": {
+        "id": "imagenet-1k",
+        "local_available": false,
+        "source": "ILSVRC/imagenet-1k",
+        "license": "custom ImageNet terms (research, non-commercial); provider card says 'other'",
+        "access": "gated",
+        "registry_version": "hf-49e2ee26f381",
+        "source_record": {
+          "provider": "huggingface",
+          "id": "ILSVRC/imagenet-1k",
+          "revision": "49e2ee26f3810fb5a7536bbf732a7b07389a47b5",
+          "verified_on": "2026-10-27"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": null,
+      "bit_count_status": "unknown until representation and target tensors are approved",
+      "runtime": "PyTorch+timm version must be pinned and validated",
+      "quantization": "Native target dtype requires byte-level representation/backend contract",
+      "exact_bit_mutation": "unimplemented; byte layout, weight tying, kernel packing and runtime dtype must be established",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "new reviewed representation-aware contract required; no NaN/Inf clipping or implicit precision conversion",
+      "task_metric": "top-1 accuracy and cross-entropy",
+      "clean_reference": null,
+      "reference_lock": null,
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [],
+      "resource_plan": "Source weights ~10–47 MB; CPU possible; allow 2–4 GiB RAM or modest GPU for bounded gradients, not measured.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": [
+        "Model and dataset not in audited shared storage; registry pin is metadata, not acquisition. Explicit architecture/backend adapter and new representation contract required.",
+        "ImageNet access terms require researcher acceptance; Imagenette is not a substitute."
+      ]
+    },
+    {
+      "id": "mobilenetv3_small_int8",
+      "family": "mobilenetv3_small",
+      "track": "B",
+      "priority": 3,
+      "status": "Research-stage",
+      "target_precision": "INT8",
+      "model": {
+        "registry_id": "mobilenetv3-small",
+        "source": "timm/mobilenetv3_small_100.lamb_in1k",
+        "revision": "1824797e7887cbec1990e4adbd6675960a36c589",
+        "registry_sha256": "7b1806bce0783e28d59422e5a712233383039bf596437fa2b331dcdc862b2cb7",
+        "architecture": "mobilenetv3_small_100",
+        "source_storage": "safetensors",
+        "files": [
+          {
+            "path": "config.json",
+            "size": 586
+          },
+          {
+            "path": "model.safetensors",
+            "size": 10241912,
+            "sha256": "46d2c063b18125884c48937afa4c49e18128869e52e8db96df48bf0a4d7ff697"
+          }
+        ],
+        "license": "apache-2.0",
+        "local_available": false,
+        "local_root": null,
+        "source_dtype_caveat": "inspect acquired tensor headers; target precision is not an observed conversion"
+      },
+      "dataset": {
+        "id": "imagenet-1k",
+        "local_available": false,
+        "source": "ILSVRC/imagenet-1k",
+        "license": "custom ImageNet terms (research, non-commercial); provider card says 'other'",
+        "access": "gated",
+        "registry_version": "hf-49e2ee26f381",
+        "source_record": {
+          "provider": "huggingface",
+          "id": "ILSVRC/imagenet-1k",
+          "revision": "49e2ee26f3810fb5a7536bbf732a7b07389a47b5",
+          "verified_on": "2026-10-27"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": null,
+      "bit_count_status": "unknown until representation and target tensors are approved",
+      "runtime": "PyTorch+timm version must be pinned and validated",
+      "quantization": "Unapproved derivative; recipe, calibration, packing and conformance required",
+      "exact_bit_mutation": "unimplemented; byte layout, weight tying, kernel packing and runtime dtype must be established",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "new reviewed representation-aware contract required; no NaN/Inf clipping or implicit precision conversion",
+      "task_metric": "top-1 accuracy and cross-entropy",
+      "clean_reference": null,
+      "reference_lock": null,
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [],
+      "resource_plan": "Source weights ~10–47 MB; CPU possible; allow 2–4 GiB RAM or modest GPU for bounded gradients, not measured.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": [
+        "Model and dataset not in audited shared storage; registry pin is metadata, not acquisition. Explicit architecture/backend adapter and new representation contract required.",
+        "No pinned quantization recipe, calibration corpus, executable packed-storage definition or clean conformance for this variant.",
+        "ImageNet access terms require researcher acceptance; Imagenette is not a substitute."
+      ]
+    },
+    {
+      "id": "vit_base_fp32",
+      "family": "vit_base",
+      "track": "C",
+      "priority": 4,
+      "status": "Asset acquisition required",
+      "target_precision": "FP32",
+      "model": {
+        "registry_id": "vit-base",
+        "source": "google/vit-base-patch16-224",
+        "revision": "3f49326eb077187dfe1c2a2bb15fbd74e6ab91e3",
+        "registry_sha256": "e507a6fd09fbb2a9408d8f9101be7fe750d27745b31c71729c3582b32769ffa4",
+        "architecture": "ViTForImageClassification",
+        "source_storage": "safetensors",
+        "files": [
+          {
+            "path": "config.json",
+            "size": 69665
+          },
+          {
+            "path": "model.safetensors",
+            "size": 346293852,
+            "sha256": "1cea07110a4a47edc51420b2dda6f3b8b58e7256e8f44b4ea6aa9696162ccb5d"
+          },
+          {
+            "path": "preprocessor_config.json",
+            "size": 160
+          }
+        ],
+        "license": "apache-2.0",
+        "local_available": false,
+        "local_root": null,
+        "source_dtype_caveat": "inspect acquired tensor headers; target precision is not an observed conversion"
+      },
+      "dataset": {
+        "id": "imagenet-1k",
+        "local_available": false,
+        "source": "ILSVRC/imagenet-1k",
+        "license": "custom ImageNet terms (research, non-commercial); provider card says 'other'",
+        "access": "gated",
+        "registry_version": "hf-49e2ee26f381",
+        "source_record": {
+          "provider": "huggingface",
+          "id": "ILSVRC/imagenet-1k",
+          "revision": "49e2ee26f3810fb5a7536bbf732a7b07389a47b5",
+          "verified_on": "2026-10-27"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": null,
+      "bit_count_status": "unknown until representation and target tensors are approved",
+      "runtime": "PyTorch+Transformers; exact versions/backend not validated",
+      "quantization": "Native target dtype requires byte-level representation/backend contract",
+      "exact_bit_mutation": "unimplemented; byte layout, weight tying, kernel packing and runtime dtype must be established",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "new reviewed representation-aware contract required; no NaN/Inf clipping or implicit precision conversion",
+      "task_metric": "top-1 accuracy and cross-entropy",
+      "clean_reference": null,
+      "reference_lock": null,
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [],
+      "resource_plan": "Source weights ~0.27–0.35 GB; 4–8 GiB RAM / GPU planning allowance, not measured.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": [
+        "Model and dataset not in audited shared storage; registry pin is metadata, not acquisition. Explicit architecture/backend adapter and new representation contract required.",
+        "ImageNet access terms require researcher acceptance; Imagenette is not a substitute."
+      ]
+    },
+    {
+      "id": "vit_base_int8",
+      "family": "vit_base",
+      "track": "C",
+      "priority": 4,
+      "status": "Research-stage",
+      "target_precision": "INT8",
+      "model": {
+        "registry_id": "vit-base",
+        "source": "google/vit-base-patch16-224",
+        "revision": "3f49326eb077187dfe1c2a2bb15fbd74e6ab91e3",
+        "registry_sha256": "e507a6fd09fbb2a9408d8f9101be7fe750d27745b31c71729c3582b32769ffa4",
+        "architecture": "ViTForImageClassification",
+        "source_storage": "safetensors",
+        "files": [
+          {
+            "path": "config.json",
+            "size": 69665
+          },
+          {
+            "path": "model.safetensors",
+            "size": 346293852,
+            "sha256": "1cea07110a4a47edc51420b2dda6f3b8b58e7256e8f44b4ea6aa9696162ccb5d"
+          },
+          {
+            "path": "preprocessor_config.json",
+            "size": 160
+          }
+        ],
+        "license": "apache-2.0",
+        "local_available": false,
+        "local_root": null,
+        "source_dtype_caveat": "inspect acquired tensor headers; target precision is not an observed conversion"
+      },
+      "dataset": {
+        "id": "imagenet-1k",
+        "local_available": false,
+        "source": "ILSVRC/imagenet-1k",
+        "license": "custom ImageNet terms (research, non-commercial); provider card says 'other'",
+        "access": "gated",
+        "registry_version": "hf-49e2ee26f381",
+        "source_record": {
+          "provider": "huggingface",
+          "id": "ILSVRC/imagenet-1k",
+          "revision": "49e2ee26f3810fb5a7536bbf732a7b07389a47b5",
+          "verified_on": "2026-10-27"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": null,
+      "bit_count_status": "unknown until representation and target tensors are approved",
+      "runtime": "PyTorch+Transformers; exact versions/backend not validated",
+      "quantization": "Unapproved derivative; recipe, calibration, packing and conformance required",
+      "exact_bit_mutation": "unimplemented; byte layout, weight tying, kernel packing and runtime dtype must be established",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "new reviewed representation-aware contract required; no NaN/Inf clipping or implicit precision conversion",
+      "task_metric": "top-1 accuracy and cross-entropy",
+      "clean_reference": null,
+      "reference_lock": null,
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [],
+      "resource_plan": "Source weights ~0.27–0.35 GB; 4–8 GiB RAM / GPU planning allowance, not measured.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": [
+        "Model and dataset not in audited shared storage; registry pin is metadata, not acquisition. Explicit architecture/backend adapter and new representation contract required.",
+        "No pinned quantization recipe, calibration corpus, executable packed-storage definition or clean conformance for this variant.",
+        "ImageNet access terms require researcher acceptance; Imagenette is not a substitute."
+      ]
+    },
+    {
+      "id": "distilbert_sst2_fp32",
+      "family": "distilbert_sst2",
+      "track": "C",
+      "priority": 4,
+      "status": "Asset acquisition required",
+      "target_precision": "FP32",
+      "model": {
+        "registry_id": "distilbert-sst2",
+        "source": "distilbert/distilbert-base-uncased-finetuned-sst-2-english",
+        "revision": "714eb0fa89d2f80546fda750413ed43d93601a13",
+        "registry_sha256": "cb0e5329ed7550b34bb5902aa8cf4e9d61d251b6e9e4e55692fac4841cf85e06",
+        "architecture": "DistilBertForSequenceClassification",
+        "source_storage": "safetensors",
+        "files": [
+          {
+            "path": "config.json",
+            "size": 629
+          },
+          {
+            "path": "model.safetensors",
+            "size": 267832558,
+            "sha256": "7c3919835e442510166d267fe7cbe847e0c51cd26d9ba07b89a57b952b49b8aa"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "size": 48
+          },
+          {
+            "path": "vocab.txt",
+            "size": 231508
+          }
+        ],
+        "license": "apache-2.0",
+        "local_available": false,
+        "local_root": null,
+        "source_dtype_caveat": "inspect acquired tensor headers; target precision is not an observed conversion"
+      },
+      "dataset": {
+        "id": "glue-sst2",
+        "local_available": false,
+        "source": "nyu-mll/glue",
+        "license": "other (see GLUE / Stanford Sentiment Treebank terms)",
+        "access": "open",
+        "registry_version": "hf-bcdcba79d07b",
+        "source_record": {
+          "provider": "huggingface",
+          "id": "nyu-mll/glue",
+          "revision": "bcdcba79d07bc864c1c254ccfcedcce55bcc9a8c",
+          "verified_on": "2026-10-27",
+          "config": "sst2"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": null,
+      "bit_count_status": "unknown until representation and target tensors are approved",
+      "runtime": "PyTorch+Transformers; exact versions/backend not validated",
+      "quantization": "Native target dtype requires byte-level representation/backend contract",
+      "exact_bit_mutation": "unimplemented; byte layout, weight tying, kernel packing and runtime dtype must be established",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "new reviewed representation-aware contract required; no NaN/Inf clipping or implicit precision conversion",
+      "task_metric": "top-1 accuracy and cross-entropy",
+      "clean_reference": null,
+      "reference_lock": null,
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [],
+      "resource_plan": "Source weights ~0.27–0.35 GB; 4–8 GiB RAM / GPU planning allowance, not measured.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": [
+        "Model and dataset not in audited shared storage; registry pin is metadata, not acquisition. Explicit architecture/backend adapter and new representation contract required.",
+        "GLUE test labels withheld; prespecify held-out validation partitions and inspect original fine-tuning exposure."
+      ]
+    },
+    {
+      "id": "distilbert_sst2_int8",
+      "family": "distilbert_sst2",
+      "track": "C",
+      "priority": 4,
+      "status": "Research-stage",
+      "target_precision": "INT8",
+      "model": {
+        "registry_id": "distilbert-sst2",
+        "source": "distilbert/distilbert-base-uncased-finetuned-sst-2-english",
+        "revision": "714eb0fa89d2f80546fda750413ed43d93601a13",
+        "registry_sha256": "cb0e5329ed7550b34bb5902aa8cf4e9d61d251b6e9e4e55692fac4841cf85e06",
+        "architecture": "DistilBertForSequenceClassification",
+        "source_storage": "safetensors",
+        "files": [
+          {
+            "path": "config.json",
+            "size": 629
+          },
+          {
+            "path": "model.safetensors",
+            "size": 267832558,
+            "sha256": "7c3919835e442510166d267fe7cbe847e0c51cd26d9ba07b89a57b952b49b8aa"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "size": 48
+          },
+          {
+            "path": "vocab.txt",
+            "size": 231508
+          }
+        ],
+        "license": "apache-2.0",
+        "local_available": false,
+        "local_root": null,
+        "source_dtype_caveat": "inspect acquired tensor headers; target precision is not an observed conversion"
+      },
+      "dataset": {
+        "id": "glue-sst2",
+        "local_available": false,
+        "source": "nyu-mll/glue",
+        "license": "other (see GLUE / Stanford Sentiment Treebank terms)",
+        "access": "open",
+        "registry_version": "hf-bcdcba79d07b",
+        "source_record": {
+          "provider": "huggingface",
+          "id": "nyu-mll/glue",
+          "revision": "bcdcba79d07bc864c1c254ccfcedcce55bcc9a8c",
+          "verified_on": "2026-10-27",
+          "config": "sst2"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": null,
+      "bit_count_status": "unknown until representation and target tensors are approved",
+      "runtime": "PyTorch+Transformers; exact versions/backend not validated",
+      "quantization": "Unapproved derivative; recipe, calibration, packing and conformance required",
+      "exact_bit_mutation": "unimplemented; byte layout, weight tying, kernel packing and runtime dtype must be established",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "new reviewed representation-aware contract required; no NaN/Inf clipping or implicit precision conversion",
+      "task_metric": "top-1 accuracy and cross-entropy",
+      "clean_reference": null,
+      "reference_lock": null,
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [],
+      "resource_plan": "Source weights ~0.27–0.35 GB; 4–8 GiB RAM / GPU planning allowance, not measured.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": [
+        "Model and dataset not in audited shared storage; registry pin is metadata, not acquisition. Explicit architecture/backend adapter and new representation contract required.",
+        "No pinned quantization recipe, calibration corpus, executable packed-storage definition or clean conformance for this variant.",
+        "GLUE test labels withheld; prespecify held-out validation partitions and inspect original fine-tuning exposure."
+      ]
+    },
+    {
+      "id": "pythia160m_bf16",
+      "family": "pythia160m",
+      "track": "C",
+      "priority": 4,
+      "status": "Research-stage",
+      "target_precision": "BF16",
+      "model": {
+        "registry_id": "pythia-160m",
+        "source": "EleutherAI/pythia-160m",
+        "revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+        "registry_sha256": "e04336cd8eb84a36c31ab896807506a50c980bbcab3846c924e29e0e3e1b0875",
+        "architecture": "GPTNeoXForCausalLM",
+        "source_storage": "safetensors",
+        "files": [
+          {
+            "path": "config.json",
+            "size": 569
+          },
+          {
+            "path": "model.safetensors",
+            "size": 374998696,
+            "sha256": "29d2e457a664e41c12c735f20a36dc0956a665f614a54ce5db21a32e75965270"
+          },
+          {
+            "path": "special_tokens_map.json",
+            "size": 99
+          },
+          {
+            "path": "tokenizer.json",
+            "size": 2113710
+          },
+          {
+            "path": "tokenizer_config.json",
+            "size": 396
+          }
+        ],
+        "license": "apache-2.0",
+        "local_available": false,
+        "local_root": null,
+        "source_dtype_caveat": "provider config torch_dtype=float16"
+      },
+      "dataset": {
+        "id": "wikitext-2",
+        "local_available": false,
+        "source": "Salesforce/wikitext",
+        "license": "CC-BY-SA-3.0 and GFDL (provider card)",
+        "access": "open",
+        "registry_version": "hf-b08601e04326",
+        "source_record": {
+          "provider": "huggingface",
+          "id": "Salesforce/wikitext",
+          "revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+          "verified_on": "2026-10-27",
+          "config": "wikitext-2-raw-v1"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": null,
+      "bit_count_status": "unknown until representation and target tensors are approved",
+      "runtime": "PyTorch+Transformers; exact versions/backend not validated",
+      "quantization": "Unapproved derivative; recipe, calibration, packing and conformance required",
+      "exact_bit_mutation": "unimplemented; byte layout, weight tying, kernel packing and runtime dtype must be established",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "new reviewed representation-aware contract required; no NaN/Inf clipping or implicit precision conversion",
+      "task_metric": "token-average NLL and perplexity with checkpoint-specific tokenizer",
+      "clean_reference": null,
+      "reference_lock": null,
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [],
+      "resource_plan": "Source weights ~375 MB; 4–8 GiB RAM / 4–8 GiB GPU planning allowance, not measured.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": [
+        "Model and dataset not in audited shared storage; registry pin is metadata, not acquisition. Explicit architecture/backend adapter and new representation contract required.",
+        "Pinned provider config declares float16, not BF16; conversion is unapproved and must be an independently identified derivative."
+      ]
+    },
+    {
+      "id": "pythia160m_int8",
+      "family": "pythia160m",
+      "track": "C",
+      "priority": 4,
+      "status": "Research-stage",
+      "target_precision": "INT8",
+      "model": {
+        "registry_id": "pythia-160m",
+        "source": "EleutherAI/pythia-160m",
+        "revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+        "registry_sha256": "e04336cd8eb84a36c31ab896807506a50c980bbcab3846c924e29e0e3e1b0875",
+        "architecture": "GPTNeoXForCausalLM",
+        "source_storage": "safetensors",
+        "files": [
+          {
+            "path": "config.json",
+            "size": 569
+          },
+          {
+            "path": "model.safetensors",
+            "size": 374998696,
+            "sha256": "29d2e457a664e41c12c735f20a36dc0956a665f614a54ce5db21a32e75965270"
+          },
+          {
+            "path": "special_tokens_map.json",
+            "size": 99
+          },
+          {
+            "path": "tokenizer.json",
+            "size": 2113710
+          },
+          {
+            "path": "tokenizer_config.json",
+            "size": 396
+          }
+        ],
+        "license": "apache-2.0",
+        "local_available": false,
+        "local_root": null,
+        "source_dtype_caveat": "provider config torch_dtype=float16"
+      },
+      "dataset": {
+        "id": "wikitext-2",
+        "local_available": false,
+        "source": "Salesforce/wikitext",
+        "license": "CC-BY-SA-3.0 and GFDL (provider card)",
+        "access": "open",
+        "registry_version": "hf-b08601e04326",
+        "source_record": {
+          "provider": "huggingface",
+          "id": "Salesforce/wikitext",
+          "revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+          "verified_on": "2026-10-27",
+          "config": "wikitext-2-raw-v1"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": null,
+      "bit_count_status": "unknown until representation and target tensors are approved",
+      "runtime": "PyTorch+Transformers; exact versions/backend not validated",
+      "quantization": "Unapproved derivative; recipe, calibration, packing and conformance required",
+      "exact_bit_mutation": "unimplemented; byte layout, weight tying, kernel packing and runtime dtype must be established",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "new reviewed representation-aware contract required; no NaN/Inf clipping or implicit precision conversion",
+      "task_metric": "token-average NLL and perplexity with checkpoint-specific tokenizer",
+      "clean_reference": null,
+      "reference_lock": null,
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [],
+      "resource_plan": "Source weights ~375 MB; 4–8 GiB RAM / 4–8 GiB GPU planning allowance, not measured.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": [
+        "Model and dataset not in audited shared storage; registry pin is metadata, not acquisition. Explicit architecture/backend adapter and new representation contract required.",
+        "No pinned quantization recipe, calibration corpus, executable packed-storage definition or clean conformance for this variant."
+      ]
+    },
+    {
+      "id": "qwen3_0_6b_bf16",
+      "family": "qwen3_0_6b",
+      "track": "C",
+      "priority": 4,
+      "status": "Asset acquisition required",
+      "target_precision": "BF16",
+      "model": {
+        "registry_id": "qwen3-0.6b",
+        "source": "Qwen/Qwen3-0.6B",
+        "revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+        "registry_sha256": "38f0c1a239c0922d63c3230068249002dd6504ae6e3294c0614d19d4f2b7f4c7",
+        "architecture": "Qwen3ForCausalLM",
+        "source_storage": "safetensors",
+        "files": [
+          {
+            "path": "config.json",
+            "size": 726
+          },
+          {
+            "path": "generation_config.json",
+            "size": 239
+          },
+          {
+            "path": "merges.txt",
+            "size": 1671853
+          },
+          {
+            "path": "model.safetensors",
+            "size": 1503300328,
+            "sha256": "f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b"
+          },
+          {
+            "path": "tokenizer.json",
+            "size": 11422654,
+            "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "size": 9732
+          },
+          {
+            "path": "vocab.json",
+            "size": 2776833
+          }
+        ],
+        "license": "apache-2.0",
+        "local_available": false,
+        "local_root": null,
+        "source_dtype_caveat": "provider config torch_dtype=bfloat16; tied embeddings"
+      },
+      "dataset": {
+        "id": "wikitext-2",
+        "local_available": false,
+        "source": "Salesforce/wikitext",
+        "license": "CC-BY-SA-3.0 and GFDL (provider card)",
+        "access": "open",
+        "registry_version": "hf-b08601e04326",
+        "source_record": {
+          "provider": "huggingface",
+          "id": "Salesforce/wikitext",
+          "revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+          "verified_on": "2026-10-27",
+          "config": "wikitext-2-raw-v1"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": null,
+      "bit_count_status": "unknown until representation and target tensors are approved",
+      "runtime": "PyTorch+Transformers>=4.51.0 for Qwen3; exact version/backend not validated",
+      "quantization": "Native target dtype requires byte-level representation/backend contract",
+      "exact_bit_mutation": "unimplemented; byte layout, weight tying, kernel packing and runtime dtype must be established",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "new reviewed representation-aware contract required; no NaN/Inf clipping or implicit precision conversion",
+      "task_metric": "token-average NLL and perplexity with checkpoint-specific tokenizer",
+      "clean_reference": null,
+      "reference_lock": null,
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [],
+      "resource_plan": "Source weights ~1.50 GB; reserve 8–16 GiB RAM, 8–16 GiB GPU for bounded gradients as a planning allowance; not measured. Sequence/context dominates.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": [
+        "Model and dataset not in audited shared storage; registry pin is metadata, not acquisition. Explicit architecture/backend adapter and new representation contract required."
+      ]
+    },
+    {
+      "id": "qwen3_0_6b_int8",
+      "family": "qwen3_0_6b",
+      "track": "C",
+      "priority": 4,
+      "status": "Research-stage",
+      "target_precision": "INT8",
+      "model": {
+        "registry_id": "qwen3-0.6b",
+        "source": "Qwen/Qwen3-0.6B",
+        "revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+        "registry_sha256": "38f0c1a239c0922d63c3230068249002dd6504ae6e3294c0614d19d4f2b7f4c7",
+        "architecture": "Qwen3ForCausalLM",
+        "source_storage": "safetensors",
+        "files": [
+          {
+            "path": "config.json",
+            "size": 726
+          },
+          {
+            "path": "generation_config.json",
+            "size": 239
+          },
+          {
+            "path": "merges.txt",
+            "size": 1671853
+          },
+          {
+            "path": "model.safetensors",
+            "size": 1503300328,
+            "sha256": "f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b"
+          },
+          {
+            "path": "tokenizer.json",
+            "size": 11422654,
+            "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "size": 9732
+          },
+          {
+            "path": "vocab.json",
+            "size": 2776833
+          }
+        ],
+        "license": "apache-2.0",
+        "local_available": false,
+        "local_root": null,
+        "source_dtype_caveat": "provider config torch_dtype=bfloat16; tied embeddings"
+      },
+      "dataset": {
+        "id": "wikitext-2",
+        "local_available": false,
+        "source": "Salesforce/wikitext",
+        "license": "CC-BY-SA-3.0 and GFDL (provider card)",
+        "access": "open",
+        "registry_version": "hf-b08601e04326",
+        "source_record": {
+          "provider": "huggingface",
+          "id": "Salesforce/wikitext",
+          "revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+          "verified_on": "2026-10-27",
+          "config": "wikitext-2-raw-v1"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": null,
+      "bit_count_status": "unknown until representation and target tensors are approved",
+      "runtime": "PyTorch+Transformers>=4.51.0 for Qwen3; exact version/backend not validated",
+      "quantization": "Unapproved derivative; recipe, calibration, packing and conformance required",
+      "exact_bit_mutation": "unimplemented; byte layout, weight tying, kernel packing and runtime dtype must be established",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "new reviewed representation-aware contract required; no NaN/Inf clipping or implicit precision conversion",
+      "task_metric": "token-average NLL and perplexity with checkpoint-specific tokenizer",
+      "clean_reference": null,
+      "reference_lock": null,
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [],
+      "resource_plan": "Source weights ~1.50 GB; reserve 8–16 GiB RAM, 8–16 GiB GPU for bounded gradients as a planning allowance; not measured. Sequence/context dominates.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": [
+        "Model and dataset not in audited shared storage; registry pin is metadata, not acquisition. Explicit architecture/backend adapter and new representation contract required.",
+        "No pinned quantization recipe, calibration corpus, executable packed-storage definition or clean conformance for this variant."
+      ]
+    },
+    {
+      "id": "qwen3_0_6b_int4",
+      "family": "qwen3_0_6b",
+      "track": "C",
+      "priority": 4,
+      "status": "Research-stage",
+      "target_precision": "INT4",
+      "model": {
+        "registry_id": "qwen3-0.6b",
+        "source": "Qwen/Qwen3-0.6B",
+        "revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+        "registry_sha256": "38f0c1a239c0922d63c3230068249002dd6504ae6e3294c0614d19d4f2b7f4c7",
+        "architecture": "Qwen3ForCausalLM",
+        "source_storage": "safetensors",
+        "files": [
+          {
+            "path": "config.json",
+            "size": 726
+          },
+          {
+            "path": "generation_config.json",
+            "size": 239
+          },
+          {
+            "path": "merges.txt",
+            "size": 1671853
+          },
+          {
+            "path": "model.safetensors",
+            "size": 1503300328,
+            "sha256": "f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b"
+          },
+          {
+            "path": "tokenizer.json",
+            "size": 11422654,
+            "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "size": 9732
+          },
+          {
+            "path": "vocab.json",
+            "size": 2776833
+          }
+        ],
+        "license": "apache-2.0",
+        "local_available": false,
+        "local_root": null,
+        "source_dtype_caveat": "provider config torch_dtype=bfloat16; tied embeddings"
+      },
+      "dataset": {
+        "id": "wikitext-2",
+        "local_available": false,
+        "source": "Salesforce/wikitext",
+        "license": "CC-BY-SA-3.0 and GFDL (provider card)",
+        "access": "open",
+        "registry_version": "hf-b08601e04326",
+        "source_record": {
+          "provider": "huggingface",
+          "id": "Salesforce/wikitext",
+          "revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+          "verified_on": "2026-10-27",
+          "config": "wikitext-2-raw-v1"
+        },
+        "provenance_limit": "exact split/hash/preprocessing contract required"
+      },
+      "eligible_kernel_bits": null,
+      "bit_count_status": "unknown until representation and target tensors are approved",
+      "runtime": "PyTorch+Transformers>=4.51.0 for Qwen3; exact version/backend not validated",
+      "quantization": "Unapproved derivative; recipe, calibration, packing and conformance required",
+      "exact_bit_mutation": "unimplemented; byte layout, weight tying, kernel packing and runtime dtype must be established",
+      "restoration": "restore original bytes and verify clean state/output; reset streaming or LM cache independently; never update shared artifact",
+      "fault_contract": "new reviewed representation-aware contract required; no NaN/Inf clipping or implicit precision conversion",
+      "task_metric": "token-average NLL and perplexity with checkpoint-specific tokenizer",
+      "clean_reference": null,
+      "reference_lock": null,
+      "conditional_protocol_ready": false,
+      "conditional_blocker": "Schema-6 sample/metric gates are KWS-specific; do not relabel this benchmark.",
+      "baselines": [],
+      "resource_plan": "Source weights ~1.50 GB; reserve 8–16 GiB RAM, 8–16 GiB GPU for bounded gradients as a planning allowance; not measured. Sequence/context dominates.",
+      "cost_model": "authoritative inference cost × unique fault states × input count; S5/S6 scale with calibration examples; isolated study with candidates; exact subcube with 2^K × fields; no new throughput measured",
+      "blockers": [
+        "Model and dataset not in audited shared storage; registry pin is metadata, not acquisition. Explicit architecture/backend adapter and new representation contract required.",
+        "No pinned quantization recipe, calibration corpus, executable packed-storage definition or clean conformance for this variant."
+      ]
+    }
+  ]
+}

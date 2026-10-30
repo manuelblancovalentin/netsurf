@@ -216,6 +216,10 @@ def execute_conditional_damage(
     if configuration.schema_version == "6.5.0":
         from .replication_preflight import verify_replication_plan, load_replication_selection
         replication_plan_record = verify_replication_plan(configuration)
+    campaign_record = None
+    if configuration.schema_version == "6.6.0":
+        from .cross_pool import verify_pool_configuration
+        campaign_record = verify_pool_configuration(configuration, execution=True)
     mode = configuration.workflow.get("mode", "joint")
     frozen_source = load_frozen_selection(configuration) if mode == "final_only" else None
     exposure = exposure_audit(
@@ -225,9 +229,13 @@ def execute_conditional_damage(
     if replication_plan_record is not None:
         frozen_source = load_replication_selection(configuration)
         exposure = replication_plan_record["exposure_audit"]
+    if campaign_record is not None:
+        exposure = campaign_record["exposure_audit"]
     benchmark = adapter or create_adapter(configuration, None)
     benchmark.load()
     universe = tuple(benchmark.bit_identities())
+    if campaign_record is not None and digest_object([b.key() for b in universe]) != campaign_record["universe_sha256"]:
+        raise ValueError("campaign eligible population hash differs")
     universe_set = set(universe)
     if len(universe_set) != len(universe):
         raise RuntimeError("eligible bit population contains duplicate identities")
@@ -1031,6 +1039,7 @@ def execute_conditional_damage(
             "6.3.0": "netsurf-paired-swap-held-out-protection/v4",
             "6.4.0": "netsurf-frozen-selection-protection/v5",
             "6.5.0": "netsurf-independent-frozen-mask-replication/v6",
+            "6.6.0": "netsurf-cross-pool-frozen-protection/v7",
         }[configuration.schema_version],
         "scientific_protocol": configuration.scientific_protocol,
         "experiment": configuration.name,
@@ -1139,7 +1148,7 @@ def execute_conditional_damage(
         },
     }
     if configuration.workflow:
-        payload["workflow"] = {k: v for k, v in configuration.workflow.items() if k not in {"selection_bundle", "replication_plan"}}
+        payload["workflow"] = {k: v for k, v in configuration.workflow.items() if k not in {"selection_bundle", "replication_plan", "campaign_manifest", "final_registry"}}
         payload["exposure_audit"] = exposure
         payload["candidate_population"]["selection"] = configuration.workflow["candidate_provenance"]
         payload["risk"]["definition"] = (
@@ -1184,6 +1193,12 @@ def execute_conditional_damage(
                 values = [r["target_minus_baseline"] for r in paired_swap_field_records
                           if r["comparison"] == row["comparison"] and r["logical_ber"] == row["logical_ber"]]
                 row["familywise_target_minus_baseline"] = summarize(values, confidence=family_confidence).to_dict()
+    if campaign_record is not None:
+        payload["campaign_binding"] = {"campaign_sha256": configuration.workflow["campaign_sha256"],
+                                       "pool_id": configuration.workflow["pool_id"]}
+        payload["uncertainty_scope"]["candidate_sampling"] = "status-stratified uniform pool; generalization uses all prespecified campaign pools as units"
+        for row in oracle_summaries:
+            row["interpretation"] = "independently probability-sampled fixed pool; selected on model-selection fields only; no final performance measured in selection mode"
     if replication_plan_record is not None:
         from .replication_statistics import summarize_replication
         from .replication_preflight import statistical_contract
@@ -1192,12 +1207,12 @@ def execute_conditional_damage(
         payload["comparison_family"] = statistical_contract()
         payload["replication_analysis"] = summarize_replication(
             paired_swap_field_records, configuration.paired_swap_evaluation.background_count)
-        if configuration.workflow.get("record_per_input", False):
-            payload["paired_input_diagnostics"] = {
-                "schema_version": "1.0.0",
-                "sample_identities": payload["sample_identities"]["held_out_evaluation"],
-                "records": paired_input_records,
-                "interpretation": "crossed field/input effects; no independence of field-times-input cells; scalar field estimates remain primary"}
+    if configuration.workflow.get("record_per_input", False) and mode != "selection_only":
+        payload["paired_input_diagnostics"] = {
+            "schema_version": "1.0.0",
+            "sample_identities": payload["sample_identities"]["held_out_evaluation"],
+            "records": paired_input_records,
+            "interpretation": "crossed field/input effects; no independence of field-times-input cells; scalar field estimates remain primary"}
     return ConditionalOutcome(
         configuration, payload, partitions, tuple(candidate_records), tuple(backgrounds),
         tuple(measurements), tuple(summaries), tuple(rank_comparisons),

@@ -1,0 +1,26 @@
+schema_version = "1.0.0"
+name = "m96_kws_engineering"
+purpose = "engineering"
+benchmark_template = "m956_kws_s5_selection_k8.toml"
+
+[design]
+candidate_count = 6
+pool_seeds = [969101, 969102]
+selection_seed_bases = [969201, 969203]
+selection_replicates = 2
+selection_fields_per_seed = 1
+final_seeds = [969501, 969502]
+final_fields = 2
+logical_ber = 0.01
+
+[samples]
+# Previously exposed inputs only: selection 2024–2025, final 3060–3061.
+selection_offset = 0
+selection_count = 2
+final_offset = 12
+final_count = 2
+
+[statistics]
+bootstrap_seed = 969801
+bootstrap_replicates = 100
+confidence = 0.95
