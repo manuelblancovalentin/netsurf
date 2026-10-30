@@ -106,3 +106,12 @@ protection cardinality. Exact response-table integration derives all
 fixed-budget candidate-mask risks, conditional marginals, and paired mask
 differences without additional inference. Its target law remains independent
 Bernoulli; no importance or adversarial sampling semantics are implied.
+
+Paired-swap held-out schema `6.3.0` preserves exact response-table selection
+while adding efficient comparison of already frozen equal-cardinality masks.
+Model-selection fields may be grouped under explicit independent replicate
+seeds. Final master Bernoulli fields use a separate seed and contribute one
+whole telescoping-path observation each. Step records retain exact backgrounds,
+swapped identities, schedules, risks, event counts and pairing keys. The schema
+also retains at least one optional full-enumeration final field as a numerical
+reference; it does not use final data for mask or path selection.

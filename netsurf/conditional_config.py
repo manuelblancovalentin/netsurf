@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+import math
 from pathlib import Path
 import re
 import tomllib
@@ -17,9 +18,17 @@ from .protection_context import ProtectionContextConfiguration
 CONDITIONAL_SCHEMA_VERSION = "6.0.0"
 CONDITIONAL_SCHEMA_VERSION_6_1 = "6.1.0"
 CONDITIONAL_SCHEMA_VERSION_6_2 = "6.2.0"
+CONDITIONAL_SCHEMA_VERSION_6_3 = "6.3.0"
 CONDITIONAL_PROTOCOL = "exact-conditional-damage/v1"
 CONDITIONAL_PROTOCOL_6_1 = "exact-conditional-protection/v2"
 CONDITIONAL_PROTOCOL_6_2 = "contextual-exact-conditional-protection/v3"
+CONDITIONAL_PROTOCOL_6_3 = "paired-swap-held-out-protection/v4"
+
+PAIRED_SWAP_COMPARISONS = (
+    "restricted_selected_vs_original_s5",
+    "restricted_selected_vs_exact_isolated",
+    "exact_isolated_vs_original_s5",
+)
 
 
 class ConditionalConfigurationError(ValueError):
@@ -62,6 +71,19 @@ class RestrictedOracleConfiguration:
     evaluation_background_count: int
     calibration_seed: int
     evaluation_seed: int
+    calibration_replicate_seeds: tuple[int, ...] = ()
+
+    @property
+    def selection_seeds(self) -> tuple[int, ...]:
+        return self.calibration_replicate_seeds or (self.calibration_seed,)
+
+
+@dataclass(frozen=True)
+class PairedSwapEvaluationConfiguration:
+    enabled: bool = False
+    background_count: int = 0
+    seed: int = 0
+    comparisons: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -85,6 +107,9 @@ class ConditionalConfiguration:
     protection_context: ProtectionContextConfiguration = field(
         default_factory=ProtectionContextConfiguration
     )
+    paired_swap_evaluation: PairedSwapEvaluationConfiguration = field(
+        default_factory=PairedSwapEvaluationConfiguration
+    )
 
     def operation_counts(self) -> dict[str, int]:
         conditional = len(self.backgrounds.probabilities) * (
@@ -92,18 +117,63 @@ class ConditionalConfiguration:
             + len(self.candidates) * (1 + 2 * self.backgrounds.evaluation_count) + 1
         )
         oracle = 0
+        selection_fields = 0
         if self.restricted_oracle.enabled:
+            selection_fields = (
+                self.restricted_oracle.calibration_background_count
+                * len(self.restricted_oracle.selection_seeds)
+            )
             oracle = len(self.backgrounds.probabilities) * (
                 len(self.candidates) + 1
                 + (
-                    self.restricted_oracle.calibration_background_count
+                    selection_fields
                     + self.restricted_oracle.evaluation_background_count
                 ) * (2 ** len(self.candidates))
             )
+        paired_upper = 0
+        if self.paired_swap_evaluation.enabled:
+            paired_upper = len(self.backgrounds.probabilities) * (
+                self.paired_swap_evaluation.background_count
+                * len(self.paired_swap_evaluation.comparisons)
+                * 2 * self.restricted_oracle.budget
+            )
+        if self.schema_version != CONDITIONAL_SCHEMA_VERSION_6_3:
+            return {
+                "conditional_requested_evaluations": conditional,
+                "restricted_oracle_requested_evaluations": oracle,
+                "total_requested_evaluations": conditional + oracle,
+            }
+        mask_count = math.comb(
+            len(self.candidates), self.restricted_oracle.budget
+        ) if self.restricted_oracle.enabled else 0
+        table_fields = selection_fields + (
+            self.restricted_oracle.evaluation_background_count
+            if self.restricted_oracle.enabled else 0
+        )
         return {
             "conditional_requested_evaluations": conditional,
             "restricted_oracle_requested_evaluations": oracle,
-            "total_requested_evaluations": conditional + oracle,
+            "paired_swap_authoritative_evaluations_upper_bound": paired_upper,
+            "total_authoritative_evaluations_upper_bound": conditional + oracle + paired_upper,
+            "total_requested_evaluations": conditional + oracle + paired_upper,
+            "model_selection_outside_fields": selection_fields,
+            "full_enumeration_reference_fields": (
+                self.restricted_oracle.evaluation_background_count
+                if self.restricted_oracle.enabled else 0
+            ),
+            "analytical_mask_risk_integrations": (
+                len(self.backgrounds.probabilities) * table_fields * mask_count
+            ),
+            "analytical_pairwise_mask_differences": (
+                len(self.backgrounds.probabilities) * table_fields
+                * math.comb(mask_count, 2) if mask_count >= 2 else 0
+            ),
+            "paired_swap_whole_path_observations": (
+                len(self.backgrounds.probabilities)
+                * self.paired_swap_evaluation.background_count
+                * len(self.paired_swap_evaluation.comparisons)
+                if self.paired_swap_evaluation.enabled else 0
+            ),
         }
 
     def resolved_document(self) -> dict[str, Any]:
@@ -135,6 +205,7 @@ class ConditionalConfiguration:
             "execution": asdict(self.execution),
             "restricted_oracle": asdict(self.restricted_oracle),
             "protection_context": self.protection_context.to_dict(),
+            "paired_swap_evaluation": asdict(self.paired_swap_evaluation),
             "output": asdict(self.output) | {"root": str(self.output.root)},
             "operation_counts": self.operation_counts(),
         }
@@ -175,13 +246,13 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
             "schema_version", "scientific_protocol", "experiment", "benchmark",
             "samples", "risk", "candidates", "backgrounds", "execution", "output",
         },
-        {"restricted_oracle", "protection_context"},
+        {"restricted_oracle", "protection_context", "paired_swap_evaluation"},
         "root",
     )
     schema_version = str(document["schema_version"])
     if schema_version not in {
         CONDITIONAL_SCHEMA_VERSION, CONDITIONAL_SCHEMA_VERSION_6_1,
-        CONDITIONAL_SCHEMA_VERSION_6_2,
+        CONDITIONAL_SCHEMA_VERSION_6_2, CONDITIONAL_SCHEMA_VERSION_6_3,
     }:
         raise ConditionalConfigurationError(
             f"unsupported conditional schema: {document['schema_version']!r}"
@@ -190,6 +261,7 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         CONDITIONAL_SCHEMA_VERSION: CONDITIONAL_PROTOCOL,
         CONDITIONAL_SCHEMA_VERSION_6_1: CONDITIONAL_PROTOCOL_6_1,
         CONDITIONAL_SCHEMA_VERSION_6_2: CONDITIONAL_PROTOCOL_6_2,
+        CONDITIONAL_SCHEMA_VERSION_6_3: CONDITIONAL_PROTOCOL_6_3,
     }[schema_version]
     if document["scientific_protocol"] != expected_protocol:
         raise ConditionalConfigurationError(
@@ -197,6 +269,12 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         )
     if schema_version == CONDITIONAL_SCHEMA_VERSION_6_2 and "protection_context" not in document:
         raise ConditionalConfigurationError("schema 6.2 requires protection_context")
+    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_3 and not {
+        "protection_context", "paired_swap_evaluation"
+    } <= set(document):
+        raise ConditionalConfigurationError(
+            "schema 6.3 requires protection_context and paired_swap_evaluation"
+        )
 
     experiment = _table(document, "experiment")
     _keys(experiment, {"name", "description", "objective"}, set(), "experiment")
@@ -248,7 +326,8 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         "model_selection_offset", "evaluation_role",
     }
     _keys(raw_samples, sample_required | (sample_61 if schema_version in {
-        CONDITIONAL_SCHEMA_VERSION_6_1, CONDITIONAL_SCHEMA_VERSION_6_2
+        CONDITIONAL_SCHEMA_VERSION_6_1, CONDITIONAL_SCHEMA_VERSION_6_2,
+        CONDITIONAL_SCHEMA_VERSION_6_3,
     } else set()), set(), "samples")
     samples = ConditionalSamples(
         int(raw_samples["calibration_count"]), int(raw_samples["evaluation_count"]),
@@ -266,7 +345,10 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         raise ConditionalConfigurationError("sample offsets must be nonnegative")
     if not samples.require_disjoint:
         raise ConditionalConfigurationError("M9.5 requires disjoint calibration and held-out evaluation")
-    if schema_version in {CONDITIONAL_SCHEMA_VERSION_6_1, CONDITIONAL_SCHEMA_VERSION_6_2}:
+    if schema_version in {
+        CONDITIONAL_SCHEMA_VERSION_6_1, CONDITIONAL_SCHEMA_VERSION_6_2,
+        CONDITIONAL_SCHEMA_VERSION_6_3,
+    }:
         expected_roles = (
             "conditional_calibration", "conditional_model_selection",
             "conditional_final_evaluation",
@@ -302,6 +384,11 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
             raise ConditionalConfigurationError(
                 "schema 6.2 final evaluation excludes previously exposed relative indices 0-5; "
                 "evaluation_offset must be at least 6"
+            )
+        if schema_version == CONDITIONAL_SCHEMA_VERSION_6_3 and samples.evaluation_offset < 12:
+            raise ConditionalConfigurationError(
+                "schema 6.3 final evaluation excludes previously exposed relative indices 0-11; "
+                "evaluation_offset must be at least 12"
             )
 
     raw_risk = _table(document, "risk")
@@ -356,17 +443,20 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
     raw_oracle = document.get("restricted_oracle", {})
     if not isinstance(raw_oracle, dict):
         raise ConditionalConfigurationError("restricted_oracle must be a table")
-    _keys(
-        raw_oracle, set(),
-        {"enabled", "budget", "calibration_background_count", "evaluation_background_count", "calibration_seed", "evaluation_seed"},
-        "restricted_oracle",
-    )
+    oracle_optional = {
+        "enabled", "budget", "calibration_background_count",
+        "evaluation_background_count", "calibration_seed", "evaluation_seed",
+    }
+    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_3:
+        oracle_optional.add("calibration_replicate_seeds")
+    _keys(raw_oracle, set(), oracle_optional, "restricted_oracle")
     oracle = RestrictedOracleConfiguration(
         bool(raw_oracle.get("enabled", False)), int(raw_oracle.get("budget", 1)),
         int(raw_oracle.get("calibration_background_count", 1)),
         int(raw_oracle.get("evaluation_background_count", 1)),
         int(raw_oracle.get("calibration_seed", backgrounds.calibration_seed + 10_000_019)),
         int(raw_oracle.get("evaluation_seed", backgrounds.evaluation_seed + 10_000_019)),
+        tuple(int(value) for value in raw_oracle.get("calibration_replicate_seeds", ())),
     )
     if oracle.enabled and not 1 <= oracle.budget < len(candidates):
         raise ConditionalConfigurationError("restricted oracle budget must be in [1,K-1]")
@@ -374,6 +464,19 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         raise ConditionalConfigurationError("restricted oracle is bounded to at most 12 candidates")
     if oracle.calibration_seed == oracle.evaluation_seed:
         raise ConditionalConfigurationError("restricted-oracle calibration/evaluation seeds must differ")
+    if len(set(oracle.selection_seeds)) != len(oracle.selection_seeds):
+        raise ConditionalConfigurationError("model-selection replicate seeds must be unique")
+    if (
+        schema_version == CONDITIONAL_SCHEMA_VERSION_6_3
+        and not oracle.calibration_replicate_seeds
+    ):
+        raise ConditionalConfigurationError(
+            "schema 6.3 requires explicit model-selection calibration_replicate_seeds"
+        )
+    if oracle.evaluation_seed in oracle.selection_seeds:
+        raise ConditionalConfigurationError(
+            "model-selection and full-enumeration evaluation seeds must be independent"
+        )
     if oracle.enabled and (
         oracle.calibration_background_count < 1 or oracle.evaluation_background_count < 1
     ):
@@ -384,13 +487,13 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
             "select_restricted_subcube_mask API with separately constructed calibration and "
             "held-out background risks"
         )
-    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_2 and not oracle.enabled:
-        raise ConditionalConfigurationError("schema 6.2 requires restricted_oracle.enabled=true")
+    if schema_version in {CONDITIONAL_SCHEMA_VERSION_6_2, CONDITIONAL_SCHEMA_VERSION_6_3} and not oracle.enabled:
+        raise ConditionalConfigurationError("schema 6.2+ requires restricted_oracle.enabled=true")
 
     raw_context = document.get("protection_context", {})
     if not isinstance(raw_context, dict):
         raise ConditionalConfigurationError("protection_context must be a table")
-    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_2:
+    if schema_version in {CONDITIONAL_SCHEMA_VERSION_6_2, CONDITIONAL_SCHEMA_VERSION_6_3}:
         _keys(
             raw_context,
             {"mode"},
@@ -402,7 +505,7 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
             "protection_context",
         )
     elif raw_context:
-        raise ConditionalConfigurationError("protection_context requires schema 6.2")
+        raise ConditionalConfigurationError("protection_context requires schema 6.2+")
     mode = str(raw_context.get("mode", "none"))
     if mode not in {"none", "verified_global_mask"}:
         raise ConditionalConfigurationError("protection_context.mode must be none or verified_global_mask")
@@ -439,6 +542,43 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
     if mode == "verified_global_mask" and oracle.budget < 1:
         raise ConditionalConfigurationError("global-mask exchange requires a positive restricted budget")
 
+    raw_paired = document.get("paired_swap_evaluation", {})
+    if not isinstance(raw_paired, dict):
+        raise ConditionalConfigurationError("paired_swap_evaluation must be a table")
+    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_3:
+        _keys(
+            raw_paired, {"enabled", "background_count", "seed", "comparisons"}, set(),
+            "paired_swap_evaluation",
+        )
+    elif raw_paired:
+        raise ConditionalConfigurationError("paired_swap_evaluation requires schema 6.3")
+    paired = PairedSwapEvaluationConfiguration(
+        bool(raw_paired.get("enabled", False)),
+        int(raw_paired.get("background_count", 0)),
+        int(raw_paired.get("seed", 0)),
+        tuple(str(value) for value in raw_paired.get("comparisons", ())),
+    )
+    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_3:
+        if not paired.enabled or paired.background_count < 1:
+            raise ConditionalConfigurationError(
+                "schema 6.3 requires enabled paired-swap evaluation with positive backgrounds"
+            )
+        if not paired.comparisons or len(set(paired.comparisons)) != len(paired.comparisons):
+            raise ConditionalConfigurationError("paired-swap comparisons must be nonempty and unique")
+        unsupported = set(paired.comparisons) - set(PAIRED_SWAP_COMPARISONS)
+        if unsupported:
+            raise ConditionalConfigurationError(
+                f"unsupported paired-swap comparisons: {sorted(unsupported)}"
+            )
+        independent_seeds = {
+            backgrounds.calibration_seed, backgrounds.evaluation_seed,
+            oracle.evaluation_seed, *oracle.selection_seeds,
+        }
+        if paired.seed in independent_seeds:
+            raise ConditionalConfigurationError(
+                "paired-swap final seed must be independent of all selection/reference seeds"
+            )
+
     raw_output = _table(document, "output")
     _keys(raw_output, {"root", "report", "plots"}, set(), "output")
     root = str(raw_output["root"]).strip()
@@ -454,5 +594,5 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         schema_version, expected_protocol,
         str(experiment["name"]), str(experiment["description"]), str(experiment["objective"]),
         benchmark, samples, str(raw_risk["metric"]), str(raw_risk["direction"]),
-        tuple(candidates), backgrounds, execution, oracle, output, source, text, context,
+        tuple(candidates), backgrounds, execution, oracle, output, source, text, context, paired,
     )

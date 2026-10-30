@@ -11,7 +11,8 @@ import pytest
 from netsurf.adapters.mlperf_tiny import ClassificationEvaluation
 from netsurf.conditional_config import (
     ConditionalBackgrounds, ConditionalConfiguration, ConditionalExecution,
-    ConditionalSamples, RestrictedOracleConfiguration,
+    ConditionalSamples, PairedSwapEvaluationConfiguration,
+    RestrictedOracleConfiguration,
 )
 from netsurf.conditional_bundle import create_conditional_bundle, verify_conditional_bundle
 from netsurf.conditional_damage import (
@@ -101,6 +102,7 @@ class _FakeExactAdapter:
         # Includes a sign-bit interaction so conditional and isolated effects can differ.
         keys = set(applied)
         risk = 0.1 * len(keys)
+        risk += 0.2 * (BitIdentity("kernel", 1, 7) in keys)
         risk += 1.0 * (
             BitIdentity("kernel", 0, 7) in keys and BitIdentity("kernel", 1, 7) in keys
         )
@@ -294,6 +296,53 @@ def test_contextual_oracle_rejects_tampered_finalized_mask(tmp_path):
     )
     with pytest.raises(ProtectionContextError, match="checksum mismatch"):
         execute_conditional_damage(configuration, adapter=_FakeExactAdapter())
+
+
+def test_paired_swap_final_uses_master_fields_as_replication_units(tmp_path):
+    base = _oracle_configuration(tmp_path, 0.25)
+    configuration = replace(
+        base,
+        schema_version="6.3.0",
+        scientific_protocol="paired-swap-held-out-protection/v4",
+        samples=replace(base.samples, evaluation_offset=12),
+        restricted_oracle=replace(
+            base.restricted_oracle,
+            calibration_background_count=1,
+            evaluation_background_count=1,
+            calibration_replicate_seeds=(311, 312),
+        ),
+        protection_context=_context_source(tmp_path, base),
+        paired_swap_evaluation=PairedSwapEvaluationConfiguration(
+            True, 3, 505,
+            (
+                "restricted_selected_vs_original_s5",
+                "restricted_selected_vs_exact_isolated",
+                "exact_isolated_vs_original_s5",
+            ),
+        ),
+    )
+    first = execute_conditional_damage(configuration, adapter=_FakeExactAdapter())
+    second = execute_conditional_damage(configuration, adapter=_FakeExactAdapter())
+    assert first.scientific_payload_sha256 == second.scientific_payload_sha256
+    assert len(first.paired_swap_summaries) == 3
+    assert all(row["master_background_fields"] == 3 for row in first.paired_swap_summaries)
+    assert len(first.paired_swap_field_records) == 9
+    assert all(
+        row["uncertainty_unit"] == "independently seeded master Bernoulli field"
+        for row in first.paired_swap_field_records
+    )
+    assert max(
+        row["response_table_swap_equivalence"]["maximum_absolute_error"]
+        for row in first.oracle_summaries
+    ) < 1e-12
+    assert first.scientific_payload["checks"]["state_restored"] is True
+    destination = create_conditional_bundle(
+        first, repository_root=Path(__file__).resolve().parents[1], run_id="paired-test"
+    )
+    verify_conditional_bundle(destination)
+    assert (destination / "measurements/paired_swap_fields.csv").is_file()
+    assert (destination / "measurements/paired_swap_steps.csv").is_file()
+    assert (destination / "artifacts/paired_swap_summaries.json").is_file()
 
 
 def test_context_response_table_matches_direct_protected_fault_evaluation():

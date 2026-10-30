@@ -79,6 +79,39 @@ def _report(outcome: ConditionalOutcome) -> str:
                 f"{row['held_out_selected_minus_isolated']['mean']:.8g} | "
                 f"{row['posthoc_held_out_regret']['mean']:.8g} |"
             )
+        lines.extend(["", "### Model-selection stability", ""])
+        for row in outcome.oracle_summaries:
+            stability = row.get("model_selection_stability")
+            if stability:
+                final_margin = stability["cumulative_best_second_margin"][-1]
+                lines.append(
+                    f"- BER {row['logical_ber']:.3g}: {stability['field_count']} outside "
+                    f"fields over {stability['eligible_mask_count']} masks; "
+                    f"{stability['cumulative_switch_count']} cumulative winner changes; "
+                    f"final best-to-second mean-risk margin {final_margin:.8g}."
+                )
+        lines.extend([
+            "", "These diagnostics describe finite model-selection-field sensitivity. "
+            "They are not uncertainty over final fields, fixed source inputs, or models.",
+        ])
+    if outcome.paired_swap_summaries:
+        lines.extend([
+            "", "## Efficient frozen-mask paired comparisons", "",
+            "Each row uses independent master Bernoulli fields as its replication units. "
+            "All steps in a deterministic cardinality-preserving swap path are summed before "
+            "the confidence interval is calculated. Masks were frozen using model-selection "
+            "data; final outcomes do not select the path or mask.", "",
+            f"| BER | Comparison | Fields | Target - baseline risk | {interval_label} |",
+            "|---:|---|---:|---:|---:|",
+        ])
+        for row in outcome.paired_swap_summaries:
+            estimate = row["target_minus_baseline"]
+            low, high = estimate["confidence_interval"]
+            lines.append(
+                f"| {row['logical_ber']:.3g} | `{row['comparison']}` | "
+                f"{row['master_background_fields']} | {estimate['mean']:.8g} | "
+                f"[{low:.8g}, {high:.8g}] |"
+            )
     lines.extend([
         "", "## Limitations", "",
         "This bounded candidate study does not estimate a population-wide ranking or establish "
@@ -86,6 +119,9 @@ def _report(outcome: ConditionalOutcome) -> str:
         "explicit candidate subcube; it does not optimize over the full network bit population. "
         "Logical BER is not a calibrated SEU rate, and exact TFLite XOR damage is authoritative; "
         "no float-shadow perturbation is used.", "",
+        "Model-selection, final master-field, and fixed-input uncertainties are separate. "
+        "A small cumulative selection margin or winner switching motivates a new prespecified "
+        "selection run, not tuning with final outcomes.", "",
         "## Reproduction", "",
         f"`netsurf conditional run {outcome.configuration.source_path}`", "",
         f"Scientific payload SHA-256: `{outcome.scientific_payload_sha256}`", "",
@@ -122,6 +158,7 @@ def create_conditional_bundle(
             "conditional_estimates": list(outcome.summaries),
             "rank_comparisons": list(outcome.rank_comparisons),
             "restricted_oracle": list(outcome.oracle_summaries),
+            "paired_swap_evaluation": list(outcome.paired_swap_summaries),
             "protection_context": dict(outcome.protection_context_record),
             "scientific_payload_sha256": outcome.scientific_payload_sha256,
         })
@@ -159,6 +196,7 @@ def create_conditional_bundle(
         if outcome.oracle_response_records:
             _write_csv(staging / "measurements/restricted_oracle_responses.csv", [
                 "schema_version", "phase", "logical_ber", "field", "field_seed",
+                "replicate", "local_field",
                 "candidate_state", "candidate_bits", "outside_background_sha256",
                 "pairing_key", "probability_law_sha256", "protection_context_sha256",
                 "risk", "schedule_sha256", "proposed_events", "applied_events",
@@ -176,6 +214,31 @@ def create_conditional_bundle(
             _write_json(
                 staging / "artifacts/restricted_oracle_derived.json",
                 list(outcome.oracle_derived_records),
+            )
+        if outcome.paired_swap_field_records:
+            _write_csv(staging / "measurements/paired_swap_fields.csv", [
+                "schema_version", "logical_ber", "field", "field_seed", "comparison",
+                "sample_sha256", "master_event_count", "master_events", "master_sha256",
+                "master_pairing_key", "comparison_pairing_key", "probability_law",
+                "probability_law_sha256", "protection_context_sha256", "baseline_mask",
+                "target_mask", "path_length", "target_minus_baseline",
+                "authoritative_evaluation_requests", "uncertainty_unit",
+            ], ({"schema_version": outcome.configuration.schema_version, **row}
+                for row in outcome.paired_swap_field_records))
+            _write_csv(staging / "measurements/paired_swap_steps.csv", [
+                "schema_version", "logical_ber", "field", "field_seed", "comparison",
+                "comparison_pairing_key", "step", "removed", "added", "current_mask",
+                "background_event_count", "background_events", "background_sha256",
+                "removed_schedule_sha256", "added_schedule_sha256", "removed_risk",
+                "added_risk", "removed_minus_added", "target_minus_baseline_contribution",
+                "removed_proposed_events", "removed_applied_events",
+                "removed_suppressed_events", "added_proposed_events",
+                "added_applied_events", "added_suppressed_events",
+            ], ({"schema_version": outcome.configuration.schema_version, **row}
+                for row in outcome.paired_swap_step_records))
+            _write_json(
+                staging / "artifacts/paired_swap_summaries.json",
+                list(outcome.paired_swap_summaries),
             )
         _write_json(
             staging / "artifacts/protection_context.json",
@@ -199,6 +262,13 @@ def create_conditional_bundle(
                 "runtime_seconds": outcome.runtime_seconds,
                 "calibration_background_seed": outcome.configuration.backgrounds.calibration_seed,
                 "evaluation_background_seed": outcome.configuration.backgrounds.evaluation_seed,
+                "model_selection_replicate_seeds": list(
+                    outcome.configuration.restricted_oracle.selection_seeds
+                ),
+                "paired_swap_evaluation_seed": (
+                    outcome.configuration.paired_swap_evaluation.seed
+                    if outcome.configuration.paired_swap_evaluation.enabled else None
+                ),
             },
             "outputs": _inventory(staging),
             "scientific_payload_sha256": outcome.scientific_payload_sha256,
@@ -224,7 +294,7 @@ def verify_conditional_bundle(path: str | Path) -> dict[str, object]:
         raise ResultBundleError(f"not a finalized conditional bundle: {root}")
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     checksums = json.loads((root / "checksums.json").read_text(encoding="utf-8"))
-    if manifest.get("schema_version") not in {"6.0.0", "6.1.0", "6.2.0"}:
+    if manifest.get("schema_version") not in {"6.0.0", "6.1.0", "6.2.0", "6.3.0"}:
         raise ResultBundleError(f"unsupported conditional manifest: {manifest.get('schema_version')!r}")
     for relative, expected in checksums["files"].items():
         actual = sha256_file(root / relative)

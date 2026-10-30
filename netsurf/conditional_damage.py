@@ -18,11 +18,14 @@ from .identities import BitIdentity
 from .manifests import digest_object, sha256_file
 from .protection import ProtectionMask
 from .protection_context import verify_protection_context
+from .paired_swap import paired_swap_field_contrast
 from .samples import SamplePartition, require_disjoint
 from .statistics import summarize
 from .task_metrics import evaluation_contract
 from .restricted_subcube import (
-    analyze_restricted_response_tables, response_table_diagnostics, subcube_states,
+    analyze_restricted_response_tables, response_table_diagnostics,
+    selection_stability_diagnostics, subcube_states,
+    swap_contrast_from_response_table,
 )
 
 
@@ -40,6 +43,9 @@ class ConditionalOutcome:
     oracle_background_records: tuple[Mapping[str, Any], ...]
     oracle_derived_records: tuple[Mapping[str, Any], ...]
     oracle_summaries: tuple[Mapping[str, Any], ...]
+    paired_swap_step_records: tuple[Mapping[str, Any], ...]
+    paired_swap_field_records: tuple[Mapping[str, Any], ...]
+    paired_swap_summaries: tuple[Mapping[str, Any], ...]
     protection_context_record: Mapping[str, Any]
     runtime_seconds: float
 
@@ -279,19 +285,11 @@ def execute_conditional_damage(
             configuration.backgrounds.evaluation_seed,
         ),
     }
-    total = sum(
-        len(configuration.candidates) * (1 + 2 * count) + 1
-        for _name, (_x, _y, _partition, count, _seed) in split_data.items()
-        for _probability in configuration.backgrounds.probabilities
+    operation_counts = configuration.operation_counts()
+    total = operation_counts.get(
+        "total_authoritative_evaluations_upper_bound",
+        operation_counts["total_requested_evaluations"],
     )
-    if configuration.restricted_oracle.enabled:
-        total += len(configuration.backgrounds.probabilities) * (
-            len(configuration.candidates) + 1
-            + (
-                configuration.restricted_oracle.calibration_background_count
-                + configuration.restricted_oracle.evaluation_background_count
-            ) * (2 ** len(configuration.candidates))
-        )
     completed = 0
     measurements = []
     backgrounds = []
@@ -301,6 +299,9 @@ def execute_conditional_damage(
     oracle_background_records: list[dict[str, Any]] = []
     oracle_derived_records: list[dict[str, Any]] = []
     oracle_summaries: list[dict[str, Any]] = []
+    paired_swap_step_records: list[dict[str, Any]] = []
+    paired_swap_field_records: list[dict[str, Any]] = []
+    paired_swap_summaries: list[dict[str, Any]] = []
     base_mask = ProtectionMask(
         "fixed_protection_context_outside_candidates", context.outside,
         len(universe), float(len(context.outside)),
@@ -479,110 +480,119 @@ def execute_conditional_damage(
                 })
 
             def response_tables(
-                phase, inputs, labels, partition, count, base_seed, cache,
+                phase, inputs, labels, partition, count, base_seeds, cache,
             ):
                 nonlocal completed
-                probability_seed = base_seed + probability_index * 10_000_019
-                fields = _master_backgrounds(
-                    outside_universe, probability, count, probability_seed
-                )
                 tables = []
-                for field, (field_seed, outside) in enumerate(fields):
-                    outside_sha256 = digest_object([value.key() for value in outside])
-                    probability_law = {
-                        "name": "independent_bernoulli",
-                        "logical_ber": probability,
-                        "outside_population_size": len(outside_universe),
-                        "candidate_probability": probability,
-                        "target_support": "all subsets of unprotected eligible coordinates",
-                    }
-                    law_sha256 = digest_object(probability_law)
-                    pairing_key = digest_object({
-                        "phase": phase, "logical_ber": probability, "field": field,
-                        "seed": field_seed, "outside_sha256": outside_sha256,
-                        "sample_sha256": partition.sample_sha256,
-                        "protection_context_sha256": context.record["identity_sha256"],
-                    })
-                    oracle_background_records.append({
-                        "phase": phase, "logical_ber": probability, "field": field,
-                        "seed": field_seed, "outside_event_count": len(outside),
-                        "outside_events": [value.key() for value in outside],
-                        "outside_sha256": outside_sha256,
-                        "sample_sha256": partition.sample_sha256,
-                        "pairing_key": pairing_key,
-                        "probability_law": probability_law,
-                        "probability_law_sha256": law_sha256,
-                        "protection_context_sha256": context.record["identity_sha256"],
-                    })
-                    table = {}
-                    for state in states:
-                        state_bits = tuple(candidates[index] for index in state)
-                        schedule = _schedule(
-                            probability, field_seed, (*outside, *state_bits),
-                            len(universe), len(inputs),
-                        )
-                        risk, report, cache_hit = exact_risk(inputs, labels, schedule, cache)
-                        completed += 1
-                        if progress is not None:
-                            progress(
-                                f"restricted oracle: {phase} field {field + 1}/{count}",
-                                completed, total,
-                            )
-                        table[state] = risk
-                        oracle_response_records.append({
-                            "phase": phase, "logical_ber": probability,
-                            "field": field, "field_seed": field_seed,
-                            "candidate_state": list(state),
-                            "candidate_bits": [candidates[index].key() for index in state],
-                            "outside_background_sha256": outside_sha256,
+                total_fields = count * len(base_seeds)
+                global_field = 0
+                for replicate, base_seed in enumerate(base_seeds):
+                    probability_seed = base_seed + probability_index * 10_000_019
+                    fields = _master_backgrounds(
+                        outside_universe, probability, count, probability_seed
+                    )
+                    for local_field, (field_seed, outside) in enumerate(fields):
+                        field = global_field
+                        global_field += 1
+                        outside_sha256 = digest_object([value.key() for value in outside])
+                        probability_law = {
+                            "name": "independent_bernoulli",
+                            "logical_ber": probability,
+                            "outside_population_size": len(outside_universe),
+                            "candidate_probability": probability,
+                            "target_support": "all subsets of unprotected eligible coordinates",
+                        }
+                        law_sha256 = digest_object(probability_law)
+                        pairing_key = digest_object({
+                            "phase": phase, "logical_ber": probability, "field": field,
+                            "replicate": replicate, "seed": field_seed,
+                            "outside_sha256": outside_sha256,
+                            "sample_sha256": partition.sample_sha256,
+                            "protection_context_sha256": context.record["identity_sha256"],
+                        })
+                        oracle_background_records.append({
+                            "phase": phase, "logical_ber": probability, "field": field,
+                            "replicate": replicate, "local_field": local_field,
+                            "seed": field_seed, "outside_event_count": len(outside),
+                            "outside_events": [value.key() for value in outside],
+                            "outside_sha256": outside_sha256,
+                            "sample_sha256": partition.sample_sha256,
                             "pairing_key": pairing_key,
+                            "probability_law": probability_law,
                             "probability_law_sha256": law_sha256,
                             "protection_context_sha256": context.record["identity_sha256"],
-                            "risk": risk, "schedule_sha256": schedule.digest(),
-                            "proposed_events": report.proposed_events,
-                            "applied_events": report.applied_events,
-                            "suppressed_events": report.suppressed_events,
-                            "unique_applied_bits": report.unique_applied_bits,
-                            "cache_hit": cache_hit,
                         })
-                    diagnostics = response_table_diagnostics(
-                        table, len(candidates), configuration.restricted_oracle.budget,
-                        probability,
-                    )
-                    oracle_derived_records.append({
-                        "phase": phase, "logical_ber": probability, "field": field,
-                        "pairing_key": pairing_key,
-                        "response_table_sha256": digest_object([
-                            {"state": list(state), "risk": table[state]} for state in states
-                        ]),
-                        "conditional_marginals": {
-                            candidates[index].key(): value
-                            for index, value in diagnostics["conditional_marginals"].items()
-                        },
-                        "mask_risks": [{
-                            "indices": list(mask),
-                            "risk": risk,
-                        } for mask, risk in sorted(diagnostics["mask_risks"].items())],
-                        "pairwise_mask_differences": [{
-                            "left_indices": list(pair[0]),
-                            "right_indices": list(pair[1]),
-                            "left_minus_right": value,
-                        } for pair, value in sorted(
-                            diagnostics["pairwise_mask_differences"].items()
-                        )],
-                    })
-                    tables.append(table)
+                        table = {}
+                        for state in states:
+                            state_bits = tuple(candidates[index] for index in state)
+                            schedule = _schedule(
+                                probability, field_seed, (*outside, *state_bits),
+                                len(universe), len(inputs),
+                            )
+                            risk, report, cache_hit = exact_risk(inputs, labels, schedule, cache)
+                            completed += 1
+                            if progress is not None:
+                                progress(
+                                    f"restricted oracle: {phase} field {field + 1}/{total_fields}",
+                                    completed, total,
+                                )
+                            table[state] = risk
+                            oracle_response_records.append({
+                                "phase": phase, "logical_ber": probability,
+                                "field": field, "replicate": replicate,
+                                "local_field": local_field, "field_seed": field_seed,
+                                "candidate_state": list(state),
+                                "candidate_bits": [candidates[index].key() for index in state],
+                                "outside_background_sha256": outside_sha256,
+                                "pairing_key": pairing_key,
+                                "probability_law_sha256": law_sha256,
+                                "protection_context_sha256": context.record["identity_sha256"],
+                                "risk": risk, "schedule_sha256": schedule.digest(),
+                                "proposed_events": report.proposed_events,
+                                "applied_events": report.applied_events,
+                                "suppressed_events": report.suppressed_events,
+                                "unique_applied_bits": report.unique_applied_bits,
+                                "cache_hit": cache_hit,
+                            })
+                        diagnostics = response_table_diagnostics(
+                            table, len(candidates), configuration.restricted_oracle.budget,
+                            probability,
+                        )
+                        oracle_derived_records.append({
+                            "phase": phase, "logical_ber": probability, "field": field,
+                            "replicate": replicate, "local_field": local_field,
+                            "pairing_key": pairing_key,
+                            "response_table_sha256": digest_object([
+                                {"state": list(state), "risk": table[state]} for state in states
+                            ]),
+                            "conditional_marginals": {
+                                candidates[index].key(): value
+                                for index, value in diagnostics["conditional_marginals"].items()
+                            },
+                            "mask_risks": [{
+                                "indices": list(mask),
+                                "risk": risk,
+                            } for mask, risk in sorted(diagnostics["mask_risks"].items())],
+                            "pairwise_mask_differences": [{
+                                "left_indices": list(pair[0]),
+                                "right_indices": list(pair[1]),
+                                "left_minus_right": value,
+                            } for pair, value in sorted(
+                                diagnostics["pairwise_mask_differences"].items()
+                            )],
+                        })
+                        tables.append(table)
                 return tuple(tables)
 
             calibration_tables = response_tables(
                 "model_selection", selection_x, selection_y, selection_partition,
                 configuration.restricted_oracle.calibration_background_count,
-                configuration.restricted_oracle.calibration_seed, selection_cache,
+                configuration.restricted_oracle.selection_seeds, selection_cache,
             )
             held_out_tables = response_tables(
                 "held_out_evaluation", evaluation_x, evaluation_y, evaluation_partition,
                 configuration.restricted_oracle.evaluation_background_count,
-                configuration.restricted_oracle.evaluation_seed, evaluation_cache,
+                (configuration.restricted_oracle.evaluation_seed,), evaluation_cache,
             )
             analysis = analyze_restricted_response_tables(
                 calibration_tables, held_out_tables, isolated_table,
@@ -613,6 +623,226 @@ def execute_conditional_damage(
             posthoc_regret = tuple(
                 left - right for left, right in zip(selected_risks, posthoc_risks)
             )
+            stability = selection_stability_diagnostics(
+                calibration_tables,
+                candidate_count=len(candidates),
+                budget=configuration.restricted_oracle.budget,
+                probability=probability,
+            )
+            comparison_indices = {
+                "restricted_selected_vs_original_s5": (original_mask, selected),
+                "restricted_selected_vs_exact_isolated": (isolated_mask, selected),
+                "exact_isolated_vs_original_s5": (original_mask, isolated_mask),
+            }
+            table_equivalence = []
+            for field, table in enumerate(held_out_tables):
+                for comparison, (baseline_indices, target_indices) in comparison_indices.items():
+                    derived = swap_contrast_from_response_table(
+                        table, len(candidates), probability,
+                        baseline_indices, target_indices,
+                    )
+                    table_equivalence.append({
+                        "field": field,
+                        "comparison": comparison,
+                        **derived,
+                    })
+
+            if configuration.paired_swap_evaluation.enabled:
+                paired_configuration = configuration.paired_swap_evaluation
+                paired_fields = _master_backgrounds(
+                    background_universe, probability,
+                    paired_configuration.background_count,
+                    paired_configuration.seed + probability_index * 10_000_019,
+                )
+                requested_for_probability = paired_configuration.background_count * sum(
+                    2 * len(set(baseline_indices) - set(target_indices))
+                    for comparison, (baseline_indices, target_indices) in comparison_indices.items()
+                    if comparison in paired_configuration.comparisons
+                )
+                if probability == 0.0:
+                    requested_for_probability = 0
+                configured_upper = (
+                    paired_configuration.background_count
+                    * len(paired_configuration.comparisons)
+                    * 2 * configuration.restricted_oracle.budget
+                )
+                total -= configured_upper - requested_for_probability
+                paired_cache: dict[str, tuple[float, InjectionReport, FaultSchedule]] = {}
+                probability_field_rows: dict[str, list[float]] = {
+                    name: [] for name in paired_configuration.comparisons
+                }
+                probability_law = {
+                    "name": "independent_bernoulli",
+                    "logical_ber": probability,
+                    "master_population_size": len(background_universe),
+                    "step_background_rule": (
+                        "master minus fixed protection minus current candidate mask "
+                        "minus exchanged bits"
+                    ),
+                    "target_support": "all subsets of unprotected eligible coordinates",
+                }
+                law_sha256 = digest_object(probability_law)
+                for field, (field_seed, master) in enumerate(paired_fields):
+                    master_sha256 = digest_object([value.key() for value in master])
+                    master_pairing_key = digest_object({
+                        "phase": "paired_swap_final", "logical_ber": probability,
+                        "field": field, "seed": field_seed,
+                        "master_sha256": master_sha256,
+                        "sample_sha256": evaluation_partition.sample_sha256,
+                        "protection_context_sha256": context.record["identity_sha256"],
+                    })
+
+                    def evaluate_faults(faults: frozenset[BitIdentity]) -> float:
+                        schedule = _schedule(
+                            probability, field_seed, tuple(faults),
+                            len(universe), len(evaluation_x),
+                        )
+                        key = schedule.digest()
+                        if key not in paired_cache:
+                            result, report = benchmark.evaluate_fault_schedule(
+                                evaluation_x, evaluation_y, schedule, base_mask
+                            )
+                            if report.proposed_events != report.applied_events + report.suppressed_events:
+                                raise RuntimeError(
+                                    "paired-swap event accounting violated: proposed != applied + suppressed"
+                                )
+                            paired_cache[key] = (
+                                _risk_value(result, configuration.risk_metric), report, schedule
+                            )
+                        return paired_cache[key][0]
+
+                    for comparison in paired_configuration.comparisons:
+                        baseline_indices, target_indices = comparison_indices[comparison]
+                        baseline_bits = frozenset(candidates[index] for index in baseline_indices)
+                        target_bits = frozenset(candidates[index] for index in target_indices)
+                        result = paired_swap_field_contrast(
+                            evaluate_faults, master, baseline_bits, target_bits,
+                            probability=probability, fixed_protected=context.outside,
+                        )
+                        comparison_pairing_key = digest_object({
+                            "master_pairing_key": master_pairing_key,
+                            "comparison": comparison,
+                            "path": [{
+                                "removed": step.removed.key(), "added": step.added.key(),
+                            } for step in result["path"]],
+                        })
+                        probability_field_rows[comparison].append(
+                            float(result["target_minus_baseline"])
+                        )
+                        paired_swap_field_records.append({
+                            "logical_ber": probability,
+                            "field": field,
+                            "field_seed": field_seed,
+                            "comparison": comparison,
+                            "sample_sha256": evaluation_partition.sample_sha256,
+                            "master_event_count": len(master),
+                            "master_events": [value.key() for value in master],
+                            "master_sha256": master_sha256,
+                            "master_pairing_key": master_pairing_key,
+                            "comparison_pairing_key": comparison_pairing_key,
+                            "probability_law": probability_law,
+                            "probability_law_sha256": law_sha256,
+                            "protection_context_sha256": context.record["identity_sha256"],
+                            "baseline_mask": [value.key() for value in sorted(baseline_bits)],
+                            "target_mask": [value.key() for value in sorted(target_bits)],
+                            "path_length": len(result["path"]),
+                            "target_minus_baseline": result["target_minus_baseline"],
+                            "authoritative_evaluation_requests": result["authoritative_evaluations"],
+                            "uncertainty_unit": "independently seeded master Bernoulli field",
+                        })
+                        for step in result["steps"]:
+                            removed = step["removed"]
+                            added = step["added"]
+                            background = frozenset(step["background"])
+                            removed_schedule = _schedule(
+                                probability, field_seed, tuple(background | {removed}),
+                                len(universe), len(evaluation_x),
+                            )
+                            added_schedule = _schedule(
+                                probability, field_seed, tuple(background | {added}),
+                                len(universe), len(evaluation_x),
+                            )
+                            removed_cached = paired_cache.get(removed_schedule.digest())
+                            added_cached = paired_cache.get(added_schedule.digest())
+                            removed_report = removed_cached[1] if removed_cached else None
+                            added_report = added_cached[1] if added_cached else None
+                            paired_swap_step_records.append({
+                                "logical_ber": probability,
+                                "field": field,
+                                "field_seed": field_seed,
+                                "comparison": comparison,
+                                "comparison_pairing_key": comparison_pairing_key,
+                                "step": step["step"],
+                                "removed": removed.key(),
+                                "added": added.key(),
+                                "current_mask": [value.key() for value in step["current_mask"]],
+                                "background_event_count": len(background),
+                                "background_events": [value.key() for value in sorted(background)],
+                                "background_sha256": digest_object([
+                                    value.key() for value in sorted(background)
+                                ]),
+                                "removed_schedule_sha256": removed_schedule.digest(),
+                                "added_schedule_sha256": added_schedule.digest(),
+                                "removed_risk": step["removed_risk"],
+                                "added_risk": step["added_risk"],
+                                "removed_minus_added": step["removed_minus_added"],
+                                "target_minus_baseline_contribution": step[
+                                    "target_minus_baseline_contribution"
+                                ],
+                                "removed_proposed_events": (
+                                    removed_report.proposed_events if removed_report else 0
+                                ),
+                                "removed_applied_events": (
+                                    removed_report.applied_events if removed_report else 0
+                                ),
+                                "removed_suppressed_events": (
+                                    removed_report.suppressed_events if removed_report else 0
+                                ),
+                                "added_proposed_events": (
+                                    added_report.proposed_events if added_report else 0
+                                ),
+                                "added_applied_events": (
+                                    added_report.applied_events if added_report else 0
+                                ),
+                                "added_suppressed_events": (
+                                    added_report.suppressed_events if added_report else 0
+                                ),
+                            })
+                            completed += int(step["authoritative_evaluations"])
+                            if progress is not None:
+                                progress(
+                                    f"paired swap: {comparison} field {field + 1}/"
+                                    f"{paired_configuration.background_count}",
+                                    completed, total,
+                                )
+                for comparison, values in probability_field_rows.items():
+                    baseline_indices, target_indices = comparison_indices[comparison]
+                    paired_swap_summaries.append({
+                        "logical_ber": probability,
+                        "comparison": comparison,
+                        "baseline_mask_indices": list(baseline_indices),
+                        "target_mask_indices": list(target_indices),
+                        "path": [{
+                            "removed": step.removed.key(), "added": step.added.key(),
+                        } for step in paired_swap_field_contrast(
+                            lambda _faults: 0.0, (),
+                            frozenset(candidates[index] for index in baseline_indices),
+                            frozenset(candidates[index] for index in target_indices),
+                            probability=0.0,
+                        )["path"]],
+                        "target_minus_baseline": summarize(
+                            values, confidence=configuration.execution.confidence
+                        ).to_dict(),
+                        "master_background_fields": len(values),
+                        "uncertainty_unit": "independently seeded master Bernoulli field",
+                        "actual_unique_authoritative_inferences_shared_across_comparisons": len(
+                            paired_cache
+                        ),
+                        "interpretation": (
+                            "frozen-mask expected-risk contrast; whole telescoping path is summed "
+                            "before uncertainty aggregation"
+                        ),
+                    })
             oracle_summaries.append({
                 "logical_ber": probability,
                 "candidate_count": len(candidates),
@@ -683,6 +913,18 @@ def execute_conditional_damage(
                         analysis["calibration_mean_risks"].values()
                     ),
                 } for mask, risk in sorted(analysis["calibration_mean_risks"].items())],
+                "model_selection_stability": stability,
+                "response_table_swap_equivalence": {
+                    "comparisons": table_equivalence,
+                    "maximum_absolute_error": max(
+                        (row["absolute_equivalence_error"] for row in table_equivalence),
+                        default=0.0,
+                    ),
+                    "interpretation": (
+                        "exact algebraic equality on the same saved response tables; "
+                        "separate paired Monte Carlo fields have finite-sample differences"
+                    ),
+                },
                 "interpretation": (
                     "selected mask is chosen only on model-selection samples/backgrounds; "
                     "held-out selected-minus-isolated is paired and confirmatory; posthoc "
@@ -699,6 +941,7 @@ def execute_conditional_damage(
             "6.0.0": "netsurf-exact-conditional-damage/v1",
             "6.1.0": "netsurf-exact-conditional-protection/v2",
             "6.2.0": "netsurf-contextual-exact-conditional-protection/v3",
+            "6.3.0": "netsurf-paired-swap-held-out-protection/v4",
         }[configuration.schema_version],
         "scientific_protocol": configuration.scientific_protocol,
         "experiment": configuration.name,
@@ -767,6 +1010,21 @@ def execute_conditional_damage(
                 "are derived from saved exact 2^K state responses without new inference"
             ),
         },
+        "paired_swap_evaluation": {
+            "enabled": configuration.paired_swap_evaluation.enabled,
+            "implementation_version": "exact-paired-swap-contrast/v1",
+            "identity": (
+                "J_p(target)-J_p(baseline) = p E_G[R(G union removed)-"
+                "R(G union added)], telescoped over a deterministic legal path"
+            ),
+            "selection_independence": (
+                "all masks and paths are frozen from model-selection evidence before "
+                "paired final fields are evaluated"
+            ),
+            "summaries": paired_swap_summaries,
+            "field_records_sha256": digest_object(paired_swap_field_records),
+            "step_records_sha256": digest_object(paired_swap_step_records),
+        },
         "checks": {
             "partitions_disjoint": True,
             "exact_encoded_xor": True,
@@ -780,6 +1038,7 @@ def execute_conditional_damage(
             "initial_state_sha256": initial_state_sha256,
             "final_state_sha256": final_state_sha256,
             "event_accounting": "proposed=applied+suppressed checked by adapter",
+            "paired_swap_masks_frozen_before_final_evaluation": True,
         },
         "uncertainty_scope": {
             "conditional_interval": "variation across independent Bernoulli background fields conditional on model, samples, candidates and probability",
@@ -794,13 +1053,19 @@ def execute_conditional_damage(
                 "paired outside-background fields; selected mask fixed using model-selection "
                 "data before held-out evaluation"
             ),
+            "paired_swap": (
+                "each independently seeded master field contributes one whole-path contrast; "
+                "swap steps and model-selection fields are not independent replications"
+            ),
         },
     }
     return ConditionalOutcome(
         configuration, payload, partitions, tuple(candidate_records), tuple(backgrounds),
         tuple(measurements), tuple(summaries), tuple(rank_comparisons),
         tuple(oracle_response_records), tuple(oracle_background_records),
-        tuple(oracle_derived_records), tuple(oracle_summaries), context.record,
+        tuple(oracle_derived_records), tuple(oracle_summaries),
+        tuple(paired_swap_step_records), tuple(paired_swap_field_records),
+        tuple(paired_swap_summaries), context.record,
         monotonic() - started,
     )
 

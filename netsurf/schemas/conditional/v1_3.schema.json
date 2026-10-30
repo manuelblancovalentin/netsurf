@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.invalid/schemas/conditional/v1_3.schema.json",
+  "title": "NetSuRF paired-swap held-out protection configuration 6.3.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scientific_protocol", "experiment", "benchmark", "samples", "risk", "candidates", "backgrounds", "execution", "restricted_oracle", "protection_context", "paired_swap_evaluation", "output"],
+  "properties": {
+    "schema_version": {"const": "6.3.0"},
+    "scientific_protocol": {"const": "paired-swap-held-out-protection/v4"},
+    "experiment": {"type": "object"},
+    "benchmark": {"type": "object"},
+    "samples": {"type": "object"},
+    "risk": {"type": "object"},
+    "candidates": {"type": "array", "minItems": 2, "maxItems": 12},
+    "backgrounds": {"type": "object"},
+    "execution": {"type": "object"},
+    "restricted_oracle": {
+      "type": "object",
+      "required": ["enabled", "budget", "calibration_background_count", "evaluation_background_count", "calibration_seed", "evaluation_seed", "calibration_replicate_seeds"]
+    },
+    "protection_context": {"type": "object"},
+    "paired_swap_evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "background_count", "seed", "comparisons"],
+      "properties": {
+        "enabled": {"const": true},
+        "background_count": {"type": "integer", "minimum": 1},
+        "seed": {"type": "integer"},
+        "comparisons": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "restricted_selected_vs_original_s5",
+              "restricted_selected_vs_exact_isolated",
+              "exact_isolated_vs_original_s5"
+            ]
+          }
+        }
+      }
+    },
+    "output": {"type": "object"}
+  }
+}

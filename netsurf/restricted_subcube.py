@@ -121,6 +121,150 @@ def response_table_diagnostics(
             "pairwise_mask_differences": differences}
 
 
+def deterministic_index_swap_path(
+    baseline: Sequence[int], target: Sequence[int], candidate_count: int,
+) -> tuple[tuple[int, int], ...]:
+    """Return a stable sequence of legal equal-cardinality candidate swaps."""
+
+    left, right = frozenset(baseline), frozenset(target)
+    candidate_indices = set(range(candidate_count))
+    if not left <= candidate_indices or not right <= candidate_indices:
+        raise ValueError("protection masks must contain candidate indices")
+    if len(left) != len(right):
+        raise ValueError("swap comparison requires equal-cardinality masks")
+    path = tuple(zip(sorted(left - right), sorted(right - left)))
+    current = set(left)
+    for removed, added in path:
+        if removed not in current or added in current:
+            raise RuntimeError("constructed an illegal candidate swap path")
+        current.remove(removed)
+        current.add(added)
+    if frozenset(current) != right:
+        raise RuntimeError("candidate swap path does not reach target")
+    return path
+
+
+def swap_contrast_from_response_table(
+    responses: Mapping[tuple[int, ...], float], candidate_count: int,
+    probability: float, baseline: Sequence[int], target: Sequence[int],
+) -> dict[str, object]:
+    """Derive ``risk(target)-risk(baseline)`` by exact legal-swap telescoping.
+
+    This is an independent algebraic use of the complete response table.  It
+    retains every candidate interaction order and performs no model inference.
+    """
+
+    if not 0.0 <= probability <= 1.0:
+        raise ValueError("probability must lie in [0,1]")
+    states = subcube_states(candidate_count)
+    if set(responses) != set(states):
+        raise ValueError("response table is incomplete")
+    path = deterministic_index_swap_path(baseline, target, candidate_count)
+    current = set(baseline)
+    steps = []
+    total = 0.0
+    for step_index, (removed, added) in enumerate(path, 1):
+        others = tuple(
+            index for index in range(candidate_count)
+            if index not in current and index != added
+        )
+        expectation = mass_total = 0.0
+        for enabled in itertools.product((0, 1), repeat=len(others)):
+            background = tuple(
+                others[index] for index, present in enumerate(enabled) if present
+            )
+            count = len(background)
+            mass = probability**count * (1.0 - probability) ** (len(others) - count)
+            with_removed = tuple(sorted((*background, removed)))
+            with_added = tuple(sorted((*background, added)))
+            expectation += mass * (
+                float(responses[with_removed]) - float(responses[with_added])
+            )
+            mass_total += mass
+        if abs(mass_total - 1.0) > 1e-12:
+            raise ArithmeticError(f"swap probability mass does not normalize: {mass_total}")
+        contribution = probability * expectation
+        total += contribution
+        steps.append({
+            "index": step_index,
+            "removed": removed,
+            "added": added,
+            "expected_removed_minus_added": expectation,
+            "target_minus_baseline_contribution": contribution,
+        })
+        current.remove(removed)
+        current.add(added)
+    direct = (
+        integrate_response_table(
+            responses, candidate_count, probability, protected=tuple(sorted(target))
+        )
+        - integrate_response_table(
+            responses, candidate_count, probability, protected=tuple(sorted(baseline))
+        )
+    )
+    return {
+        "baseline": list(sorted(baseline)),
+        "target": list(sorted(target)),
+        "path": steps,
+        "target_minus_baseline": total,
+        "direct_target_minus_baseline": direct,
+        "absolute_equivalence_error": abs(total - direct),
+    }
+
+
+def selection_stability_diagnostics(
+    calibration_tables: Sequence[Mapping[tuple[int, ...], float]],
+    *, candidate_count: int, budget: int, probability: float,
+) -> dict[str, object]:
+    """Describe finite-field mask selection without inspecting final outcomes."""
+
+    if not calibration_tables:
+        raise ValueError("selection stability requires calibration tables")
+    masks = fixed_budget_masks(candidate_count, budget)
+    per_field_winners = []
+    cumulative_winners = []
+    cumulative_margins = []
+    running = {mask: 0.0 for mask in masks}
+    counts = {mask: 0 for mask in masks}
+    for field_index, table in enumerate(calibration_tables, 1):
+        field_risks = {
+            mask: integrate_response_table(
+                table, candidate_count, probability, protected=mask
+            ) for mask in masks
+        }
+        winner = min(masks, key=lambda mask: (field_risks[mask], mask))
+        counts[winner] += 1
+        per_field_winners.append(list(winner))
+        for mask, risk in field_risks.items():
+            running[mask] += risk
+        ordered = sorted(
+            masks, key=lambda mask: (running[mask] / field_index, mask)
+        )
+        cumulative_winners.append(list(ordered[0]))
+        cumulative_margins.append(
+            (running[ordered[1]] - running[ordered[0]]) / field_index
+            if len(ordered) > 1 else 0.0
+        )
+    return {
+        "field_count": len(calibration_tables),
+        "eligible_mask_count": len(masks),
+        "per_field_winners": per_field_winners,
+        "per_field_win_counts": [
+            {"indices": list(mask), "count": counts[mask]}
+            for mask in masks if counts[mask]
+        ],
+        "cumulative_winners": cumulative_winners,
+        "cumulative_best_second_margin": cumulative_margins,
+        "cumulative_switch_count": sum(
+            left != right for left, right in zip(cumulative_winners, cumulative_winners[1:])
+        ),
+        "interpretation": (
+            "descriptive sensitivity to finite model-selection outside fields; "
+            "not uncertainty over final fault fields or input sampling"
+        ),
+    }
+
+
 def analyze_restricted_response_tables(
     calibration_tables: Sequence[Mapping[tuple[int, ...], float]],
     held_out_tables: Sequence[Mapping[tuple[int, ...], float]],

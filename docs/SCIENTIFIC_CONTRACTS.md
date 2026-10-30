@@ -304,3 +304,28 @@ paired across frozen comparators and cannot select a post-hoc optimum. The
 previous K=6 engineering smoke exposed KWS test indices 3048--3053, so schema
 6.2 excludes them from any claim of previously untouched confirmation. Its
 final-evaluation offsets begin at six within the fixed final window.
+
+## M9.5.5 frozen-mask paired-swap evaluation
+
+Schema 6.3 keeps exhaustive `2^K` response tables for model-selection fields
+but evaluates frozen masks on additional final fields through the exact legal-
+swap identity. For a current mask `P`, removal `a`, addition `b`, and target
+`P'`, the contribution is `p E[R(G union {a}) - R(G union {b})]`, where `G`
+is Bernoulli over every other unprotected eligible coordinate. Multiple swaps
+follow a deterministic sorted path and are summed before statistical
+aggregation. The independent master field—not a path step or inference—is the
+replication unit.
+
+Original S5, exact-isolated, and restricted-selected masks are frozen from
+source/model-selection evidence before paired final fields are generated.
+Final outcomes cannot choose a mask, path, field count, or seed. Exact full-
+enumeration final fields remain a diagnostic numerical reference; their post-
+hoc best mask remains selection-biased. Schema 6.3 excludes final-window
+relative indices 0--11 because the M9.5.3 and M9.5.4 engineering smokes have
+already exposed them.
+
+Model-selection replicate seeds and paired-final seeds are explicit and
+independent. Selection stability over finite model-selection fields is
+descriptive; it is not uncertainty over final fault fields, input sampling, or
+independently trained models. Negative contrasts and beneficial faults remain
+valid observations.
