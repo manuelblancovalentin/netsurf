@@ -249,10 +249,60 @@ total wall time is not an accurate publication runtime estimate. Request and
 clip-inference counts above are the reliable cost bounds; allow hours for the
 pilot and monitor actual progress before increasing counts.
 
+### Clean-source repeat and cost timing
+
+Implementation commit: `92d1f701fe3804701697948b15823ba624e32565`.
+Both clean-source reruns reproduced the exact scientific hashes above:
+
+- Selection: `m956_engineering_selection_k8/20261030T161105.382114Z-8f561dfa`,
+  57.73 seconds total; 21.504 seconds between the first and last progress
+  measurements for 520 additional state requests on two clips.
+- Final: `m956_engineering_final_k8/20261030T161156.030582Z-366aa181`,
+  50.15 seconds total; 0.704 seconds for 22 additional path requests after the
+  first recorded step, including shared-cache reuse.
+
+A deliberately conservative input-linear extrapolation of the measured
+selection work is `21.504/520 * 8201 * (64/2) ≈ 10852 seconds`, about **three
+CPU hours**, plus setup. Fixed model-construction overhead per state means this
+is not a fitted runtime model and may substantially overpredict. For final
+work, scaling the observed path requests gives approximately 26 minutes, but
+those paths shared half their inference work; budgeting up to roughly an hour
+allows for less cache reuse. These are planning estimates, not formal bounds
+or power calculations. No publication-scale pilot/final run was launched.
+
+### Regression results
+
+- Canonical Python 3.11 full suite: **267 passed, 5 skipped, 6 failed**.
+  Four failures require the absent worktree-local historical MNIST checkpoint
+  (the validators also check `/data/datasets/mnist/mnist.npz`). Two failures
+  are stale ResNet asset-lock/checkpoint expectations. All six were reproduced
+  on unchanged M955 source at `afe5424`; no locks or tests were weakened.
+- Focused conditional/preflight/selector suite: **48 passed, 3 skipped** in
+  canonical Python. The skips are two TF2.14.1-only checks and the optional
+  generic JSON Schema test.
+- Pinned TF2.14.1 suite, including existing M93 KWS/ToyCar adapter checks:
+  **56 passed, 1 skipped**. The skip is the optional `jsonschema` package,
+  which is absent in this environment. The executable Python configuration
+  validator and rejection tests passed; no package was installed. If desired,
+  the researcher can install `jsonschema>=4,<5` to enable that extra test.
+- The same synthetic joint schema-6.3 experiment run on unchanged M955 and
+  M956 produced identical payload SHA-256
+  `7381c3f4a78637e08b8c165a52b85d4e6344d8fe9dc897db9a202667e4e15e3c`.
+- All seven archived smoke bundles were reverified unchanged after the work.
+
+Exact test commands from this worktree:
+
+```bash
+/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m pytest -q --tb=short
+/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m pytest -q \
+  tests/test_m956_preflight.py tests/test_m953_same_distribution.py \
+  tests/test_m955_paired_swap.py tests/test_m95_conditional_damage.py \
+  tests/test_m95_restricted_subcube.py tests/test_m93_multibench.py
+```
+
 The optional pinned-runtime test independently verifies a two-candidate
 selection/final sequence and asserts that forbidden sample roles cannot be
 accessed. Synthetic tests cover additive, beneficial and higher-order risks,
 equivalence to the previous selector, deterministic payloads, field-seed
 collisions, artifact corruption, changed plans, sample-exposure rejection and
-frozen-mask invariance. Test counts and final implementation commit are recorded
-in the delivery summary; external environment failures are not concealed.
+frozen-mask invariance. External environment failures are not concealed.
