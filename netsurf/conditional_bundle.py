@@ -14,6 +14,8 @@ from .result_bundle import ResultBundleError, _inventory, _write_bytes, _write_c
 
 
 def _report(outcome: ConditionalOutcome) -> str:
+    if outcome.configuration.schema_version == "6.4.0":
+        return _preflight_report(outcome)
     payload = outcome.scientific_payload
     interval_label = f"{100.0 * outcome.configuration.execution.confidence:g}% CI"
     lines = [
@@ -129,6 +131,52 @@ def _report(outcome: ConditionalOutcome) -> str:
     return "\n".join(lines)
 
 
+def _preflight_report(outcome):
+    mode = outcome.configuration.workflow["mode"]
+    lines = [f"# {outcome.configuration.name}", "", outcome.configuration.objective, "",
+             f"Execution: `{mode}`; purpose: `{outcome.configuration.workflow['purpose']}`.", "",
+             "Frozen exploratory candidate pool, not a random population sample. All risk measurements "
+             "use exact INT8 XOR and TFLite 2.14.1 BUILTIN_REF. Logical BER is not a physical SEU rate.", ""]
+    if mode == "selection_only":
+        lines += ["No final-evaluation samples were loaded and no final fields were generated. "
+                  "No held-out mask performance is reported.", "",
+                  "## All model-selection mask risks", "",
+                  "| Candidate mask | Mean cross-entropy | Fields |", "|---|---:|---:|"]
+        for row in outcome.oracle_summaries:
+            for mask in row["eligible_masks"]:
+                lines.append(f"| {mask['indices']} | {mask['mean_risk']:.10g} | {len(mask['field_risks'])} |")
+            stability = row["model_selection_stability"]
+            lines += ["", f"Selected: {row['selected_mask_indices']}; isolated: {row['isolated_mask_indices']}; "
+                      f"original S5: {row['original_mask_indices']}.",
+                      f"Cumulative switches: {stability['cumulative_switch_count']}; final best/second margin: "
+                      f"{stability['cumulative_best_second_margin'][-1]:.10g}.", "",
+                      "Replicate winners (independent outside-field batches, not independent inputs/models):"]
+            for rep in stability["replicates"]:
+                lines.append(f"- Seed {rep['seed']}: {rep['cumulative_winners'][-1]}, "
+                             f"{rep['field_count']} fields, margin {rep['cumulative_best_second_margin'][-1]:.10g}")
+        lines += ["", "All individual-field and cumulative winners/margins, per-mask field risks, exact "
+                  "response tables and outside events are retained in the artifacts. The winning mean "
+                  "is selection-biased; pilot stability is not a power guarantee."]
+    else:
+        lines += ["Masks loaded from the explicitly hash-pinned finalized selection artifact; "
+                  "selection was not rerun. Primary: restricted-selected minus original S5. Negative "
+                  "differences favor the target. Secondary contrasts share the same master fields.", "",
+                  "| Contrast | Fields | Mean CE difference | Marginal CI | Family-wise CI |",
+                  "|---|---:|---:|---|---|"]
+        for row in outcome.paired_swap_summaries:
+            e = row["target_minus_baseline"]
+            lines.append(f"| {row['comparison']} | {row['master_background_fields']} | {e['mean']:.10g} | "
+                         f"{e['confidence_interval']} | {row['familywise_target_minus_baseline']['confidence_interval']} |")
+        lines += ["", "Student-t intervals use whole-path independent master fields, conditional on "
+                  "fixed samples/model/masks; no input-sampling or candidate-population inference. "
+                  "Bonferroni intervals cover the prespecified three-contrast family. No automatic "
+                  "superiority claim or post-hoc final optimum is computed."]
+    lines += ["", f"Operation plan: `{outcome.configuration.operation_counts()}`", "",
+              f"Scientific payload SHA-256: `{outcome.scientific_payload_sha256}`", "",
+              f"Reproduce: `netsurf conditional run {outcome.configuration.source_path}`", ""]
+    return "\n".join(lines)
+
+
 def create_conditional_bundle(
     outcome: ConditionalOutcome, *, repository_root: Path, run_id: str | None = None,
 ) -> Path:
@@ -147,6 +195,8 @@ def create_conditional_bundle(
         _write_bytes(staging / "config.toml", outcome.configuration.source_text.encode("utf-8"))
         _write_json(staging / "resolved_config.json", outcome.configuration.resolved_document())
         _write_json(staging / "scientific_payload.json", outcome.scientific_payload)
+        if "frozen_selection" in outcome.scientific_payload:
+            _write_json(staging / "artifacts/frozen_selection.json", outcome.scientific_payload["frozen_selection"])
         _write_json(staging / "summary.json", {
             "schema_version": outcome.configuration.schema_version,
             "scientific_protocol": outcome.configuration.scientific_protocol,
@@ -273,6 +323,21 @@ def create_conditional_bundle(
             "outputs": _inventory(staging),
             "scientific_payload_sha256": outcome.scientific_payload_sha256,
         }
+        if outcome.configuration.workflow:
+            manifest["execution"] = {
+                "runtime_seconds": outcome.runtime_seconds,
+                "mode": outcome.configuration.workflow["mode"],
+                "operation_counts": outcome.configuration.operation_counts(),
+                "model_selection_replicate_seeds_executed": (
+                    list(outcome.configuration.restricted_oracle.selection_seeds)
+                    if outcome.configuration.workflow["mode"] == "selection_only" else []),
+                "paired_final_seed_executed": (
+                    outcome.configuration.paired_swap_evaluation.seed
+                    if outcome.configuration.workflow["mode"] == "final_only" else None),
+            }
+            manifest["m956_final_original_indices"] = (
+                list(outcome.partitions["held_out_evaluation"].indices)
+                if "held_out_evaluation" in outcome.partitions else [])
         _write_json(staging / "manifest.json", manifest)
         _write_json(staging / "checksums.json", {
             "schema_version": outcome.configuration.schema_version,
@@ -294,7 +359,7 @@ def verify_conditional_bundle(path: str | Path) -> dict[str, object]:
         raise ResultBundleError(f"not a finalized conditional bundle: {root}")
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     checksums = json.loads((root / "checksums.json").read_text(encoding="utf-8"))
-    if manifest.get("schema_version") not in {"6.0.0", "6.1.0", "6.2.0", "6.3.0"}:
+    if manifest.get("schema_version") not in {"6.0.0", "6.1.0", "6.2.0", "6.3.0", "6.4.0"}:
         raise ResultBundleError(f"unsupported conditional manifest: {manifest.get('schema_version')!r}")
     for relative, expected in checksums["files"].items():
         actual = sha256_file(root / relative)

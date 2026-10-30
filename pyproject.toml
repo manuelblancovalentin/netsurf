@@ -34,7 +34,7 @@ include = ["netsurf*"]
 exclude = ["DEPRECATED*", "tests*"]
 
 [tool.setuptools.package-data]
-netsurf = ["schemas/**/*.json", "schemas/README.md", "templates/*.toml", "benchmarks/data/*.json", "benchmarks/identities/*.json"]
+netsurf = ["schemas/**/*.json", "schemas/README.md", "templates/*.toml", "benchmarks/data/*.json", "benchmarks/identities/*.json", "data/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,0 +1,356 @@
+{
+  "schema_version": "1.0.0",
+  "audit_scope": "All finalized runs under M953/M954/M955 implementation workspaces on 2026-10-30; not a claim about inaccessible or subsequent experiments",
+  "runs": [
+    {
+      "bundle": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m953/workspace/runs/m953_kws_restricted_k6_smoke/20261030T140243.021229Z-c95aa801",
+      "scientific_payload_sha256": "aae537ad2561d07deac7b27819e3b9ccfc23e469a9cba3f089da262ce29f54ba",
+      "checksums_sha256": "710ba5dae514b991ff6c27a01a7890c2f9c8ef6a31ab3412b315784bde64c911",
+      "sample_sha256": "dc611f68262dcdd74bf1487a117cbdedfddd1832db596370b6aee349bf326059",
+      "samples": [
+        {
+          "encoded_input_sha256": "9313fea2d6e763b101db82244cfec40cf500c3812a2fb603ad76455a454a694a",
+          "label": 6,
+          "original_index": 3048,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3048",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "bc125d71caeb3d7a446986ddde852348074e3f0f50e51fd726d5333fef1b0cf5",
+          "label": 0,
+          "original_index": 3049,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3049",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "7c8987e3ae6a57dd848846d54a831b07f24141deee634e71d8f852067477d3ba",
+          "label": 3,
+          "original_index": 3050,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3050",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "710eff252576ce4f462b3e888714e86710fa4f0a55c395dcf5e6d62ffc5882c1",
+          "label": 8,
+          "original_index": 3051,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3051",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "fb4007280f34dd791b9decaae2d0107b606246641cea7fba43c010077c1d5628",
+          "label": 7,
+          "original_index": 3052,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3052",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "907eb6d039acc3cea7f6cb733d8e1931dbbd8bde5ece8a1988661bbfc5dea109",
+          "label": 0,
+          "original_index": 3053,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3053",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        }
+      ]
+    },
+    {
+      "bundle": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m953/workspace/runs/m953_kws_restricted_k6_smoke/20261030T140910.132043Z-f6188ed7",
+      "scientific_payload_sha256": "3c6656a53df39148afe2f505d70480a312385c45695b349ed1708127ba5d090a",
+      "checksums_sha256": "778ef1e2ed3d57ce9b8b73b1d5ad52c566a1bffc6ab395af35aa8062e8632748",
+      "sample_sha256": "dc611f68262dcdd74bf1487a117cbdedfddd1832db596370b6aee349bf326059",
+      "samples": [
+        {
+          "encoded_input_sha256": "9313fea2d6e763b101db82244cfec40cf500c3812a2fb603ad76455a454a694a",
+          "label": 6,
+          "original_index": 3048,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3048",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "bc125d71caeb3d7a446986ddde852348074e3f0f50e51fd726d5333fef1b0cf5",
+          "label": 0,
+          "original_index": 3049,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3049",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "7c8987e3ae6a57dd848846d54a831b07f24141deee634e71d8f852067477d3ba",
+          "label": 3,
+          "original_index": 3050,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3050",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "710eff252576ce4f462b3e888714e86710fa4f0a55c395dcf5e6d62ffc5882c1",
+          "label": 8,
+          "original_index": 3051,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3051",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "fb4007280f34dd791b9decaae2d0107b606246641cea7fba43c010077c1d5628",
+          "label": 7,
+          "original_index": 3052,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3052",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "907eb6d039acc3cea7f6cb733d8e1931dbbd8bde5ece8a1988661bbfc5dea109",
+          "label": 0,
+          "original_index": 3053,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3053",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        }
+      ]
+    },
+    {
+      "bundle": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m953/workspace/runs/m953_kws_restricted_k6_smoke/20261030T141321.082661Z-2f0e2163",
+      "scientific_payload_sha256": "3c6656a53df39148afe2f505d70480a312385c45695b349ed1708127ba5d090a",
+      "checksums_sha256": "38dbc9fb2271cb55a9f3ded416bc557205da29d0f97974d8e094122f4a54984f",
+      "sample_sha256": "dc611f68262dcdd74bf1487a117cbdedfddd1832db596370b6aee349bf326059",
+      "samples": [
+        {
+          "encoded_input_sha256": "9313fea2d6e763b101db82244cfec40cf500c3812a2fb603ad76455a454a694a",
+          "label": 6,
+          "original_index": 3048,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3048",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "bc125d71caeb3d7a446986ddde852348074e3f0f50e51fd726d5333fef1b0cf5",
+          "label": 0,
+          "original_index": 3049,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3049",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "7c8987e3ae6a57dd848846d54a831b07f24141deee634e71d8f852067477d3ba",
+          "label": 3,
+          "original_index": 3050,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3050",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "710eff252576ce4f462b3e888714e86710fa4f0a55c395dcf5e6d62ffc5882c1",
+          "label": 8,
+          "original_index": 3051,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3051",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "fb4007280f34dd791b9decaae2d0107b606246641cea7fba43c010077c1d5628",
+          "label": 7,
+          "original_index": 3052,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3052",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "907eb6d039acc3cea7f6cb733d8e1931dbbd8bde5ece8a1988661bbfc5dea109",
+          "label": 0,
+          "original_index": 3053,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3053",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        }
+      ]
+    },
+    {
+      "bundle": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m954/workspace/runs/m954_kws_context_k6_smoke/20261030T144052.562425Z-76900ca3",
+      "scientific_payload_sha256": "c392c1f92c41a5625ed06ada100c8fc90d94ceb17c2cc765f2259db35ea84be0",
+      "checksums_sha256": "d32dae7012b5b385852b699fa3b65772cefb6daee1b738de99b46b460c82d401",
+      "sample_sha256": "c45a18a2f7efcb91307bc11c924b93b195d1fa4d65facfaa711634a25d708052",
+      "samples": [
+        {
+          "encoded_input_sha256": "0cd319db546369f7769a5af65ff73dc2925e073fb4688d6c5ee3c2f148aaef03",
+          "label": 1,
+          "original_index": 3054,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3054",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "86ab09b87e5c388e7717d7990b78f34dcdc75fb57b4ca1379b82cea7a011d77b",
+          "label": 11,
+          "original_index": 3055,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3055",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "9b693b3a0f5c538b3fca8a5bc3ab42ec64757877e7f155eb172ff0e1d821ab02",
+          "label": 4,
+          "original_index": 3056,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3056",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "46eb34196c05a9d721841d550da1588eba42a866cc89fefbd2cb23be72d6aa5d",
+          "label": 1,
+          "original_index": 3057,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3057",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "2e09b1d7e188da5b5b94853b3449c4388c57d19256a677f9823db3116654fa84",
+          "label": 3,
+          "original_index": 3058,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3058",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "bbd4aed6b70d525e040cd677a200077a11db90d13704f820fc6d2b8c384aa73f",
+          "label": 1,
+          "original_index": 3059,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3059",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        }
+      ]
+    },
+    {
+      "bundle": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m954/workspace/runs/m954_kws_context_k6_smoke/20261030T145336.482622Z-74fa3871",
+      "scientific_payload_sha256": "c392c1f92c41a5625ed06ada100c8fc90d94ceb17c2cc765f2259db35ea84be0",
+      "checksums_sha256": "4d001a31336764e1c15de1137bc343a9ca46c335e53ec7a1987b8df0720e3b82",
+      "sample_sha256": "c45a18a2f7efcb91307bc11c924b93b195d1fa4d65facfaa711634a25d708052",
+      "samples": [
+        {
+          "encoded_input_sha256": "0cd319db546369f7769a5af65ff73dc2925e073fb4688d6c5ee3c2f148aaef03",
+          "label": 1,
+          "original_index": 3054,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3054",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "86ab09b87e5c388e7717d7990b78f34dcdc75fb57b4ca1379b82cea7a011d77b",
+          "label": 11,
+          "original_index": 3055,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3055",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "9b693b3a0f5c538b3fca8a5bc3ab42ec64757877e7f155eb172ff0e1d821ab02",
+          "label": 4,
+          "original_index": 3056,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3056",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "46eb34196c05a9d721841d550da1588eba42a866cc89fefbd2cb23be72d6aa5d",
+          "label": 1,
+          "original_index": 3057,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3057",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "2e09b1d7e188da5b5b94853b3449c4388c57d19256a677f9823db3116654fa84",
+          "label": 3,
+          "original_index": 3058,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3058",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "bbd4aed6b70d525e040cd677a200077a11db90d13704f820fc6d2b8c384aa73f",
+          "label": 1,
+          "original_index": 3059,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3059",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        }
+      ]
+    },
+    {
+      "bundle": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m955/workspace/runs/m955_kws_paired_swap_k6_validation/20261030T151620.666772Z-d31952e9",
+      "scientific_payload_sha256": "4a9c8990bb01646efa442d6cf8af774432e365fcc48b39d38e705d54f43ec86b",
+      "checksums_sha256": "b5f3804b5e93b6ea64c00aea7dce70de1be3017cf1d166cce69a0d40b8b8c952",
+      "sample_sha256": "5b40f584fef040f82ae9304086d3955a742683ee04b0130dc9187fd20fede1e7",
+      "samples": [
+        {
+          "encoded_input_sha256": "5d07d091110379ef6b9ebbeefb4b9d2d00e86bba4a8a3e02fed5c1a651e1b1b4",
+          "label": 1,
+          "original_index": 3060,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3060",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "7f7fb97ee250a3c4844f5786e084f87496343e89b58c854d4c7c53045f97c35e",
+          "label": 9,
+          "original_index": 3061,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3061",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "ca2653748ca25335cfc65974ce75b66db65cc8ca2206176302b217a3597a8c4d",
+          "label": 11,
+          "original_index": 3062,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3062",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "2dc65c35a4d919b7e58e23a8f3467b4f1f7a08fc304bb1bdef8f44970484da8c",
+          "label": 9,
+          "original_index": 3063,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3063",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "fe851c502d5a0e566849e2599a3b6cfb9df356649a78552bdf6d909ce38c14f9",
+          "label": 7,
+          "original_index": 3064,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3064",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "f43186f65986fe3931848b179f6ca545d91184a0a956fd9b62de1a0c0cddbc69",
+          "label": 1,
+          "original_index": 3065,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3065",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        }
+      ]
+    },
+    {
+      "bundle": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m955/workspace/runs/m955_kws_paired_swap_k6_validation/20261030T152119.751122Z-4ba6a40a",
+      "scientific_payload_sha256": "4a9c8990bb01646efa442d6cf8af774432e365fcc48b39d38e705d54f43ec86b",
+      "checksums_sha256": "1e2d1f4b2febcce2ca4921ce92f75fb35619f75cf9489765a5e3b8b818ec834e",
+      "sample_sha256": "5b40f584fef040f82ae9304086d3955a742683ee04b0130dc9187fd20fede1e7",
+      "samples": [
+        {
+          "encoded_input_sha256": "5d07d091110379ef6b9ebbeefb4b9d2d00e86bba4a8a3e02fed5c1a651e1b1b4",
+          "label": 1,
+          "original_index": 3060,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3060",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "7f7fb97ee250a3c4844f5786e084f87496343e89b58c854d4c7c53045f97c35e",
+          "label": 9,
+          "original_index": 3061,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3061",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "ca2653748ca25335cfc65974ce75b66db65cc8ca2206176302b217a3597a8c4d",
+          "label": 11,
+          "original_index": 3062,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3062",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "2dc65c35a4d919b7e58e23a8f3467b4f1f7a08fc304bb1bdef8f44970484da8c",
+          "label": 9,
+          "original_index": 3063,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3063",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "fe851c502d5a0e566849e2599a3b6cfb9df356649a78552bdf6d909ce38c14f9",
+          "label": 7,
+          "original_index": 3064,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3064",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        },
+        {
+          "encoded_input_sha256": "f43186f65986fe3931848b179f6ca545d91184a0a956fd9b62de1a0c0cddbc69",
+          "label": 1,
+          "original_index": 3065,
+          "sample_id": "speech_commands_tfds_test_interleaved_blocks16:3065",
+          "source_split": "speech_commands_tfds_test_interleaved_blocks16"
+        }
+      ]
+    }
+  ]
+}

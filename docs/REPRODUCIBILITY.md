@@ -682,3 +682,15 @@ The full correspondence audit, prespecified candidate design, finalized
 TensorFlow 2.14.1 interpreter recorded there. The 32-realization protection
 pilot is intended for a researcher-controlled `tmux` session and is not part
 of the bounded regression suite.
+
+## M9.5.6 separated selection and final evaluation
+
+Use the pinned `/projects/kona-assets/manuelbv/.venv-mlperf/bin/python`, not
+modern TensorFlow, for the two schema-6.4 configurations in `config/examples/`:
+`m956_kws_s5_selection_k8.toml` and `m956_kws_s5_final_k8.toml`.
+Validate through `python -m netsurf conditional validate CONFIG --resolved`.
+The selection pilot requires 8,201 state requests and is researcher-run only.
+Final execution requires an explicit finalized selection bundle plus its
+scientific payload and frozen-artifact hashes; the supplied final template is
+intentionally unbound. Exact commands, audited prior exposures, bounded smoke
+evidence and limitations are in `docs/M956_PUBLICATION_PREFLIGHT.md`.

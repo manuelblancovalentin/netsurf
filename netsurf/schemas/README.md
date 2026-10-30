@@ -115,3 +115,11 @@ whole telescoping-path observation each. Step records retain exact backgrounds,
 swapped identities, schedules, risks, event counts and pairing keys. The schema
 also retains at least one optional full-enumeration final field as a numerical
 reference; it does not use final data for mask or path selection.
+
+Frozen-selection schema `6.4.0` separates `selection_only` from `final_only`.
+The former finalizes exact selection tables without accessing final inputs;
+the latter loads an explicitly hash-pinned frozen selection and never reruns
+selection. A recorded exposure ledger rejects known reused confirmation
+samples, and artifact contracts freeze the pool, context, budget, sample and
+seed plans and comparison family. Joint schemas 6.0–6.3 retain their readers.
+See `docs/M956_PUBLICATION_PREFLIGHT.md` for executable fields and boundaries.

@@ -202,45 +202,24 @@ def execute_conditional_damage(
     """Execute exact XOR damage under paired common Bernoulli backgrounds."""
 
     started = monotonic()
+    from .selection_preflight import (
+        exposure_audit, load_frozen_selection, selection_contract, selection_summary, validate_workflow,
+        reject_local_final_reuse,
+    )
+    if configuration.schema_version == "6.4.0":
+        validate_workflow(dict(configuration.workflow), configuration.samples,
+                          configuration.backgrounds, configuration.restricted_oracle,
+                          configuration.paired_swap_evaluation, configuration.protection_context,
+                          configuration.source_path)
+        reject_local_final_reuse(configuration)
+    mode = configuration.workflow.get("mode", "joint")
+    frozen_source = load_frozen_selection(configuration) if mode == "final_only" else None
+    exposure = exposure_audit(
+        configuration.samples.evaluation_offset, configuration.samples.evaluation_count,
+        configuration.workflow["purpose"],
+    ) if configuration.workflow else None
     benchmark = adapter or create_adapter(configuration, None)
     benchmark.load()
-    calibration_x, calibration_y, calibration_partition = benchmark.sample_partition(
-        configuration.samples.calibration_role, configuration.samples.calibration_count,
-        offset=configuration.samples.calibration_offset,
-    )
-    evaluation_x, evaluation_y, evaluation_partition = benchmark.sample_partition(
-        configuration.samples.evaluation_role, configuration.samples.evaluation_count,
-        offset=configuration.samples.evaluation_offset,
-    )
-    partitions = {
-        "calibration": calibration_partition,
-        "held_out_evaluation": evaluation_partition,
-    }
-    model_selection_data = None
-    if configuration.samples.model_selection_role is not None:
-        selection_x, selection_y, selection_partition = benchmark.sample_partition(
-            configuration.samples.model_selection_role,
-            configuration.samples.model_selection_count,
-            offset=configuration.samples.model_selection_offset,
-        )
-        partitions["model_selection"] = selection_partition
-        model_selection_data = (selection_x, selection_y, selection_partition)
-    if configuration.samples.require_disjoint:
-        require_disjoint(tuple(partitions.values()))
-    partition_diagnostics = {
-        "calibration": _partition_diagnostics(calibration_y, calibration_partition),
-        "held_out_evaluation": _partition_diagnostics(evaluation_y, evaluation_partition),
-        **({
-            "model_selection": _partition_diagnostics(
-                model_selection_data[1], model_selection_data[2]
-            )
-        } if model_selection_data is not None else {}),
-    }
-    complete_window_diagnostics = (
-        benchmark.same_distribution_window_diagnostics()
-        if hasattr(benchmark, "same_distribution_window_diagnostics") else {}
-    )
-
     universe = tuple(benchmark.bit_identities())
     universe_set = set(universe)
     if len(universe_set) != len(universe):
@@ -260,6 +239,55 @@ def execute_conditional_damage(
             "restricted budget must equal the source mask cardinality inside the candidate pool"
         )
 
+    if frozen_source is not None:
+        if frozen_source["protection_context_sha256"] != context.record["identity_sha256"]:
+            raise ValueError("frozen protection context differs")
+        if frozen_source["eligible_population_sha256"] != digest_object([b.key() for b in universe]):
+            raise ValueError("frozen eligible bit population differs")
+
+    sample_data = {}
+    if mode == "joint":
+        sample_data["calibration"] = benchmark.sample_partition(
+            configuration.samples.calibration_role, configuration.samples.calibration_count,
+            offset=configuration.samples.calibration_offset,
+        )
+    if mode != "selection_only":
+        sample_data["held_out_evaluation"] = benchmark.sample_partition(
+            configuration.samples.evaluation_role, configuration.samples.evaluation_count,
+            offset=configuration.samples.evaluation_offset,
+        )
+        evaluation_x, evaluation_y, evaluation_partition = sample_data["held_out_evaluation"]
+        if configuration.workflow and (
+            tuple(evaluation_partition.indices) != tuple(exposure["requested_original_indices"])
+            or evaluation_partition.source_split != "speech_commands_tfds_test_interleaved_blocks16"
+        ):
+            raise ValueError("actual final sample identities differ from the preflight exposure audit")
+    model_selection_data = None
+    if mode != "final_only" and configuration.samples.model_selection_role is not None:
+        model_selection_data = benchmark.sample_partition(
+            configuration.samples.model_selection_role,
+            configuration.samples.model_selection_count,
+            offset=configuration.samples.model_selection_offset,
+        )
+        sample_data["model_selection"] = model_selection_data
+    partitions = {name: data[2] for name, data in sample_data.items()}
+    if configuration.samples.require_disjoint:
+        require_disjoint(tuple(partitions.values()))
+    partition_diagnostics = {
+        name: _partition_diagnostics(data[1], data[2]) for name, data in sample_data.items()
+    }
+    # Legacy joint diagnostics enumerate all labels. Never do this in selection-only.
+    complete_window_diagnostics = (
+        benchmark.same_distribution_window_diagnostics()
+        if mode == "joint" and hasattr(benchmark, "same_distribution_window_diagnostics") else {}
+    )
+    if frozen_source is not None:
+        source_ids = {row["sample_id"] for row in frozen_source["sample_identities"]}
+        actual_final_ids = {row["sample_id"] for row in _sample_identity_records(
+            evaluation_x, evaluation_y, evaluation_partition)}
+        if source_ids & actual_final_ids:
+            raise ValueError("frozen selection and actual final samples overlap")
+
     initial_state = benchmark.values()
     initial_state_sha256 = _state_sha256(initial_state)
     candidate_records = []
@@ -273,18 +301,15 @@ def execute_conditional_damage(
             "numerical_perturbation": float(flipped_value - original_value),
         })
 
-    split_data = {
-        "calibration": (
-            calibration_x, calibration_y, calibration_partition,
-            configuration.backgrounds.calibration_count,
-            configuration.backgrounds.calibration_seed,
-        ),
-        "held_out_evaluation": (
-            evaluation_x, evaluation_y, evaluation_partition,
-            configuration.backgrounds.evaluation_count,
-            configuration.backgrounds.evaluation_seed,
-        ),
-    }
+    split_data = {}
+    if mode == "joint":
+        calibration_x, calibration_y, calibration_partition = sample_data["calibration"]
+        split_data = {
+            "calibration": (*sample_data["calibration"], configuration.backgrounds.calibration_count,
+                            configuration.backgrounds.calibration_seed),
+            "held_out_evaluation": (*sample_data["held_out_evaluation"], configuration.backgrounds.evaluation_count,
+                                    configuration.backgrounds.evaluation_seed),
+        }
     operation_counts = configuration.operation_counts()
     total = operation_counts.get(
         "total_authoritative_evaluations_upper_bound",
@@ -419,9 +444,10 @@ def execute_conditional_damage(
             )
 
     if configuration.restricted_oracle.enabled:
-        if model_selection_data is None:
+        if model_selection_data is None and mode != "final_only":
             raise ValueError("restricted oracle requires an explicit model-selection partition")
-        selection_x, selection_y, selection_partition = model_selection_data
+        if model_selection_data is not None:
+            selection_x, selection_y, selection_partition = model_selection_data
         candidates = configuration.candidates
         candidate_set = set(candidates)
         outside_universe = tuple(
@@ -450,202 +476,230 @@ def execute_conditional_damage(
                 risk, report = cache[key]
                 return risk, report, hit
 
-            isolated_table: dict[tuple[int, ...], float] = {}
-            for state in ((), *((index,) for index in range(len(candidates)))):
-                bits = tuple(candidates[index] for index in state)
-                schedule = _schedule(
-                    probability,
-                    configuration.restricted_oracle.calibration_seed - 1,
-                    bits, len(universe), len(selection_x),
-                )
-                risk, report, cache_hit = exact_risk(
-                    selection_x, selection_y, schedule, selection_cache
-                )
-                completed += 1
-                if progress is not None:
-                    progress("restricted oracle: isolated model-selection states", completed, total)
-                isolated_table[state] = risk
-                oracle_response_records.append({
-                    "phase": "model_selection_isolated", "logical_ber": probability,
-                    "field": -1, "field_seed": schedule.seed,
-                    "candidate_state": list(state),
-                    "candidate_bits": [candidates[index].key() for index in state],
-                    "outside_background_sha256": digest_object([]),
-                    "risk": risk, "schedule_sha256": schedule.digest(),
-                    "proposed_events": report.proposed_events,
-                    "applied_events": report.applied_events,
-                    "suppressed_events": report.suppressed_events,
-                    "unique_applied_bits": report.unique_applied_bits,
-                    "cache_hit": cache_hit,
-                })
-
-            def response_tables(
-                phase, inputs, labels, partition, count, base_seeds, cache,
-            ):
-                nonlocal completed
-                tables = []
-                total_fields = count * len(base_seeds)
-                global_field = 0
-                for replicate, base_seed in enumerate(base_seeds):
-                    probability_seed = base_seed + probability_index * 10_000_019
-                    fields = _master_backgrounds(
-                        outside_universe, probability, count, probability_seed
+            if mode == "final_only":
+                frozen_masks = frozen_source["masks"][probability_index]
+                selected = tuple(frozen_masks["selected"])
+                isolated_mask = tuple(frozen_masks["isolated"])
+                original_mask = tuple(frozen_masks["original"])
+                if original_mask != context.original_inside_indices:
+                    raise ValueError("frozen original mask differs from verified context")
+                if frozen_source["protection_context_sha256"] != context.record["identity_sha256"]:
+                    raise ValueError("frozen protection context differs")
+                if frozen_source["eligible_population_sha256"] != digest_object([b.key() for b in universe]):
+                    raise ValueError("frozen eligible bit population differs")
+                comparison_indices = {
+                    "restricted_selected_vs_original_s5": (original_mask, selected),
+                    "restricted_selected_vs_exact_isolated": (isolated_mask, selected),
+                    "exact_isolated_vs_original_s5": (original_mask, isolated_mask),
+                }
+            else:
+                isolated_table: dict[tuple[int, ...], float] = {}
+                for state in ((), *((index,) for index in range(len(candidates)))):
+                    bits = tuple(candidates[index] for index in state)
+                    schedule = _schedule(
+                        probability,
+                        configuration.restricted_oracle.calibration_seed - 1,
+                        bits, len(universe), len(selection_x),
                     )
-                    for local_field, (field_seed, outside) in enumerate(fields):
-                        field = global_field
-                        global_field += 1
-                        outside_sha256 = digest_object([value.key() for value in outside])
-                        probability_law = {
-                            "name": "independent_bernoulli",
-                            "logical_ber": probability,
-                            "outside_population_size": len(outside_universe),
-                            "candidate_probability": probability,
-                            "target_support": "all subsets of unprotected eligible coordinates",
-                        }
-                        law_sha256 = digest_object(probability_law)
-                        pairing_key = digest_object({
-                            "phase": phase, "logical_ber": probability, "field": field,
-                            "replicate": replicate, "seed": field_seed,
-                            "outside_sha256": outside_sha256,
-                            "sample_sha256": partition.sample_sha256,
-                            "protection_context_sha256": context.record["identity_sha256"],
-                        })
-                        oracle_background_records.append({
-                            "phase": phase, "logical_ber": probability, "field": field,
-                            "replicate": replicate, "local_field": local_field,
-                            "seed": field_seed, "outside_event_count": len(outside),
-                            "outside_events": [value.key() for value in outside],
-                            "outside_sha256": outside_sha256,
-                            "sample_sha256": partition.sample_sha256,
-                            "pairing_key": pairing_key,
-                            "probability_law": probability_law,
-                            "probability_law_sha256": law_sha256,
-                            "protection_context_sha256": context.record["identity_sha256"],
-                        })
-                        table = {}
-                        for state in states:
-                            state_bits = tuple(candidates[index] for index in state)
-                            schedule = _schedule(
-                                probability, field_seed, (*outside, *state_bits),
-                                len(universe), len(inputs),
-                            )
-                            risk, report, cache_hit = exact_risk(inputs, labels, schedule, cache)
-                            completed += 1
-                            if progress is not None:
-                                progress(
-                                    f"restricted oracle: {phase} field {field + 1}/{total_fields}",
-                                    completed, total,
-                                )
-                            table[state] = risk
-                            oracle_response_records.append({
-                                "phase": phase, "logical_ber": probability,
-                                "field": field, "replicate": replicate,
-                                "local_field": local_field, "field_seed": field_seed,
-                                "candidate_state": list(state),
-                                "candidate_bits": [candidates[index].key() for index in state],
-                                "outside_background_sha256": outside_sha256,
+                    risk, report, cache_hit = exact_risk(
+                        selection_x, selection_y, schedule, selection_cache
+                    )
+                    completed += 1
+                    if progress is not None:
+                        progress("restricted oracle: isolated model-selection states", completed, total)
+                    isolated_table[state] = risk
+                    oracle_response_records.append({
+                        "phase": "model_selection_isolated", "logical_ber": probability,
+                        "field": -1, "field_seed": schedule.seed,
+                        "candidate_state": list(state),
+                        "candidate_bits": [candidates[index].key() for index in state],
+                        "outside_background_sha256": digest_object([]),
+                        "risk": risk, "schedule_sha256": schedule.digest(),
+                        "proposed_events": report.proposed_events,
+                        "applied_events": report.applied_events,
+                        "suppressed_events": report.suppressed_events,
+                        "unique_applied_bits": report.unique_applied_bits,
+                        "cache_hit": cache_hit,
+                    })
+
+                def response_tables(
+                    phase, inputs, labels, partition, count, base_seeds, cache,
+                ):
+                    nonlocal completed
+                    tables = []
+                    total_fields = count * len(base_seeds)
+                    global_field = 0
+                    for replicate, base_seed in enumerate(base_seeds):
+                        probability_seed = base_seed + probability_index * 10_000_019
+                        fields = _master_backgrounds(
+                            outside_universe, probability, count, probability_seed
+                        )
+                        for local_field, (field_seed, outside) in enumerate(fields):
+                            field = global_field
+                            global_field += 1
+                            outside_sha256 = digest_object([value.key() for value in outside])
+                            probability_law = {
+                                "name": "independent_bernoulli",
+                                "logical_ber": probability,
+                                "outside_population_size": len(outside_universe),
+                                "candidate_probability": probability,
+                                "target_support": "all subsets of unprotected eligible coordinates",
+                            }
+                            law_sha256 = digest_object(probability_law)
+                            pairing_key = digest_object({
+                                "phase": phase, "logical_ber": probability, "field": field,
+                                "replicate": replicate, "seed": field_seed,
+                                "outside_sha256": outside_sha256,
+                                "sample_sha256": partition.sample_sha256,
+                                "protection_context_sha256": context.record["identity_sha256"],
+                            })
+                            oracle_background_records.append({
+                                "phase": phase, "logical_ber": probability, "field": field,
+                                "replicate": replicate, "local_field": local_field,
+                                "seed": field_seed, "outside_event_count": len(outside),
+                                "outside_events": [value.key() for value in outside],
+                                "outside_sha256": outside_sha256,
+                                "sample_sha256": partition.sample_sha256,
                                 "pairing_key": pairing_key,
+                                "probability_law": probability_law,
                                 "probability_law_sha256": law_sha256,
                                 "protection_context_sha256": context.record["identity_sha256"],
-                                "risk": risk, "schedule_sha256": schedule.digest(),
-                                "proposed_events": report.proposed_events,
-                                "applied_events": report.applied_events,
-                                "suppressed_events": report.suppressed_events,
-                                "unique_applied_bits": report.unique_applied_bits,
-                                "cache_hit": cache_hit,
                             })
-                        diagnostics = response_table_diagnostics(
-                            table, len(candidates), configuration.restricted_oracle.budget,
-                            probability,
-                        )
-                        oracle_derived_records.append({
-                            "phase": phase, "logical_ber": probability, "field": field,
-                            "replicate": replicate, "local_field": local_field,
-                            "pairing_key": pairing_key,
-                            "response_table_sha256": digest_object([
-                                {"state": list(state), "risk": table[state]} for state in states
-                            ]),
-                            "conditional_marginals": {
-                                candidates[index].key(): value
-                                for index, value in diagnostics["conditional_marginals"].items()
-                            },
-                            "mask_risks": [{
-                                "indices": list(mask),
-                                "risk": risk,
-                            } for mask, risk in sorted(diagnostics["mask_risks"].items())],
-                            "pairwise_mask_differences": [{
-                                "left_indices": list(pair[0]),
-                                "right_indices": list(pair[1]),
-                                "left_minus_right": value,
-                            } for pair, value in sorted(
-                                diagnostics["pairwise_mask_differences"].items()
-                            )],
-                        })
-                        tables.append(table)
-                return tuple(tables)
+                            table = {}
+                            for state in states:
+                                state_bits = tuple(candidates[index] for index in state)
+                                schedule = _schedule(
+                                    probability, field_seed, (*outside, *state_bits),
+                                    len(universe), len(inputs),
+                                )
+                                risk, report, cache_hit = exact_risk(inputs, labels, schedule, cache)
+                                completed += 1
+                                if progress is not None:
+                                    progress(
+                                        f"restricted oracle: {phase} field {field + 1}/{total_fields}",
+                                        completed, total,
+                                    )
+                                table[state] = risk
+                                oracle_response_records.append({
+                                    "phase": phase, "logical_ber": probability,
+                                    "field": field, "replicate": replicate,
+                                    "local_field": local_field, "field_seed": field_seed,
+                                    "candidate_state": list(state),
+                                    "candidate_bits": [candidates[index].key() for index in state],
+                                    "outside_background_sha256": outside_sha256,
+                                    "pairing_key": pairing_key,
+                                    "probability_law_sha256": law_sha256,
+                                    "protection_context_sha256": context.record["identity_sha256"],
+                                    "risk": risk, "schedule_sha256": schedule.digest(),
+                                    "proposed_events": report.proposed_events,
+                                    "applied_events": report.applied_events,
+                                    "suppressed_events": report.suppressed_events,
+                                    "unique_applied_bits": report.unique_applied_bits,
+                                    "cache_hit": cache_hit,
+                                })
+                            diagnostics = response_table_diagnostics(
+                                table, len(candidates), configuration.restricted_oracle.budget,
+                                probability,
+                            )
+                            oracle_derived_records.append({
+                                "phase": phase, "logical_ber": probability, "field": field,
+                                "replicate": replicate, "local_field": local_field,
+                                "pairing_key": pairing_key,
+                                "response_table_sha256": digest_object([
+                                    {"state": list(state), "risk": table[state]} for state in states
+                                ]),
+                                "conditional_marginals": {
+                                    candidates[index].key(): value
+                                    for index, value in diagnostics["conditional_marginals"].items()
+                                },
+                                "mask_risks": [{
+                                    "indices": list(mask),
+                                    "risk": risk,
+                                } for mask, risk in sorted(diagnostics["mask_risks"].items())],
+                                "pairwise_mask_differences": [{
+                                    "left_indices": list(pair[0]),
+                                    "right_indices": list(pair[1]),
+                                    "left_minus_right": value,
+                                } for pair, value in sorted(
+                                    diagnostics["pairwise_mask_differences"].items()
+                                )],
+                            })
+                            tables.append(table)
+                    return tuple(tables)
 
-            calibration_tables = response_tables(
-                "model_selection", selection_x, selection_y, selection_partition,
-                configuration.restricted_oracle.calibration_background_count,
-                configuration.restricted_oracle.selection_seeds, selection_cache,
-            )
-            held_out_tables = response_tables(
-                "held_out_evaluation", evaluation_x, evaluation_y, evaluation_partition,
-                configuration.restricted_oracle.evaluation_background_count,
-                (configuration.restricted_oracle.evaluation_seed,), evaluation_cache,
-            )
-            analysis = analyze_restricted_response_tables(
-                calibration_tables, held_out_tables, isolated_table,
-                candidate_count=len(candidates),
-                budget=configuration.restricted_oracle.budget,
-                probability=probability,
-                original_mask=(
-                    context.original_inside_indices if context.mode != "none" else None
-                ),
-            )
-            selected = tuple(analysis["selected_mask"])
-            isolated_mask = tuple(analysis["isolated_mask"])
-            original_mask = tuple(analysis["original_mask"])
-            posthoc = tuple(analysis["posthoc_held_out_optimum_mask"])
-            selected_risks = tuple(analysis["held_out_selected_field_risks"])
-            isolated_risks = tuple(analysis["held_out_isolated_field_risks"])
-            original_risks = tuple(analysis["held_out_original_field_risks"])
-            posthoc_risks = tuple(analysis["held_out_posthoc_optimum_field_risks"])
-            paired_selected_minus_isolated = tuple(
-                left - right for left, right in zip(selected_risks, isolated_risks)
-            )
-            paired_selected_minus_original = tuple(
-                left - right for left, right in zip(selected_risks, original_risks)
-            )
-            paired_isolated_minus_original = tuple(
-                left - right for left, right in zip(isolated_risks, original_risks)
-            )
-            posthoc_regret = tuple(
-                left - right for left, right in zip(selected_risks, posthoc_risks)
-            )
-            stability = selection_stability_diagnostics(
-                calibration_tables,
-                candidate_count=len(candidates),
-                budget=configuration.restricted_oracle.budget,
-                probability=probability,
-            )
-            comparison_indices = {
-                "restricted_selected_vs_original_s5": (original_mask, selected),
-                "restricted_selected_vs_exact_isolated": (isolated_mask, selected),
-                "exact_isolated_vs_original_s5": (original_mask, isolated_mask),
-            }
-            table_equivalence = []
-            for field, table in enumerate(held_out_tables):
-                for comparison, (baseline_indices, target_indices) in comparison_indices.items():
-                    derived = swap_contrast_from_response_table(
-                        table, len(candidates), probability,
-                        baseline_indices, target_indices,
+                calibration_tables = response_tables(
+                    "model_selection", selection_x, selection_y, selection_partition,
+                    configuration.restricted_oracle.calibration_background_count,
+                    configuration.restricted_oracle.selection_seeds, selection_cache,
+                )
+                if mode == "selection_only":
+                    row = selection_summary(
+                        calibration_tables, isolated_table, candidates,
+                        configuration.restricted_oracle.budget, probability,
+                        context.original_inside_indices,
+                        configuration.restricted_oracle.selection_seeds,
+                        configuration.restricted_oracle.calibration_background_count,
                     )
-                    table_equivalence.append({
-                        "field": field,
-                        "comparison": comparison,
-                        **derived,
-                    })
+                    row["global_protection_cardinality"] = len(context.original)
+                    oracle_summaries.append(row)
+                    continue
+                held_out_tables = response_tables(
+                    "held_out_evaluation", evaluation_x, evaluation_y, evaluation_partition,
+                    configuration.restricted_oracle.evaluation_background_count,
+                    (configuration.restricted_oracle.evaluation_seed,), evaluation_cache,
+                )
+                analysis = analyze_restricted_response_tables(
+                    calibration_tables, held_out_tables, isolated_table,
+                    candidate_count=len(candidates),
+                    budget=configuration.restricted_oracle.budget,
+                    probability=probability,
+                    original_mask=(
+                        context.original_inside_indices if context.mode != "none" else None
+                    ),
+                )
+                selected = tuple(analysis["selected_mask"])
+                isolated_mask = tuple(analysis["isolated_mask"])
+                original_mask = tuple(analysis["original_mask"])
+                posthoc = tuple(analysis["posthoc_held_out_optimum_mask"])
+                selected_risks = tuple(analysis["held_out_selected_field_risks"])
+                isolated_risks = tuple(analysis["held_out_isolated_field_risks"])
+                original_risks = tuple(analysis["held_out_original_field_risks"])
+                posthoc_risks = tuple(analysis["held_out_posthoc_optimum_field_risks"])
+                paired_selected_minus_isolated = tuple(
+                    left - right for left, right in zip(selected_risks, isolated_risks)
+                )
+                paired_selected_minus_original = tuple(
+                    left - right for left, right in zip(selected_risks, original_risks)
+                )
+                paired_isolated_minus_original = tuple(
+                    left - right for left, right in zip(isolated_risks, original_risks)
+                )
+                posthoc_regret = tuple(
+                    left - right for left, right in zip(selected_risks, posthoc_risks)
+                )
+                stability = selection_stability_diagnostics(
+                    calibration_tables,
+                    candidate_count=len(candidates),
+                    budget=configuration.restricted_oracle.budget,
+                    probability=probability,
+                )
+                comparison_indices = {
+                    "restricted_selected_vs_original_s5": (original_mask, selected),
+                    "restricted_selected_vs_exact_isolated": (isolated_mask, selected),
+                    "exact_isolated_vs_original_s5": (original_mask, isolated_mask),
+                }
+                table_equivalence = []
+                for field, table in enumerate(held_out_tables):
+                    for comparison, (baseline_indices, target_indices) in comparison_indices.items():
+                        derived = swap_contrast_from_response_table(
+                            table, len(candidates), probability,
+                            baseline_indices, target_indices,
+                        )
+                        table_equivalence.append({
+                            "field": field,
+                            "comparison": comparison,
+                            **derived,
+                        })
 
             if configuration.paired_swap_evaluation.enabled:
                 paired_configuration = configuration.paired_swap_evaluation
@@ -843,6 +897,8 @@ def execute_conditional_damage(
                             "before uncertainty aggregation"
                         ),
                     })
+            if mode == "final_only":
+                continue
             oracle_summaries.append({
                 "logical_ber": probability,
                 "candidate_count": len(candidates),
@@ -942,6 +998,7 @@ def execute_conditional_damage(
             "6.1.0": "netsurf-exact-conditional-protection/v2",
             "6.2.0": "netsurf-contextual-exact-conditional-protection/v3",
             "6.3.0": "netsurf-paired-swap-held-out-protection/v4",
+            "6.4.0": "netsurf-frozen-selection-protection/v5",
         }[configuration.schema_version],
         "scientific_protocol": configuration.scientific_protocol,
         "experiment": configuration.name,
@@ -958,17 +1015,7 @@ def execute_conditional_damage(
         "partition_diagnostics": partition_diagnostics,
         "complete_window_diagnostics": complete_window_diagnostics,
         "sample_identities": {
-            "calibration": list(_sample_identity_records(
-                calibration_x, calibration_y, calibration_partition
-            )),
-            "held_out_evaluation": list(_sample_identity_records(
-                evaluation_x, evaluation_y, evaluation_partition
-            )),
-            **({
-                "model_selection": list(_sample_identity_records(
-                    model_selection_data[0], model_selection_data[1], model_selection_data[2]
-                ))
-            } if model_selection_data is not None else {}),
+            name: list(_sample_identity_records(*data)) for name, data in sample_data.items()
         },
         "risk": {
             "name": configuration.risk_metric,
@@ -1059,6 +1106,52 @@ def execute_conditional_damage(
             ),
         },
     }
+    if configuration.workflow:
+        payload["workflow"] = {k: v for k, v in configuration.workflow.items() if k != "selection_bundle"}
+        payload["exposure_audit"] = exposure
+        payload["candidate_population"]["selection"] = configuration.workflow["candidate_provenance"]
+        payload["risk"]["definition"] = (
+            "exact Bernoulli-integrated cross-entropy for every fixed-budget candidate mask"
+            if mode == "selection_only" else "J_p(target)-J_p(baseline), exact paired-swap field estimator"
+        )
+        payload["background_design"]["calibration_fields"] = 0
+        payload["background_design"]["held_out_fields"] = 0
+        payload["operation_counts"] = operation_counts
+        payload["checks"]["final_samples_accessed"] = mode != "selection_only"
+        payload["checks"]["final_fields_generated"] = mode != "selection_only"
+        if mode == "selection_only":
+            frozen = {
+                "schema_version": "1.0.0",
+                "contract": selection_contract(configuration),
+                "sample_identities": payload["sample_identities"]["model_selection"],
+                "sample_partition": {**payload["partitions"]["model_selection"],
+                                     "indices": list(partitions["model_selection"].indices)},
+                "protection_context_sha256": context.record["identity_sha256"],
+                "eligible_population_sha256": digest_object([b.key() for b in universe]),
+                "selection_background_records_sha256": digest_object(oracle_background_records),
+                "masks": [{
+                    "logical_ber": row["logical_ber"],
+                    "selected": row["selected_mask_indices"],
+                    "isolated": row["isolated_mask_indices"],
+                    "original": row["original_mask_indices"],
+                } for row in oracle_summaries],
+            }
+            payload["frozen_selection"] = frozen
+            payload["frozen_selection_sha256"] = digest_object(frozen)
+        else:
+            payload["frozen_selection"] = frozen_source
+            payload["frozen_selection_sha256"] = digest_object(frozen_source)
+            payload["comparison_family"] = {
+                "primary": configuration.paired_swap_evaluation.comparisons[0],
+                "secondary": list(configuration.paired_swap_evaluation.comparisons[1:]),
+                "interval": "two-sided Student-t on whole-path field contrasts",
+                "multiplicity": "Bonferroni simultaneous family intervals in addition to marginal intervals",
+            }
+            family_confidence = 1 - (1 - configuration.execution.confidence) / len(paired_swap_summaries)
+            for row in paired_swap_summaries:
+                values = [r["target_minus_baseline"] for r in paired_swap_field_records
+                          if r["comparison"] == row["comparison"] and r["logical_ber"] == row["logical_ber"]]
+                row["familywise_target_minus_baseline"] = summarize(values, confidence=family_confidence).to_dict()
     return ConditionalOutcome(
         configuration, payload, partitions, tuple(candidate_records), tuple(backgrounds),
         tuple(measurements), tuple(summaries), tuple(rank_comparisons),

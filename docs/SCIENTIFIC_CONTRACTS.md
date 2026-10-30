@@ -329,3 +329,29 @@ independent. Selection stability over finite model-selection fields is
 descriptive; it is not uncertainty over final fault fields, input sampling, or
 independently trained models. Negative contrasts and beneficial faults remain
 valid observations.
+
+## M9.5.6 publication preflight
+
+Schema 6.4 selection-only execution never requests final-window inputs, scans
+final-window labels, generates final fields, or reports final performance.
+It finalizes exact model-selection tables and frozen equal-budget masks.
+Final-only execution verifies that artifact and its complete construction and
+prespecified final-plan identities before accessing final inputs. It cannot
+rerun selection or choose a post-hoc final optimum. The earlier joint workflow
+remains available under its historical schemas.
+
+The audited M953–M955 smokes exposed original KWS indices 3048–3065, including
+the M955 six-clip validation. The new final template reserves 3066–3193;
+confirmation mode rejects known ledger overlaps and prior finalized schema-6.4
+final exposures under its output root. Aggregate clean-reference inference
+and earlier label audits mean these data are not inference-naive. External,
+failed and concurrent executions still require researcher exposure accounting.
+
+The historical eight-bit pool is exploratory and is not a random population
+sample. Independent final inputs/fields do not remove pool-selection bias.
+Selection stability describes finite outside-field sensitivity, whereas final
+Student-t intervals describe whole-path master-field uncertainty conditional
+on frozen inputs, model and masks. The primary selected-minus-S5 contrast and
+two secondary contrasts are frozen; additional Bonferroni intervals cover the
+three-contrast family. No population-wide optimality or physical reliability
+claim follows. See `docs/M956_PUBLICATION_PREFLIGHT.md`.

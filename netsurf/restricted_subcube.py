@@ -265,17 +265,16 @@ def selection_stability_diagnostics(
     }
 
 
-def analyze_restricted_response_tables(
+def select_response_tables(
     calibration_tables: Sequence[Mapping[tuple[int, ...], float]],
-    held_out_tables: Sequence[Mapping[tuple[int, ...], float]],
     isolated_table: Mapping[tuple[int, ...], float],
     *, candidate_count: int, budget: int, probability: float,
     original_mask: tuple[int, ...] | None = None,
 ) -> dict[str, object]:
-    """Select on calibration tables and retain paired held-out field risks."""
+    """Existing exact selector, callable without providing any held-out outcomes."""
 
-    if not calibration_tables or not held_out_tables:
-        raise ValueError("calibration and held-out response tables must be nonempty")
+    if not calibration_tables:
+        raise ValueError("calibration response tables must be nonempty")
     masks = fixed_budget_masks(candidate_count, budget)
     calibration_fields = {
         mask: tuple(
@@ -298,6 +297,32 @@ def analyze_restricted_response_tables(
         original_mask = isolated_mask
     if original_mask not in masks:
         raise ValueError("original mask must be an eligible fixed-budget candidate mask")
+    return {
+        "selected_mask": selected, "isolated_mask": isolated_mask,
+        "original_mask": original_mask, "isolated_damages": isolated_damages,
+        "calibration_field_risks": calibration_fields,
+        "calibration_mean_risks": calibration_means,
+    }
+
+
+def analyze_restricted_response_tables(
+    calibration_tables: Sequence[Mapping[tuple[int, ...], float]],
+    held_out_tables: Sequence[Mapping[tuple[int, ...], float]],
+    isolated_table: Mapping[tuple[int, ...], float],
+    *, candidate_count: int, budget: int, probability: float,
+    original_mask: tuple[int, ...] | None = None,
+) -> dict[str, object]:
+    """Select on calibration tables and retain paired held-out field risks."""
+    if not calibration_tables or not held_out_tables:
+        raise ValueError("calibration and held-out response tables must be nonempty")
+    selection = select_response_tables(
+        calibration_tables, isolated_table, candidate_count=candidate_count,
+        budget=budget, probability=probability, original_mask=original_mask,
+    )
+    masks = fixed_budget_masks(candidate_count, budget)
+    selected = selection["selected_mask"]
+    isolated_mask = selection["isolated_mask"]
+    original_mask = selection["original_mask"]
     held_out_selected = tuple(
         integrate_response_table(table, candidate_count, probability, protected=selected)
         for table in held_out_tables
@@ -326,9 +351,9 @@ def analyze_restricted_response_tables(
         "isolated_mask": isolated_mask,
         "original_mask": original_mask,
         "posthoc_held_out_optimum_mask": posthoc_held_out_optimum,
-        "isolated_damages": isolated_damages,
-        "calibration_field_risks": calibration_fields,
-        "calibration_mean_risks": calibration_means,
+        "isolated_damages": selection["isolated_damages"],
+        "calibration_field_risks": selection["calibration_field_risks"],
+        "calibration_mean_risks": selection["calibration_mean_risks"],
         "held_out_selected_field_risks": held_out_selected,
         "held_out_isolated_field_risks": held_out_isolated,
         "held_out_original_field_risks": held_out_original,
