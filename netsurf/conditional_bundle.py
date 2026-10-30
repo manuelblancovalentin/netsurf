@@ -15,6 +15,7 @@ from .result_bundle import ResultBundleError, _inventory, _write_bytes, _write_c
 
 def _report(outcome: ConditionalOutcome) -> str:
     payload = outcome.scientific_payload
+    interval_label = f"{100.0 * outcome.configuration.execution.confidence:g}% CI"
     lines = [
         f"# {outcome.configuration.name}", "",
         outcome.configuration.description, "",
@@ -28,7 +29,7 @@ def _report(outcome: ConditionalOutcome) -> str:
         "on this frozen model, fixed candidate list, fixed sample partition, and logical BER. "
         "They are not uncertainty over models, candidate sampling, or physical radiation.", "",
         "## Conditional-damage estimates", "",
-        "| Split | Logical BER | Candidate | Isolated damage | Conditional mean | 95% CI | Negative fields |",
+        f"| Split | Logical BER | Candidate | Isolated damage | Conditional mean | {interval_label} | Negative fields |",
         "|---|---:|---|---:|---:|---:|---:|",
     ]
     measurements = outcome.measurements

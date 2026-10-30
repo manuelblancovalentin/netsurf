@@ -280,10 +280,20 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         raise ConditionalConfigurationError("restricted oracle is bounded to at most 12 candidates")
     if oracle.calibration_seed == oracle.evaluation_seed:
         raise ConditionalConfigurationError("restricted-oracle calibration/evaluation seeds must differ")
+    if oracle.enabled:
+        raise ConditionalConfigurationError(
+            "restricted_oracle execution is not wired into schema-6 bundles; use the bounded "
+            "select_restricted_subcube_mask API with separately constructed calibration and "
+            "held-out background risks"
+        )
 
     raw_output = _table(document, "output")
     _keys(raw_output, {"root", "report", "plots"}, set(), "output")
     root = str(raw_output["root"]).strip()
+    if bool(raw_output["plots"]):
+        raise ConditionalConfigurationError(
+            "schema-6 does not yet define plot artifacts; output.plots must be false"
+        )
     output = OutputConfiguration(
         workspace_root() / "runs" if not root else _path(root, source),
         bool(raw_output["report"]), bool(raw_output["plots"]),
