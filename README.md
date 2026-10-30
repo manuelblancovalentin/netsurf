@@ -6,6 +6,12 @@ canonical `netsurf` package is the reconstructed, side-effect-free v2 core.
 The recovered 2025 implementation and its notebooks are preserved under
 `DEPRECATED/` and are evidence, not the current scientific specification.
 
+The isolated M9.6 implementation adds a frozen, probability-sampled KWS
+cross-pool campaign interface (`python -m netsurf campaign --help`). The full
+study remains researcher-run: see [protocol and commands](docs/M96_CROSS_POOL_PROTOCOL.md).
+The [audited benchmark roadmap](docs/BENCHMARK_EXPANSION_ROADMAP.md) distinguishes
+verified static adapters from conditional-protocol, data and precision blockers.
+
 ## Kona setup
 
 The private `proj` project is named `netsurf` and points to this repository and

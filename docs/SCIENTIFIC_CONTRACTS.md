@@ -380,3 +380,22 @@ no overlap in that inventory; unknown manual/failed/concurrent exposure
 remains a disclosure obligation. The exploratory eight-bit pool cannot support
 population-wide protection-superiority claims. See
 `docs/M957_FROZEN_MASK_REPLICATION.md` for hashes, costs and execution gates.
+
+## M9.6 probability-sampled cross-pool generalization
+
+Schema 6.6 wraps the existing exact selector and paired-swap evaluator, without
+changing the underlying Bernoulli law or XOR semantics. A hashed campaign fixes
+all pools, source S5 allocation, data windows, seeds, field counts and analytical
+family before final outcomes. Two protected and four unprotected bits are drawn
+uniformly within source-status strata, independently across pools, without
+outcome-based rejection. All comparisons retain the original global bit budget.
+All selection artifacts must be sealed before any final evaluation.
+
+The primary generalization unit is the candidate pool, conditional on a shared
+fixed input set. Field and shared-input uncertainty are reported separately;
+crossed bootstrap diagnostics are approximate and explicitly assumption-limited.
+The estimand is over the prespecified pool design, not uniformly sampled bits,
+arbitrary architectures, global optimality, or physical upset exposure. Adverse
+and zero-effect pools remain included. Known prior fault-exposed test indices
+are rejected for confirmation; unknown manual/concurrent exposure still requires
+disclosure. Existing final bundles and 6.0–6.5 behavior remain unchanged.

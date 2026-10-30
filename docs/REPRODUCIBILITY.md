@@ -707,3 +707,16 @@ M956 selection. All new artifacts stay in the implementation workspace.
 See `docs/M957_FROZEN_MASK_REPLICATION.md` for the exact pinned-interpreter
 commands, cost estimate, exposure audit, optional per-input diagnostics,
 bounded validation results and ZIP/Mac handoff commands.
+
+## M9.6 cross-pool campaign
+
+The isolated `m96-cross-pool` worktree contains a frozen twelve-pool K=6 KWS plan,
+not a completed campaign. Use `python -m netsurf campaign validate MANIFEST`,
+`campaign run MANIFEST --phase selection`, `campaign seal MANIFEST`, then
+`campaign run MANIFEST --phase final`. Authoritative execution requires the
+explicit `/projects/kona-assets/manuelbv/.venv-mlperf/bin/python` interpreter.
+Use canonical Python for offline `campaign aggregate MANIFEST --output NEW`.
+Do not run the production plan as a test. Full foreground commands, hashed
+evidence, operational batching, interrupted-attempt behavior, exposure audit and
+costs are in `docs/M96_CROSS_POOL_PROTOCOL.md`. No package installation, model
+conversion, asset-lock modification or GPU is required.

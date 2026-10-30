@@ -1,5 +1,11 @@
 # Roadmap
 
+M9.6 adds probability-sampled cross-pool experiment orchestration, not a new
+optimizer. The twelve-pool study is frozen but unrun; engineering evidence and
+costs are in `M96_CROSS_POOL_PROTOCOL.md`. The complete 11-family/18-precision
+onboarding plan and separate future hardware workstream are in
+`BENCHMARK_EXPANSION_ROADMAP.md` and `config/benchmark_expansion_registry.json`.
+
 ## M0 — preservation and foundation
 
 - [x] Preserve dirty-state provenance, recover remote `master`, and create neutral branch `v2`.
