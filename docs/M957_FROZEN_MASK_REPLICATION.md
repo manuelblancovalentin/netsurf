@@ -281,6 +281,19 @@ normal approximation is silently substituted.
 Sample engineering report:
 `workspace/scratch/pytest-m957-pinned-complete/test_pinned_kws_replication_no0/runs/m957_engineering_replication/20261030T175108.112878Z-6827319a/report.md`.
 
+Implementation commit: `c94ee4b12e83f443cc00b6f27480e3432f8cb0ed`.
+A clean-commit CLI execution of
+`workspace/scratch/m957_engineering_verified.toml` also reproduced the exact
+`5689cc2c...91eb46` payload above. Its permanent engineering bundle/report is:
+`workspace/runs/m957_engineering_replication/20261030T175853.286800Z-37fd64da/report.md`.
+The CLI reached 18/18 actual path requests. This used no new confirmation
+samples. All 20 inventoried historical conditional bundles were fully reverified
+after development, and all 23 historical checksums inventories are unchanged.
+Both author and committer are the configured researcher. The canonical `v2`
+HEAD remains `031c307413d6436a09a4714fd300d46fddfe8f51`; the M956 worktree
+remains clean at `9a96d5e`. No dependencies were installed, no locks changed,
+and nothing was merged or pushed.
+
 ```bash
 /mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m pytest -q --tb=short
 /projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m pytest -q \
