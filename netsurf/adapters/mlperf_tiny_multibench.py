@@ -381,10 +381,18 @@ class MlperfTinyKwsDscnnAdapter(_ExactTFLiteKernelAdapter):
     input_shape = (49, 10, 1)
     output_shape = (12,)
 
+    _M953_TEST_WINDOWS = {
+        "conditional_calibration": (1000, 1024),
+        "conditional_model_selection": (2024, 1024),
+        "conditional_final_evaluation": (3048, 1842),
+    }
+
     def __init__(self, *args, split="official_subset_1000", **kwargs):
-        if split not in {"official_subset_1000", "test"}:
-            raise ValueError("KWS split must be official_subset_1000 or test")
+        if split not in {"official_subset_1000", "test", "full_test_4890"}:
+            raise ValueError("KWS split must be official_subset_1000, test, or full_test_4890")
         super().__init__(*args, split=split, **kwargs)
+        self._record_cache: dict[str, list[tuple[np.ndarray, int]]] = {}
+        self._record_iterators: dict[str, Iterator[dict]] = {}
 
     @staticmethod
     def _features(audio: np.ndarray) -> np.ndarray:
@@ -417,16 +425,21 @@ class MlperfTinyKwsDscnnAdapter(_ExactTFLiteKernelAdapter):
         )
         if not paths:
             raise AssetLockError(f"asset lock has no Speech Commands {split} shards")
-        result = []
-        for example in interleaved_examples(paths):
+        result = self._record_cache.setdefault(split, [])
+        iterator = self._record_iterators.setdefault(
+            split, iter(interleaved_examples(paths))
+        )
+        while len(result) < stop:
+            try:
+                example = next(iterator)
+            except StopIteration:
+                break
             audio = np.asarray(example["audio"], dtype=np.int16)
             label = int(np.asarray(example["label"]).reshape(-1)[0])
             result.append((audio, label))
-            if len(result) >= stop:
-                break
-        if len(result) != stop:
+        if len(result) < stop:
             raise ValueError(f"Speech Commands {split} contains fewer than {stop} examples")
-        return result
+        return result[:stop]
 
     def sample_partition(self, role: str, count: int, *, offset: int = 0):
         split_by_role = {
@@ -434,20 +447,36 @@ class MlperfTinyKwsDscnnAdapter(_ExactTFLiteKernelAdapter):
             "empirical_validation": "validation",
             "evaluation": "test", "final_evaluation": "test",
         }
-        if role not in split_by_role or count < 1 or offset < 0:
+        m953_window = self._M953_TEST_WINDOWS.get(role)
+        if m953_window is not None:
+            if self.split != "full_test_4890":
+                raise ValueError(
+                    f"KWS role {role!r} requires benchmark split full_test_4890"
+                )
+            start, capacity = m953_window
+            if count < 1 or offset < 0 or offset + count > capacity:
+                raise ValueError(
+                    f"KWS role {role!r} permits relative indices [0,{capacity}); "
+                    f"requested offset={offset}, count={count}"
+                )
+            split = "test"
+            original_offset = start + offset
+        elif role not in split_by_role or count < 1 or offset < 0:
             raise ValueError(f"unsupported or invalid KWS sample partition: {role}")
-        split = split_by_role[role]
-        if split == "test" and self.split == "official_subset_1000" and offset + count > 1000:
-            raise ValueError("official KWS evaluation subset contains 1000 samples")
-        selected = self._records(split, offset + count)[offset:]
+        else:
+            split = split_by_role[role]
+            original_offset = offset
+            if split == "test" and self.split == "official_subset_1000" and offset + count > 1000:
+                raise ValueError("official KWS evaluation subset contains 1000 samples")
+        selected = self._records(split, original_offset + count)[original_offset:]
         features = np.stack([self._features(audio) for audio, _ in selected]).astype(np.float32)
         labels = np.asarray([label for _, label in selected], dtype=np.int64)
         input_detail = self._interpreter.get_input_details()[0]
         scale, zero_point = input_detail["quantization"]
         encoded = np.asarray(features / scale + zero_point, dtype=np.int8)
-        indices = tuple(range(offset, offset + count))
+        indices = tuple(range(original_offset, original_offset + count))
         identity = f"speech_commands_tfds_{split}_interleaved_blocks16"
-        if split == "test" and offset + count <= 1000:
+        if split == "test" and indices[-1] < 1000:
             index_path = self.asset_lock.file(self.index_relative_path)
             with index_path.open("r", encoding="utf-8", newline="") as stream:
                 rows = tuple(csv.reader(stream))
@@ -457,7 +486,13 @@ class MlperfTinyKwsDscnnAdapter(_ExactTFLiteKernelAdapter):
         return encoded, labels, SamplePartition(
             role, identity, indices,
             sample_identity_digest(identity, indices, labels),
-            "Pinned TFDS shard order: round-robin blocks of 16; exact TF signal MFCC preprocessing",
+            (
+                "Pinned TFDS shard order: round-robin blocks of 16; exact TF signal MFCC "
+                "preprocessing; M9.5.3 excludes prior official indices 0-999 and uses fixed "
+                "same-distribution windows 1000:2024, 2024:3048, and 3048:4890"
+                if m953_window is not None else
+                "Pinned TFDS shard order: round-robin blocks of 16; exact TF signal MFCC preprocessing"
+            ),
         )
 
     def dataset(self, count: int, *, role="evaluation"):

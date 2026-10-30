@@ -58,8 +58,14 @@ class _FakeExactAdapter:
         return None
 
     def sample_partition(self, role, count, *, offset=0):
+        bases = {
+            "conditional_calibration": 1000,
+            "conditional_model_selection": 2024,
+            "conditional_final_evaluation": 3048,
+        }
         split = "train" if role == "calibration" else "test"
-        indices = tuple(range(offset, offset + count))
+        original_offset = bases.get(role, offset)
+        indices = tuple(range(original_offset, original_offset + count))
         labels = np.zeros(count, dtype=np.int64)
         return (
             np.zeros((count, 1), dtype=np.int8), labels,
@@ -125,6 +131,31 @@ def _configuration(tmp_path: Path, probability: float) -> ConditionalConfigurati
     )
 
 
+def _oracle_configuration(tmp_path: Path, probability: float) -> ConditionalConfiguration:
+    configuration = _configuration(tmp_path, probability)
+    return ConditionalConfiguration(
+        "6.1.0", "exact-conditional-protection/v2", "oracle-test", "test", "test",
+        BenchmarkConfiguration(
+            configuration.benchmark.adapter, configuration.benchmark.id,
+            configuration.benchmark.checkpoint, configuration.benchmark.dataset,
+            "full_test_4890", 0, 0, configuration.benchmark.quantization,
+            configuration.benchmark.quantization_backend,
+            configuration.benchmark.injectable_parameters,
+            configuration.benchmark.asset_lock, configuration.benchmark.inference_backend,
+        ),
+        ConditionalSamples(
+            2, 2, 0, 0, True,
+            "conditional_calibration", "conditional_model_selection", 2, 0,
+            "conditional_final_evaluation",
+        ),
+        configuration.risk_metric, configuration.risk_direction,
+        configuration.candidates, configuration.backgrounds, configuration.execution,
+        RestrictedOracleConfiguration(True, 1, 2, 3, 303, 404),
+        configuration.output, configuration.source_path,
+        "schema_version = \"6.1.0\"\n",
+    )
+
+
 def test_zero_ber_equals_isolated_and_common_pairing_excludes_candidate(tmp_path):
     adapter = _FakeExactAdapter()
     before = adapter.values()
@@ -169,3 +200,26 @@ def test_conditional_bundle_is_finalized_and_checksum_verified(tmp_path):
         create_conditional_bundle(
             outcome, repository_root=Path(__file__).resolve().parents[1], run_id="bounded-test"
         )
+
+
+def test_restricted_oracle_execution_is_paired_deterministic_and_bundled(tmp_path):
+    configuration = _oracle_configuration(tmp_path, 0.25)
+    first = execute_conditional_damage(configuration, adapter=_FakeExactAdapter())
+    second = execute_conditional_damage(configuration, adapter=_FakeExactAdapter())
+    assert first.scientific_payload_sha256 == second.scientific_payload_sha256
+    assert len(first.oracle_summaries) == 1
+    summary = first.oracle_summaries[0]
+    assert summary["requested_state_evaluations"] == 3 + (2 + 3) * 4
+    assert summary["posthoc_held_out_optimum_is_selection_valid"] is False
+    assert len(first.oracle_response_records) == summary["requested_state_evaluations"]
+    assert first.scientific_payload["checks"]["state_restored"] is True
+    identities = first.scientific_payload["sample_identities"]
+    assert {row["original_index"] for row in identities["calibration"]}.isdisjoint(
+        row["original_index"] for row in identities["model_selection"]
+    )
+    destination = create_conditional_bundle(
+        first, repository_root=Path(__file__).resolve().parents[1], run_id="oracle-test"
+    )
+    verify_conditional_bundle(destination)
+    assert (destination / "measurements/restricted_oracle_responses.csv").is_file()
+    assert (destination / "artifacts/restricted_oracle_masks.json").is_file()

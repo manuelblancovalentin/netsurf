@@ -87,3 +87,11 @@ paired encoded-XOR measurements of `D_b(G) = R(G ∪ {b}) - R(G)` with the
 candidate excluded from `G`. Its executable validator is
 `netsurf.conditional_config.load_conditional`. It does not select a global
 protection mask or redefine an existing susceptibility estimator.
+
+Same-distribution conditional-protection schema `6.1.0` adds three explicit,
+nonoverlapping KWS test-population windows, a model-selection-only exact
+restricted-subcube mask, and independently seeded final-evaluation outside
+backgrounds. It records every `2^K` response, exact candidate and outside-bit
+identities, the isolated-bit comparator mask, paired held-out risk differences,
+and post-hoc restricted regret with an explicit selection-bias warning. The
+restricted optimum is never described as a whole-network optimum.

@@ -57,10 +57,31 @@ def _report(outcome: ConditionalOutcome) -> str:
             f"{row['strict_rank_reversals']}/{row['strict_comparable_pairs']} strict pairwise "
             f"reversals; average-rank Spearman {correlation_text}."
         )
+    if outcome.oracle_summaries:
+        lines.extend(["", "## Restricted protection oracle", ""])
+        lines.extend([
+            "The empirically optimized mask is selected exclusively on the model-selection "
+            "partition and its independently seeded outside-background fields. Held-out "
+            "selected-minus-isolated differences are paired by outside field. The reported "
+            "held-out optimum is post-hoc diagnostic information and is not a valid selected "
+            "policy or an unbiased confirmation estimate.", "",
+            "| BER | K | Budget | Selected mask | Isolated mask | Held-out selected risk | Selected - isolated | Post-hoc regret |",
+            "|---:|---:|---:|---|---|---:|---:|---:|",
+        ])
+        for row in outcome.oracle_summaries:
+            lines.append(
+                f"| {row['logical_ber']:.3g} | {row['candidate_count']} | {row['budget']} | "
+                f"`{', '.join(row['selected_mask_bits'])}` | "
+                f"`{', '.join(row['isolated_mask_bits'])}` | "
+                f"{row['held_out_selected_risk']['mean']:.8g} | "
+                f"{row['held_out_selected_minus_isolated']['mean']:.8g} | "
+                f"{row['posthoc_held_out_regret']['mean']:.8g} |"
+            )
     lines.extend([
         "", "## Limitations", "",
-        "This bounded candidate study does not estimate a population-wide ranking, does not "
-        "optimize a protection mask, and does not establish causal architectural mechanisms. "
+        "This bounded candidate study does not estimate a population-wide ranking or establish "
+        "causal architectural mechanisms. The restricted oracle selects a mask only within the "
+        "explicit candidate subcube; it does not optimize over the full network bit population. "
         "Logical BER is not a calibrated SEU rate, and exact TFLite XOR damage is authoritative; "
         "no float-shadow perturbation is used.", "",
         "## Reproduction", "",
@@ -89,7 +110,7 @@ def create_conditional_bundle(
         _write_json(staging / "resolved_config.json", outcome.configuration.resolved_document())
         _write_json(staging / "scientific_payload.json", outcome.scientific_payload)
         _write_json(staging / "summary.json", {
-            "schema_version": "6.0.0",
+            "schema_version": outcome.configuration.schema_version,
             "scientific_protocol": outcome.configuration.scientific_protocol,
             "experiment_name": outcome.configuration.name,
             "benchmark_id": outcome.configuration.benchmark.id,
@@ -98,6 +119,7 @@ def create_conditional_bundle(
             "background_field_count": len(outcome.background_records),
             "conditional_estimates": list(outcome.summaries),
             "rank_comparisons": list(outcome.rank_comparisons),
+            "restricted_oracle": list(outcome.oracle_summaries),
             "scientific_payload_sha256": outcome.scientific_payload_sha256,
         })
         _write_csv(staging / "measurements/conditional_damage.csv", [
@@ -109,13 +131,13 @@ def create_conditional_bundle(
             "background_applied_events", "background_suppressed_events", "background_unique_applied_bits",
             "candidate_proposed_events", "candidate_applied_events", "candidate_suppressed_events",
             "candidate_unique_applied_bits", "empty_proposed_events", "isolated_proposed_events",
-        ], ({"schema_version": "6.0.0", **row} for row in outcome.measurements))
+        ], ({"schema_version": outcome.configuration.schema_version, **row} for row in outcome.measurements))
         _write_csv(staging / "measurements/conditional_summary.csv", [
             "schema_version", "split", "sample_sha256", "logical_ber", "candidate", "parameter",
             "flat_index", "bit_index", "isolated_damage", "conditional_mean", "conditional_std",
             "conditional_se", "ci_low", "ci_high", "background_field_count", "uncertainty_unit",
         ], ({
-            "schema_version": "6.0.0", "split": row["split"],
+            "schema_version": outcome.configuration.schema_version, "split": row["split"],
             "sample_sha256": row["sample_sha256"], "logical_ber": row["logical_ber"],
             "candidate": row["candidate"], "parameter": row["parameter"],
             "flat_index": row["flat_index"], "bit_index": row["bit_index"],
@@ -131,13 +153,30 @@ def create_conditional_bundle(
         _write_json(staging / "artifacts/candidates.json", list(outcome.candidate_records))
         _write_json(staging / "artifacts/background_fields.json", list(outcome.background_records))
         _write_json(staging / "artifacts/rank_comparisons.json", list(outcome.rank_comparisons))
+        if outcome.oracle_response_records:
+            _write_csv(staging / "measurements/restricted_oracle_responses.csv", [
+                "schema_version", "phase", "logical_ber", "field", "field_seed",
+                "candidate_state", "candidate_bits", "outside_background_sha256",
+                "risk", "schedule_sha256", "proposed_events", "applied_events",
+                "suppressed_events", "unique_applied_bits", "cache_hit",
+            ], ({"schema_version": outcome.configuration.schema_version, **row}
+                for row in outcome.oracle_response_records))
+            _write_json(
+                staging / "artifacts/restricted_oracle_backgrounds.json",
+                list(outcome.oracle_background_records),
+            )
+            _write_json(
+                staging / "artifacts/restricted_oracle_masks.json",
+                list(outcome.oracle_summaries),
+            )
         if outcome.configuration.output.report:
             _write_bytes(staging / "report.md", _report(outcome).encode("utf-8"))
         manifest = {
-            "schema_version": "6.0.0", "run_id": identifier, "status": "complete",
+            "schema_version": outcome.configuration.schema_version,
+            "run_id": identifier, "status": "complete",
             "source": git_provenance(repository_root.resolve()),
             "runtime": runtime_provenance(),
-            "versions": {"netsurf": __version__, "conditional_schema": "6.0.0",
+            "versions": {"netsurf": __version__, "conditional_schema": outcome.configuration.schema_version,
                          "scientific_protocol": outcome.configuration.scientific_protocol},
             "benchmark": {
                 **outcome.configuration.resolved_document()["benchmark"],
@@ -154,7 +193,7 @@ def create_conditional_bundle(
         }
         _write_json(staging / "manifest.json", manifest)
         _write_json(staging / "checksums.json", {
-            "schema_version": "6.0.0",
+            "schema_version": outcome.configuration.schema_version,
             "files": {row["path"]: row["sha256"] for row in _inventory(staging)},
         })
         _write_bytes(staging / "FINALIZED", (
@@ -173,7 +212,7 @@ def verify_conditional_bundle(path: str | Path) -> dict[str, object]:
         raise ResultBundleError(f"not a finalized conditional bundle: {root}")
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     checksums = json.loads((root / "checksums.json").read_text(encoding="utf-8"))
-    if manifest.get("schema_version") != "6.0.0":
+    if manifest.get("schema_version") not in {"6.0.0", "6.1.0"}:
         raise ResultBundleError(f"unsupported conditional manifest: {manifest.get('schema_version')!r}")
     for relative, expected in checksums["files"].items():
         actual = sha256_file(root / relative)

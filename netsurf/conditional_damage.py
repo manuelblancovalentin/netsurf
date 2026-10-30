@@ -20,6 +20,7 @@ from .protection import ProtectionMask
 from .samples import SamplePartition, require_disjoint
 from .statistics import summarize
 from .task_metrics import evaluation_contract
+from .restricted_subcube import analyze_restricted_response_tables, subcube_states
 
 
 @dataclass(frozen=True)
@@ -32,6 +33,9 @@ class ConditionalOutcome:
     measurements: tuple[Mapping[str, Any], ...]
     summaries: tuple[Mapping[str, Any], ...]
     rank_comparisons: tuple[Mapping[str, Any], ...]
+    oracle_response_records: tuple[Mapping[str, Any], ...]
+    oracle_background_records: tuple[Mapping[str, Any], ...]
+    oracle_summaries: tuple[Mapping[str, Any], ...]
     runtime_seconds: float
 
     @property
@@ -48,6 +52,20 @@ def _state_sha256(values: Mapping[str, np.ndarray]) -> str:
         digest.update(repr(tuple(value.shape)).encode("ascii")); digest.update(b"\0")
         digest.update(value.tobytes(order="C"))
     return digest.hexdigest()
+
+
+def _sample_identity_records(
+    inputs: np.ndarray, labels: np.ndarray, partition: SamplePartition,
+) -> tuple[dict[str, Any], ...]:
+    return tuple({
+        "sample_id": f"{partition.source_split}:{index}",
+        "source_split": partition.source_split,
+        "original_index": int(index),
+        "label": int(label),
+        "encoded_input_sha256": hashlib.sha256(
+            np.ascontiguousarray(sample).tobytes(order="C")
+        ).hexdigest(),
+    } for sample, label, index in zip(inputs, labels, partition.indices))
 
 
 def _model(probability: float) -> FaultModel:
@@ -160,17 +178,26 @@ def execute_conditional_damage(
     benchmark = adapter or create_adapter(configuration, None)
     benchmark.load()
     calibration_x, calibration_y, calibration_partition = benchmark.sample_partition(
-        "calibration", configuration.samples.calibration_count,
+        configuration.samples.calibration_role, configuration.samples.calibration_count,
         offset=configuration.samples.calibration_offset,
     )
     evaluation_x, evaluation_y, evaluation_partition = benchmark.sample_partition(
-        "final_evaluation", configuration.samples.evaluation_count,
+        configuration.samples.evaluation_role, configuration.samples.evaluation_count,
         offset=configuration.samples.evaluation_offset,
     )
     partitions = {
         "calibration": calibration_partition,
         "held_out_evaluation": evaluation_partition,
     }
+    model_selection_data = None
+    if configuration.samples.model_selection_role is not None:
+        selection_x, selection_y, selection_partition = benchmark.sample_partition(
+            configuration.samples.model_selection_role,
+            configuration.samples.model_selection_count,
+            offset=configuration.samples.model_selection_offset,
+        )
+        partitions["model_selection"] = selection_partition
+        model_selection_data = (selection_x, selection_y, selection_partition)
     if configuration.samples.require_disjoint:
         require_disjoint(tuple(partitions.values()))
 
@@ -212,11 +239,22 @@ def execute_conditional_damage(
         for _name, (_x, _y, _partition, count, _seed) in split_data.items()
         for _probability in configuration.backgrounds.probabilities
     )
+    if configuration.restricted_oracle.enabled:
+        total += len(configuration.backgrounds.probabilities) * (
+            len(configuration.candidates) + 1
+            + (
+                configuration.restricted_oracle.calibration_background_count
+                + configuration.restricted_oracle.evaluation_background_count
+            ) * (2 ** len(configuration.candidates))
+        )
     completed = 0
     measurements = []
     backgrounds = []
     summaries = []
     rank_comparisons = []
+    oracle_response_records: list[dict[str, Any]] = []
+    oracle_background_records: list[dict[str, Any]] = []
+    oracle_summaries: list[dict[str, Any]] = []
     empty_mask = ProtectionMask("no_protection", frozenset(), len(universe), 0.0, {})
 
     for split, (inputs, labels, partition, field_count, split_seed) in split_data.items():
@@ -326,12 +364,209 @@ def execute_conditional_damage(
                 _rank_summary(split, probability, isolated_by_candidate, conditional_by_candidate)
             )
 
+    if configuration.restricted_oracle.enabled:
+        if model_selection_data is None:
+            raise ValueError("restricted oracle requires an explicit model-selection partition")
+        selection_x, selection_y, selection_partition = model_selection_data
+        candidates = configuration.candidates
+        candidate_set = set(candidates)
+        outside_universe = tuple(value for value in universe if value not in candidate_set)
+        states = subcube_states(len(candidates))
+
+        for probability_index, probability in enumerate(configuration.backgrounds.probabilities):
+            selection_cache: dict[str, tuple[float, InjectionReport]] = {}
+            evaluation_cache: dict[str, tuple[float, InjectionReport]] = {}
+
+            def exact_risk(inputs, labels, schedule, cache):
+                key = schedule.digest()
+                hit = key in cache
+                if not hit:
+                    result, report = benchmark.evaluate_fault_schedule(
+                        inputs, labels, schedule, empty_mask
+                    )
+                    if report.proposed_events != report.applied_events + report.suppressed_events:
+                        raise RuntimeError(
+                            "restricted-oracle event accounting violated: "
+                            "proposed != applied + suppressed"
+                        )
+                    cache[key] = (_risk_value(result, configuration.risk_metric), report)
+                risk, report = cache[key]
+                return risk, report, hit
+
+            isolated_table: dict[tuple[int, ...], float] = {}
+            for state in ((), *((index,) for index in range(len(candidates)))):
+                bits = tuple(candidates[index] for index in state)
+                schedule = _schedule(
+                    probability,
+                    configuration.restricted_oracle.calibration_seed - 1,
+                    bits, len(universe), len(selection_x),
+                )
+                risk, report, cache_hit = exact_risk(
+                    selection_x, selection_y, schedule, selection_cache
+                )
+                completed += 1
+                if progress is not None:
+                    progress("restricted oracle: isolated model-selection states", completed, total)
+                isolated_table[state] = risk
+                oracle_response_records.append({
+                    "phase": "model_selection_isolated", "logical_ber": probability,
+                    "field": -1, "field_seed": schedule.seed,
+                    "candidate_state": list(state),
+                    "candidate_bits": [candidates[index].key() for index in state],
+                    "outside_background_sha256": digest_object([]),
+                    "risk": risk, "schedule_sha256": schedule.digest(),
+                    "proposed_events": report.proposed_events,
+                    "applied_events": report.applied_events,
+                    "suppressed_events": report.suppressed_events,
+                    "unique_applied_bits": report.unique_applied_bits,
+                    "cache_hit": cache_hit,
+                })
+
+            def response_tables(
+                phase, inputs, labels, partition, count, base_seed, cache,
+            ):
+                nonlocal completed
+                probability_seed = base_seed + probability_index * 10_000_019
+                fields = _master_backgrounds(
+                    outside_universe, probability, count, probability_seed
+                )
+                tables = []
+                for field, (field_seed, outside) in enumerate(fields):
+                    outside_sha256 = digest_object([value.key() for value in outside])
+                    oracle_background_records.append({
+                        "phase": phase, "logical_ber": probability, "field": field,
+                        "seed": field_seed, "outside_event_count": len(outside),
+                        "outside_events": [value.key() for value in outside],
+                        "outside_sha256": outside_sha256,
+                        "sample_sha256": partition.sample_sha256,
+                    })
+                    table = {}
+                    for state in states:
+                        state_bits = tuple(candidates[index] for index in state)
+                        schedule = _schedule(
+                            probability, field_seed, (*outside, *state_bits),
+                            len(universe), len(inputs),
+                        )
+                        risk, report, cache_hit = exact_risk(inputs, labels, schedule, cache)
+                        completed += 1
+                        if progress is not None:
+                            progress(
+                                f"restricted oracle: {phase} field {field + 1}/{count}",
+                                completed, total,
+                            )
+                        table[state] = risk
+                        oracle_response_records.append({
+                            "phase": phase, "logical_ber": probability,
+                            "field": field, "field_seed": field_seed,
+                            "candidate_state": list(state),
+                            "candidate_bits": [candidates[index].key() for index in state],
+                            "outside_background_sha256": outside_sha256,
+                            "risk": risk, "schedule_sha256": schedule.digest(),
+                            "proposed_events": report.proposed_events,
+                            "applied_events": report.applied_events,
+                            "suppressed_events": report.suppressed_events,
+                            "unique_applied_bits": report.unique_applied_bits,
+                            "cache_hit": cache_hit,
+                        })
+                    tables.append(table)
+                return tuple(tables)
+
+            calibration_tables = response_tables(
+                "model_selection", selection_x, selection_y, selection_partition,
+                configuration.restricted_oracle.calibration_background_count,
+                configuration.restricted_oracle.calibration_seed, selection_cache,
+            )
+            held_out_tables = response_tables(
+                "held_out_evaluation", evaluation_x, evaluation_y, evaluation_partition,
+                configuration.restricted_oracle.evaluation_background_count,
+                configuration.restricted_oracle.evaluation_seed, evaluation_cache,
+            )
+            analysis = analyze_restricted_response_tables(
+                calibration_tables, held_out_tables, isolated_table,
+                candidate_count=len(candidates),
+                budget=configuration.restricted_oracle.budget,
+                probability=probability,
+            )
+            selected = tuple(analysis["selected_mask"])
+            isolated_mask = tuple(analysis["isolated_mask"])
+            posthoc = tuple(analysis["posthoc_held_out_optimum_mask"])
+            selected_risks = tuple(analysis["held_out_selected_field_risks"])
+            isolated_risks = tuple(analysis["held_out_isolated_field_risks"])
+            posthoc_risks = tuple(analysis["held_out_posthoc_optimum_field_risks"])
+            paired_selected_minus_isolated = tuple(
+                left - right for left, right in zip(selected_risks, isolated_risks)
+            )
+            posthoc_regret = tuple(
+                left - right for left, right in zip(selected_risks, posthoc_risks)
+            )
+            oracle_summaries.append({
+                "logical_ber": probability,
+                "candidate_count": len(candidates),
+                "budget": configuration.restricted_oracle.budget,
+                "selected_mask_indices": list(selected),
+                "selected_mask_bits": [candidates[index].key() for index in selected],
+                "isolated_mask_indices": list(isolated_mask),
+                "isolated_mask_bits": [candidates[index].key() for index in isolated_mask],
+                "posthoc_held_out_optimum_indices": list(posthoc),
+                "posthoc_held_out_optimum_bits": [candidates[index].key() for index in posthoc],
+                "posthoc_held_out_optimum_is_selection_valid": False,
+                "model_selection_risk": summarize(
+                    analysis["calibration_field_risks"][selected],
+                    confidence=configuration.execution.confidence,
+                    bounds=(0.0, math.inf),
+                ).to_dict(),
+                "held_out_selected_risk": summarize(
+                    selected_risks, confidence=configuration.execution.confidence,
+                    bounds=(0.0, math.inf),
+                ).to_dict(),
+                "held_out_isolated_risk": summarize(
+                    isolated_risks, confidence=configuration.execution.confidence,
+                    bounds=(0.0, math.inf),
+                ).to_dict(),
+                "held_out_selected_minus_isolated": summarize(
+                    paired_selected_minus_isolated,
+                    confidence=configuration.execution.confidence,
+                ).to_dict(),
+                "posthoc_held_out_regret": summarize(
+                    posthoc_regret, confidence=configuration.execution.confidence,
+                ).to_dict(),
+                "calibration_background_fields": len(calibration_tables),
+                "held_out_background_fields": len(held_out_tables),
+                "requested_state_evaluations": (
+                    len(candidates) + 1
+                    + (len(calibration_tables) + len(held_out_tables)) * len(states)
+                ),
+                "unique_model_selection_inferences": len(selection_cache),
+                "unique_held_out_inferences": len(evaluation_cache),
+                "isolated_damage_by_bit": {
+                    candidates[index].key(): value
+                    for index, value in analysis["isolated_damages"].items()
+                },
+                "eligible_masks": [{
+                    "indices": list(mask),
+                    "bits": [candidates[index].key() for index in mask],
+                    "model_selection_mean_risk": risk,
+                    "model_selection_regret": risk - min(
+                        analysis["calibration_mean_risks"].values()
+                    ),
+                } for mask, risk in sorted(analysis["calibration_mean_risks"].items())],
+                "interpretation": (
+                    "selected mask is chosen only on model-selection samples/backgrounds; "
+                    "held-out selected-minus-isolated is paired and confirmatory; posthoc "
+                    "held-out optimum/regret is diagnostic and selection-biased"
+                ),
+            })
+
     final_state_sha256 = _state_sha256(benchmark.values())
     if final_state_sha256 != initial_state_sha256:
         raise RuntimeError("benchmark state differs after conditional-damage evaluation")
 
     payload = {
-        "schema": "netsurf-exact-conditional-damage/v1",
+        "schema": (
+            "netsurf-exact-conditional-protection/v2"
+            if configuration.schema_version == "6.1.0"
+            else "netsurf-exact-conditional-damage/v1"
+        ),
         "scientific_protocol": configuration.scientific_protocol,
         "experiment": configuration.name,
         "benchmark": {
@@ -344,6 +579,19 @@ def execute_conditional_damage(
             },
         },
         "partitions": {name: value.to_dict() for name, value in partitions.items()},
+        "sample_identities": {
+            "calibration": list(_sample_identity_records(
+                calibration_x, calibration_y, calibration_partition
+            )),
+            "held_out_evaluation": list(_sample_identity_records(
+                evaluation_x, evaluation_y, evaluation_partition
+            )),
+            **({
+                "model_selection": list(_sample_identity_records(
+                    model_selection_data[0], model_selection_data[1], model_selection_data[2]
+                ))
+            } if model_selection_data is not None else {}),
+        },
         "risk": {
             "name": configuration.risk_metric,
             "direction": configuration.risk_direction,
@@ -367,6 +615,17 @@ def execute_conditional_damage(
         "measurements_sha256": digest_object(measurements),
         "summaries": summaries,
         "rank_comparisons": rank_comparisons,
+        "restricted_oracle": {
+            "enabled": configuration.restricted_oracle.enabled,
+            "definition": (
+                "exact 2^K candidate-subcube integration under Bernoulli candidate faults "
+                "for each independently sampled outside-network background"
+            ),
+            "true_global_optimum_computed": False,
+            "summaries": oracle_summaries,
+            "response_records_sha256": digest_object(oracle_response_records),
+            "background_records_sha256": digest_object(oracle_background_records),
+        },
         "checks": {
             "partitions_disjoint": True,
             "exact_encoded_xor": True,
@@ -381,12 +640,22 @@ def execute_conditional_damage(
             "conditional_interval": "variation across independent Bernoulli background fields conditional on model, samples, candidates and probability",
             "evaluation_files": "fixed within each named split",
             "candidate_sampling": "none; fixed prespecified candidates",
-            "ranker_replications": "not applicable; no mask is selected in Phase 1",
+            "ranker_replications": (
+                "one deterministic restricted mask selected on model-selection data"
+                if configuration.restricted_oracle.enabled else
+                "not applicable; no mask is selected in Phase 1"
+            ),
+            "restricted_oracle": (
+                "paired outside-background fields; selected mask fixed using model-selection "
+                "data before held-out evaluation"
+            ),
         },
     }
     return ConditionalOutcome(
         configuration, payload, partitions, tuple(candidate_records), tuple(backgrounds),
-        tuple(measurements), tuple(summaries), tuple(rank_comparisons), monotonic() - started,
+        tuple(measurements), tuple(summaries), tuple(rank_comparisons),
+        tuple(oracle_response_records), tuple(oracle_background_records),
+        tuple(oracle_summaries), monotonic() - started,
     )
 
 

@@ -14,7 +14,9 @@ from .paths import workspace_root
 
 
 CONDITIONAL_SCHEMA_VERSION = "6.0.0"
+CONDITIONAL_SCHEMA_VERSION_6_1 = "6.1.0"
 CONDITIONAL_PROTOCOL = "exact-conditional-damage/v1"
+CONDITIONAL_PROTOCOL_6_1 = "exact-conditional-protection/v2"
 
 
 class ConditionalConfigurationError(ValueError):
@@ -28,6 +30,11 @@ class ConditionalSamples:
     calibration_offset: int
     evaluation_offset: int
     require_disjoint: bool
+    calibration_role: str = "calibration"
+    model_selection_role: str | None = None
+    model_selection_count: int = 0
+    model_selection_offset: int = 0
+    evaluation_role: str = "final_evaluation"
 
 
 @dataclass(frozen=True)
@@ -73,6 +80,26 @@ class ConditionalConfiguration:
     source_path: Path
     source_text: str
 
+    def operation_counts(self) -> dict[str, int]:
+        conditional = len(self.backgrounds.probabilities) * (
+            len(self.candidates) * (1 + 2 * self.backgrounds.calibration_count) + 1
+            + len(self.candidates) * (1 + 2 * self.backgrounds.evaluation_count) + 1
+        )
+        oracle = 0
+        if self.restricted_oracle.enabled:
+            oracle = len(self.backgrounds.probabilities) * (
+                len(self.candidates) + 1
+                + (
+                    self.restricted_oracle.calibration_background_count
+                    + self.restricted_oracle.evaluation_background_count
+                ) * (2 ** len(self.candidates))
+            )
+        return {
+            "conditional_requested_evaluations": conditional,
+            "restricted_oracle_requested_evaluations": oracle,
+            "total_requested_evaluations": conditional + oracle,
+        }
+
     def resolved_document(self) -> dict[str, Any]:
         return {
             "schema_version": self.schema_version,
@@ -102,6 +129,7 @@ class ConditionalConfiguration:
             "execution": asdict(self.execution),
             "restricted_oracle": asdict(self.restricted_oracle),
             "output": asdict(self.output) | {"root": str(self.output.root)},
+            "operation_counts": self.operation_counts(),
         }
 
 
@@ -143,11 +171,16 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         {"restricted_oracle"},
         "root",
     )
-    if document["schema_version"] != CONDITIONAL_SCHEMA_VERSION:
+    schema_version = str(document["schema_version"])
+    if schema_version not in {CONDITIONAL_SCHEMA_VERSION, CONDITIONAL_SCHEMA_VERSION_6_1}:
         raise ConditionalConfigurationError(
             f"unsupported conditional schema: {document['schema_version']!r}"
         )
-    if document["scientific_protocol"] != CONDITIONAL_PROTOCOL:
+    expected_protocol = (
+        CONDITIONAL_PROTOCOL_6_1
+        if schema_version == CONDITIONAL_SCHEMA_VERSION_6_1 else CONDITIONAL_PROTOCOL
+    )
+    if document["scientific_protocol"] != expected_protocol:
         raise ConditionalConfigurationError(
             f"unsupported conditional protocol: {document['scientific_protocol']!r}"
         )
@@ -193,15 +226,24 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
     )
 
     raw_samples = _table(document, "samples")
-    _keys(
-        raw_samples,
-        {"calibration_count", "evaluation_count", "calibration_offset", "evaluation_offset", "require_disjoint"},
-        set(), "samples",
-    )
+    sample_required = {
+        "calibration_count", "evaluation_count", "calibration_offset",
+        "evaluation_offset", "require_disjoint",
+    }
+    sample_61 = {
+        "calibration_role", "model_selection_role", "model_selection_count",
+        "model_selection_offset", "evaluation_role",
+    }
+    _keys(raw_samples, sample_required | (sample_61 if schema_version == CONDITIONAL_SCHEMA_VERSION_6_1 else set()), set(), "samples")
     samples = ConditionalSamples(
         int(raw_samples["calibration_count"]), int(raw_samples["evaluation_count"]),
         int(raw_samples["calibration_offset"]), int(raw_samples["evaluation_offset"]),
         bool(raw_samples["require_disjoint"]),
+        str(raw_samples.get("calibration_role", "calibration")),
+        (str(raw_samples["model_selection_role"]) if "model_selection_role" in raw_samples else None),
+        int(raw_samples.get("model_selection_count", 0)),
+        int(raw_samples.get("model_selection_offset", 0)),
+        str(raw_samples.get("evaluation_role", "final_evaluation")),
     )
     if samples.calibration_count < 1 or samples.evaluation_count < 1:
         raise ConditionalConfigurationError("sample counts must be positive")
@@ -209,6 +251,38 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         raise ConditionalConfigurationError("sample offsets must be nonnegative")
     if not samples.require_disjoint:
         raise ConditionalConfigurationError("M9.5 requires disjoint calibration and held-out evaluation")
+    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_1:
+        expected_roles = (
+            "conditional_calibration", "conditional_model_selection",
+            "conditional_final_evaluation",
+        )
+        observed_roles = (
+            samples.calibration_role, samples.model_selection_role, samples.evaluation_role,
+        )
+        if observed_roles != expected_roles:
+            raise ConditionalConfigurationError(
+                f"schema 6.1 requires same-distribution roles {expected_roles}, observed {observed_roles}"
+            )
+        if samples.model_selection_count < 1 or samples.model_selection_offset < 0:
+            raise ConditionalConfigurationError("schema 6.1 model-selection count must be positive and offset nonnegative")
+        if raw_benchmark["split"] != "full_test_4890":
+            raise ConditionalConfigurationError("schema 6.1 KWS studies require benchmark.split=full_test_4890")
+        window_capacities = {
+            "calibration": 1024,
+            "model-selection": 1024,
+            "final-evaluation": 1842,
+        }
+        requested_windows = {
+            "calibration": (samples.calibration_offset, samples.calibration_count),
+            "model-selection": (samples.model_selection_offset, samples.model_selection_count),
+            "final-evaluation": (samples.evaluation_offset, samples.evaluation_count),
+        }
+        for name, (offset, count) in requested_windows.items():
+            if offset + count > window_capacities[name]:
+                raise ConditionalConfigurationError(
+                    f"schema 6.1 {name} offset+count exceeds its fixed "
+                    f"same-distribution window capacity {window_capacities[name]}"
+                )
 
     raw_risk = _table(document, "risk")
     _keys(raw_risk, {"metric", "direction"}, set(), "risk")
@@ -280,7 +354,11 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         raise ConditionalConfigurationError("restricted oracle is bounded to at most 12 candidates")
     if oracle.calibration_seed == oracle.evaluation_seed:
         raise ConditionalConfigurationError("restricted-oracle calibration/evaluation seeds must differ")
-    if oracle.enabled:
+    if oracle.enabled and (
+        oracle.calibration_background_count < 1 or oracle.evaluation_background_count < 1
+    ):
+        raise ConditionalConfigurationError("restricted-oracle background counts must be positive")
+    if oracle.enabled and schema_version == CONDITIONAL_SCHEMA_VERSION:
         raise ConditionalConfigurationError(
             "restricted_oracle execution is not wired into schema-6 bundles; use the bounded "
             "select_restricted_subcube_mask API with separately constructed calibration and "
@@ -299,7 +377,7 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         bool(raw_output["report"]), bool(raw_output["plots"]),
     )
     return ConditionalConfiguration(
-        CONDITIONAL_SCHEMA_VERSION, CONDITIONAL_PROTOCOL,
+        schema_version, expected_protocol,
         str(experiment["name"]), str(experiment["description"]), str(experiment["objective"]),
         benchmark, samples, str(raw_risk["metric"]), str(raw_risk["direction"]),
         tuple(candidates), backgrounds, execution, oracle, output, source, text,
