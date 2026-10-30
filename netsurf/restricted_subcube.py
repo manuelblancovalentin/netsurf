@@ -62,11 +62,71 @@ def integrate_response_table(
     return total
 
 
+def conditional_marginal_from_table(
+    responses: Mapping[tuple[int, ...], float], candidate_count: int,
+    probability: float, candidate: int, *, protected: tuple[int, ...] = (),
+) -> float:
+    """Integrate R(S union {b})-R(S) over all other unprotected candidates."""
+
+    if not 0 <= candidate < candidate_count:
+        raise IndexError(candidate)
+    protected_set = set(protected)
+    if len(protected_set) != len(protected):
+        raise ValueError("protected indices must be unique")
+    if not protected_set <= set(range(candidate_count)):
+        raise ValueError("protected indices must be candidate indices")
+    protected_set.discard(candidate)
+    states = subcube_states(candidate_count)
+    if set(responses) != set(states):
+        raise ValueError("response table is incomplete")
+    others = tuple(
+        index for index in range(candidate_count)
+        if index != candidate and index not in protected_set
+    )
+    value = mass_total = 0.0
+    for enabled in itertools.product((0, 1), repeat=len(others)):
+        base = tuple(others[index] for index, present in enumerate(enabled) if present)
+        count = len(base)
+        mass = probability**count * (1.0 - probability) ** (len(others) - count)
+        value += mass * (responses[tuple(sorted((*base, candidate)))] - responses[base])
+        mass_total += mass
+    if abs(mass_total - 1.0) > 1e-12:
+        raise ArithmeticError(f"conditional probability mass does not normalize: {mass_total}")
+    return value
+
+
+def response_table_diagnostics(
+    responses: Mapping[tuple[int, ...], float], candidate_count: int,
+    budget: int, probability: float,
+) -> dict[str, object]:
+    """Derive all fixed-budget risks, marginals and paired differences without inference."""
+
+    masks = fixed_budget_masks(candidate_count, budget)
+    risks = {
+        mask: integrate_response_table(
+            responses, candidate_count, probability, protected=mask
+        ) for mask in masks
+    }
+    marginals = {
+        index: conditional_marginal_from_table(
+            responses, candidate_count, probability, index
+        ) for index in range(candidate_count)
+    }
+    differences = {
+        (left, right): risks[left] - risks[right]
+        for left_index, left in enumerate(masks)
+        for right in masks[left_index + 1:]
+    }
+    return {"mask_risks": risks, "conditional_marginals": marginals,
+            "pairwise_mask_differences": differences}
+
+
 def analyze_restricted_response_tables(
     calibration_tables: Sequence[Mapping[tuple[int, ...], float]],
     held_out_tables: Sequence[Mapping[tuple[int, ...], float]],
     isolated_table: Mapping[tuple[int, ...], float],
     *, candidate_count: int, budget: int, probability: float,
+    original_mask: tuple[int, ...] | None = None,
 ) -> dict[str, object]:
     """Select on calibration tables and retain paired held-out field risks."""
 
@@ -90,12 +150,20 @@ def analyze_restricted_response_tables(
     isolated_mask = tuple(sorted(
         sorted(range(candidate_count), key=lambda index: (-isolated_damages[index], index))[:budget]
     ))
+    if original_mask is None:
+        original_mask = isolated_mask
+    if original_mask not in masks:
+        raise ValueError("original mask must be an eligible fixed-budget candidate mask")
     held_out_selected = tuple(
         integrate_response_table(table, candidate_count, probability, protected=selected)
         for table in held_out_tables
     )
     held_out_isolated = tuple(
         integrate_response_table(table, candidate_count, probability, protected=isolated_mask)
+        for table in held_out_tables
+    )
+    held_out_original = tuple(
+        integrate_response_table(table, candidate_count, probability, protected=original_mask)
         for table in held_out_tables
     )
     # This optimum is diagnostic only: it is computed after exposing held-out responses.
@@ -112,12 +180,14 @@ def analyze_restricted_response_tables(
     return {
         "selected_mask": selected,
         "isolated_mask": isolated_mask,
+        "original_mask": original_mask,
         "posthoc_held_out_optimum_mask": posthoc_held_out_optimum,
         "isolated_damages": isolated_damages,
         "calibration_field_risks": calibration_fields,
         "calibration_mean_risks": calibration_means,
         "held_out_selected_field_risks": held_out_selected,
         "held_out_isolated_field_risks": held_out_isolated,
+        "held_out_original_field_risks": held_out_original,
         "held_out_posthoc_optimum_field_risks": held_out_by_mask[posthoc_held_out_optimum],
         "held_out_posthoc_optimum_is_selection_valid": False,
     }

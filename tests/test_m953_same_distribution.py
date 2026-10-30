@@ -13,6 +13,9 @@ from netsurf.samples import require_disjoint
 ROOT = Path(__file__).resolve().parents[1]
 K6 = ROOT / "config/examples/m953_kws_restricted_k6_smoke.toml"
 K8 = ROOT / "config/examples/m953_kws_restricted_k8_template.toml"
+M954_CONTROL = ROOT / "config/examples/m954_kws_restricted_k8_control.toml"
+M954_CONTEXT = ROOT / "config/examples/m954_kws_s5_context_k8.toml"
+M954_SMOKE = ROOT / "config/examples/m954_kws_context_k6_smoke.toml"
 
 
 def test_schema_61_examples_validate_and_expose_cost_before_execution():
@@ -87,4 +90,30 @@ def test_schema_61_rejects_non_target_population_role(tmp_path):
     path = tmp_path / "bad.toml"
     path.write_text(text, encoding="utf-8")
     with pytest.raises(ConditionalConfigurationError, match="same-distribution roles"):
+        load_conditional(path, check_inputs=False)
+
+
+def test_schema_62_examples_validate_costs_and_fresh_final_indices():
+    control = load_conditional(M954_CONTROL, check_inputs=False)
+    context = load_conditional(M954_CONTEXT, check_inputs=False)
+    smoke = load_conditional(M954_SMOKE, check_inputs=False)
+    assert control.schema_version == context.schema_version == smoke.schema_version == "6.2.0"
+    assert control.protection_context.mode == "none"
+    assert context.protection_context.mode == "verified_global_mask"
+    assert context.protection_context.expected_population_size == 176128
+    assert context.protection_context.expected_global_cardinality == 22016
+    assert control.samples.evaluation_offset == context.samples.evaluation_offset == 6
+    assert control.operation_counts()["total_requested_evaluations"] == 1755
+    assert context.operation_counts()["total_requested_evaluations"] == 1755
+    assert smoke.operation_counts()["total_requested_evaluations"] == 365
+
+
+def test_schema_62_rejects_reuse_of_exposed_final_examples(tmp_path):
+    path = tmp_path / "reuse.toml"
+    path.write_text(
+        M954_CONTROL.read_text(encoding="utf-8").replace(
+            "evaluation_offset = 6", "evaluation_offset = 0"
+        ), encoding="utf-8",
+    )
+    with pytest.raises(ConditionalConfigurationError, match="previously exposed"):
         load_conditional(path, check_inputs=False)

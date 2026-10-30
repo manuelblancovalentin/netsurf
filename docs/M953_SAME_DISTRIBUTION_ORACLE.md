@@ -50,7 +50,8 @@ paired contrast is
 Negative values favor the restricted mask. A post-hoc best held-out mask and
 its regret are retained only as a diagnostic. They are explicitly marked as
 selection-biased and cannot be presented as a valid selected policy. No result
-is a global optimum over the 618,880 eligible KWS kernel bits.
+is a global optimum over the 176,128 eligible KWS kernel bits. The 618,880-bit
+population belongs to the pinned ResNet-8 benchmark, not KWS.
 
 ## Work counts and scaling
 

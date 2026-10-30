@@ -95,3 +95,14 @@ backgrounds. It records every `2^K` response, exact candidate and outside-bit
 identities, the isolated-bit comparator mask, paired held-out risk differences,
 and post-hoc restricted regret with an explicit selection-bias warning. The
 restricted optimum is never described as a whole-network optimum.
+
+Contextual conditional-protection schema `6.2.0` retains the schema-6.1
+restricted control and optionally verifies a finalized whole-network static
+mask by scientific-payload hash, artifact checksum, checkpoint identity,
+eligible population, and cardinality. A restricted candidate mask replaces
+only the source-mask members inside the candidate pool; the source mask
+outside the pool stays fixed. Every comparator therefore has the same global
+protection cardinality. Exact response-table integration derives all
+fixed-budget candidate-mask risks, conditional marginals, and paired mask
+differences without additional inference. Its target law remains independent
+Bernoulli; no importance or adversarial sampling semantics are implied.

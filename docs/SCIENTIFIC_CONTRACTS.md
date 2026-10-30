@@ -278,3 +278,29 @@ remains authoritative for every clean and faulted measurement. Straight-
 through gradients, exact affine XOR jumps, and empirical TFLite damage must be
 identified separately in manifests and reports. M9 excludes INT32 biases from
 gradient-based ranking until they pass an independent mapping gate.
+
+## M9.5.4 contextual restricted protection
+
+A schema-6.2 contextual experiment may exchange protected and unprotected bits
+inside a prespecified candidate pool only after verifying the finalized source
+mask, source scientific payload, artifact checksum, checkpoint, eligible-bit
+population, uniqueness, and cardinality. If `P_out` is the verified source
+mask outside that pool, every candidate allocation is `P_out union Q`, with
+`|Q|` fixed to the source mask's protected count inside the pool. Candidate
+faults and already protected outside coordinates are excluded from the sampled
+outside Bernoulli universe. Proposed, applied, and suppressed events retain
+their existing exact meanings.
+
+For each independently sampled outside field, all `2^K` exact candidate-state
+responses are sufficient to integrate every eligible fixed-budget mask under
+the stated independent Bernoulli candidate law. Derived marginal and pairwise
+mask statistics reuse that table and require no additional TFLite evaluation;
+therefore they retain every interaction order represented in the table. This
+identity does not make a naturally unflipped bit equivalent to a protected bit
+under correlated, fixed-count, adversarial, or otherwise different laws.
+
+Mask construction uses model-selection data only. Final-evaluation fields are
+paired across frozen comparators and cannot select a post-hoc optimum. The
+previous K=6 engineering smoke exposed KWS test indices 3048--3053, so schema
+6.2 excludes them from any claim of previously untouched confirmation. Its
+final-evaluation offsets begin at six within the fixed final window.

@@ -65,15 +65,17 @@ def _report(outcome: ConditionalOutcome) -> str:
             "selected-minus-isolated differences are paired by outside field. The reported "
             "held-out optimum is post-hoc diagnostic information and is not a valid selected "
             "policy or an unbiased confirmation estimate.", "",
-            "| BER | K | Budget | Selected mask | Isolated mask | Held-out selected risk | Selected - isolated | Post-hoc regret |",
-            "|---:|---:|---:|---|---|---:|---:|---:|",
+            "| BER | K | Budget | Original mask | Selected mask | Isolated mask | Held-out selected risk | Selected - original | Selected - isolated | Post-hoc regret |",
+            "|---:|---:|---:|---|---|---|---:|---:|---:|---:|",
         ])
         for row in outcome.oracle_summaries:
             lines.append(
                 f"| {row['logical_ber']:.3g} | {row['candidate_count']} | {row['budget']} | "
+                f"`{', '.join(row['original_mask_bits'])}` | "
                 f"`{', '.join(row['selected_mask_bits'])}` | "
                 f"`{', '.join(row['isolated_mask_bits'])}` | "
                 f"{row['held_out_selected_risk']['mean']:.8g} | "
+                f"{row['held_out_selected_minus_original']['mean']:.8g} | "
                 f"{row['held_out_selected_minus_isolated']['mean']:.8g} | "
                 f"{row['posthoc_held_out_regret']['mean']:.8g} |"
             )
@@ -120,6 +122,7 @@ def create_conditional_bundle(
             "conditional_estimates": list(outcome.summaries),
             "rank_comparisons": list(outcome.rank_comparisons),
             "restricted_oracle": list(outcome.oracle_summaries),
+            "protection_context": dict(outcome.protection_context_record),
             "scientific_payload_sha256": outcome.scientific_payload_sha256,
         })
         _write_csv(staging / "measurements/conditional_damage.csv", [
@@ -157,6 +160,7 @@ def create_conditional_bundle(
             _write_csv(staging / "measurements/restricted_oracle_responses.csv", [
                 "schema_version", "phase", "logical_ber", "field", "field_seed",
                 "candidate_state", "candidate_bits", "outside_background_sha256",
+                "pairing_key", "probability_law_sha256", "protection_context_sha256",
                 "risk", "schedule_sha256", "proposed_events", "applied_events",
                 "suppressed_events", "unique_applied_bits", "cache_hit",
             ], ({"schema_version": outcome.configuration.schema_version, **row}
@@ -169,6 +173,14 @@ def create_conditional_bundle(
                 staging / "artifacts/restricted_oracle_masks.json",
                 list(outcome.oracle_summaries),
             )
+            _write_json(
+                staging / "artifacts/restricted_oracle_derived.json",
+                list(outcome.oracle_derived_records),
+            )
+        _write_json(
+            staging / "artifacts/protection_context.json",
+            dict(outcome.protection_context_record),
+        )
         if outcome.configuration.output.report:
             _write_bytes(staging / "report.md", _report(outcome).encode("utf-8"))
         manifest = {
@@ -212,7 +224,7 @@ def verify_conditional_bundle(path: str | Path) -> dict[str, object]:
         raise ResultBundleError(f"not a finalized conditional bundle: {root}")
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     checksums = json.loads((root / "checksums.json").read_text(encoding="utf-8"))
-    if manifest.get("schema_version") not in {"6.0.0", "6.1.0"}:
+    if manifest.get("schema_version") not in {"6.0.0", "6.1.0", "6.2.0"}:
         raise ResultBundleError(f"unsupported conditional manifest: {manifest.get('schema_version')!r}")
     for relative, expected in checksums["files"].items():
         actual = sha256_file(root / relative)

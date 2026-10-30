@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.invalid/schemas/conditional/v1_2.schema.json",
+  "title": "NetSuRF contextual restricted protection configuration 6.2.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scientific_protocol", "experiment", "benchmark", "samples", "risk", "candidates", "backgrounds", "execution", "restricted_oracle", "protection_context", "output"],
+  "properties": {
+    "schema_version": {"const": "6.2.0"},
+    "scientific_protocol": {"const": "contextual-exact-conditional-protection/v3"},
+    "experiment": {"type": "object"},
+    "benchmark": {"type": "object"},
+    "samples": {"type": "object"},
+    "risk": {"type": "object"},
+    "candidates": {"type": "array", "minItems": 2, "maxItems": 12},
+    "backgrounds": {"type": "object"},
+    "execution": {"type": "object"},
+    "restricted_oracle": {"type": "object"},
+    "protection_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["none", "verified_global_mask"]},
+        "source_bundle": {"type": "string"},
+        "artifact": {"type": "string"},
+        "artifact_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "scientific_payload_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "mask_key": {"type": "string"},
+        "expected_population_size": {"type": "integer", "minimum": 1},
+        "expected_global_cardinality": {"type": "integer", "minimum": 1}
+      }
+    },
+    "output": {"type": "object"}
+  }
+}

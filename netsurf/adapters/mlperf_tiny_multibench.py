@@ -495,6 +495,33 @@ class MlperfTinyKwsDscnnAdapter(_ExactTFLiteKernelAdapter):
             ),
         )
 
+    def same_distribution_window_diagnostics(self) -> dict[str, dict]:
+        """Audit complete fixed M9.5 windows without using their outcomes for selection."""
+
+        records = self._records("test", 4890)
+        identity = "speech_commands_tfds_test_interleaved_blocks16"
+        result = {}
+        for role, (start, count) in self._M953_TEST_WINDOWS.items():
+            labels = np.asarray(
+                [label for _audio, label in records[start:start + count]], dtype=np.int64
+            )
+            values, counts = np.unique(labels, return_counts=True)
+            indices = tuple(range(start, start + count))
+            result[role] = {
+                "source_split": identity,
+                "selection_rule": f"contiguous pinned source-order indices [{start},{start + count})",
+                "first_index": start,
+                "last_index": start + count - 1,
+                "count": count,
+                "class_counts": {
+                    str(int(value)): int(observed)
+                    for value, observed in zip(values, counts)
+                },
+                "label_bound_sample_sha256": sample_identity_digest(identity, indices, labels),
+                "ordering": "round-robin blocks of 16 over four hash-locked TFRecord shards",
+            }
+        return result
+
     def dataset(self, count: int, *, role="evaluation"):
         x, y, _ = self.sample_partition(role, count)
         return x, y

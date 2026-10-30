@@ -3,8 +3,9 @@ import itertools
 import pytest
 
 from netsurf.restricted_subcube import (
-    analyze_restricted_response_tables, fixed_budget_masks,
-    integrate_response_table, select_restricted_subcube_mask, subcube_states,
+    analyze_restricted_response_tables, conditional_marginal_from_table,
+    fixed_budget_masks, integrate_response_table, response_table_diagnostics,
+    select_restricted_subcube_mask, subcube_states,
 )
 
 
@@ -57,6 +58,8 @@ def test_response_table_zero_ber_mask_enumeration_ties_and_validation():
     assert analysis["selected_mask"] == (0,)
     with pytest.raises(ValueError, match="incomplete"):
         integrate_response_table({(): 0.0}, 3, 0.2)
+    with pytest.raises(ValueError, match="unique"):
+        conditional_marginal_from_table(table, 3, 0.2, 0, protected=(1, 1))
 
 
 def test_probability_mass_normalizes_for_every_fixed_budget_mask():
@@ -82,3 +85,31 @@ def test_table_oracle_agrees_with_independent_callable_enumeration_on_same_field
     for mask, expected in direct.calibration_risks.items():
         observed = sum(table_result["calibration_field_risks"][mask]) / len(tables)
         assert observed == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    "risk",
+    (
+        lambda z: 2.0 * (0 in z) - 0.5 * (1 in z),
+        lambda z: 3.0 * ((0 in z) and (1 in z)) - 2.0 * ((1 in z) and (2 in z)),
+        lambda z: 7.0 * all(index in z for index in (0, 1, 2)),
+    ),
+)
+def test_response_reuse_matches_direct_equal_budget_risks_for_all_interaction_orders(risk):
+    table = _table(3, risk)
+    diagnostics = response_table_diagnostics(table, 3, 1, 0.2)
+    for mask, observed in diagnostics["mask_risks"].items():
+        expected = select_restricted_subcube_mask(
+            [lambda faults, table=table: table[tuple(sorted(faults))]],
+            [lambda faults, table=table: table[tuple(sorted(faults))]],
+            candidate_count=3, budget=1, probability=0.2,
+        ).calibration_risks[mask]
+        assert observed == pytest.approx(expected)
+    for (left, right), difference in diagnostics["pairwise_mask_differences"].items():
+        assert difference == pytest.approx(
+            diagnostics["mask_risks"][left] - diagnostics["mask_risks"][right]
+        )
+    for candidate in range(3):
+        assert diagnostics["conditional_marginals"][candidate] == pytest.approx(
+            conditional_marginal_from_table(table, 3, 0.2, candidate)
+        )

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 import re
 import tomllib
@@ -11,12 +11,15 @@ from typing import Any, Mapping
 from .experiment_config import BenchmarkConfiguration, OutputConfiguration
 from .identities import BitIdentity
 from .paths import workspace_root
+from .protection_context import ProtectionContextConfiguration
 
 
 CONDITIONAL_SCHEMA_VERSION = "6.0.0"
 CONDITIONAL_SCHEMA_VERSION_6_1 = "6.1.0"
+CONDITIONAL_SCHEMA_VERSION_6_2 = "6.2.0"
 CONDITIONAL_PROTOCOL = "exact-conditional-damage/v1"
 CONDITIONAL_PROTOCOL_6_1 = "exact-conditional-protection/v2"
+CONDITIONAL_PROTOCOL_6_2 = "contextual-exact-conditional-protection/v3"
 
 
 class ConditionalConfigurationError(ValueError):
@@ -79,6 +82,9 @@ class ConditionalConfiguration:
     output: OutputConfiguration
     source_path: Path
     source_text: str
+    protection_context: ProtectionContextConfiguration = field(
+        default_factory=ProtectionContextConfiguration
+    )
 
     def operation_counts(self) -> dict[str, int]:
         conditional = len(self.backgrounds.probabilities) * (
@@ -128,6 +134,7 @@ class ConditionalConfiguration:
             "backgrounds": asdict(self.backgrounds),
             "execution": asdict(self.execution),
             "restricted_oracle": asdict(self.restricted_oracle),
+            "protection_context": self.protection_context.to_dict(),
             "output": asdict(self.output) | {"root": str(self.output.root)},
             "operation_counts": self.operation_counts(),
         }
@@ -168,22 +175,28 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
             "schema_version", "scientific_protocol", "experiment", "benchmark",
             "samples", "risk", "candidates", "backgrounds", "execution", "output",
         },
-        {"restricted_oracle"},
+        {"restricted_oracle", "protection_context"},
         "root",
     )
     schema_version = str(document["schema_version"])
-    if schema_version not in {CONDITIONAL_SCHEMA_VERSION, CONDITIONAL_SCHEMA_VERSION_6_1}:
+    if schema_version not in {
+        CONDITIONAL_SCHEMA_VERSION, CONDITIONAL_SCHEMA_VERSION_6_1,
+        CONDITIONAL_SCHEMA_VERSION_6_2,
+    }:
         raise ConditionalConfigurationError(
             f"unsupported conditional schema: {document['schema_version']!r}"
         )
-    expected_protocol = (
-        CONDITIONAL_PROTOCOL_6_1
-        if schema_version == CONDITIONAL_SCHEMA_VERSION_6_1 else CONDITIONAL_PROTOCOL
-    )
+    expected_protocol = {
+        CONDITIONAL_SCHEMA_VERSION: CONDITIONAL_PROTOCOL,
+        CONDITIONAL_SCHEMA_VERSION_6_1: CONDITIONAL_PROTOCOL_6_1,
+        CONDITIONAL_SCHEMA_VERSION_6_2: CONDITIONAL_PROTOCOL_6_2,
+    }[schema_version]
     if document["scientific_protocol"] != expected_protocol:
         raise ConditionalConfigurationError(
             f"unsupported conditional protocol: {document['scientific_protocol']!r}"
         )
+    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_2 and "protection_context" not in document:
+        raise ConditionalConfigurationError("schema 6.2 requires protection_context")
 
     experiment = _table(document, "experiment")
     _keys(experiment, {"name", "description", "objective"}, set(), "experiment")
@@ -234,7 +247,9 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         "calibration_role", "model_selection_role", "model_selection_count",
         "model_selection_offset", "evaluation_role",
     }
-    _keys(raw_samples, sample_required | (sample_61 if schema_version == CONDITIONAL_SCHEMA_VERSION_6_1 else set()), set(), "samples")
+    _keys(raw_samples, sample_required | (sample_61 if schema_version in {
+        CONDITIONAL_SCHEMA_VERSION_6_1, CONDITIONAL_SCHEMA_VERSION_6_2
+    } else set()), set(), "samples")
     samples = ConditionalSamples(
         int(raw_samples["calibration_count"]), int(raw_samples["evaluation_count"]),
         int(raw_samples["calibration_offset"]), int(raw_samples["evaluation_offset"]),
@@ -251,7 +266,7 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         raise ConditionalConfigurationError("sample offsets must be nonnegative")
     if not samples.require_disjoint:
         raise ConditionalConfigurationError("M9.5 requires disjoint calibration and held-out evaluation")
-    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_1:
+    if schema_version in {CONDITIONAL_SCHEMA_VERSION_6_1, CONDITIONAL_SCHEMA_VERSION_6_2}:
         expected_roles = (
             "conditional_calibration", "conditional_model_selection",
             "conditional_final_evaluation",
@@ -283,6 +298,11 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
                     f"schema 6.1 {name} offset+count exceeds its fixed "
                     f"same-distribution window capacity {window_capacities[name]}"
                 )
+        if schema_version == CONDITIONAL_SCHEMA_VERSION_6_2 and samples.evaluation_offset < 6:
+            raise ConditionalConfigurationError(
+                "schema 6.2 final evaluation excludes previously exposed relative indices 0-5; "
+                "evaluation_offset must be at least 6"
+            )
 
     raw_risk = _table(document, "risk")
     _keys(raw_risk, {"metric", "direction"}, set(), "risk")
@@ -364,6 +384,60 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
             "select_restricted_subcube_mask API with separately constructed calibration and "
             "held-out background risks"
         )
+    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_2 and not oracle.enabled:
+        raise ConditionalConfigurationError("schema 6.2 requires restricted_oracle.enabled=true")
+
+    raw_context = document.get("protection_context", {})
+    if not isinstance(raw_context, dict):
+        raise ConditionalConfigurationError("protection_context must be a table")
+    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_2:
+        _keys(
+            raw_context,
+            {"mode"},
+            {
+                "source_bundle", "artifact", "artifact_sha256",
+                "scientific_payload_sha256", "mask_key",
+                "expected_population_size", "expected_global_cardinality",
+            },
+            "protection_context",
+        )
+    elif raw_context:
+        raise ConditionalConfigurationError("protection_context requires schema 6.2")
+    mode = str(raw_context.get("mode", "none"))
+    if mode not in {"none", "verified_global_mask"}:
+        raise ConditionalConfigurationError("protection_context.mode must be none or verified_global_mask")
+    if mode == "verified_global_mask":
+        required_context = {
+            "source_bundle", "artifact", "artifact_sha256", "scientific_payload_sha256",
+            "mask_key", "expected_population_size", "expected_global_cardinality",
+        }
+        missing_context = required_context - set(raw_context)
+        if missing_context:
+            raise ConditionalConfigurationError(
+                f"verified protection context missing fields: {sorted(missing_context)}"
+            )
+    context = ProtectionContextConfiguration(
+        mode=mode,
+        source_bundle=(
+            _path(str(raw_context["source_bundle"]), source)
+            if raw_context.get("source_bundle") else None
+        ),
+        artifact=str(raw_context.get("artifact", "artifacts/protection_masks.json")),
+        artifact_sha256=str(raw_context.get("artifact_sha256", "")),
+        scientific_payload_sha256=str(raw_context.get("scientific_payload_sha256", "")),
+        mask_key=str(raw_context.get("mask_key", "")),
+        expected_population_size=int(raw_context.get("expected_population_size", 0)),
+        expected_global_cardinality=int(raw_context.get("expected_global_cardinality", 0)),
+    )
+    if (
+        mode == "verified_global_mask" and check_inputs
+        and (context.source_bundle is None or not context.source_bundle.is_dir())
+    ):
+        raise ConditionalConfigurationError(
+            f"protection-context source bundle is unavailable: {context.source_bundle}"
+        )
+    if mode == "verified_global_mask" and oracle.budget < 1:
+        raise ConditionalConfigurationError("global-mask exchange requires a positive restricted budget")
 
     raw_output = _table(document, "output")
     _keys(raw_output, {"root", "report", "plots"}, set(), "output")
@@ -380,5 +454,5 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         schema_version, expected_protocol,
         str(experiment["name"]), str(experiment["description"]), str(experiment["objective"]),
         benchmark, samples, str(raw_risk["metric"]), str(raw_risk["direction"]),
-        tuple(candidates), backgrounds, execution, oracle, output, source, text,
+        tuple(candidates), backgrounds, execution, oracle, output, source, text, context,
     )

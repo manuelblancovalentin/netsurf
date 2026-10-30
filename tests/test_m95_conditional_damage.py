@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
+from dataclasses import replace
+import itertools
+import json
 
 import numpy as np
+import pytest
 
 from netsurf.adapters.mlperf_tiny import ClassificationEvaluation
 from netsurf.conditional_config import (
@@ -15,9 +19,14 @@ from netsurf.conditional_damage import (
 )
 from netsurf.experiment_config import BenchmarkConfiguration, OutputConfiguration
 from netsurf.faults import InjectionReport
+from netsurf.faults import FaultEvent, FaultModel, FaultSchedule
 from netsurf.identities import BitIdentity
 from netsurf.samples import SamplePartition, sample_identity_digest
 from netsurf.result_bundle import ResultBundleError
+from netsurf.manifests import sha256_file
+from netsurf.protection_context import ProtectionContextConfiguration, ProtectionContextError
+from netsurf.protection import ProtectionMask
+from netsurf.restricted_subcube import integrate_response_table, subcube_states
 
 
 def test_three_way_product_has_zero_isolated_and_pair_clean_but_nonzero_conditional_damage():
@@ -223,3 +232,116 @@ def test_restricted_oracle_execution_is_paired_deterministic_and_bundled(tmp_pat
     verify_conditional_bundle(destination)
     assert (destination / "measurements/restricted_oracle_responses.csv").is_file()
     assert (destination / "artifacts/restricted_oracle_masks.json").is_file()
+
+
+def _context_source(tmp_path, configuration):
+    root = tmp_path / "source-run"
+    artifact = root / "artifacts/protection_masks.json"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text(json.dumps({"replication_0": {"s5@0.125": [
+        ["kernel", 0, 0], ["kernel", 0, 7],
+    ]}}), encoding="utf-8")
+    payload = "a" * 64
+    (root / "manifest.json").write_text(json.dumps({
+        "status": "complete", "scientific_payload_sha256": payload,
+        "benchmark": {"checkpoint_sha256": sha256_file(configuration.benchmark.checkpoint)},
+    }), encoding="utf-8")
+    artifact_sha = sha256_file(artifact)
+    (root / "checksums.json").write_text(json.dumps({
+        "files": {"artifacts/protection_masks.json": artifact_sha},
+    }), encoding="utf-8")
+    (root / "FINALIZED").write_text(
+        f"scientific_payload_sha256={payload}\n", encoding="ascii"
+    )
+    return ProtectionContextConfiguration(
+        "verified_global_mask", root, "artifacts/protection_masks.json",
+        artifact_sha, payload, "replication_0/s5@0.125", 16, 2,
+    )
+
+
+def test_contextual_oracle_preserves_global_budget_and_reuses_response_table(tmp_path):
+    base = _oracle_configuration(tmp_path, 0.25)
+    configuration = replace(
+        base, schema_version="6.2.0",
+        scientific_protocol="contextual-exact-conditional-protection/v3",
+        protection_context=_context_source(tmp_path, base),
+    )
+    outcome = execute_conditional_damage(configuration, adapter=_FakeExactAdapter())
+    summary = outcome.oracle_summaries[0]
+    assert summary["original_mask_indices"] == [0]
+    assert summary["global_protection_cardinality"] == 2
+    assert summary["global_protection_cardinality_preserved"] is True
+    assert summary["held_out_selected_minus_original"]["count"] == 3
+    assert len(outcome.oracle_derived_records) == 5
+    assert all(row["pairing_key"] for row in outcome.oracle_derived_records)
+    assert outcome.scientific_payload["checks"]["global_cardinality_preserved"] is True
+    destination = create_conditional_bundle(
+        outcome, repository_root=Path(__file__).resolve().parents[1], run_id="context-test"
+    )
+    verify_conditional_bundle(destination)
+    assert (destination / "artifacts/protection_context.json").is_file()
+    assert (destination / "artifacts/restricted_oracle_derived.json").is_file()
+
+
+def test_contextual_oracle_rejects_tampered_finalized_mask(tmp_path):
+    base = _oracle_configuration(tmp_path, 0.25)
+    context = _context_source(tmp_path, base)
+    (context.source_bundle / context.artifact).write_text("[]", encoding="utf-8")
+    configuration = replace(
+        base, schema_version="6.2.0",
+        scientific_protocol="contextual-exact-conditional-protection/v3",
+        protection_context=context,
+    )
+    with pytest.raises(ProtectionContextError, match="checksum mismatch"):
+        execute_conditional_damage(configuration, adapter=_FakeExactAdapter())
+
+
+def test_context_response_table_matches_direct_protected_fault_evaluation():
+    """Table integration is identical to paired event suppression for every mask."""
+
+    adapter = _FakeExactAdapter()
+    candidates = (
+        BitIdentity("kernel", 0, 7),
+        BitIdentity("kernel", 1, 7),
+        BitIdentity("kernel", 1, 0),
+    )
+    outside = BitIdentity("kernel", 0, 0)
+    model = FaultModel(
+        "weight", "encoded_parameter_storage", "persistent_trial",
+        "independent_bernoulli", 0.25,
+    )
+    outside_events = (FaultEvent(None, outside),)
+    base_protection = frozenset({outside})
+
+    def evaluate(candidate_state, protected):
+        schedule = FaultSchedule(
+            model, 17,
+            outside_events + tuple(FaultEvent(None, candidates[index]) for index in candidate_state),
+            len(candidates) + 1, 1,
+        )
+        evaluation, report = adapter.evaluate_fault_schedule(
+            np.zeros((1, 1), dtype=np.int8), np.zeros(1, dtype=np.int64), schedule,
+            ProtectionMask("test", frozenset(protected), 16, float(len(protected)), {}),
+        )
+        return evaluation.categorical_crossentropy, report
+
+    response_table = {
+        state: evaluate(state, base_protection)[0] for state in subcube_states(len(candidates))
+    }
+    probability = 0.25
+    for protected_indices in ((0,), (1,), (2,)):
+        table_risk = integrate_response_table(
+            response_table, len(candidates), probability, protected=protected_indices
+        )
+        available = tuple(index for index in range(len(candidates)) if index not in protected_indices)
+        direct_risk = 0.0
+        suppressed_events = 0
+        for enabled in itertools.product((0, 1), repeat=len(available)):
+            state = tuple(available[index] for index, present in enumerate(enabled) if present)
+            count = len(state)
+            mass = probability**count * (1.0 - probability) ** (len(available) - count)
+            loss, report = evaluate(state, base_protection | {candidates[index] for index in protected_indices})
+            direct_risk += mass * loss
+            suppressed_events += report.suppressed_events
+        assert table_risk == pytest.approx(direct_risk)
+        assert suppressed_events >= 1  # the fixed outside-context bit is always suppressed

@@ -15,12 +15,15 @@ from .adapters.registry import create_adapter
 from .conditional_config import ConditionalConfiguration
 from .faults import FaultEvent, FaultModel, FaultSchedule, InjectionReport
 from .identities import BitIdentity
-from .manifests import digest_object
+from .manifests import digest_object, sha256_file
 from .protection import ProtectionMask
+from .protection_context import verify_protection_context
 from .samples import SamplePartition, require_disjoint
 from .statistics import summarize
 from .task_metrics import evaluation_contract
-from .restricted_subcube import analyze_restricted_response_tables, subcube_states
+from .restricted_subcube import (
+    analyze_restricted_response_tables, response_table_diagnostics, subcube_states,
+)
 
 
 @dataclass(frozen=True)
@@ -35,7 +38,9 @@ class ConditionalOutcome:
     rank_comparisons: tuple[Mapping[str, Any], ...]
     oracle_response_records: tuple[Mapping[str, Any], ...]
     oracle_background_records: tuple[Mapping[str, Any], ...]
+    oracle_derived_records: tuple[Mapping[str, Any], ...]
     oracle_summaries: tuple[Mapping[str, Any], ...]
+    protection_context_record: Mapping[str, Any]
     runtime_seconds: float
 
     @property
@@ -66,6 +71,22 @@ def _sample_identity_records(
             np.ascontiguousarray(sample).tobytes(order="C")
         ).hexdigest(),
     } for sample, label, index in zip(inputs, labels, partition.indices))
+
+
+def _partition_diagnostics(labels: np.ndarray, partition: SamplePartition) -> dict[str, Any]:
+    values, counts = np.unique(np.asarray(labels, dtype=np.int64), return_counts=True)
+    indices = tuple(partition.indices)
+    return {
+        "role": partition.role,
+        "source_split": partition.source_split,
+        "count": len(indices),
+        "first_index": indices[0],
+        "last_index": indices[-1],
+        "contiguous_source_indices": indices == tuple(range(indices[0], indices[-1] + 1)),
+        "class_counts": {str(int(value)): int(count) for value, count in zip(values, counts)},
+        "sample_sha256": partition.sample_sha256,
+        "ordering_provenance": partition.provenance,
+    }
 
 
 def _model(probability: float) -> FaultModel:
@@ -200,6 +221,19 @@ def execute_conditional_damage(
         model_selection_data = (selection_x, selection_y, selection_partition)
     if configuration.samples.require_disjoint:
         require_disjoint(tuple(partitions.values()))
+    partition_diagnostics = {
+        "calibration": _partition_diagnostics(calibration_y, calibration_partition),
+        "held_out_evaluation": _partition_diagnostics(evaluation_y, evaluation_partition),
+        **({
+            "model_selection": _partition_diagnostics(
+                model_selection_data[1], model_selection_data[2]
+            )
+        } if model_selection_data is not None else {}),
+    }
+    complete_window_diagnostics = (
+        benchmark.same_distribution_window_diagnostics()
+        if hasattr(benchmark, "same_distribution_window_diagnostics") else {}
+    )
 
     universe = tuple(benchmark.bit_identities())
     universe_set = set(universe)
@@ -208,6 +242,17 @@ def execute_conditional_damage(
     missing = tuple(value for value in configuration.candidates if value not in universe_set)
     if missing:
         raise ValueError(f"configured candidate is outside the eligible population: {missing[0].key()}")
+    context = verify_protection_context(
+        configuration.protection_context, universe, configuration.candidates,
+        expected_checkpoint_sha256=sha256_file(configuration.benchmark.checkpoint),
+    )
+    if (
+        context.mode != "none"
+        and len(context.original_inside_indices) != configuration.restricted_oracle.budget
+    ):
+        raise ValueError(
+            "restricted budget must equal the source mask cardinality inside the candidate pool"
+        )
 
     initial_state = benchmark.values()
     initial_state_sha256 = _state_sha256(initial_state)
@@ -254,8 +299,14 @@ def execute_conditional_damage(
     rank_comparisons = []
     oracle_response_records: list[dict[str, Any]] = []
     oracle_background_records: list[dict[str, Any]] = []
+    oracle_derived_records: list[dict[str, Any]] = []
     oracle_summaries: list[dict[str, Any]] = []
-    empty_mask = ProtectionMask("no_protection", frozenset(), len(universe), 0.0, {})
+    base_mask = ProtectionMask(
+        "fixed_protection_context_outside_candidates", context.outside,
+        len(universe), float(len(context.outside)),
+        {"protection_context_sha256": context.record["identity_sha256"]},
+    )
+    background_universe = tuple(value for value in universe if value not in context.outside)
 
     for split, (inputs, labels, partition, field_count, split_seed) in split_data.items():
         evaluation_cache: dict[str, tuple[float, InjectionReport]] = {}
@@ -263,14 +314,16 @@ def execute_conditional_damage(
         def evaluate(schedule: FaultSchedule) -> tuple[float, InjectionReport]:
             key = schedule.digest()
             if key not in evaluation_cache:
-                result, report = benchmark.evaluate_fault_schedule(inputs, labels, schedule, empty_mask)
+                result, report = benchmark.evaluate_fault_schedule(inputs, labels, schedule, base_mask)
                 evaluation_cache[key] = (_risk_value(result, configuration.risk_metric), report)
             return evaluation_cache[key]
 
         isolated_by_candidate: dict[BitIdentity, float] = {}
         for probability_index, probability in enumerate(configuration.backgrounds.probabilities):
             probability_seed = split_seed + probability_index * 10_000_019
-            master_fields = _master_backgrounds(universe, probability, field_count, probability_seed)
+            master_fields = _master_backgrounds(
+                background_universe, probability, field_count, probability_seed
+            )
             empty = _schedule(probability, probability_seed - 1, (), len(universe), len(inputs))
             clean_risk, clean_report = evaluate(empty)
             completed += 1
@@ -370,7 +423,10 @@ def execute_conditional_damage(
         selection_x, selection_y, selection_partition = model_selection_data
         candidates = configuration.candidates
         candidate_set = set(candidates)
-        outside_universe = tuple(value for value in universe if value not in candidate_set)
+        outside_universe = tuple(
+            value for value in universe
+            if value not in candidate_set and value not in context.outside
+        )
         states = subcube_states(len(candidates))
 
         for probability_index, probability in enumerate(configuration.backgrounds.probabilities):
@@ -382,7 +438,7 @@ def execute_conditional_damage(
                 hit = key in cache
                 if not hit:
                     result, report = benchmark.evaluate_fault_schedule(
-                        inputs, labels, schedule, empty_mask
+                        inputs, labels, schedule, base_mask
                     )
                     if report.proposed_events != report.applied_events + report.suppressed_events:
                         raise RuntimeError(
@@ -433,12 +489,30 @@ def execute_conditional_damage(
                 tables = []
                 for field, (field_seed, outside) in enumerate(fields):
                     outside_sha256 = digest_object([value.key() for value in outside])
+                    probability_law = {
+                        "name": "independent_bernoulli",
+                        "logical_ber": probability,
+                        "outside_population_size": len(outside_universe),
+                        "candidate_probability": probability,
+                        "target_support": "all subsets of unprotected eligible coordinates",
+                    }
+                    law_sha256 = digest_object(probability_law)
+                    pairing_key = digest_object({
+                        "phase": phase, "logical_ber": probability, "field": field,
+                        "seed": field_seed, "outside_sha256": outside_sha256,
+                        "sample_sha256": partition.sample_sha256,
+                        "protection_context_sha256": context.record["identity_sha256"],
+                    })
                     oracle_background_records.append({
                         "phase": phase, "logical_ber": probability, "field": field,
                         "seed": field_seed, "outside_event_count": len(outside),
                         "outside_events": [value.key() for value in outside],
                         "outside_sha256": outside_sha256,
                         "sample_sha256": partition.sample_sha256,
+                        "pairing_key": pairing_key,
+                        "probability_law": probability_law,
+                        "probability_law_sha256": law_sha256,
+                        "protection_context_sha256": context.record["identity_sha256"],
                     })
                     table = {}
                     for state in states:
@@ -461,6 +535,9 @@ def execute_conditional_damage(
                             "candidate_state": list(state),
                             "candidate_bits": [candidates[index].key() for index in state],
                             "outside_background_sha256": outside_sha256,
+                            "pairing_key": pairing_key,
+                            "probability_law_sha256": law_sha256,
+                            "protection_context_sha256": context.record["identity_sha256"],
                             "risk": risk, "schedule_sha256": schedule.digest(),
                             "proposed_events": report.proposed_events,
                             "applied_events": report.applied_events,
@@ -468,6 +545,32 @@ def execute_conditional_damage(
                             "unique_applied_bits": report.unique_applied_bits,
                             "cache_hit": cache_hit,
                         })
+                    diagnostics = response_table_diagnostics(
+                        table, len(candidates), configuration.restricted_oracle.budget,
+                        probability,
+                    )
+                    oracle_derived_records.append({
+                        "phase": phase, "logical_ber": probability, "field": field,
+                        "pairing_key": pairing_key,
+                        "response_table_sha256": digest_object([
+                            {"state": list(state), "risk": table[state]} for state in states
+                        ]),
+                        "conditional_marginals": {
+                            candidates[index].key(): value
+                            for index, value in diagnostics["conditional_marginals"].items()
+                        },
+                        "mask_risks": [{
+                            "indices": list(mask),
+                            "risk": risk,
+                        } for mask, risk in sorted(diagnostics["mask_risks"].items())],
+                        "pairwise_mask_differences": [{
+                            "left_indices": list(pair[0]),
+                            "right_indices": list(pair[1]),
+                            "left_minus_right": value,
+                        } for pair, value in sorted(
+                            diagnostics["pairwise_mask_differences"].items()
+                        )],
+                    })
                     tables.append(table)
                 return tuple(tables)
 
@@ -486,15 +589,26 @@ def execute_conditional_damage(
                 candidate_count=len(candidates),
                 budget=configuration.restricted_oracle.budget,
                 probability=probability,
+                original_mask=(
+                    context.original_inside_indices if context.mode != "none" else None
+                ),
             )
             selected = tuple(analysis["selected_mask"])
             isolated_mask = tuple(analysis["isolated_mask"])
+            original_mask = tuple(analysis["original_mask"])
             posthoc = tuple(analysis["posthoc_held_out_optimum_mask"])
             selected_risks = tuple(analysis["held_out_selected_field_risks"])
             isolated_risks = tuple(analysis["held_out_isolated_field_risks"])
+            original_risks = tuple(analysis["held_out_original_field_risks"])
             posthoc_risks = tuple(analysis["held_out_posthoc_optimum_field_risks"])
             paired_selected_minus_isolated = tuple(
                 left - right for left, right in zip(selected_risks, isolated_risks)
+            )
+            paired_selected_minus_original = tuple(
+                left - right for left, right in zip(selected_risks, original_risks)
+            )
+            paired_isolated_minus_original = tuple(
+                left - right for left, right in zip(isolated_risks, original_risks)
             )
             posthoc_regret = tuple(
                 left - right for left, right in zip(selected_risks, posthoc_risks)
@@ -507,6 +621,13 @@ def execute_conditional_damage(
                 "selected_mask_bits": [candidates[index].key() for index in selected],
                 "isolated_mask_indices": list(isolated_mask),
                 "isolated_mask_bits": [candidates[index].key() for index in isolated_mask],
+                "original_mask_indices": list(original_mask),
+                "original_mask_bits": [candidates[index].key() for index in original_mask],
+                "global_protection_cardinality": len(context.outside) + len(selected),
+                "global_protection_cardinality_preserved": (
+                    context.mode == "none"
+                    or len(context.outside) + len(selected) == len(context.original)
+                ),
                 "posthoc_held_out_optimum_indices": list(posthoc),
                 "posthoc_held_out_optimum_bits": [candidates[index].key() for index in posthoc],
                 "posthoc_held_out_optimum_is_selection_valid": False,
@@ -523,8 +644,20 @@ def execute_conditional_damage(
                     isolated_risks, confidence=configuration.execution.confidence,
                     bounds=(0.0, math.inf),
                 ).to_dict(),
+                "held_out_original_risk": summarize(
+                    original_risks, confidence=configuration.execution.confidence,
+                    bounds=(0.0, math.inf),
+                ).to_dict(),
                 "held_out_selected_minus_isolated": summarize(
                     paired_selected_minus_isolated,
+                    confidence=configuration.execution.confidence,
+                ).to_dict(),
+                "held_out_selected_minus_original": summarize(
+                    paired_selected_minus_original,
+                    confidence=configuration.execution.confidence,
+                ).to_dict(),
+                "held_out_isolated_minus_original": summarize(
+                    paired_isolated_minus_original,
                     confidence=configuration.execution.confidence,
                 ).to_dict(),
                 "posthoc_held_out_regret": summarize(
@@ -562,11 +695,11 @@ def execute_conditional_damage(
         raise RuntimeError("benchmark state differs after conditional-damage evaluation")
 
     payload = {
-        "schema": (
-            "netsurf-exact-conditional-protection/v2"
-            if configuration.schema_version == "6.1.0"
-            else "netsurf-exact-conditional-damage/v1"
-        ),
+        "schema": {
+            "6.0.0": "netsurf-exact-conditional-damage/v1",
+            "6.1.0": "netsurf-exact-conditional-protection/v2",
+            "6.2.0": "netsurf-contextual-exact-conditional-protection/v3",
+        }[configuration.schema_version],
         "scientific_protocol": configuration.scientific_protocol,
         "experiment": configuration.name,
         "benchmark": {
@@ -579,6 +712,8 @@ def execute_conditional_damage(
             },
         },
         "partitions": {name: value.to_dict() for name, value in partitions.items()},
+        "partition_diagnostics": partition_diagnostics,
+        "complete_window_diagnostics": complete_window_diagnostics,
         "sample_identities": {
             "calibration": list(_sample_identity_records(
                 calibration_x, calibration_y, calibration_partition
@@ -603,6 +738,7 @@ def execute_conditional_damage(
             "eligible_population_size": len(universe),
             "candidate_records_sha256": digest_object(candidate_records),
         },
+        "protection_context": context.record,
         "background_design": {
             "distribution": "independent_bernoulli",
             "common_master_fields": True,
@@ -625,12 +761,21 @@ def execute_conditional_damage(
             "summaries": oracle_summaries,
             "response_records_sha256": digest_object(oracle_response_records),
             "background_records_sha256": digest_object(oracle_background_records),
+            "derived_records_sha256": digest_object(oracle_derived_records),
+            "response_table_reuse": (
+                "all fixed-budget risks, conditional marginals and pairwise mask differences "
+                "are derived from saved exact 2^K state responses without new inference"
+            ),
         },
         "checks": {
             "partitions_disjoint": True,
             "exact_encoded_xor": True,
             "common_background_pairing": True,
             "candidate_excluded_from_background": True,
+            "fixed_context_excluded_from_background": True,
+            "global_cardinality_preserved": all(
+                row["global_protection_cardinality_preserved"] for row in oracle_summaries
+            ),
             "state_restored": final_state_sha256 == initial_state_sha256,
             "initial_state_sha256": initial_state_sha256,
             "final_state_sha256": final_state_sha256,
@@ -655,7 +800,8 @@ def execute_conditional_damage(
         configuration, payload, partitions, tuple(candidate_records), tuple(backgrounds),
         tuple(measurements), tuple(summaries), tuple(rank_comparisons),
         tuple(oracle_response_records), tuple(oracle_background_records),
-        tuple(oracle_summaries), monotonic() - started,
+        tuple(oracle_derived_records), tuple(oracle_summaries), context.record,
+        monotonic() - started,
     )
 
 
