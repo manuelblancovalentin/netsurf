@@ -256,7 +256,7 @@ class _ExactTFLiteKernelAdapter:
         return self._companion().per_example_gradients(inputs, labels)
 
     def hessian_vector_product(self, inputs, labels, vectors):
-        raise NotImplementedError("M9.3 does not define TFLite companion Hessians")
+        return self._companion().hessian_vector_product(inputs, labels, vectors)
 
     def polar_impacts(self, inputs, activation_source):
         raise NotImplementedError("M9.3 does not define qPolarGrad for these models")

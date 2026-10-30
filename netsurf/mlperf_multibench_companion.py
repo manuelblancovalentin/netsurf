@@ -120,6 +120,37 @@ class _PinnedSequentialCompanion:
                 rows[name].append(gradients[name])
         return {name: np.stack(values, axis=0) for name, values in rows.items()}
 
+    def hessian_vector_product(
+        self, encoded_inputs: np.ndarray, labels: np.ndarray,
+        vectors: Mapping[str, np.ndarray],
+    ) -> dict[str, np.ndarray]:
+        """Continuous companion-loss HVP; this is not an integer-program Hessian."""
+
+        ordered = tuple(self.variables)
+        if set(vectors) != set(ordered):
+            raise ValueError("HVP vector keys must exactly match companion kernel variables")
+        tensors = [
+            self.tf.convert_to_tensor(np.asarray(vectors[name]), dtype=variable.dtype)
+            for name, variable in ((name, self.variables[name]) for name in ordered)
+        ]
+        for name, vector in zip(ordered, tensors):
+            if tuple(vector.shape) != tuple(self.variables[name].shape):
+                raise ValueError(f"HVP vector shape differs for {name}")
+        with self.tf.GradientTape() as outer:
+            with self.tf.GradientTape() as inner:
+                loss = self.tf.reduce_mean(self.losses(encoded_inputs, labels))
+            gradients = inner.gradient(loss, [self.variables[name] for name in ordered])
+            if any(value is None for value in gradients):
+                raise RuntimeError("companion Hessian gradient is disconnected")
+            product = self.tf.add_n([
+                self.tf.reduce_sum(gradient * vector)
+                for gradient, vector in zip(gradients, tensors)
+            ])
+        values = outer.gradient(product, [self.variables[name] for name in ordered])
+        if any(value is None for value in values):
+            raise RuntimeError("companion Hessian-vector product is disconnected")
+        return {name: value.numpy() for name, value in zip(ordered, values)}
+
     def manifest(self) -> dict[str, object]:
         return {
             "implementation_version": self.implementation_version,
