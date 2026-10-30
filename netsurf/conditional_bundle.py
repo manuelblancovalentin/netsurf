@@ -14,7 +14,7 @@ from .result_bundle import ResultBundleError, _inventory, _write_bytes, _write_c
 
 
 def _report(outcome: ConditionalOutcome) -> str:
-    if outcome.configuration.schema_version == "6.4.0":
+    if outcome.configuration.schema_version in {"6.4.0", "6.5.0"}:
         return _preflight_report(outcome)
     payload = outcome.scientific_payload
     interval_label = f"{100.0 * outcome.configuration.execution.confidence:g}% CI"
@@ -132,6 +132,9 @@ def _report(outcome: ConditionalOutcome) -> str:
 
 
 def _preflight_report(outcome):
+    if outcome.configuration.schema_version == "6.5.0":
+        from .replication_statistics import replication_report
+        return replication_report(outcome)
     mode = outcome.configuration.workflow["mode"]
     lines = [f"# {outcome.configuration.name}", "", outcome.configuration.objective, "",
              f"Execution: `{mode}`; purpose: `{outcome.configuration.workflow['purpose']}`.", "",
@@ -211,6 +214,8 @@ def create_conditional_bundle(
             "paired_swap_evaluation": list(outcome.paired_swap_summaries),
             "protection_context": dict(outcome.protection_context_record),
             "scientific_payload_sha256": outcome.scientific_payload_sha256,
+            **({"replication_analysis": outcome.scientific_payload["replication_analysis"]}
+               if "replication_analysis" in outcome.scientific_payload else {}),
         })
         _write_csv(staging / "measurements/conditional_damage.csv", [
             "schema_version", "split", "sample_sha256", "logical_ber", "field", "field_seed",
@@ -333,11 +338,18 @@ def create_conditional_bundle(
                     if outcome.configuration.workflow["mode"] == "selection_only" else []),
                 "paired_final_seed_executed": (
                     outcome.configuration.paired_swap_evaluation.seed
-                    if outcome.configuration.workflow["mode"] == "final_only" else None),
+                    if outcome.configuration.workflow["mode"] in {"final_only", "replication_only"} else None),
             }
             manifest["m956_final_original_indices"] = (
                 list(outcome.partitions["held_out_evaluation"].indices)
                 if "held_out_evaluation" in outcome.partitions else [])
+        if outcome.configuration.schema_version == "6.5.0":
+            _write_json(staging / "artifacts/replication_plan.json", outcome.scientific_payload["replication_plan"])
+            _write_json(staging / "artifacts/replication_analysis.json", outcome.scientific_payload["replication_analysis"])
+            if "paired_input_diagnostics" in outcome.scientific_payload:
+                _write_json(staging / "artifacts/paired_input_contributions.json", outcome.scientific_payload["paired_input_diagnostics"])
+            manifest["replication_plan_sha256"] = outcome.scientific_payload["replication_plan_sha256"]
+            manifest["outputs"] = _inventory(staging)
         _write_json(staging / "manifest.json", manifest)
         _write_json(staging / "checksums.json", {
             "schema_version": outcome.configuration.schema_version,
@@ -359,7 +371,7 @@ def verify_conditional_bundle(path: str | Path) -> dict[str, object]:
         raise ResultBundleError(f"not a finalized conditional bundle: {root}")
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     checksums = json.loads((root / "checksums.json").read_text(encoding="utf-8"))
-    if manifest.get("schema_version") not in {"6.0.0", "6.1.0", "6.2.0", "6.3.0", "6.4.0"}:
+    if manifest.get("schema_version") not in {"6.0.0", "6.1.0", "6.2.0", "6.3.0", "6.4.0", "6.5.0"}:
         raise ResultBundleError(f"unsupported conditional manifest: {manifest.get('schema_version')!r}")
     for relative, expected in checksums["files"].items():
         actual = sha256_file(root / relative)

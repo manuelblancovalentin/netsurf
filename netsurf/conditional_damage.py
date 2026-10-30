@@ -212,12 +212,19 @@ def execute_conditional_damage(
                           configuration.paired_swap_evaluation, configuration.protection_context,
                           configuration.source_path)
         reject_local_final_reuse(configuration)
+    replication_plan_record = None
+    if configuration.schema_version == "6.5.0":
+        from .replication_preflight import verify_replication_plan, load_replication_selection
+        replication_plan_record = verify_replication_plan(configuration)
     mode = configuration.workflow.get("mode", "joint")
     frozen_source = load_frozen_selection(configuration) if mode == "final_only" else None
     exposure = exposure_audit(
         configuration.samples.evaluation_offset, configuration.samples.evaluation_count,
         configuration.workflow["purpose"],
     ) if configuration.workflow else None
+    if replication_plan_record is not None:
+        frozen_source = load_replication_selection(configuration)
+        exposure = replication_plan_record["exposure_audit"]
     benchmark = adapter or create_adapter(configuration, None)
     benchmark.load()
     universe = tuple(benchmark.bit_identities())
@@ -263,7 +270,7 @@ def execute_conditional_damage(
         ):
             raise ValueError("actual final sample identities differ from the preflight exposure audit")
     model_selection_data = None
-    if mode != "final_only" and configuration.samples.model_selection_role is not None:
+    if mode not in {"final_only", "replication_only"} and configuration.samples.model_selection_role is not None:
         model_selection_data = benchmark.sample_partition(
             configuration.samples.model_selection_role,
             configuration.samples.model_selection_count,
@@ -327,6 +334,7 @@ def execute_conditional_damage(
     paired_swap_step_records: list[dict[str, Any]] = []
     paired_swap_field_records: list[dict[str, Any]] = []
     paired_swap_summaries: list[dict[str, Any]] = []
+    paired_input_records = []
     base_mask = ProtectionMask(
         "fixed_protection_context_outside_candidates", context.outside,
         len(universe), float(len(context.outside)),
@@ -444,7 +452,7 @@ def execute_conditional_damage(
             )
 
     if configuration.restricted_oracle.enabled:
-        if model_selection_data is None and mode != "final_only":
+        if model_selection_data is None and mode not in {"final_only", "replication_only"}:
             raise ValueError("restricted oracle requires an explicit model-selection partition")
         if model_selection_data is not None:
             selection_x, selection_y, selection_partition = model_selection_data
@@ -454,7 +462,7 @@ def execute_conditional_damage(
             value for value in universe
             if value not in candidate_set and value not in context.outside
         )
-        states = subcube_states(len(candidates))
+        states = () if mode == "replication_only" else subcube_states(len(candidates))
 
         for probability_index, probability in enumerate(configuration.backgrounds.probabilities):
             selection_cache: dict[str, tuple[float, InjectionReport]] = {}
@@ -476,7 +484,7 @@ def execute_conditional_damage(
                 risk, report = cache[key]
                 return risk, report, hit
 
-            if mode == "final_only":
+            if mode in {"final_only", "replication_only"}:
                 frozen_masks = frozen_source["masks"][probability_index]
                 selected = tuple(frozen_masks["selected"])
                 isolated_mask = tuple(frozen_masks["isolated"])
@@ -722,6 +730,7 @@ def execute_conditional_damage(
                 )
                 total -= configured_upper - requested_for_probability
                 paired_cache: dict[str, tuple[float, InjectionReport, FaultSchedule]] = {}
+                input_loss_cache = {}
                 probability_field_rows: dict[str, list[float]] = {
                     name: [] for name in paired_configuration.comparisons
                 }
@@ -753,9 +762,19 @@ def execute_conditional_damage(
                         )
                         key = schedule.digest()
                         if key not in paired_cache:
-                            result, report = benchmark.evaluate_fault_schedule(
-                                evaluation_x, evaluation_y, schedule, base_mask
-                            )
+                            if configuration.workflow.get("record_per_input", False):
+                                with benchmark.capture_input_losses() as captured:
+                                    result, report = benchmark.evaluate_fault_schedule(
+                                        evaluation_x, evaluation_y, schedule, base_mask)
+                                if len(captured) != 1 or captured[0].shape != (len(evaluation_x),):
+                                    raise RuntimeError("expected one authoritative per-input loss vector")
+                                if not np.isfinite(captured[0]).all() or float(np.mean(captured[0])) != _risk_value(result, configuration.risk_metric):
+                                    raise RuntimeError("per-input losses differ from authoritative scalar risk")
+                                input_loss_cache[key] = captured[0]
+                            else:
+                                result, report = benchmark.evaluate_fault_schedule(
+                                    evaluation_x, evaluation_y, schedule, base_mask
+                                )
                             if report.proposed_events != report.applied_events + report.suppressed_events:
                                 raise RuntimeError(
                                     "paired-swap event accounting violated: proposed != applied + suppressed"
@@ -804,6 +823,7 @@ def execute_conditional_damage(
                             "authoritative_evaluation_requests": result["authoritative_evaluations"],
                             "uncertainty_unit": "independently seeded master Bernoulli field",
                         })
+                        per_input = np.zeros(len(evaluation_x), dtype=np.float64)
                         for step in result["steps"]:
                             removed = step["removed"]
                             added = step["added"]
@@ -818,6 +838,9 @@ def execute_conditional_damage(
                             )
                             removed_cached = paired_cache.get(removed_schedule.digest())
                             added_cached = paired_cache.get(added_schedule.digest())
+                            if configuration.workflow.get("record_per_input", False):
+                                per_input += probability * (input_loss_cache[removed_schedule.digest()]
+                                                            - input_loss_cache[added_schedule.digest()])
                             removed_report = removed_cached[1] if removed_cached else None
                             added_report = added_cached[1] if added_cached else None
                             paired_swap_step_records.append({
@@ -869,6 +892,14 @@ def execute_conditional_damage(
                                     f"{paired_configuration.background_count}",
                                     completed, total,
                                 )
+                        if configuration.workflow.get("record_per_input", False):
+                            residual = float(np.mean(per_input)) - float(result["target_minus_baseline"])
+                            if not np.isclose(residual, 0., rtol=0., atol=1e-12):
+                                raise RuntimeError("per-input whole-path reduction disagrees with scalar contrast")
+                            paired_input_records.append({"logical_ber": probability, "field": field,
+                                "field_seed": field_seed, "comparison": comparison,
+                                "master_pairing_key": master_pairing_key,
+                                "contributions": per_input.tolist(), "mean_roundoff_residual": residual})
                 for comparison, values in probability_field_rows.items():
                     baseline_indices, target_indices = comparison_indices[comparison]
                     paired_swap_summaries.append({
@@ -897,7 +928,7 @@ def execute_conditional_damage(
                             "before uncertainty aggregation"
                         ),
                     })
-            if mode == "final_only":
+            if mode in {"final_only", "replication_only"}:
                 continue
             oracle_summaries.append({
                 "logical_ber": probability,
@@ -999,6 +1030,7 @@ def execute_conditional_damage(
             "6.2.0": "netsurf-contextual-exact-conditional-protection/v3",
             "6.3.0": "netsurf-paired-swap-held-out-protection/v4",
             "6.4.0": "netsurf-frozen-selection-protection/v5",
+            "6.5.0": "netsurf-independent-frozen-mask-replication/v6",
         }[configuration.schema_version],
         "scientific_protocol": configuration.scientific_protocol,
         "experiment": configuration.name,
@@ -1107,7 +1139,7 @@ def execute_conditional_damage(
         },
     }
     if configuration.workflow:
-        payload["workflow"] = {k: v for k, v in configuration.workflow.items() if k != "selection_bundle"}
+        payload["workflow"] = {k: v for k, v in configuration.workflow.items() if k not in {"selection_bundle", "replication_plan"}}
         payload["exposure_audit"] = exposure
         payload["candidate_population"]["selection"] = configuration.workflow["candidate_provenance"]
         payload["risk"]["definition"] = (
@@ -1152,6 +1184,20 @@ def execute_conditional_damage(
                 values = [r["target_minus_baseline"] for r in paired_swap_field_records
                           if r["comparison"] == row["comparison"] and r["logical_ber"] == row["logical_ber"]]
                 row["familywise_target_minus_baseline"] = summarize(values, confidence=family_confidence).to_dict()
+    if replication_plan_record is not None:
+        from .replication_statistics import summarize_replication
+        from .replication_preflight import statistical_contract
+        payload["replication_plan"] = replication_plan_record
+        payload["replication_plan_sha256"] = digest_object(replication_plan_record)
+        payload["comparison_family"] = statistical_contract()
+        payload["replication_analysis"] = summarize_replication(
+            paired_swap_field_records, configuration.paired_swap_evaluation.background_count)
+        if configuration.workflow.get("record_per_input", False):
+            payload["paired_input_diagnostics"] = {
+                "schema_version": "1.0.0",
+                "sample_identities": payload["sample_identities"]["held_out_evaluation"],
+                "records": paired_input_records,
+                "interpretation": "crossed field/input effects; no independence of field-times-input cells; scalar field estimates remain primary"}
     return ConditionalOutcome(
         configuration, payload, partitions, tuple(candidate_records), tuple(backgrounds),
         tuple(measurements), tuple(summaries), tuple(rank_comparisons),

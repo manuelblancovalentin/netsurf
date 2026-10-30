@@ -103,6 +103,9 @@ def _parser() -> argparse.ArgumentParser:
     conditional_validate = conditional_commands.add_parser("validate", help="validate schema-6 conditional-damage TOML")
     conditional_validate.add_argument("configuration", type=Path)
     conditional_validate.add_argument("--resolved", action="store_true")
+    conditional_freeze = conditional_commands.add_parser("freeze-replication", help="write an immutable schema-6.5 replication plan without inference")
+    conditional_freeze.add_argument("configuration", type=Path)
+    conditional_freeze.add_argument("--output", type=Path, required=True)
     conditional_run = conditional_commands.add_parser("run", help="execute and finalize a bounded exact conditional-damage study")
     conditional_run.add_argument("configuration", type=Path)
     return parser
@@ -402,13 +405,16 @@ def main(argv: list[str] | None = None) -> int:
             from .conditional_config import load_conditional
             from .conditional_damage import execute_conditional_damage
 
-            configuration = load_conditional(args.configuration)
+            configuration = load_conditional(args.configuration, check_inputs=args.conditional_command != "freeze-replication")
             if args.conditional_command == "validate":
                 print(
                     json.dumps(configuration.resolved_document(), indent=2, sort_keys=True)
                     if args.resolved else
                     f"valid: {configuration.name} (schema {configuration.schema_version})"
                 )
+            elif args.conditional_command == "freeze-replication":
+                from .replication_preflight import freeze_replication_plan
+                print(json.dumps(freeze_replication_plan(configuration, args.output), indent=2, sort_keys=True))
             elif args.conditional_command == "run":
                 outcome = execute_conditional_damage(
                     configuration,

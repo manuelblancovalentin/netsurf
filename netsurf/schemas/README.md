@@ -123,3 +123,11 @@ selection. A recorded exposure ledger rejects known reused confirmation
 samples, and artifact contracts freeze the pool, context, budget, sample and
 seed plans and comparison family. Joint schemas 6.0–6.3 retain their readers.
 See `docs/M956_PUBLICATION_PREFLIGHT.md` for executable fields and boundaries.
+
+Independent replication schema `6.5.0` adds only `replication_only` for the
+hash-pinned original M956 selection. It freezes a separate final sample/field
+plan without relaxing schema 6.4 or selecting new masks. The optional workflow
+`record_per_input` diagnostic preserves scalar reductions and crossed
+input/field identities. Replication-plan and statistical artifacts independently
+identify version `1.0.0`. See `docs/M957_FROZEN_MASK_REPLICATION.md` for exact
+keys, primary/secondary inference and exposure limitations.

@@ -694,3 +694,16 @@ Final execution requires an explicit finalized selection bundle plus its
 scientific payload and frozen-artifact hashes; the supplied final template is
 intentionally unbound. Exact commands, audited prior exposures, bounded smoke
 evidence and limitations are in `docs/M956_PUBLICATION_PREFLIGHT.md`.
+
+## M9.5.7 independent frozen-mask replication
+
+The isolated `m957-frozen-mask-replication` worktree provides schema 6.5 and
+`config/examples/m957_kws_frozen_replication_k8_v1.toml`. Its separately hashed
+plan reserves original KWS indices 3194–3449 and 256 master fields, seed
+957901. It must not run automatically as a test. Validation and the new
+`conditional freeze-replication CONFIG --output PLAN.json` command perform no
+inference. Execution requires the frozen-plan file/hash and original finalized
+M956 selection. All new artifacts stay in the implementation workspace.
+See `docs/M957_FROZEN_MASK_REPLICATION.md` for the exact pinned-interpreter
+commands, cost estimate, exposure audit, optional per-input diagnostics,
+bounded validation results and ZIP/Mac handoff commands.

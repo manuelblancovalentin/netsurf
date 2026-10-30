@@ -541,10 +541,30 @@ class MlperfTinyKwsDscnnAdapter(_ExactTFLiteKernelAdapter):
         probabilities = self.predict_outputs(inputs)
         labels = np.asarray(labels, dtype=np.int64)
         selected = np.maximum(probabilities[np.arange(len(labels)), labels], 1e-12)
+        losses = -np.log(selected)
+        capture = getattr(self, "_input_loss_capture", None)
+        if capture is not None:
+            capture.append(losses.copy())
         return ClassificationEvaluation(
             float(np.mean(np.argmax(probabilities, axis=1) == labels)),
-            float(np.mean(-np.log(selected))), len(labels),
+            float(np.mean(losses)), len(labels),
         )
+
+    @contextmanager
+    def capture_input_losses(self):
+        """Opt-in KWS diagnostics from the same authoritative inference calls.
+
+        Neither the scalar reduction nor model restoration is changed. No output
+        is captured outside this explicit context, including after exceptions.
+        """
+        if getattr(self, "_input_loss_capture", None) is not None:
+            raise RuntimeError("nested input-loss capture is unsupported")
+        captured = []
+        self._input_loss_capture = captured
+        try:
+            yield captured
+        finally:
+            del self._input_loss_capture
 
     def _companion(self):
         if self._companion_instance is None:

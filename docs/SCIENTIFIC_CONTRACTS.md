@@ -355,3 +355,28 @@ on frozen inputs, model and masks. The primary selected-minus-S5 contrast and
 two secondary contrasts are frozen; additional Bonferroni intervals cover the
 three-contrast family. No population-wide optimality or physical reliability
 claim follows. See `docs/M956_PUBLICATION_PREFLIGHT.md`.
+
+## M9.5.7 independent frozen-mask replication
+
+Schema 6.5 separately freezes a new final-input/field plan while retaining the
+original M956 artifact hashes, candidate pool, selected `(2,6)`, isolated
+`(2,7)`, original S5 `(6,7)`, model, kernel universe, context and BER. The
+schema-6.4 final-only contract is unchanged. Replication never accesses
+model-selection inputs, ranks candidates or reselects masks.
+
+The primary selected-minus-S5 mean cross-entropy contrast uses whole master
+fields, two-sided 95% Student-t inference and an unadjusted primary p-value.
+Two prespecified secondary hypotheses use Holm-adjusted p-values and separate
+Bonferroni secondary-family intervals. Tail counts, quantiles and influence
+diagnostics do not replace mean-risk inference or discard adverse fields.
+Student-t inference is approximate under heavy tails, not an exact finite-
+sample coverage guarantee. Optional per-input contributions come from the
+same authoritative calls without changing scalar reductions; input×field
+cells are not independent replications.
+
+The expanded exposure ledger includes original final indices 3066–3193 and
+real engineering records. The prespecified 3194–3449 replication window has
+no overlap in that inventory; unknown manual/failed/concurrent exposure
+remains a disclosure obligation. The exploratory eight-bit pool cannot support
+population-wide protection-superiority claims. See
+`docs/M957_FROZEN_MASK_REPLICATION.md` for hashes, costs and execution gates.
