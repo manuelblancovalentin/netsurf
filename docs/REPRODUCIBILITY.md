@@ -1,5 +1,12 @@
 # Reproducibility
 
+M9.7-A's isolated worktree uses the already installed MLPerf TF 2.14.1 interpreter
+for exact INT8 inference and the new continuous FKeras baseline. Exact commands,
+source pins, example configurations, source-function test prerequisites,
+offline plotting and bounded receipts are in `M97_FKERAS_REPRODUCTION.md`,
+`M97_BENCHMARK_ADAPTER_STATUS.md` and `M97_VALIDATION_RECEIPTS.md`. The schema-6
+campaign and historical results are not rerun by those commands.
+
 ## Modern M2 environment construction
 
 NetSuRF M2 is validated on Python 3.11.17. `proj` selects the Kona environment

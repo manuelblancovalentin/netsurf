@@ -1,5 +1,14 @@
 # Roadmap
 
+M9.7-A adds a residual-validated continuous KWS FKeras baseline with separate
+paper/repository scores, strict bit-tier policies and schema-3.5 engineering
+examples. Its capability interface preserves all 18 targets and verifies a new
+short streaming fixture. Conditional/restricted execution remains KWS-only;
+ToyCar/ResNet task-partition gates, VWW image provenance, full streaming data,
+and large-model precision/runtime acquisition remain explicit blockers. See
+`M97_FKERAS_REPRODUCTION.md` and `M97_BENCHMARK_ADAPTER_STATUS.md`. These bounded
+checks do not execute or supersede the separate BER/cross-pool campaign.
+
 M9.6 adds probability-sampled cross-pool experiment orchestration, not a new
 optimizer. The twelve-pool study is frozen but unrun; engineering evidence and
 costs are in `M96_CROSS_POOL_PROTOCOL.md`. The complete 11-family/18-precision

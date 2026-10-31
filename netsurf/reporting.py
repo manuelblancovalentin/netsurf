@@ -105,6 +105,19 @@ def render_study_report(summary: Mapping[str, Any], resolved: Mapping[str, Any],
         "", "## Clean evaluation", "",
         clean_line,
     ]
+    if summary.get("mask_equivalence"):
+        identical = [r for r in summary["mask_equivalence"] if r["same_mask"]]
+        lines.extend(["", "## Matched-budget mask equivalence", "",
+            "Strict INT8 bit-tier-first methods necessarily select the same bits at complete tiers (12.5% and 25%). This is allocation degeneracy, not independent evidence of estimator quality.",
+            "", "| Replication | Left | Right | Protected bits | Identical actual masks |",
+            "|---|---|---|---:|---|"])
+        for row in identical:
+            lines.append(f"| {row['replication']} | {row['left']} | {row['right']} | {row['protected_bits']} | yes |")
+    if summary.get("fkeras_diagnostics"):
+        lines.extend(["", "## FKeras numerical contract", "",
+            "A separate continuous float64 KWS companion supplies the weight Hessian. It is not the Hessian of exact integer inference or of the S4–S6 straight-through model. Both formulas share a residual-checked largest-magnitude signed eigensolve; detailed eigenvalues, residuals, mapping and cost provenance are saved in summary.json and scientific_payload.json.",
+            "Paper-form magnitude is abs(sum λ(vᵀθ)v); the pinned repository sum-strategy is sum abs(λ²(vᵀθ)v). Neither is a signed finite-bit damage prediction. Full masks, exact isolated damage and task outcomes are separate comparisons.",
+            "Empirical correlations and estimator-agreement tables compare raw numerical scores, not the lexicographic tier-first policy. The actual mask table is authoritative for allocation equivalence. Tiny-sample within-stratum bootstrap intervals condition on the observed strata; they are not whole-population uncertainty or evidence of estimator superiority."])
     if summary.get("empirical_candidate_count", 0):
         lines.extend([
             "", "## Exact isolated-bit reference", "",

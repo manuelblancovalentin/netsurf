@@ -117,6 +117,18 @@ class BenchmarkDescriptor:
 
 
 _REGISTRY = {
+    "mlperf_tiny_sww_short_int8_v1": BenchmarkDescriptor(
+        "mlperf_tiny_sww_short_int8_v1", "mlperf_tiny_sww_short_int8_v1",
+        "streaming wakeword timed event detection, ten-second engineering fixture only",
+        "pinned streaming DS-CNN: four convolution/depthwise blocks and dense output", 46040,
+        "affine INT8 kernel storage; INT32 biases excluded", "tflite_affine_integer_v1",
+        "official pinned short_wav_easy10s.wav and sww_short_test.json",
+        "pinned str_ww_ref_model.tflite SHA-256 3af85508...5dd2b",
+        ("msb_first", "random", "numerical_bit_jump"), ("weight",),
+        ("persistent_trial",), (),
+        "bounded exact event/injection gate only: use benchmarks probe streaming_dscnn1d_int8; no schema-3/6 study partitions",
+        ("tensorflow", "scipy"), False, eligible_parameter_count=46040, eligible_bit_count=368320,
+    ),
     "numpy_activation_cancellation": BenchmarkDescriptor(
         "numpy_activation_cancellation", "numpy_activation_cancellation",
         "controlled signed-activation two-class classification",
@@ -202,6 +214,7 @@ _REGISTRY = {
             "msb_first", "random", "numerical_bit_jump", "gradient_magnitude",
             "first_order_gradient_delta", "per_sample_first_order_magnitude",
             "per_sample_positive_damage", "empirical_single_bit",
+            "fkeras_paper", "fkeras_repository",
         ),
         ("weight",), ("persistent_trial",),
         ("official TFLite Micro deployment artifact; hardware equivalence not revalidated",),

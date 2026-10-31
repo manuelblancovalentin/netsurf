@@ -48,6 +48,32 @@ An estimator maps bit identities to scalar scores. It does not choose protected 
 
 No current estimator is claimed globally optimal.
 
+### M97 FKeras numerical and benchmark capability gate
+
+`fkeras_paper` preserves the signed parameter projection
+`sum_i lambda_i*(v_i.T theta)*v_i`, using its magnitude for within-tier ordering.
+`fkeras_repository` separately preserves the pinned public sum-strategy's
+`sum_i abs(lambda_i**2*(v_i.T theta)*v_i)`. Both use a separately versioned
+continuous float64 KWS loss model, not the S4–S6 STE derivative operator and
+not a Hessian of integer TFLite inference. Signed largest-magnitude eigenpairs,
+residuals, symmetry, orthogonality, parameter mapping and work limits must pass
+before a ranking is accepted. Negative eigenvalues are not discarded. Raw
+scores are not signed finite-bit loss predictions or conditional mask benefits.
+
+Strict tier-first FKeras policies over homogeneous INT8 kernels coincide with
+corrected MSB masks at 12.5% and 25% protection; actual saved sets must establish
+this equivalence. Partial-tier comparisons do not imply an optimal allocation.
+S4–S6 definitions, integer inference, fault schedules and schema-6 selection
+semantics remain unchanged. See `M97_FKERAS_REPRODUCTION.md`.
+
+Capability records distinguish inference, exact storage faults, restoration,
+static ranking, continuous Hessians and conditional/restricted protocols.
+Unsupported precision, task risk or partitions must fail explicitly. The
+streaming DS-CNN short fixture reports event counts, not invented frame accuracy
+or a scalar protection objective. ToyCar file AUC is not per-file additive loss.
+FP32/BF16 exceptional-value fault treatment and INT4 storage/packing must be
+approved and verified before those portfolio targets are executable.
+
 ## Conditional protection search
 
 Schema-4 masks have fixed logical-bit cardinality. For a swap `a` (protected)
