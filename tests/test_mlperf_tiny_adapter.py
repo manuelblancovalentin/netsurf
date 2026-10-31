@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import os
 from pathlib import Path
 import pickle
@@ -261,9 +262,16 @@ def test_neutral_asset_lock_verifies_without_kona_assets_import():
     from netsurf.asset_lock import VerifiedAssetLock
 
     lock = VerifiedAssetLock.load(_official_lock())
-    assert lock.digest == (
-        "sha256:f953370a8b98f7a016e6907e4b001f3b099bbe216c3202d0306fbbca00702687"
-    )
+    # M97 audits the relocated lock without repinning a checkpoint or relaxing
+    # model/data/output equivalence. Unknown future lock versions still fail.
+    assert lock.digest in {
+        "sha256:f953370a8b98f7a016e6907e4b001f3b099bbe216c3202d0306fbbca00702687",
+        "sha256:d0daf561e681b5a31f23350192c6b5d7041b27024bf054d13a2eb793e581abd9",
+    }
+    reference = lock.benchmark["reference_results"]
+    assert reference["model_sha256"] == "3c002613d1b2475eb51dd78dfb85a546c8ae658dee71cf6ade43b022fe205415"
+    assert reference["output_digests"]["subset_outputs_sha256"] == "f045f8f11e923bb37c467d1969e3e53c5b966061f1134688bd69b3e7f01338b9"
+    assert reference["output_digests"]["full_outputs_sha256"] == "2cd2747d949fe123a144160c6e2b8c45277c438812803058c49cb4a123b9cfd1"
     assert lock.file(
         "benchmark/training/image_classification/trained_models/"
         "pretrainedResnet_quant.tflite"
@@ -278,11 +286,7 @@ def _official_model() -> Path:
     configured = os.environ.get("NETSURF_MLPERF_TINY_IC_MODEL")
     if configured:
         return Path(configured)
-    return Path(
-        "/ml/models/models--mlcommons--tiny/snapshots/"
-        "4addd0fa08d216e20637637874e084895f289da4/benchmark/training/"
-        "image_classification/trained_models/pretrainedResnet_quant.tflite"
-    )
+    return _locked_path("pretrainedResnet_quant.tflite")
 
 
 def _official_lock() -> Path:
@@ -290,7 +294,16 @@ def _official_lock() -> Path:
 
 
 def _official_dataset() -> Path:
-    return Path("/ml/datasets/cifar10/cifar-10-python.tar.gz")
+    return _locked_path("cifar-10-python.tar.gz")
+
+
+def _locked_path(filename):
+    if not _official_lock().is_file():
+        return Path("/unavailable-mlperf-assets") / filename
+    paths = json.loads(_official_lock().read_text())["resolved"]["file_paths"]
+    matches = [Path(value) for key, value in paths.items() if key.endswith(filename)]
+    assert len(matches) == 1
+    return matches[0]
 
 
 @pytest.mark.skipif(

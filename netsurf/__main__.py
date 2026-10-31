@@ -30,6 +30,11 @@ def _parser() -> argparse.ArgumentParser:
     benchmarks = subparsers.add_parser("benchmarks", help="discover and prepare registered benchmarks")
     benchmark_commands = benchmarks.add_subparsers(dest="benchmark_command", required=True)
     benchmark_commands.add_parser("list", help="list registered benchmark readiness")
+    capabilities = benchmark_commands.add_parser("capabilities", help="inspect the preserved 18-target capability portfolio")
+    capabilities.add_argument("target", nargs="?")
+    probe = benchmark_commands.add_parser("probe", help="bounded exact-bit engineering validation; no downloads or training")
+    probe.add_argument("target")
+    probe.add_argument("--output", type=Path, required=True)
     benchmark_info_parser = benchmark_commands.add_parser("info", help="inspect one benchmark contract")
     benchmark_info_parser.add_argument("benchmark_name")
     benchmark_prepare_parser = benchmark_commands.add_parser("prepare", help="prepare a reusable benchmark checkpoint")
@@ -341,7 +346,15 @@ def main(argv: list[str] | None = None) -> int:
                 for warning in report["warnings"]:
                     print(f"warning: {warning}")
         elif args.command == "benchmarks":
-            if args.benchmark_command == "list":
+            if args.benchmark_command == "capabilities":
+                from .benchmarks.capabilities import capability_record, capability_records
+                print(json.dumps(capability_record(args.target) if args.target else capability_records(), indent=2, sort_keys=True))
+            elif args.benchmark_command == "probe":
+                from .benchmarks.capabilities import probe_capability
+                receipt = probe_capability(args.target, args.output)
+                print(json.dumps({"output": str(args.output.resolve()), "status": receipt["status"],
+                    "scientific_payload_sha256": receipt["scientific_payload_sha256"], "execution":receipt["execution"]}, indent=2))
+            elif args.benchmark_command == "list":
                 for item in benchmark_list():
                     status, reasons = item.readiness()
                     detail = f" ({'; '.join(reasons)})" if reasons else ""
