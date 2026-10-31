@@ -339,7 +339,19 @@ def compute_estimators(specifications, adapter, inputs, labels, identities, code
         adapter, inputs, labels, identities, codec, requested=tuple(sorted(family_names))
     ) if family_names else {}
     result = []
+    fkeras_cache = {}
     for specification in specifications:
+        if specification.name in {"fkeras_paper", "fkeras_repository"}:
+            from .fkeras_estimator import fkeras_family
+            options = specification.hessian
+            key = (specification.seed, tuple(sorted(options.items())))
+            if key not in fkeras_cache:
+                requested = tuple(sorted({s.name for s in specifications
+                    if s.name.startswith("fkeras_") and s.seed == specification.seed and s.hessian == options}))
+                fkeras_cache[key] = fkeras_family(adapter, inputs, labels, identities,
+                    seed=specification.seed, options=dict(options), requested=requested)
+            result.append(fkeras_cache[key][specification.name])
+            continue
         output = family.get(specification.name)
         if output is None:
             output = compute_estimator(

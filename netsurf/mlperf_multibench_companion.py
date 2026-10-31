@@ -21,6 +21,7 @@ class _PinnedSequentialCompanion:
     input_shape: tuple[int, ...]
     kernel_indices: tuple[int, ...]
     bias_indices: tuple[int, ...]
+    numerical_dtype = "float32"
 
     def __init__(self, model_content: bytes):
         import tensorflow as tf
@@ -43,7 +44,7 @@ class _PinnedSequentialCompanion:
         encoded = self.storage.values()
         self.variables = {
             descriptor.parameter: tf.Variable(
-                descriptor.quantization.dequantize(encoded[descriptor.parameter]).astype(np.float32),
+                descriptor.quantization.dequantize(encoded[descriptor.parameter]).astype(self.numerical_dtype),
                 trainable=True,
                 name=f"netsurf_{descriptor.tensor_index}_kernel",
             )
@@ -55,7 +56,7 @@ class _PinnedSequentialCompanion:
             index: tf.constant(
                 self._bias_descriptors[index].quantization.dequantize(
                     encoded[self._bias_descriptors[index].parameter]
-                ).astype(np.float32)
+                ).astype(self.numerical_dtype)
             )
             for index in self.bias_indices
         }
@@ -223,6 +224,39 @@ class MlperfKwsDscnnDifferentiableCompanion(_PinnedSequentialCompanion):
         return np.clip(
             np.rint(probabilities.numpy() / scale + zero_point), -128, 127
         ).astype(np.int8)
+
+
+class MlperfKwsContinuousCompanion(MlperfKwsDscnnDifferentiableCompanion):
+    """M97 continuous extension: decoded kernels/biases, NO activation rounding.
+
+    This separate float64 model provides a classical (piecewise-smooth) Hessian.
+    It does not change S4/S5/S6's existing float32 straight-through companion.
+    ReLU kinks remain nondifferentiable and must be considered in FD checks.
+    """
+
+    implementation_version = "mlperf-kws-continuous-float64/v1"
+    loss_version = "continuous-logit-sparse-crossentropy/v1"
+    numerical_dtype = "float64"
+
+    def _decode_input(self, encoded_inputs):
+        scale, zero_point = self._quantization(0)
+        return (self.tf.cast(encoded_inputs, self.tf.float64) - zero_point) * scale
+
+    def _requantize_ste(self, values, tensor_index):
+        return values
+
+    def manifest(self):
+        return {
+            "implementation_version": self.implementation_version,
+            "loss_version": self.loss_version,
+            "parameter_source": "exact affine decoded frozen INT8 kernel codes",
+            "kernel_tensor_indices": list(self.kernel_indices),
+            "bias_source": "fixed decoded INT32; excluded from differentiated and faultable population",
+            "activation_quantization": "removed in this explicitly separate continuous extension",
+            "dtype": "float64",
+            "authoritative_inference": False,
+            "limitations": ["not a Hessian of integer inference or of the STE forward map", "ReLU kinks have no classical Hessian"],
+        }
 
 
 class MlperfToyCarDifferentiableCompanion(_PinnedSequentialCompanion):

@@ -1,0 +1,77 @@
+schema_version = "3.5.0"
+scientific_protocol = "estimator-validation/v1"
+policies = []
+[experiment]
+name = "m97_kws_fkeras_empirical_smoke"
+description = "M97 bounded engineering comparison, previously exposed KWS inputs; not publication evidence."
+objective = "Validate two FKeras formulas, strict-tier masks and matched exact INT8 faults."
+[benchmark]
+adapter = "mlperf_tiny_kws_int8_v1"
+id = "mlperf_tiny_kws_dscnn_int8_v1"
+checkpoint = "/data/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4/benchmark/training/keyword_spotting/trained_models/kws_ref_model.tflite"
+dataset = "/data/datasets/speech_commands/0.0.3"
+asset_lock = "/projects/kona-assets/manuelbv/locks/mlperf-tiny/kws.lock.json"
+inference_backend = "tensorflow_lite_builtin_ref_v1"
+split = "official_subset_1000"
+quantization = "tflite_affine_int8"
+quantization_backend = "tflite_affine_integer_v1"
+injectable_parameters = ["kernels"]
+[samples]
+ranking_count = 2
+empirical_count = 4
+evaluation_count = 4
+require_disjoint = true
+[candidates]
+strategy = "uniform"
+count = 16
+seed = 970101
+score_quantiles = 1
+[[estimators]]
+name = "msb_first"
+implementation_version = "relative-word-bit-index/v1"
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+[[estimators]]
+name = "per_sample_first_order_magnitude"
+implementation_version = "mean-absolute-per-example-gradient-times-exact-delta/v1"
+[[estimators]]
+name = "per_sample_positive_damage"
+implementation_version = "mean-positive-per-example-gradient-times-exact-delta/v1"
+[[estimators]]
+name = "fkeras_paper"
+implementation_version = "fkeras-paper-continuous-kws/v1"
+seed = 970201
+hessian = {eigenpairs = 2, max_iterations = 100, max_products = 300, tolerance = 0.00001, ordering = "largest_magnitude_signed"}
+[[estimators]]
+name = "fkeras_repository"
+implementation_version = "fkeras-repository-continuous-kws/v1"
+seed = 970201
+hessian = {eigenpairs = 2, max_iterations = 100, max_products = 300, tolerance = 0.00001, ordering = "largest_magnitude_signed"}
+
+[protection]
+coverages = []
+probabilities = [0.0001]
+mitigation_model = "perfect_event_suppression"
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.0001
+[execution]
+trials = 2
+confidence = 0.95
+fault_seed = 970301
+permutation_seed = 970401
+[replications]
+count = 1
+candidate_seed_stride = 0
+hutchinson_seed_stride = 0
+sample_offset_stride = 0
+fault_seed_stride = 0
+estimator_seed_stride = 0
+[output]
+root = ""
+report = true
+plots = false

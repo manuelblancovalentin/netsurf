@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/measurements/v3_5.schema.json",
+  "schema_version": "3.5.0",
+  "compatibility": "Retains all v3.4 column names, units, null handling and task-metric semantics. Adds separately named FKeras score definitions; old versions are not reinterpreted.",
+  "estimator_predictions.csv": {
+    "score": "coordinate-dependent ordering magnitude of a decoded-weight Hessian projection; paper form has loss/weight units, repository form has an additional curvature factor. Repeated for all eight bits of one kernel word; not finite-bit loss damage or a calibrated cross-method quantity",
+    "signed_prediction": "null for FKeras; raw signed parameter projections are not signed finite-bit predictions"
+  },
+  "scientific_payload.json": {
+    "estimator_definitions": "FKeras definitions retain flat eigenvectors, signed eigenvalues, raw parameter scores, canonical tensor offsets/shapes/scales, source commit, HVP count, symmetry/orthogonality/residual diagnostics and solver options.",
+    "normalization": "residual ||Hv-lambda*v|| / max(||Hv||+abs(lambda),1e-30); unit-normalized eigenvectors",
+    "runtime": "wall time excluded from scientific payload; shared construction cost repeated across the two estimator rows, not additive"
+  },
+  "summary.json": {
+    "mask_equivalence": "actual membership equality at matching cardinality, per replication; full-tier degeneracy is not independent efficacy evidence",
+    "fkeras_diagnostics": "copy of numerical provenance, regenerable without TensorFlow"
+  }
+}

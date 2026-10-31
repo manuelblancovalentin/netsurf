@@ -66,7 +66,7 @@ def _summary(outcome: StudyOutcome, derived=None):
     payload = primary.scientific_payload
     overall = [dict(row) for row in primary.ranking_metrics if row["scope"] == "overall"]
     runtimes = {value.name: value.runtime_seconds for value in primary.estimator_outputs}
-    return {
+    result = {
         "schema_version": SUMMARY_SCHEMA_VERSION,
         "study_schema_version": outcome.configuration.schema_version,
         "scientific_protocol": outcome.configuration.scientific_protocol,
@@ -94,6 +94,17 @@ def _summary(outcome: StudyOutcome, derived=None):
         "checks": payload["checks"],
         "scientific_payload_sha256": outcome.scientific_payload_sha256,
     }
+    if outcome.configuration.schema_version == "3.5.0":
+        from .fkeras_baseline import mask_equivalence
+        result["mask_equivalence"] = [
+            {"replication": member.replication_name, **row}
+            for member in members for row in mask_equivalence(member.protection_masks)
+        ]
+        result["fkeras_diagnostics"] = {member.replication_name: {
+            value.name: dict(value.metadata) for value in member.estimator_outputs
+            if value.name.startswith("fkeras_") or str(value.metadata.get("estimator_definition", "")).startswith("fkeras_")
+        } for member in members}
+    return result
 
 
 def _prediction_rows(outcome: StudyOutcome, *, replication: str | None = None):
@@ -176,7 +187,7 @@ def create_study_bundle(
     _write_csv(staging / "measurements/estimator_predictions.csv", prediction_fields, prediction_rows)
     if any(member.ranking_metrics for member in members):
         metric_fields = ["schema_version", "estimator", "implementation_version", "scope", "candidate_count", "spearman_positive_damage", "spearman_absolute_change", "kendall_positive_damage", "zero_score_fraction", "tied_score_fraction", "runtime_seconds", "sample_limited", "top_5_recall", "top_5_overlap", "top_10_recall", "top_10_overlap", "top_20_recall", "top_20_overlap", "signed_mae", "signed_rmse", "signed_bias"]
-        if config.schema_version in {"3.2.0", "3.3.0", "3.4.0"}:
+        if config.schema_version in {"3.2.0", "3.3.0", "3.4.0", "3.5.0"}:
             for requested in (5, 10, 20):
                 metric_fields.extend(
                     [
@@ -184,7 +195,7 @@ def create_study_bundle(
                         f"top_{requested}_random_expected_recall",
                     ]
                 )
-        if config.schema_version in {"3.3.0", "3.4.0"}:
+        if config.schema_version in {"3.3.0", "3.4.0", "3.5.0"}:
             metric_fields.extend(
                 [
                     "spearman_positive_damage_ci_low",
@@ -355,9 +366,16 @@ def create_study_bundle(
         figures = tuple(path.relative_to(staging).as_posix() for path in generated)
     if config.output.report:
         _write_bytes(staging / "report.md", render_study_report(summary, resolved, figure_paths=figures).encode("utf-8"))
+    runtime = runtime_provenance()
+    if config.schema_version == "3.5.0":
+        from importlib.metadata import PackageNotFoundError, version
+        try:
+            runtime["scipy"] = version("scipy")
+        except PackageNotFoundError:
+            runtime["scipy"] = "not-installed"
     manifest = {
         "schema_version": MANIFEST_SCHEMA_VERSION, "run_id": identifier, "status": "complete",
-        "source": git_provenance(Path(repository_root).resolve()), "runtime": runtime_provenance(),
+        "source": git_provenance(Path(repository_root).resolve()), "runtime": runtime,
         "versions": {
             "netsurf": __version__, "experiment_schema": config.schema_version,
             "manifest_schema": MANIFEST_SCHEMA_VERSION, "summary_schema": SUMMARY_SCHEMA_VERSION,
