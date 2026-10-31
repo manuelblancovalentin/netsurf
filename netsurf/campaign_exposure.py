@@ -44,6 +44,8 @@ def audit_exposure(roots=None, *, allowed_campaign=None):
     exposed = set(prior["exposed_test_indices"])
     records, seen = [], set()
     from .conditional_bundle import verify_conditional_bundle
+    allowed = ({allowed_campaign} if isinstance(allowed_campaign, str) else
+               set(allowed_campaign or ()))
     for root in known_roots() if roots is None else roots:
         for path in sorted(Path(root).rglob("manifest.json")):
             bundle = path.parent.resolve()
@@ -78,7 +80,7 @@ def audit_exposure(roots=None, *, allowed_campaign=None):
                 except ValueError as error:
                     raise ValueError(f"exposure inventory failure at {bundle}: {error}") from error
             indices = sorted(_identities(payload) | set(manifest.get("m956_final_original_indices", ())))
-            same = allowed_campaign is not None and payload.get("campaign_binding", {}).get("campaign_sha256") == allowed_campaign
+            same = payload.get("campaign_binding", {}).get("campaign_sha256") in allowed
             if not same:
                 exposed.update(indices)
             records.append({"bundle": str(bundle), "scientific_payload_sha256": digest,

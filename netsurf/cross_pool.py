@@ -296,6 +296,10 @@ def verify_pool_configuration(configuration, *, execution):
     workflow = configuration.workflow
     path = Path(workflow["campaign_manifest"])
     record = load_campaign(path, workflow["campaign_sha256"])
+    parent = None
+    if "joint_campaign" in record:
+        from .multiber_campaign import verify_member
+        parent = verify_member(path, record, require_sealed=execution and workflow["mode"] == "final_only")
     pools = {p["pool_id"]: p for p in record["pools"]}
     if workflow["pool_id"] not in pools:
         raise ValueError("unprespecified pool")
@@ -337,7 +341,9 @@ def verify_pool_configuration(configuration, *, execution):
             raise ValueError("frozen campaign checkpoint identity changed")
         if sha256_file(configuration.benchmark.asset_lock) != record["asset_lock_sha256"]:
             raise ValueError("frozen campaign asset lock identity changed")
-        check_exposure(audit_exposure(allowed_campaign=workflow["campaign_sha256"]),
+        allowed = ([arm["manifest_sha256"] for arm in parent["arms"]] if parent is not None
+                   else workflow["campaign_sha256"])
+        check_exposure(audit_exposure(allowed_campaign=allowed),
                        record["samples"]["final_offset"], record["samples"]["final_count"], record["purpose"])
     return record
 
@@ -376,6 +382,9 @@ def campaign_lock(root):
 
 def seal_selections(path):
     path = Path(path).resolve(); record = load_campaign(path); root = path.parent
+    if "joint_campaign" in record:
+        from .multiber_campaign import require_all_selections
+        require_all_selections(Path(record["joint_campaign"]))
     digest = sha256_file(path)
     from .conditional_config import load_conditional
     with campaign_lock(root):
@@ -402,6 +411,9 @@ def run_campaign(path, phase, *, pool_ids=None, progress=True):
     """Sequential, resumable at completed pool boundaries. Interrupted work fails closed."""
     path = Path(path).resolve(); record = load_campaign(path); root = path.parent
     digest = sha256_file(path)
+    if "joint_campaign" in record:
+        from .multiber_campaign import verify_member
+        verify_member(path, record, require_sealed=phase == "final")
     if phase not in {"selection", "final"}:
         raise ValueError("phase must be selection or final")
     pools = record["pools"]

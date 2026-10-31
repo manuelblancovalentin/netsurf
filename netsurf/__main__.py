@@ -131,6 +131,25 @@ def _parser() -> argparse.ArgumentParser:
     aggregate.add_argument("manifest", type=Path)
     aggregate.add_argument("--output", type=Path, required=True)
     aggregate.add_argument("--no-plots", action="store_true")
+    multiber = subparsers.add_parser("multiber", help="prespecified joint KWS BER campaign")
+    multiber_commands = multiber.add_subparsers(dest="multiber_command", required=True)
+    mb_freeze = multiber_commands.add_parser("freeze", help="verify M9.6 pools and KWS identities; freeze all BER arms")
+    mb_freeze.add_argument("--source", type=Path)
+    mb_freeze.add_argument("--output", type=Path, required=True)
+    mb_freeze.add_argument("--engineering", action="store_true")
+    mb_validate = multiber_commands.add_parser("validate")
+    mb_validate.add_argument("manifest", type=Path)
+    mb_run = multiber_commands.add_parser("run")
+    mb_run.add_argument("manifest", type=Path)
+    mb_run.add_argument("--phase", choices=("selection", "final"), required=True)
+    mb_run.add_argument("--ber", nargs="+", type=float)
+    mb_run.add_argument("--pools", nargs="+")
+    mb_run.add_argument("--no-progress", action="store_true")
+    mb_seal = multiber_commands.add_parser("seal")
+    mb_seal.add_argument("manifest", type=Path)
+    mb_aggregate = multiber_commands.add_parser("aggregate")
+    mb_aggregate.add_argument("manifest", type=Path)
+    mb_aggregate.add_argument("--output", type=Path, required=True)
     return parser
 
 
@@ -444,6 +463,24 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 from .cross_pool_analysis import aggregate_campaign
                 result = aggregate_campaign(args.manifest, args.output, plots=not args.no_plots)
+        elif args.command == "multiber":
+            from .multiber_campaign import SOURCE, freeze_joint, load_joint, run_joint, seal_joint
+            from .manifests import sha256_file
+            if args.multiber_command == "freeze":
+                result = freeze_joint(args.source or SOURCE, args.output, engineering=args.engineering)
+            elif args.multiber_command == "validate":
+                from .cross_pool import validate_campaign
+                parent = load_joint(args.manifest)
+                result = {"sha256": sha256_file(args.manifest), "arms": [validate_campaign(a["manifest"]) for a in parent["arms"]],
+                          "operation_counts_total": parent["operation_counts_total"]}
+            elif args.multiber_command == "seal":
+                result = seal_joint(args.manifest)
+            elif args.multiber_command == "run":
+                result = run_joint(args.manifest, args.phase, levels=args.ber, pool_ids=args.pools,
+                                   progress=not args.no_progress)
+            else:
+                from .multiber_analysis import aggregate_joint
+                result = aggregate_joint(args.manifest, args.output)
             print(json.dumps(result, indent=2, sort_keys=True))
         elif args.command == "conditional":
             from .conditional_bundle import create_conditional_bundle

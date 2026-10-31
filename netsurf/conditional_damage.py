@@ -286,6 +286,12 @@ def execute_conditional_damage(
         )
         sample_data["model_selection"] = model_selection_data
     partitions = {name: data[2] for name, data in sample_data.items()}
+    if campaign_record is not None and "joint_campaign" in campaign_record:
+        from .multiber_campaign import verify_member, verify_partition
+        parent = verify_member(configuration.workflow["campaign_manifest"], campaign_record)
+        for name in ("model_selection", "held_out_evaluation"):
+            if name in sample_data:
+                verify_partition(parent, name, sample_data[name])
     if configuration.samples.require_disjoint:
         require_disjoint(tuple(partitions.values()))
     partition_diagnostics = {
