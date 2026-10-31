@@ -463,6 +463,7 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 from .cross_pool_analysis import aggregate_campaign
                 result = aggregate_campaign(args.manifest, args.output, plots=not args.no_plots)
+            print(json.dumps(result, indent=2, sort_keys=True))
         elif args.command == "multiber":
             from .multiber_campaign import SOURCE, freeze_joint, load_joint, run_joint, seal_joint
             from .manifests import sha256_file

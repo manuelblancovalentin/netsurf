@@ -1,0 +1,27 @@
+schema_version = "1.1.0"
+name = "m98_resnet8_cross_pool_k6_v1"
+purpose = "confirmation"
+benchmark_template = "m98_resnet8_selection_template.toml"
+
+[design]
+candidate_count = 6
+pool_seeds = [980101, 980102, 980103, 980104]
+selection_seed_bases = [980201, 980203, 980205, 980207]
+selection_replicates = 2
+selection_fields_per_seed = 4
+final_seeds = [980501, 980502, 980503, 980504]
+final_fields = 32
+logical_ber = 0.01
+
+[samples]
+# Fixed source test windows, not identical-distribution or power claims.
+# Selection 1024-1055; final 3225-3352 (first free 128-image window in audited range).
+selection_offset = 24
+selection_count = 32
+final_offset = 225
+final_count = 128
+
+[statistics]
+bootstrap_seed = 980801
+bootstrap_replicates = 1000
+confidence = 0.95

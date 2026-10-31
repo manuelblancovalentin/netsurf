@@ -14,7 +14,7 @@ from .result_bundle import ResultBundleError, _inventory, _write_bytes, _write_c
 
 
 def _report(outcome: ConditionalOutcome) -> str:
-    if outcome.configuration.schema_version in {"6.4.0", "6.5.0", "6.6.0"}:
+    if outcome.configuration.workflow and outcome.configuration.schema_version in {"6.4.0", "6.5.0", "6.6.0", "6.7.0"}:
         return _preflight_report(outcome)
     payload = outcome.scientific_payload
     interval_label = f"{100.0 * outcome.configuration.execution.confidence:g}% CI"
@@ -138,7 +138,7 @@ def _preflight_report(outcome):
     mode = outcome.configuration.workflow["mode"]
     population_description = (
         "Probability-sampled S5-status-stratified candidate pool; pool-level inference requires the complete frozen campaign. "
-        if outcome.configuration.schema_version == "6.6.0" else
+        if "campaign_manifest" in outcome.configuration.workflow else
         "Frozen exploratory candidate pool, not a random population sample. ")
     lines = [f"# {outcome.configuration.name}", "", outcome.configuration.objective, "",
              f"Execution: `{mode}`; purpose: `{outcome.configuration.workflow['purpose']}`.", "",
@@ -354,7 +354,7 @@ def create_conditional_bundle(
                 _write_json(staging / "artifacts/paired_input_contributions.json", outcome.scientific_payload["paired_input_diagnostics"])
             manifest["replication_plan_sha256"] = outcome.scientific_payload["replication_plan_sha256"]
             manifest["outputs"] = _inventory(staging)
-        if outcome.configuration.schema_version == "6.6.0":
+        if "campaign_binding" in outcome.scientific_payload:
             manifest["campaign_binding"] = outcome.scientific_payload["campaign_binding"]
             if "paired_input_diagnostics" in outcome.scientific_payload:
                 _write_json(staging / "artifacts/paired_input_contributions.json", outcome.scientific_payload["paired_input_diagnostics"])
@@ -380,7 +380,7 @@ def verify_conditional_bundle(path: str | Path) -> dict[str, object]:
         raise ResultBundleError(f"not a finalized conditional bundle: {root}")
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     checksums = json.loads((root / "checksums.json").read_text(encoding="utf-8"))
-    if manifest.get("schema_version") not in {"6.0.0", "6.1.0", "6.2.0", "6.3.0", "6.4.0", "6.5.0", "6.6.0"}:
+    if manifest.get("schema_version") not in {"6.0.0", "6.1.0", "6.2.0", "6.3.0", "6.4.0", "6.5.0", "6.6.0", "6.7.0"}:
         raise ResultBundleError(f"unsupported conditional manifest: {manifest.get('schema_version')!r}")
     for relative, expected in checksums["files"].items():
         actual = sha256_file(root / relative)

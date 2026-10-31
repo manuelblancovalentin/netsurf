@@ -45,7 +45,7 @@ def reject_local_final_reuse(configuration):
                 f"final sample exposure overlap with finalized bundle {path.parent}: {sorted(overlap)}")
 
 
-def validate_workflow(raw, samples, backgrounds, oracle, paired, context, source):
+def validate_workflow(raw, samples, backgrounds, oracle, paired, context, source, *, audit_kws=True):
     from .conditional_config import ConditionalConfigurationError, PAIRED_SWAP_COMPARISONS
     required = {"mode", "purpose", "candidate_provenance"}
     optional = {"selection_bundle", "selection_payload_sha256", "selection_artifact_sha256"}
@@ -85,7 +85,8 @@ def validate_workflow(raw, samples, backgrounds, oracle, paired, context, source
         path = Path(raw["selection_bundle"]).expanduser()
         workflow["selection_bundle"] = str((source.parent / path if not path.is_absolute() else path).resolve())
     try:
-        exposure_audit(samples.evaluation_offset, samples.evaluation_count, workflow["purpose"])
+        if audit_kws:
+            exposure_audit(samples.evaluation_offset, samples.evaluation_count, workflow["purpose"])
     except ValueError as error:
         raise ConditionalConfigurationError(str(error)) from error
     return workflow
@@ -101,7 +102,7 @@ def selection_contract(configuration):
     context.pop("source_bundle")
     return {
         **({"campaign_sha256": configuration.workflow["campaign_sha256"], "pool_id": configuration.workflow["pool_id"]}
-           if configuration.schema_version == "6.6.0" else {}),
+           if "campaign_sha256" in configuration.workflow else {}),
         "benchmark": benchmark,
         "checkpoint_sha256": sha256_file(configuration.benchmark.checkpoint),
         "asset_lock_sha256": sha256_file(configuration.benchmark.asset_lock),
@@ -167,6 +168,12 @@ def load_frozen_selection(configuration):
         final_ids = {f"speech_commands_tfds_test_interleaved_blocks16:{i}" for i in range(
             3048 + configuration.samples.evaluation_offset,
             3048 + configuration.samples.evaluation_offset + configuration.samples.evaluation_count)}
+        if configuration.schema_version == "6.7.0":
+            from .conditional_benchmarks import conditional_capability
+            cap = conditional_capability(configuration.benchmark.adapter)
+            final_ids = {f"{cap.source_split}:{i}" for i in cap.indices(
+                configuration.samples.evaluation_role, configuration.samples.evaluation_offset,
+                configuration.samples.evaluation_count)}
         if selected_ids & final_ids:
             raise ValueError("frozen selection samples overlap final samples")
         return record

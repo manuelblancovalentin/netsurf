@@ -1,0 +1,106 @@
+schema_version = "6.7.0"
+scientific_protocol = "capability-conditional-protection/v8"
+
+[experiment]
+name = "m98_resnet8_selection_template"
+description = "Source-binding template for the M98 frozen cross-pool generator. Explicit engineering candidates are replaced by frozen probability draws in campaigns."
+objective = "Equal-global-budget protection exchanges; mean exact integer-softmax cross-entropy."
+
+[benchmark]
+adapter = "mlperf_tiny_ic_int8_v1"
+id = "mlperf_tiny_ic_resnet8_int8_v1"
+checkpoint = "/data/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4/benchmark/training/image_classification/trained_models/pretrainedResnet_quant.tflite"
+dataset = "/data/datasets/cifar10/cifar-10-python.tar.gz"
+asset_lock = "/projects/kona-assets/manuelbv/locks/mlperf-tiny/ic.lock.json"
+inference_backend = "tensorflow_lite_builtin_ref_v1"
+split = "test"
+quantization = "tflite_affine_int8"
+quantization_backend = "tflite_affine_integer_v1"
+injectable_parameters = ["kernels"]
+
+[samples]
+calibration_role = "conditional_calibration"
+calibration_count = 2
+calibration_offset = 0
+model_selection_role = "conditional_model_selection"
+model_selection_count = 32
+model_selection_offset = 24
+evaluation_role = "conditional_final_evaluation"
+evaluation_count = 128
+evaluation_offset = 225
+require_disjoint = true
+
+[risk]
+metric = "categorical_crossentropy"
+direction = "minimize"
+
+# Verified engineering pool (seed 989101); production campaign freeze replaces it.
+[[candidates]]
+parameter = "tflite_tensor_0011/kernel"
+flat_index = 3321
+bit_index = 7
+[[candidates]]
+parameter = "tflite_tensor_0012/kernel"
+flat_index = 4348
+bit_index = 7
+[[candidates]]
+parameter = "tflite_tensor_0012/kernel"
+flat_index = 4515
+bit_index = 4
+[[candidates]]
+parameter = "tflite_tensor_0014/kernel"
+flat_index = 9186
+bit_index = 3
+[[candidates]]
+parameter = "tflite_tensor_0014/kernel"
+flat_index = 17452
+bit_index = 6
+[[candidates]]
+parameter = "tflite_tensor_0015/kernel"
+flat_index = 17883
+bit_index = 2
+
+[backgrounds]
+probabilities = [0.01]
+calibration_count = 1
+evaluation_count = 1
+calibration_seed = 980001
+evaluation_seed = 980002
+
+[restricted_oracle]
+enabled = true
+budget = 2
+calibration_background_count = 4
+evaluation_background_count = 1
+calibration_seed = 980003
+evaluation_seed = 980004
+calibration_replicate_seeds = [980201, 980202]
+
+[protection_context]
+mode = "verified_global_mask"
+source_bundle = "/projects/netsurf/manuelbv/workspace/runs/m92_resnet8_static_test1000_v1/20261029T084524.633748Z-f0bcc564"
+artifact = "artifacts/protection_masks.json"
+artifact_sha256 = "f3045a36181c569d4ae7e5f4568dccc718ce105e3f20a97090a3807bc80557b8"
+scientific_payload_sha256 = "3ed95baa04ede8047f5b5eb04f9024f2e5f856c39abcc84b2ca1fb894b22db32"
+mask_key = "replication_0/per_example_absolute_global@0.125000"
+expected_population_size = 618880
+expected_global_cardinality = 77360
+
+[paired_swap_evaluation]
+enabled = false
+background_count = 32
+seed = 980501
+comparisons = ["restricted_selected_vs_original_s5", "restricted_selected_vs_exact_isolated", "exact_isolated_vs_original_s5"]
+
+[workflow]
+mode = "selection_only"
+purpose = "engineering"
+candidate_provenance = "prespecified_explicit_engineering/v1"
+
+[execution]
+confidence = 0.95
+
+[output]
+root = ""
+report = true
+plots = false

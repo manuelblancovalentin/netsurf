@@ -22,6 +22,7 @@ CONDITIONAL_SCHEMA_VERSION_6_3 = "6.3.0"
 CONDITIONAL_SCHEMA_VERSION_6_4 = "6.4.0"
 CONDITIONAL_SCHEMA_VERSION_6_5 = "6.5.0"
 CONDITIONAL_SCHEMA_VERSION_6_6 = "6.6.0"
+CONDITIONAL_SCHEMA_VERSION_6_7 = "6.7.0"
 CONDITIONAL_PROTOCOL = "exact-conditional-damage/v1"
 CONDITIONAL_PROTOCOL_6_1 = "exact-conditional-protection/v2"
 CONDITIONAL_PROTOCOL_6_2 = "contextual-exact-conditional-protection/v3"
@@ -118,7 +119,7 @@ class ConditionalConfiguration:
     workflow: Mapping[str, Any] = field(default_factory=dict)
 
     def operation_counts(self) -> dict[str, int]:
-        if self.schema_version in {CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6}:
+        if self.workflow and self.schema_version in {CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6, CONDITIONAL_SCHEMA_VERSION_6_7}:
             selecting = self.workflow["mode"] == "selection_only"
             fields = (self.restricted_oracle.calibration_background_count
                       * len(self.restricted_oracle.selection_seeds)) if selecting else 0
@@ -160,7 +161,7 @@ class ConditionalConfiguration:
                 * len(self.paired_swap_evaluation.comparisons)
                 * 2 * self.restricted_oracle.budget
             )
-        if self.schema_version != CONDITIONAL_SCHEMA_VERSION_6_3:
+        if self.schema_version not in {CONDITIONAL_SCHEMA_VERSION_6_3, CONDITIONAL_SCHEMA_VERSION_6_7}:
             return {
                 "conditional_requested_evaluations": conditional,
                 "restricted_oracle_requested_evaluations": oracle,
@@ -277,7 +278,7 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
     if schema_version not in {
         CONDITIONAL_SCHEMA_VERSION, CONDITIONAL_SCHEMA_VERSION_6_1,
         CONDITIONAL_SCHEMA_VERSION_6_2, CONDITIONAL_SCHEMA_VERSION_6_3,
-        CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6,
+        CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6, CONDITIONAL_SCHEMA_VERSION_6_7,
     }:
         raise ConditionalConfigurationError(
             f"unsupported conditional schema: {document['schema_version']!r}"
@@ -290,6 +291,7 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         CONDITIONAL_SCHEMA_VERSION_6_4: CONDITIONAL_PROTOCOL_6_4,
         CONDITIONAL_SCHEMA_VERSION_6_5: CONDITIONAL_PROTOCOL_6_5,
         CONDITIONAL_SCHEMA_VERSION_6_6: "cross-pool-frozen-protection/v7",
+        CONDITIONAL_SCHEMA_VERSION_6_7: "capability-conditional-protection/v8",
     }[schema_version]
     if document["scientific_protocol"] != expected_protocol:
         raise ConditionalConfigurationError(
@@ -297,7 +299,7 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         )
     if schema_version == CONDITIONAL_SCHEMA_VERSION_6_2 and "protection_context" not in document:
         raise ConditionalConfigurationError("schema 6.2 requires protection_context")
-    if schema_version in {CONDITIONAL_SCHEMA_VERSION_6_3, CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6} and not {
+    if schema_version in {CONDITIONAL_SCHEMA_VERSION_6_3, CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6, CONDITIONAL_SCHEMA_VERSION_6_7} and not {
         "protection_context", "paired_swap_evaluation"
     } <= set(document):
         raise ConditionalConfigurationError(
@@ -320,7 +322,7 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         set(),
         "benchmark",
     )
-    if raw_benchmark["adapter"] != "mlperf_tiny_kws_int8_v1":
+    if schema_version != CONDITIONAL_SCHEMA_VERSION_6_7 and raw_benchmark["adapter"] != "mlperf_tiny_kws_int8_v1":
         raise ConditionalConfigurationError(
             "schema 6.0 currently validates exact conditional damage only for mlperf_tiny_kws_int8_v1"
         )
@@ -343,6 +345,10 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         str(raw_benchmark["quantization_backend"]), tuple(raw_benchmark["injectable_parameters"]),
         asset_lock, str(raw_benchmark["inference_backend"]),
     )
+    capability = None
+    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_7:
+        from .conditional_benchmarks import validate_benchmark
+        capability = validate_benchmark(benchmark, check_inputs=check_inputs)
 
     raw_samples = _table(document, "samples")
     sample_required = {
@@ -356,7 +362,7 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
     _keys(raw_samples, sample_required | (sample_61 if schema_version in {
         CONDITIONAL_SCHEMA_VERSION_6_1, CONDITIONAL_SCHEMA_VERSION_6_2,
         CONDITIONAL_SCHEMA_VERSION_6_3,
-        CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6,
+        CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6, CONDITIONAL_SCHEMA_VERSION_6_7,
     } else set()), set(), "samples")
     samples = ConditionalSamples(
         int(raw_samples["calibration_count"]), int(raw_samples["evaluation_count"]),
@@ -377,7 +383,7 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
     if schema_version in {
         CONDITIONAL_SCHEMA_VERSION_6_1, CONDITIONAL_SCHEMA_VERSION_6_2,
         CONDITIONAL_SCHEMA_VERSION_6_3,
-        CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6,
+        CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6, CONDITIONAL_SCHEMA_VERSION_6_7,
     }:
         expected_roles = (
             "conditional_calibration", "conditional_model_selection",
@@ -392,13 +398,15 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
             )
         if samples.model_selection_count < 1 or samples.model_selection_offset < 0:
             raise ConditionalConfigurationError("schema 6.1 model-selection count must be positive and offset nonnegative")
-        if raw_benchmark["split"] != "full_test_4890":
+        if capability is None and raw_benchmark["split"] != "full_test_4890":
             raise ConditionalConfigurationError("schema 6.1 KWS studies require benchmark.split=full_test_4890")
         window_capacities = {
             "calibration": 1024,
             "model-selection": 1024,
             "final-evaluation": 1842,
         }
+        if capability is not None:
+            window_capacities = dict(zip(window_capacities, (stop-start for start, stop in capability.windows)))
         requested_windows = {
             "calibration": (samples.calibration_offset, samples.calibration_count),
             "model-selection": (samples.model_selection_offset, samples.model_selection_count),
@@ -477,7 +485,7 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         "enabled", "budget", "calibration_background_count",
         "evaluation_background_count", "calibration_seed", "evaluation_seed",
     }
-    if schema_version in {CONDITIONAL_SCHEMA_VERSION_6_3, CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6}:
+    if schema_version in {CONDITIONAL_SCHEMA_VERSION_6_3, CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6, CONDITIONAL_SCHEMA_VERSION_6_7}:
         oracle_optional.add("calibration_replicate_seeds")
     _keys(raw_oracle, set(), oracle_optional, "restricted_oracle")
     oracle = RestrictedOracleConfiguration(
@@ -497,7 +505,7 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
     if len(set(oracle.selection_seeds)) != len(oracle.selection_seeds):
         raise ConditionalConfigurationError("model-selection replicate seeds must be unique")
     if (
-        schema_version in {CONDITIONAL_SCHEMA_VERSION_6_3, CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6}
+        schema_version in {CONDITIONAL_SCHEMA_VERSION_6_3, CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6, CONDITIONAL_SCHEMA_VERSION_6_7}
         and not oracle.calibration_replicate_seeds
     ):
         raise ConditionalConfigurationError(
@@ -517,13 +525,13 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
             "select_restricted_subcube_mask API with separately constructed calibration and "
             "held-out background risks"
         )
-    if schema_version in {CONDITIONAL_SCHEMA_VERSION_6_2, CONDITIONAL_SCHEMA_VERSION_6_3, CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6} and not oracle.enabled:
+    if schema_version in {CONDITIONAL_SCHEMA_VERSION_6_2, CONDITIONAL_SCHEMA_VERSION_6_3, CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6, CONDITIONAL_SCHEMA_VERSION_6_7} and not oracle.enabled:
         raise ConditionalConfigurationError("schema 6.2+ requires restricted_oracle.enabled=true")
 
     raw_context = document.get("protection_context", {})
     if not isinstance(raw_context, dict):
         raise ConditionalConfigurationError("protection_context must be a table")
-    if schema_version in {CONDITIONAL_SCHEMA_VERSION_6_2, CONDITIONAL_SCHEMA_VERSION_6_3, CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6}:
+    if schema_version in {CONDITIONAL_SCHEMA_VERSION_6_2, CONDITIONAL_SCHEMA_VERSION_6_3, CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6, CONDITIONAL_SCHEMA_VERSION_6_7}:
         _keys(
             raw_context,
             {"mode"},
@@ -575,7 +583,7 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
     raw_paired = document.get("paired_swap_evaluation", {})
     if not isinstance(raw_paired, dict):
         raise ConditionalConfigurationError("paired_swap_evaluation must be a table")
-    if schema_version in {CONDITIONAL_SCHEMA_VERSION_6_3, CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6}:
+    if schema_version in {CONDITIONAL_SCHEMA_VERSION_6_3, CONDITIONAL_SCHEMA_VERSION_6_4, CONDITIONAL_SCHEMA_VERSION_6_5, CONDITIONAL_SCHEMA_VERSION_6_6, CONDITIONAL_SCHEMA_VERSION_6_7}:
         _keys(
             raw_paired, {"enabled", "background_count", "seed", "comparisons"}, set(),
             "paired_swap_evaluation",
@@ -588,7 +596,7 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
         int(raw_paired.get("seed", 0)),
         tuple(str(value) for value in raw_paired.get("comparisons", ())),
     )
-    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_3:
+    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_3 or (schema_version == CONDITIONAL_SCHEMA_VERSION_6_7 and not document.get("workflow")):
         if not paired.enabled or paired.background_count < 1:
             raise ConditionalConfigurationError(
                 "schema 6.3 requires enabled paired-swap evaluation with positive backgrounds"
@@ -630,6 +638,9 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
     elif schema_version == CONDITIONAL_SCHEMA_VERSION_6_6:
         from .cross_pool import validate_pool_workflow
         workflow = validate_pool_workflow(workflow, samples, backgrounds, oracle, paired, context, source)
+    elif schema_version == CONDITIONAL_SCHEMA_VERSION_6_7 and workflow:
+        from .conditional_benchmarks import validate_workflow
+        workflow = validate_workflow(workflow, samples, backgrounds, oracle, paired, context, source)
     elif workflow:
         raise ConditionalConfigurationError("workflow requires schema 6.4")
     configuration = ConditionalConfiguration(
@@ -644,10 +655,13 @@ def load_conditional(path: str | Path, *, check_inputs: bool = True) -> Conditio
     if check_inputs and schema_version == CONDITIONAL_SCHEMA_VERSION_6_5:
         from .replication_preflight import verify_replication_plan
         verify_replication_plan(configuration, require_frozen=False)
-    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_6:
+    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_6 or "campaign_manifest" in workflow:
         from .cross_pool import verify_pool_configuration
         verify_pool_configuration(configuration, execution=False)
-    if workflow and schema_version != CONDITIONAL_SCHEMA_VERSION_6_6:
+    if schema_version == CONDITIONAL_SCHEMA_VERSION_6_7 and "campaign_manifest" not in workflow:
+        from .conditional_benchmarks import configuration_exposure
+        configuration_exposure(configuration)
+    if workflow and schema_version not in {CONDITIONAL_SCHEMA_VERSION_6_6, CONDITIONAL_SCHEMA_VERSION_6_7}:
         from .selection_preflight import reject_local_final_reuse
         reject_local_final_reuse(configuration)
     return configuration

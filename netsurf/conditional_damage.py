@@ -217,7 +217,7 @@ def execute_conditional_damage(
         from .replication_preflight import verify_replication_plan, load_replication_selection
         replication_plan_record = verify_replication_plan(configuration)
     campaign_record = None
-    if configuration.schema_version == "6.6.0":
+    if configuration.schema_version == "6.6.0" or "campaign_manifest" in configuration.workflow:
         from .cross_pool import verify_pool_configuration
         campaign_record = verify_pool_configuration(configuration, execution=True)
     mode = configuration.workflow.get("mode", "joint")
@@ -225,13 +225,20 @@ def execute_conditional_damage(
     exposure = exposure_audit(
         configuration.samples.evaluation_offset, configuration.samples.evaluation_count,
         configuration.workflow["purpose"],
-    ) if configuration.workflow else None
+    ) if configuration.workflow and configuration.schema_version != "6.7.0" else None
+    if configuration.schema_version == "6.7.0" and campaign_record is None:
+        from .conditional_benchmarks import configuration_exposure
+        exposure = configuration_exposure(configuration)
     if replication_plan_record is not None:
         frozen_source = load_replication_selection(configuration)
         exposure = replication_plan_record["exposure_audit"]
     if campaign_record is not None:
         exposure = campaign_record["exposure_audit"]
-    benchmark = adapter or create_adapter(configuration, None)
+    if configuration.schema_version == "6.7.0" and adapter is None:
+        from .conditional_benchmarks import create_conditional_adapter
+        benchmark = create_conditional_adapter(configuration)
+    else:
+        benchmark = adapter or create_adapter(configuration, None)
     benchmark.load()
     universe = tuple(benchmark.bit_identities())
     if campaign_record is not None and digest_object([b.key() for b in universe]) != campaign_record["universe_sha256"]:
@@ -274,7 +281,7 @@ def execute_conditional_damage(
         evaluation_x, evaluation_y, evaluation_partition = sample_data["held_out_evaluation"]
         if configuration.workflow and (
             tuple(evaluation_partition.indices) != tuple(exposure["requested_original_indices"])
-            or evaluation_partition.source_split != "speech_commands_tfds_test_interleaved_blocks16"
+            or evaluation_partition.source_split != exposure.get("source_split", "speech_commands_tfds_test_interleaved_blocks16")
         ):
             raise ValueError("actual final sample identities differ from the preflight exposure audit")
     model_selection_data = None
@@ -1046,6 +1053,7 @@ def execute_conditional_damage(
             "6.4.0": "netsurf-frozen-selection-protection/v5",
             "6.5.0": "netsurf-independent-frozen-mask-replication/v6",
             "6.6.0": "netsurf-cross-pool-frozen-protection/v7",
+            "6.7.0": "netsurf-capability-conditional-protection/v8",
         }[configuration.schema_version],
         "scientific_protocol": configuration.scientific_protocol,
         "experiment": configuration.name,
@@ -1153,6 +1161,10 @@ def execute_conditional_damage(
             ),
         },
     }
+    if configuration.schema_version == "6.7.0":
+        from .conditional_benchmarks import conditional_capability
+        payload["conditional_capability"] = conditional_capability(configuration.benchmark.adapter).record()
+        payload["exposure_audit"] = exposure
     if configuration.workflow:
         payload["workflow"] = {k: v for k, v in configuration.workflow.items() if k not in {"selection_bundle", "replication_plan", "campaign_manifest", "final_registry"}}
         payload["exposure_audit"] = exposure
