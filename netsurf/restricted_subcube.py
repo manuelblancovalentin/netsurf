@@ -32,14 +32,35 @@ def fixed_budget_masks(candidate_count: int, budget: int) -> tuple[tuple[int, ..
     return tuple(itertools.combinations(range(candidate_count), budget))
 
 
+def bernoulli_state_mass(state: tuple[int, ...], available: Sequence[int],
+                         probability: float | Sequence[float]) -> float:
+    """Exact mass for common or bit-specific independent Bernoulli faults."""
+    if len(set(available)) != len(available) or len(set(state)) != len(state) or not set(state) <= set(available):
+        raise ValueError("state and available indices must be unique, with state a subset")
+    if isinstance(probability, (int, float)):
+        probabilities = (float(probability),) * len(available)
+    else:
+        probabilities = tuple(float(p) for p in probability)
+    if len(probabilities) != len(available) or any(not 0. <= p <= 1. for p in probabilities):
+        raise ValueError("one valid Bernoulli probability is required per available bit")
+    enabled = set(state)
+    mass = 1.
+    for index, p in zip(available, probabilities):
+        mass *= p if index in enabled else (1. - p)
+    return mass
+
+
 def integrate_response_table(
     responses: Mapping[tuple[int, ...], float], candidate_count: int,
-    probability: float, *, protected: tuple[int, ...] = (),
+    probability: float | Sequence[float], *, protected: tuple[int, ...] = (),
 ) -> float:
     """Integrate a complete exact response table under Bernoulli candidate faults."""
 
-    if not 0.0 <= probability <= 1.0:
-        raise ValueError("probability must lie in [0,1]")
+    if isinstance(probability, (int, float)):
+        if not 0.0 <= probability <= 1.0:
+            raise ValueError("probability must lie in [0,1]")
+    elif len(probability) != candidate_count:
+        raise ValueError("heterogeneous probabilities must cover every candidate")
     states = subcube_states(candidate_count)
     if set(responses) != set(states):
         missing = set(states) - set(responses)
@@ -53,8 +74,8 @@ def integrate_response_table(
     for state in states:
         if any(index in protected_set for index in state):
             continue
-        count = len(state)
-        mass = probability**count * (1.0 - probability) ** (len(available) - count)
+        law = probability if isinstance(probability, (int, float)) else tuple(probability[i] for i in available)
+        mass = bernoulli_state_mass(state, available, law)
         mass_total += mass
         total += mass * float(responses[state])
     if abs(mass_total - 1.0) > 1e-12:
