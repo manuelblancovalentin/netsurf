@@ -1,5 +1,11 @@
 # M9.7-A: executable benchmark capabilities and remaining gates
 
+Historical milestone record. M9.8 subsequently enables capability-bound
+ResNet-8 conditional/restricted execution through schema 6.7 and campaign 1.1;
+see `docs/M98_CONDITIONAL_ADAPTERS.md`. The original M96 18-target inventory and
+the M97 measurements below remain unchanged. ToyCar conditional AUC support
+still requires the documented file-cohort/reporting gate.
+
 This is an additive interface over the unchanged M96 portfolio, **11 model
 families and 18 precision targets**, not a declaration that all targets work.
 Portfolio SHA-256: `289471536a49d87e6055d25c0deaed98b616132650a397c0c80d614d145339dc`.

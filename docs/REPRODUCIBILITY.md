@@ -727,3 +727,18 @@ Do not run the production plan as a test. Full foreground commands, hashed
 evidence, operational batching, interrupted-attempt behavior, exposure audit and
 costs are in `docs/M96_CROSS_POOL_PROTOCOL.md`. No package installation, model
 conversion, asset-lock modification or GPU is required.
+
+## M9.8 ResNet-8 conditional protection
+
+The isolated `m98-conditional-adapters` worktree provides schema 6.7 / campaign
+1.1 and the frozen four-pool K=6 ResNet plan. It was validated, not executed.
+Use the pinned `/projects/kona-assets/manuelbv/.venv-mlperf/bin/python` for
+`campaign validate`, selection, sealing and final evaluation. Canonical Python
+regenerates plots from saved evidence. The original KWS engineering replay
+retains scientific payload
+`5b4efe74ccf9b81f9e685b1203d88168d9a4ba7acb2054faedf12d857b0d3556`.
+See `docs/M98_CONDITIONAL_ADAPTERS.md` for exact foreground commands,
+editable requests versus immutable manifests, frozen source dependencies,
+exposure windows, operation counts, tests and archive/export instructions.
+No production plan should be used as an automatic test. ToyCar AUC integration
+has bounded mathematical/backend checks but is not production-ready.

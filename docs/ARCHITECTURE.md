@@ -185,3 +185,21 @@ population Kronecker interaction sum with dynamic rank-one updates.
 acceptance gate. `timing.py` defines non-overlapping timing intervals; bundle
 and reporting code label inclusive method and cumulative trajectory timing so
 they cannot be mistaken for additive phase measurements.
+
+## Capability-bound conditional integration (M9.8)
+
+`conditional_benchmarks.py` binds schema 6.7 to explicit KWS/ResNet checkpoint,
+population, risk and source-partition capabilities. Its ResNet wrapper reuses
+the existing exact TFLite adapter and captures per-image CE from the same
+authoritative call; it does not introduce a second inference or fault engine.
+It also audits original sample exposure through verified finalized payloads.
+`conditional_config`, `conditional_damage` and `conditional_bundle` dispatch
+the new version while preserving schema 6.0–6.6 paths.
+
+`cross_pool` request 1.1 reuses the existing status-stratified pool draw,
+freeze/seal lifecycle and paired evaluator with capability-defined populations
+and windows. `cross_pool_analysis` derives statistics/plots offline and retains
+long exact event fields. ToyCar remains explicitly blocked at this interface
+until complete-file identities and nonadditive AUC reporting are specified;
+its existing static adapter remains available. Detailed contracts and examples:
+`docs/M98_CONDITIONAL_ADAPTERS.md`.

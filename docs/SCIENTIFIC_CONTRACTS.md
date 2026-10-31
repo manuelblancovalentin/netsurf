@@ -425,3 +425,28 @@ arbitrary architectures, global optimality, or physical upset exposure. Adverse
 and zero-effect pools remain included. Known prior fault-exposed test indices
 are rejected for confirmation; unknown manual/concurrent exposure still requires
 disclosure. Existing final bundles and 6.0–6.5 behavior remain unchanged.
+
+## M9.8 capability-bound conditional protection
+
+Schema 6.7 and campaign 1.1 add the pinned ResNet-8 INT8 kernel population
+(618,880 bits) to the existing exact restricted selector and paired-swap
+evaluator. They retain authoritative TF 2.14.1 BUILTIN_REF mean integer-softmax
+cross-entropy, exact XOR, independent Bernoulli fields and fixed global
+cardinality. The existing KWS schemas and scientific payloads remain unchanged.
+The verified frozen S5 12.5% context is not regenerated or replaced.
+
+ResNet conditional roles use original CIFAR-10 test positions: calibration
+0–999, model selection 1000–2999, final 3000–9999. These are disjoint source
+windows, not proof of identical distributions. Known finalized fault-exposure
+identities, including scattered official-subset aliases, are checksum-audited
+and rejected for confirmation. Clean full-reference evaluation does not make
+the remaining data inference-naive; unknown/manual/concurrent exposure still
+requires disclosure. All pool selections must be sealed before final execution.
+
+ToyCar task risk would be 1 minus whole-file-cohort ROC-AUC, not reconstruction
+MSE. Response-table integration and paired-swap identities apply to that scalar
+set function without additive per-input losses. Production orchestration remains
+blocked pending frozen both-class cohorts, a file-identity/exposure contract and
+nonadditive reporting/uncertainty support. Do not pass window MSE through CE
+columns or infer an additive AUC contribution from a per-window loss.
+See `docs/M98_CONDITIONAL_ADAPTERS.md` for evidence, costs and limitations.

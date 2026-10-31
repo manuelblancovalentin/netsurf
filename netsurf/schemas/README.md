@@ -150,3 +150,15 @@ selection registries and aggregates independently declare `1.0.0`. Complete
 matched fields and all pools are required for aggregation. Unknown versions
 fail; finalized files are never migrated in place. See
 `docs/M96_CROSS_POOL_PROTOCOL.md`.
+
+Capability-bound conditional schema `6.7.0` (`conditional/v1_7.schema.json`)
+adds explicitly verified ResNet-8 alongside KWS without altering older paths.
+It permits joint engineering diagnostics or the existing separated selection /
+frozen-final workflow, with architecture-specific identity and exposure gates.
+Campaign request/frozen manifest `1.1.0` (`campaign/v1_1.schema.json`) uses
+those capabilities for population, sample windows and a prespecified BER.
+Existing campaign 1.0 remains the fixed KWS protocol. Scalar risk remains
+classification CE; ToyCar file-level AUC is explicitly unsupported by this
+version rather than aliased to an additive loss. Python validators enforce
+runtime/asset, cardinality, seed, source and partition constraints beyond JSON
+field checks. See `docs/M98_CONDITIONAL_ADAPTERS.md`.
