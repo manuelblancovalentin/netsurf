@@ -12,6 +12,13 @@ study remains researcher-run: see [protocol and commands](docs/M96_CROSS_POOL_PR
 The [audited benchmark roadmap](docs/BENCHMARK_EXPANSION_ROADMAP.md) distinguishes
 verified static adapters from conditional-protocol, data and precision blockers.
 
+M9.7-A adds [validated FKeras scoring variants and bounded KWS examples](docs/M97_FKERAS_REPRODUCTION.md),
+plus [explicit capabilities for all 18 portfolio targets](docs/M97_BENCHMARK_ADAPTER_STATUS.md).
+Inspect with `python -m netsurf benchmarks capabilities`; run exact-bit probes
+only with the pinned interpreter documented there. Streaming DS-CNN has a verified
+short-fixture probe, not a full publication-study adapter. No large-model precision
+or Hessian capability is inferred from a registry entry.
+
 ## Kona setup
 
 The private `proj` project is named `netsurf` and points to this repository and

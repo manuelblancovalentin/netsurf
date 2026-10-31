@@ -44,6 +44,14 @@ cross-entropy columns. Anomaly detection uses file-level ROC-AUC and
 float-domain reconstruction MSE and never aliases them as classification
 metrics.
 
+Experiment and measurement `3.5.0` add explicit `fkeras_paper` and
+`fkeras_repository` definitions for a separate continuous KWS companion,
+required bounded eigensolver options, strict tier-first ordering, saved
+eigenpair/mapping diagnostics and actual mask-equivalence reporting.
+Existing 3.0–3.4 readers and payload fields retain their behavior. This does not
+extend schema-6 conditional/cross-pool support to other architectures. See
+`docs/M97_FKERAS_REPRODUCTION.md` for exact fields and numerical scope.
+
 The Python validators enforce the executable subset and load these documents as
 the machine-readable field contract. Breaking changes require a new schema file
 and a new reader. Experiment and measurement `4.0.0` add the conditional-search
