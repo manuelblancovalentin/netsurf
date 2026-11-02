@@ -450,3 +450,31 @@ blocked pending frozen both-class cohorts, a file-identity/exposure contract and
 nonadditive reporting/uncertainty support. Do not pass window MSE through CE
 columns or infer an additive AUC contribution from a per-window loss.
 See `docs/M98_CONDITIONAL_ADAPTERS.md` for evidence, costs and limitations.
+
+## M9.9 scalar-cohort conditional protection
+
+Schema 6.8 / campaign 1.2 resolves the M98 ToyCar orchestration blocker with
+explicit, disjoint, both-class complete-file cohorts. The sole optimized risk
+is `one_minus_file_roc_auc`: one minus ROC-AUC computed from one pinned anomaly
+score for each complete file, with half credit for ties. All 196 windows per
+file use the same persistent INT8 kernel fault state. Reconstruction MSE
+remains the S5 gradient surrogate and a descriptive score ingredient, never
+an alias for AUC risk. No asset lock, tolerance, fault law or S5 definition changes.
+
+The existing exact response-table selector and paired-swap identity operate
+on this scalar set function without requiring additive per-input losses.
+Schema 6.8 rejects `record_per_input=true`. Saved file labels/IDs, ordered
+window identities, content/output/score hashes and float64 score values permit
+offline risk and dependent normal/anomalous ordering diagnostics. Statistical
+units are whole independently seeded fault fields and prespecified candidate
+pools. No uncertainty over input files is claimed; any future file-population
+bootstrap must resample complete files within class and recompute paired AUCs.
+
+Every pool preserves the verified 264,192-bit S5 global budget over 2,113,536
+eligible kernel bits. Selection-only cannot load final cohorts; all selections
+must be sealed before final execution. Checksum-audited prior fault exposure
+is rejected for both selection and final confirmation cohorts. All 248 files
+already underwent clean reference inference: remaining files are not
+inference-naive or an independently collected dataset. Unknown manual,
+concurrent and incomplete-run exposures still require researcher disclosure.
+See `docs/M99_TOYCAR_CONDITIONAL.md` for the frozen pilot and engineering evidence.

@@ -263,3 +263,12 @@ rankings through an explicitly labeled straight-through companion. Exact
 TFLite 2.14.1 `BUILTIN_REF` inference remains authoritative. See
 `docs/MLPERF_TINY_M9_STATIC_ESTIMATORS.md` and the two maintained
 `m9_resnet8_static_*_v1.toml` configurations before running them.
+
+### Complete-file ToyCar conditional protection (M9.9)
+
+ToyCar conditional studies use schema 6.8 / campaign 1.2 and optimize
+`1 - file_ROC_AUC`, not reconstruction MSE. See
+[the M99 protocol and foreground commands](docs/M99_TOYCAR_CONDITIONAL.md)
+before freezing a campaign. Selection and final file cohorts must be disjoint,
+both-class and exposure-audited; all masks are sealed before final evaluation.
+No production campaign is launched automatically.

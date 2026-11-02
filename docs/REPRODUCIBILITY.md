@@ -742,3 +742,19 @@ editable requests versus immutable manifests, frozen source dependencies,
 exposure windows, operation counts, tests and archive/export instructions.
 No production plan should be used as an automatic test. ToyCar AUC integration
 has bounded mathematical/backend checks but is not production-ready.
+
+## M9.9 ToyCar complete-file conditional protection
+
+The separate `m99-toycar-conditional` worktree resolves that orchestration gate
+using schema 6.8 / campaign 1.2. See `docs/M99_TOYCAR_CONDITIONAL.md` for exact
+complete-file cohorts, source S5 checksums, exposure inventory, operation counts,
+foreground commands and ZIP/scp instructions. The K=6 engineering campaign is
+finalized; the four-pool primary BER 0.001 plan is frozen but **unexecuted**.
+
+Use the pinned MLPerf interpreter for model execution and canonical Python for
+offline `campaign aggregate` into a new output directory. No generic additive
+input bootstrap is applied to ROC-AUC. Original/final score vectors, integer
+output digests and file/window identities support offline verification. The
+committed-code engineering replay retains payload
+`9f4fbfb8f38279216a75f74cefce45303d6c6e5890e5b76658acce48af76efaa`.
+No published protection-superiority claim follows from this tiny smoke.

@@ -203,3 +203,19 @@ long exact event fields. ToyCar remains explicitly blocked at this interface
 until complete-file identities and nonadditive AUC reporting are specified;
 its existing static adapter remains available. Detailed contracts and examples:
 `docs/M98_CONDITIONAL_ADAPTERS.md`.
+
+## Scalar complete-file cohorts (M9.9)
+
+`adapters/toycar_conditional.py` selects explicit complete files and captures
+scores/output digests from the existing M9.3 authoritative evaluation. It adds
+no new fault backend. `cohort_risk.py` defines the nonadditive metric and cohort
+validation; `toycar_exposure.py` produces immutable metadata-only exposure
+inventories. Schema 6.8 dispatches through `conditional_damage` and its existing
+response-table and paired-swap algorithms. `cohort_analysis.py` handles campaign
+1.2 scalar pool/field inference and score verification without TensorFlow.
+Classification schemas retain their additive diagnostics and scientific payloads.
+
+`mask_stream.py` supplies bounded JSON tokens to the existing mask grammar so
+the 516-MB ToyCar mask archive need not be deserialized for every policy at once.
+The selected mask and entire-file checksum are still verified. No historical
+artifact is migrated or rewritten.
