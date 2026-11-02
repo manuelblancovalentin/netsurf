@@ -70,7 +70,7 @@ remain eligible. The score companion is not the authoritative faulted forward pa
 | Eligible kernel words / bits | 77,360 / 618,880 | 22,016 / 176,128 | 264,192 / 2,113,536 |
 | Protected bits at 12.5% / 25% | 77,360 / 154,720 | 22,016 / 44,032 | 264,192 / 528,384 |
 | Evaluation population | 1,000 fixed test images | 1,000 official-subset clips | 64 complete files, 12,544 windows |
-| Ranking population | 64 training images | 64 training clips | 16 training reconstruction windows |
+| Ranking population | 64 training images | 64 training clips | 16 training files / 3,136 reconstruction windows |
 | Clean task metric | accuracy 0.880000 | accuracy 0.901000 | file ROC-AUC 0.869140625 |
 | Clean auxiliary loss | CE 0.588299415 | CE 0.379391470 | reconstruction MSE 10.928793892 |
 | Fault fields per BER | 4 replications × 8 = 32 | 4 × 8 = 32 | 2 × 4 = 8 |
@@ -90,7 +90,7 @@ counts, not percentages of chip area. At BER .001 expected unprotected flips are
 applied means are retained for every condition in the derived CSV.
 
 Classification cohorts are disjoint from gradient calibration by source split;
-ToyCar ranking uses training windows and evaluation uses complete official test
+ToyCar ranking uses all windows from 16 training files and evaluation uses complete official test
 files. Exact identities/hashes are in `static_inventory.json`. These cohorts have
 subsequently been repeatedly examined. They are not fresh confirmation inputs.
 The ResNet 1,000-image grid reuses schedule seeds from the smaller preceding study;

@@ -1,0 +1,39 @@
+\section{NetSuRF Software Evaluation Flow}
+\label{sec:workflow}
+Figure~\ref{fig:workflow} shows the decision path. The input is an immutable quantized checkpoint, its numerical execution contract, and explicitly identified data partitions. An architecture-specific adapter enumerates stored kernel words, attaches affine quantization metadata, and exposes exact inference. It does not automatically reinterpret arbitrary model objects or silently replace an unsupported backend.
+
+Calibration data support susceptibility construction; separate data support empirical isolated-bit validation and final protection evaluation. An estimator assigns a score to an eligible bit. An ordering policy applies score priority, bit-tier constraints, and deterministic tie-breaking. A protection policy then chooses exactly the allowed number of coordinates. These operations remain separate because equal raw scores can yield different partial-tier masks, whereas different scores can yield identical complete-tier masks.
+
+For each trial, a policy-independent fault schedule is generated over the full eligible universe. Each mask suppresses its own subset of those events. All remaining events alter a private copy of the stored INT8 codes before authoritative inference. The same altered parameters persist across the complete evaluation cohort; the original checkpoint state is restored afterward. Thus paired differences compare masks under the same proposed field, rather than confounding protection with a new random draw.
+
+The output is a write-once scientific bundle containing model/data identities, exact masks, schedules, per-trial measurements, statistical summaries, and content digests. Reports and figures are derived from saved measurements, not a second inference implementation. The CLI, Python interface, and reporting path share the same execution contract. This architecture supports inspectable experiments without requiring the researcher to modify internal ranking or injection code.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[font=\small,box/.style={draw,rounded corners=2pt,align=center,text width=3.3cm,minimum height=1.05cm},arr/.style={-{Latex[length=2mm]},thick}]
+\node[box] (frozen) {Frozen INT8 model\\Data partitions and bit identities};
+\node[box,right=7mm of frozen] (scores) {Susceptibility scores\\Calibration / exact-bit validation};
+\node[box,right=7mm of scores] (mask) {Ordering and budget\\Exact protected-bit mask};
+\node[box,below=9mm of frozen] (field) {Independent Bernoulli field\\Shared across all policies};
+\node[box,right=7mm of field] (xor) {Suppress selected events\\XOR remaining stored bits};
+\node[box,right=7mm of xor] (infer) {Reference INT8 inference\\Restore clean model};
+\node[box,below=9mm of xor,text width=9.3cm] (report) {Paired task metrics versus logical BER and protected-bit count\\Saved measurements, uncertainty, ranking runtime and provenance};
+\draw[arr] (frozen)--(scores);\draw[arr] (scores)--(mask);
+\draw[arr] (frozen)--(field);\draw[arr] (field)--(xor);\draw[arr] (mask)--(xor);
+\draw[arr] (xor)--(infer);\draw[arr] (infer.south)|-(report.east);
+\end{tikzpicture}
+
+\smallskip
+\begin{tabular}{lccc}
+\toprule
+INT8 example: scale $1/16$, zero point $0$ & Stored word & Decoded value & Exact jump\\
+\midrule
+Original code $-3$ & \texttt{11111101} & $-0.1875$ & ---\\
+Flip least-significant bit & \texttt{11111100} & $-0.2500$ & $-0.0625$\\
+Flip sign bit & \texttt{01111101} & $+7.8125$ & $+8.0000$\\
+\bottomrule
+\end{tabular}
+\caption{\textbf{What does a protected bit change?} NetSuRF links a finite stored-code perturbation to a measured task outcome through a matched software experiment. Gradients are ranking surrogates; only the reference interpreter supplies clean and faulted outcomes. The worked INT8 example is analytical, not a sampled model weight. The budget counts selected eligible bits; no physical mitigation or cost is implied.}
+\Description{A workflow separates frozen inputs, ranking, a fixed-cardinality mask, shared random fields, exact XOR, and restored reference inference. An INT8 example shows that a near-zero weight can have a large sign-bit jump.}
+\label{fig:workflow}
+\end{figure}

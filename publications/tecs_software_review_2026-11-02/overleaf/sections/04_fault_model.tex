@@ -1,0 +1,23 @@
+\section{Exact Encoded-Bit Fault Model}
+\label{sec:faults}
+Let $\bits$ be the eligible kernel-bit population. A bit is identified by TFLite tensor, flattened word index, and bit position $k\in\{0,\ldots,7\}$, with $k=0$ least significant. Every allocated INT8 kernel word is included, even when its code is zero. INT32 biases, quantization scales and zero points, activations, and operator metadata are excluded. The resulting scope is kernel-storage faults, not all possible model-state faults.
+
+For a signed code $q$, unsigned representation $u=q\bmod256$, scale $s>0$, and zero point $z$, the decoded parameter is $w=s(q-z)$. The numerical effect of flipping bit $b=(q,k)$ is exactly
+\begin{equation}
+\delta_b=s\left[\operatorname{signed8}\!\left(u\mathbin{\oplus}2^k\right)-q\right].
+\label{eq:delta}
+\end{equation}
+For $k<7$, this equals $s(1-2u_k)2^k$; for $k=7$, it is $-128s(1-2u_7)$. Zero point cancels in the difference, but channel scale does not. Multiple distinct bit changes within one word are combined by XOR, not independent overwrites. Applying the same bit twice cancels. Exact decoding matters especially for sign bits and for tensors with different affine scales. Parameter magnitude alone is therefore not an encoding-aware susceptibility measure.
+
+Each proposed fault field $F\subseteq\bits$ includes coordinates independently with probability $p$. It is sampled once per trial and persists across that trial's inputs. For protection set $P$, the applied field is $F\setminus P$. We record proposed, applied, and suppressed events and require proposed = applied + suppressed. The protected count is $m=|P|$ and coverage is $c=m/|\bits|$. Under this law, expected applied count is $(|\bits|-m)p$. Equal $p$ across networks does not imply equal numbers of corrupted bits. No correlated, fixed-count, adversarial, or transient activation process is inferred from these trials.
+
+This is ideal logical event suppression, not a modeled physical correction
+mechanism. For a fixed evaluation cohort, let $R(A)$ be the task risk under
+applied set $A$. Expected protected risk is
+\begin{equation}
+J_p(P)=\E_F[R(F\setminus P)].
+\label{eq:risk}
+\end{equation}
+Classification reports accuracy and cross-entropy separately. ToyCar reports file-level ROC-AUC, with $R=1-\AUC$ for allocation diagnostics. Its reconstruction MSE is a separate surrogate metric. Neither the unit of risk nor its interpretation is pooled across tasks.
+
+All measured outcomes use TensorFlow Lite 2.14.1 \texttt{BUILTIN\_REF}, one interpreter thread and no delegates. Faults change actual model buffers in a private flatbuffer copy. They do not add a quantized delta to an off-lattice floating-point shadow. Clean-state restoration and full-protection equality provide necessary controls; they do not turn the simulated masks into a physical correction mechanism.

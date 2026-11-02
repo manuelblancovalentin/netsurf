@@ -1,0 +1,58 @@
+\section{The Limits of Isolated Bit Rankings}
+\label{sec:limits}
+For a fixed cohort, isolated damage is $I_b=R(\{b\})-R(\varnothing)$. Define
+conditional marginal vulnerability under protected set $P$ as
+\begin{equation}
+V_b(p,P)=\E_G[R(G\cup\{b\})-R(G)],
+\label{eq:conditional}
+\end{equation}
+where $G$ is Bernoulli over $\bits\setminus(P\cup\{b\})$. Conditioning on the
+event at $b$ gives the exact identity
+\begin{equation}
+J_p(P)-J_p(P\cup\{b\})=pV_b(p,P),\qquad b\notin P.
+\label{eq:benefit}
+\end{equation}
+This is an application of ordinary conditional expectation, closely related to
+established importance measures~\cite{odonnell2014analysis,rauzy2022reliability}.
+It is valid for a scalar cohort risk, including nonadditive ROC-AUC. It does not
+assert that arbitrary faults increase risk, or that protection must always help.
+
+\begin{proposition}
+An ordering based only on clean isolated damage does not guarantee an optimal
+fixed-cardinality protection mask for arbitrary task-risk functions and
+simultaneous independent Bernoulli faults.
+\end{proposition}
+Consider three bits $a,b,c$ with risks
+\begin{center}
+\begin{tabular}{c|rrrrrrrr}
+$A$ & $\varnothing$ & $a$ & $b$ & $c$ & $ab$ & $ac$ & $bc$ & $abc$\\
+\hline
+$R(A)$ & 0 & .2 & .1 & 0 & .3 & 0 & .9 & .5
+\end{tabular}
+\end{center}
+Protecting one bit by isolated ranking selects $a$. Exact expectation gives
+$J_p(\{a\})=.1p+.8p^2$, whereas $J_p(\{b\})=.2p-.2p^2$. Protecting $b$ is
+strictly better for $p>.1$. All responses are bounded in $[0,1]$ and the fault
+law is unchanged. The example proves absence of a universal guarantee, not that
+every static ranking fails. The deployed optimal mask can itself be static;
+the issue is what information was used to construct it. Nor does this example
+prove that realistic networks exhibit important allocation regret.
+
+To examine that practical question, we use a deliberately restricted diagnostic.
+A candidate set $C$ contains protected and unprotected bits from a verified global
+allocation. The external mask $P_{\mathrm{out}}$ is fixed; every candidate choice
+$Q\subseteq C$ has the same cardinality. For each sampled outside field $G$, all
+$2^{|C|}$ candidate states are evaluated. For a chosen mask,
+\begin{equation}
+J_p(P_{\mathrm{out}}\cup Q\mid G)=
+\sum_{A\subseteq C\setminus Q}p^{|A|}(1-p)^{|C\setminus Q|-|A|}R(G\cup A).
+\label{eq:enumeration}
+\end{equation}
+Candidate integration is exact, including every interaction order in that set;
+expectation over outside fields is still estimated. A mask is chosen only on
+model-selection data and then compared on independent final fields. Original
+gradient allocation, exact isolated allocation, and bounded selected allocation
+remain distinct comparators. These are diagnostics of local decisions at a fixed
+global budget, not whole-network optimization. The proof and paired-swap identity
+are given in Appendix~\ref{app:proof}; the engineering results remain the main
+evaluation.

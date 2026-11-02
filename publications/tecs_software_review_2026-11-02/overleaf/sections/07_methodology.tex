@@ -1,0 +1,100 @@
+\section{Experimental Methodology}
+\label{sec:methods}
+\subsection{Frozen models and task metrics}
+We use three independently developed MLPerf Tiny reference models~\cite{banbury2021mlperf,mlcommons2026tiny}, without retraining or converting them to a new precision. Each has ten eligible kernel tensors. Table~\ref{tab:models} gives the actual kernel populations and clean quality on the cohorts used for the main static curves. The checkpoints, preprocessing, exact sample indices, backend versions and hashes are bound by the archived manifests. These measurements are not official benchmark submissions or results over every available example.
+
+\begin{table}[t]
+\caption{Frozen INT8 benchmarks used for the static protection curves. Kernels only; zero-valued allocated words remain eligible. Clean quality is cohort-specific.}
+\label{tab:models}\centering\small
+\begin{tabular}{lrrrl}
+\toprule
+Model / task & Kernel words & Eligible bits & Evaluation cohort & Clean quality\\
+\midrule
+ResNet-8 / CIFAR-10 & 77,360 & 618,880 & 1,000 images & accuracy .8800\\
+DS-CNN / keyword spotting & 22,016 & 176,128 & 1,000 clips & accuracy .9010\\
+ToyCar / anomaly detection & 264,192 & 2,113,536 & 64 files & ROC-AUC .86914\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Classification cross-entropy is $-\log\max(q_y,10^{-12})$, averaged over
+inputs, with decoded reference softmax probability $q_y$ and natural logarithm.
+The finite floor handles zero output codes; it is not companion-logit loss.
+CIFAR-10 inputs use the pinned reference encoding. Keyword spotting uses the
+official MFCC pipeline and sample order, including waveform normalization,
+16,000-sample clips, 480/320 STFT framing, 40 mel bins and ten coefficients;
+an approximate replacement feature pipeline is not used. ToyCar uses the pinned
+128-bin log-mel representation, FFT 1024, hop 512, frames 50--250, and five-frame
+concatenation, giving 196 windows of 640 features per file. Its preprocessing
+also pins the validated two-thread numerical reduction mode; reference inference
+remains single-threaded. These numerical details are necessary to reproduce
+scores, not incidental implementation choices.
+
+For ToyCar, each reference output is decoded and compared to the original
+float-domain feature target. A file score is the mean window reconstruction error.
+All windows of all files in a trial share the same faulty model. With anomaly
+scores $s_f$, anomaly set $\mathcal D_+$ and normal set $\mathcal D_-$,
+\begin{equation}
+\AUC=\frac{1}{|\mathcal D_+||\mathcal D_-|}
+\sum_{i\in\mathcal D_+}\sum_{j\in\mathcal D_-}
+\left[\ind(s_i>s_j)+\tfrac12\ind(s_i=s_j)\right].
+\label{eq:auc}
+\end{equation}
+The main cohort contains 32 normal and 32 anomalous files. We do not calculate
+window-level AUC, average per-file AUCs, or treat the pairwise terms in
+Eq.~\eqref{eq:auc} as independent observations. Reconstruction MSE remains a
+separate ranking/diagnostic objective.
+
+\subsection{Partitions and empirical susceptibility}
+Gradient calibration uses 64 training images for ResNet-8 and 64 training clips
+for KWS. ToyCar uses 16 complete normal training files, hence 3,136 windows.
+Empirical isolated-bit validation uses disjoint calibration-validation inputs:
+64 separate training images for ResNet-8, 64 disjoint validation clips for
+KWS, and 64 class-containing ToyCar test files disjoint from its final 64-file
+cohort. Exact sample identities, not just split names, determine disjointness.
+Calibration may be drawn from model-training data; it is not claimed to be a
+new held-out generalization set.
+
+Each empirical study samples four bits without replacement from each of ten
+kernel-by-eight-position strata: 320 common candidates for all scores. Inclusion
+probability is $4/n_t$ in a tensor stratum containing $n_t$ words. This balanced
+design is not a uniform sample of all network bits. Each candidate is flipped
+alone using the reference interpreter. Signed loss change, its positive part,
+absolute change, and accuracy change are retained separately. Spearman uses
+average tied ranks; its saved intervals use 1,000 within-stratum bootstrap draws.
+Top-$k$ comparisons are restricted to these candidates and account explicitly for
+score-boundary ties. They do not estimate whole-network top-$k$ recall.
+
+\subsection{Matched protection studies}
+All six common policies use the same checkpoint, eligible universe, calibration,
+budget and proposed fields within a study. Interior coverages are 12.5\% and
+25\%, with shared zero- and full-protection controls. ResNet-8 and KWS use
+$p\in\{10^{-5},10^{-4},3\!\times\!10^{-4},10^{-3},3\!\times\!10^{-3},10^{-2},.03,.1\}$;
+ToyCar uses $\{10^{-5},10^{-4},10^{-3},10^{-2}\}$. Larger values are logical stress
+conditions. The missing partial-tier and ToyCar intermediate-BER cells are not
+interpolated into experimental results.
+
+At each BER, the classifiers have four schedule replications with eight fields
+each, for 32 paired fields. ToyCar has two replications with four fields, for
+eight paired fields. Random masks are independently constructed once per
+replication: there are four classifier masks and two ToyCar masks, not 32 or
+eight independent random rankings. Other masks remain fixed. A replication's
+seed is distinct from its mask seed. Pairing requires the full BER, replication,
+trial and field identity. Full protection must reproduce the corresponding
+clean metric and zero protection must suppress no proposed events.
+
+Reported means and descriptive 95\% Student-$t$ intervals use complete fault
+trials, not individual inference observations. Policy effects use paired
+differences. Saved two-sided sign-flip tests and Holm adjustment retain the
+original within-BER, per-metric families; marginal intervals are not simultaneous
+intervals and their overlap is not a paired test. Random-policy pooled intervals
+condition on the realized masks and do not measure population uncertainty over
+new random rankings. Discrete, tied and heavy-tailed outcomes limit small-sample
+inference, particularly ToyCar's eight fields.
+
+All numerical evidence comes from finalized bundles. The main figures retain all
+methods and measured BERs rather than choosing a favorable model or operating
+point. The data have been repeatedly examined during development; the consolidated
+comparison is exploratory, even where masks and final schedules were separated
+within a particular protocol. No new training or fault campaign was executed to
+produce this manuscript.

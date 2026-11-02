@@ -1,0 +1,44 @@
+\section{Discussion and Validity Boundaries}
+The experiments support a decision procedure, not a universal ranker: define the
+exact storage population and task metric; test a small set of inexpensive
+baselines; compare actual masks at relevant budgets under paired fields; and
+spend additional computation only where measurable task benefit warrants it.
+For the tested ResNet-8, per-example absolute gradients are useful allocation
+proxies at several stress conditions. For KWS, corrected MSB-first is a strong
+competitor, especially when a larger budget protects complete significant tiers.
+For ToyCar, reconstruction sensitivity must be checked against file ordering;
+good MSE prediction alone is inadequate evidence for AUC protection.
+
+Several noncausal explanations remain possible. Gradient cancellation can
+separate global and per-example scores, affine scales can separate numerical
+jump from MSB ordering, and nonlinear inference can separate isolated damage
+from multi-fault benefit. None of these facts identifies the dominant cause of
+the cross-model results. The models differ in task, parameters, exposure count,
+input distributions and surrogate quality. Weight sparsity is not a measured
+causal explanation of redundancy, and the current study does not intervene on
+architecture or retrain matched checkpoints.
+
+Only one frozen checkpoint per architecture is evaluated. Fixed-cohort field
+intervals do not describe variation over new models or new input populations.
+The balanced candidate sample is small within each stratum. ToyCar has few
+fault fields and an exposure ledger showing prior clean evaluation of all 248
+official files and prior fault-outcome exposure of 200; the remaining 40 normal
+and eight anomalous files do not provide a large balanced untouched cohort.
+Further trials can improve Monte Carlo precision on reused inputs but cannot
+create new input-level confirmation.
+
+The static budget grid has only two interior points. A fair partial-tier
+FKeras comparison remains the most consequential baseline gap. Surrogate
+gradients are not integer-program derivatives, and the FKeras continuous
+Hessian is a third, explicitly different numerical object. Exact isolated
+measurements reduce ambiguity about finite effects but still do not certify
+multi-fault allocation. Bounded conditional experiments address that distinction
+locally; their uncertain and small gains against isolated allocation do not
+justify claiming an effective general optimizer.
+
+Finally, logical protected-bit count is deliberately the sole protection cost.
+No area, power, energy, latency, synthesis or radiation-calibrated reliability
+estimate follows from these software results. Runtime measurements concern the
+analysis itself. Excluded biases, metadata and activations remain outside the
+fault model rather than being declared universally safe. This restricted scope
+makes the comparison auditable, but limits its transfer to other fault domains.

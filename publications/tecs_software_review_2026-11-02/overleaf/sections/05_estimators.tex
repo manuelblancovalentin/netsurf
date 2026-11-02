@@ -1,0 +1,60 @@
+\section{Susceptibility Estimation and Budgeted Allocation}
+\label{sec:estimators}
+Let $\ell_x$ be the ranking loss for calibration input $x$, $g_i(x)=\partial\ell_x/\partial w_i$ the companion gradient for the parameter containing bit $b$, and $\delta_b$ its exact jump from Eq.~\eqref{eq:delta}. We distinguish predicting a signed loss change from ordering bits by a nonnegative score.
+
+\paragraph{Common static baselines.}
+Random assigns reproducible seeded scores over the same eligible population. Corrected MSB-first orders encoded positions $7,6,\ldots,0$, then canonical tensor/word identity. Numerical jump orders $|\delta_b|$ globally. Unlike MSB-first, it includes affine scale differences; unlike a task-sensitive estimator, it does not use input data or loss.
+
+Three first-order scores are
+\begin{align}
+s_b^{\mathrm{global}}&=\left|\E_x[g_i(x)]\delta_b\right|,\label{eq:global}\\
+s_b^{\mathrm{absolute}}&=\E_x\left[|g_i(x)\delta_b|\right],\label{eq:absolute}\\
+s_b^{\mathrm{positive}}&=\E_x\left[\max\{0,g_i(x)\delta_b\}\right].\label{eq:positive}
+\end{align}
+The first retains the magnitude of the mean effect; the second prevents cancellation across examples; the third retains only positive per-example first-order contributions. The signed global approximation is $\E_x[g_i(x)]\delta_b$, without the absolute value. None is an exact finite-bit prediction or a protection benefit. In particular, the positive part of each example's approximation is not the positive part of the aggregate exact damage. Absolute and positive per-example methods share their gradient computation.
+
+These gradients are obtained from architecture-specific companions reconstructed from the frozen constants. Kernel identities, flattened indices, decoded values, and affine metadata correspond to the reference model. Straight-through derivatives pass through activation rounding and clipping, while forward arithmetic does not reproduce all integer multiplier rounding. The classification ranking loss is sparse cross-entropy on companion logits; exact evaluation uses the reference probabilities. ToyCar ranking differentiates float-target reconstruction MSE. Neither the gradient nor the ranking loss is relabeled as a derivative of exact integer inference.
+
+\paragraph{FKeras: two score definitions, one explicit ordering rule.}
+For decoded kernel vector $\theta$ and leading eigenpairs of a continuous companion loss Hessian, the printed FKeras parameter projection is~\cite{weng2024fkeras}
+\begin{equation}
+h^{\mathrm{paper}}=\sum_{j=1}^{k}\lambda_j(v_j^\top\theta)v_j.
+\label{eq:fkeras}
+\end{equation}
+We rank its magnitude within bit-significance tiers. The pinned public repository's sum strategy instead effectively computes~\cite{fkerasSource}
+\begin{equation}
+h^{\mathrm{repository}}=\sum_{j=1}^{k}\left|\lambda_j^2(v_j^\top\theta)v_j\right|,
+\label{eq:fkerasrepo}
+\end{equation}
+with elementwise magnitude before accumulation. Both the additional eigenvalue and the cancellation convention can change parameter ordering. We retain both variants rather than choosing whichever performs better.
+
+The validated KWS adaptation uses a continuous float64 DS-CNN loss, without activation requantization, and signed eigenvalues ordered by magnitude. This is different from the straight-through companion above. Residual, symmetry, orthogonality, work-limit, and parameter-mapping checks qualify the eigensolver. The implementation reproduces the two score forms given validated eigenpairs, not every numerical behavior of the historical upstream solver. Eigenvector sign changes leave both expressions invariant. A weight Hessian contains mixed curvature; its clean-point score nevertheless does not explicitly condition on BER or a protection mask.
+
+FKeras orders bit tiers first and parameter sensitivity within each tier. For $n$ homogeneous INT8 words, any such policy selects all $n$ sign bits at 12.5\% coverage and all sign/bit-6 bits at 25\%. The masks therefore coincide with corrected MSB-first at those budgets, irrespective of the Hessian score. Partial-tier budgets are necessary to test score-dependent allocation decisions. No extra bit-jump multiplier is inserted into FKeras to change this rule.
+
+\paragraph{Historically faithful qPolarGrad.}
+The recovered dense first-call implementation ranks approximately
+\begin{equation}
+s_b^{\mathrm{legacy}}=\left|\E_x[\widetilde a_i(x)\delta_b]\,\E_x[g_i(x)]\right|,
+\end{equation}
+where downstream inputs
+$\widetilde a_i$ come from the historical all-bit-attacked forward state. Its
+reproduction removes unintended persistent state accumulation but preserves that
+activation source. The rejected manuscript's printed expression appears to
+multiply another delta even though its activation-drift term already includes
+one; the two are not silently identified. Since a weight gradient already contains
+an input factor, the additional activation factor has no automatic first-order
+loss interpretation. Clean-activation and magnitude-before-average alternatives
+are separately named hypotheses, not a corrected historical method. There is no
+validated qPolarGrad pathway or matched efficacy study for the three principal
+models here. It is a historical baseline, not an unmeasured curve or headline
+contribution.
+
+\paragraph{From scores to a mask.}
+Except for tier-first methods, scores are sorted globally with canonical identity
+breaking ties. The top $m$ bits form a fixed mask. Random seeds generate distinct
+random masks; repeated fields under one mask are not new mask realizations.
+The full and zero budgets are shared controls. An exact isolated-bit ranking is
+available on explicitly sampled candidates and restricted pools, not over every
+bit of all three networks. ``Exact'' describes its measured finite perturbation,
+not a universal allocation guarantee.

@@ -1,0 +1,13 @@
+overleaf/build/
+overleaf/*.aux
+overleaf/*.bbl
+overleaf/*.blg
+overleaf/*.fdb_latexmk
+overleaf/*.fls
+overleaf/*.log
+overleaf/*.out
+evidence/
+rendered/
+*.zip
+*.pdf
+!overleaf/figures/*.pdf
