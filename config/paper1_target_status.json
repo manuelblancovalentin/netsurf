@@ -1,0 +1,556 @@
+{
+  "schema_version": "paper1-target-status/1.0.0",
+  "audited_on": "2026-11-02",
+  "implementation_branch": "paper1-expanded-benchmarks",
+  "base_commit": "589aaa67f485ae3eb36febe70132304a1b9f27ae",
+  "portfolio_path": "config/benchmark_expansion_registry.json",
+  "portfolio_sha256": "289471536a49d87e6055d25c0deaed98b616132650a397c0c80d614d145339dc",
+  "integration_gate": "INCOMPLETE",
+  "entries": [
+    {
+      "id": "resnet8_int8",
+      "family": "resnet8",
+      "target_precision": "INT8",
+      "source_revision": "4addd0fa08d216e20637637874e084895f289da4",
+      "source_files": [
+        {
+          "path": "benchmark/training/image_classification/trained_models/pretrainedResnet_quant.tflite",
+          "sha256": "3c002613d1b2475eb51dd78dfb85a546c8ae658dee71cf6ade43b022fe205415",
+          "size": 98496
+        }
+      ],
+      "dataset": "cifar10",
+      "eligible_bits": 618880,
+      "model_sha256": "3c002613d1b2475eb51dd78dfb85a546c8ae658dee71cf6ade43b022fe205415",
+      "status": "VERIFIED_STATIC",
+      "protection_experiment": "paper1_resnet8_common_grid_v1",
+      "evidence": "static_resnet",
+      "blocker": ""
+    },
+    {
+      "id": "toycar_int8",
+      "family": "toycar",
+      "target_precision": "INT8",
+      "source_revision": "4addd0fa08d216e20637637874e084895f289da4",
+      "source_files": [
+        {
+          "path": "benchmark/training/anomaly_detection/trained_models/ad01_int8.tflite",
+          "sha256": "87cf24194ef93d1d9b11a591d805526b98008e351655d29883c825c9c106ba24",
+          "size": 276976
+        }
+      ],
+      "dataset": "dcase2020-toycar",
+      "eligible_bits": 2113536,
+      "model_sha256": "87cf24194ef93d1d9b11a591d805526b98008e351655d29883c825c9c106ba24",
+      "status": "VERIFIED_STATIC",
+      "protection_experiment": "paper1_toycar_common_grid_v1",
+      "evidence": "static_toycar",
+      "blocker": "Previously exposed complete-file cohort; eight historical fault fields. New 32-field/BER campaign is frozen, not executed."
+    },
+    {
+      "id": "kws_dscnn_int8",
+      "family": "kws_dscnn",
+      "target_precision": "INT8",
+      "source_revision": "4addd0fa08d216e20637637874e084895f289da4",
+      "source_files": [
+        {
+          "path": "benchmark/training/keyword_spotting/trained_models/kws_ref_model.tflite",
+          "sha256": "aeea436800704fce17b17292e4412630ad856e9d777c044c64ef748a880bd0ae",
+          "size": 53936
+        }
+      ],
+      "dataset": "speech-commands",
+      "eligible_bits": 176128,
+      "model_sha256": "aeea436800704fce17b17292e4412630ad856e9d777c044c64ef748a880bd0ae",
+      "status": "VERIFIED_STATIC",
+      "protection_experiment": "paper1_kws_common_grid_v1",
+      "evidence": "static_kws; static_fkeras128",
+      "blocker": ""
+    },
+    {
+      "id": "vww_mobilenetv1_int8",
+      "family": "vww_mobilenetv1",
+      "target_precision": "INT8",
+      "source_revision": "4addd0fa08d216e20637637874e084895f289da4",
+      "source_files": [
+        {
+          "path": "benchmark/training/visual_wake_words/trained_models/vww_96_int8.tflite",
+          "sha256": "597a384c8c2c8a1276f04702f25013b7838f2f814f1ca7c174d295b73e3d6b7b",
+          "size": 333288
+        }
+      ],
+      "dataset": "visual-wake-words",
+      "eligible_bits": 1664896,
+      "model_sha256": "597a384c8c2c8a1276f04702f25013b7838f2f814f1ca7c174d295b73e3d6b7b",
+      "status": "BLOCKED_PROVENANCE",
+      "protection_experiment": null,
+      "evidence": null,
+      "blocker": "Actual probe exited 2: evaluation-image source provenance unresolved. Local derivative images cannot establish official VWW equivalence; no fault campaign."
+    },
+    {
+      "id": "streaming_dscnn1d_int8",
+      "family": "streaming_dscnn1d",
+      "target_precision": "INT8",
+      "source_revision": "4addd0fa08d216e20637637874e084895f289da4",
+      "source_files": [
+        {
+          "path": "benchmark/training/streaming_wakeword/trained_models/str_ww_ref_model.tflite",
+          "sha256": "3af8550895ba7d5c584277102b5075c52dcfa63ba9d2b2240f37c4e6abd5dd2b",
+          "size": 74520
+        }
+      ],
+      "dataset": "Speech Commands v0.02 + MUSAN",
+      "eligible_bits": 368320,
+      "model_sha256": "3af8550895ba7d5c584277102b5075c52dcfa63ba9d2b2240f37c4e6abd5dd2b",
+      "status": "VERIFIED_BOUNDED_ONLY",
+      "protection_experiment": "streaming-protection-engineering/1.0.0",
+      "evidence": "workspace/runs/paper1_streaming_gate_v1; workspace/runs/paper1_streaming_gate_repeat_v1",
+      "blocker": "One exposed 10-second fixture only. Full corpus/MUSAN and independent partition not available; FP/FN scalar tradeoff not approved. No publication-scale campaign.",
+      "scientific_payload_sha256": "c8ee6163da82e8cd4fee6f13e1e9ed9eb49da6daac1dd6dc490fe49618792674"
+    },
+    {
+      "id": "resnet18_fp32",
+      "family": "resnet18",
+      "target_precision": "FP32",
+      "source_revision": "65a5785d9156231087c481e0c7dd33a5ff6f7e3e",
+      "source_files": [
+        {
+          "path": "config.json",
+          "size": 69548
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "1cf00ee468998c23d084361b02cffadabacb5074105564c596b8079f77ecb126",
+          "size": 46812324
+        },
+        {
+          "path": "preprocessor_config.json",
+          "size": 266
+        }
+      ],
+      "dataset": "imagenet-1k",
+      "eligible_bits": null,
+      "model_sha256": null,
+      "status": "BLOCKED",
+      "protection_experiment": null,
+      "evidence": null,
+      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence.",
+      "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities resnet18_fp32"
+    },
+    {
+      "id": "resnet18_int8",
+      "family": "resnet18",
+      "target_precision": "INT8",
+      "source_revision": "65a5785d9156231087c481e0c7dd33a5ff6f7e3e",
+      "source_files": [
+        {
+          "path": "config.json",
+          "size": 69548
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "1cf00ee468998c23d084361b02cffadabacb5074105564c596b8079f77ecb126",
+          "size": 46812324
+        },
+        {
+          "path": "preprocessor_config.json",
+          "size": 266
+        }
+      ],
+      "dataset": "imagenet-1k",
+      "eligible_bits": null,
+      "model_sha256": null,
+      "status": "BLOCKED",
+      "protection_experiment": null,
+      "evidence": null,
+      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence. Quantization/packing recipe and exact runtime storage mapping are unvalidated; registry source weights are not the requested precision.",
+      "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities resnet18_int8"
+    },
+    {
+      "id": "mobilenetv3_small_fp32",
+      "family": "mobilenetv3_small",
+      "target_precision": "FP32",
+      "source_revision": "1824797e7887cbec1990e4adbd6675960a36c589",
+      "source_files": [
+        {
+          "path": "config.json",
+          "size": 586
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "46d2c063b18125884c48937afa4c49e18128869e52e8db96df48bf0a4d7ff697",
+          "size": 10241912
+        }
+      ],
+      "dataset": "imagenet-1k",
+      "eligible_bits": null,
+      "model_sha256": null,
+      "status": "BLOCKED",
+      "protection_experiment": null,
+      "evidence": null,
+      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence.",
+      "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities mobilenetv3_small_fp32"
+    },
+    {
+      "id": "mobilenetv3_small_int8",
+      "family": "mobilenetv3_small",
+      "target_precision": "INT8",
+      "source_revision": "1824797e7887cbec1990e4adbd6675960a36c589",
+      "source_files": [
+        {
+          "path": "config.json",
+          "size": 586
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "46d2c063b18125884c48937afa4c49e18128869e52e8db96df48bf0a4d7ff697",
+          "size": 10241912
+        }
+      ],
+      "dataset": "imagenet-1k",
+      "eligible_bits": null,
+      "model_sha256": null,
+      "status": "BLOCKED",
+      "protection_experiment": null,
+      "evidence": null,
+      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence. Quantization/packing recipe and exact runtime storage mapping are unvalidated; registry source weights are not the requested precision.",
+      "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities mobilenetv3_small_int8"
+    },
+    {
+      "id": "vit_base_fp32",
+      "family": "vit_base",
+      "target_precision": "FP32",
+      "source_revision": "3f49326eb077187dfe1c2a2bb15fbd74e6ab91e3",
+      "source_files": [
+        {
+          "path": "config.json",
+          "size": 69665
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "1cea07110a4a47edc51420b2dda6f3b8b58e7256e8f44b4ea6aa9696162ccb5d",
+          "size": 346293852
+        },
+        {
+          "path": "preprocessor_config.json",
+          "size": 160
+        }
+      ],
+      "dataset": "imagenet-1k",
+      "eligible_bits": null,
+      "model_sha256": null,
+      "status": "BLOCKED",
+      "protection_experiment": null,
+      "evidence": null,
+      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence.",
+      "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities vit_base_fp32"
+    },
+    {
+      "id": "vit_base_int8",
+      "family": "vit_base",
+      "target_precision": "INT8",
+      "source_revision": "3f49326eb077187dfe1c2a2bb15fbd74e6ab91e3",
+      "source_files": [
+        {
+          "path": "config.json",
+          "size": 69665
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "1cea07110a4a47edc51420b2dda6f3b8b58e7256e8f44b4ea6aa9696162ccb5d",
+          "size": 346293852
+        },
+        {
+          "path": "preprocessor_config.json",
+          "size": 160
+        }
+      ],
+      "dataset": "imagenet-1k",
+      "eligible_bits": null,
+      "model_sha256": null,
+      "status": "BLOCKED",
+      "protection_experiment": null,
+      "evidence": null,
+      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence. Quantization/packing recipe and exact runtime storage mapping are unvalidated; registry source weights are not the requested precision.",
+      "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities vit_base_int8"
+    },
+    {
+      "id": "distilbert_sst2_fp32",
+      "family": "distilbert_sst2",
+      "target_precision": "FP32",
+      "source_revision": "714eb0fa89d2f80546fda750413ed43d93601a13",
+      "source_files": [
+        {
+          "path": "config.json",
+          "size": 629
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "7c3919835e442510166d267fe7cbe847e0c51cd26d9ba07b89a57b952b49b8aa",
+          "size": 267832558
+        },
+        {
+          "path": "tokenizer_config.json",
+          "size": 48
+        },
+        {
+          "path": "vocab.txt",
+          "size": 231508
+        }
+      ],
+      "dataset": "glue-sst2",
+      "eligible_bits": null,
+      "model_sha256": null,
+      "status": "BLOCKED",
+      "protection_experiment": null,
+      "evidence": null,
+      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence.",
+      "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities distilbert_sst2_fp32"
+    },
+    {
+      "id": "distilbert_sst2_int8",
+      "family": "distilbert_sst2",
+      "target_precision": "INT8",
+      "source_revision": "714eb0fa89d2f80546fda750413ed43d93601a13",
+      "source_files": [
+        {
+          "path": "config.json",
+          "size": 629
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "7c3919835e442510166d267fe7cbe847e0c51cd26d9ba07b89a57b952b49b8aa",
+          "size": 267832558
+        },
+        {
+          "path": "tokenizer_config.json",
+          "size": 48
+        },
+        {
+          "path": "vocab.txt",
+          "size": 231508
+        }
+      ],
+      "dataset": "glue-sst2",
+      "eligible_bits": null,
+      "model_sha256": null,
+      "status": "BLOCKED",
+      "protection_experiment": null,
+      "evidence": null,
+      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence. Quantization/packing recipe and exact runtime storage mapping are unvalidated; registry source weights are not the requested precision.",
+      "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities distilbert_sst2_int8"
+    },
+    {
+      "id": "pythia160m_bf16",
+      "family": "pythia160m",
+      "target_precision": "BF16",
+      "source_revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+      "source_files": [
+        {
+          "path": "config.json",
+          "size": 569
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "29d2e457a664e41c12c735f20a36dc0956a665f614a54ce5db21a32e75965270",
+          "size": 374998696
+        },
+        {
+          "path": "special_tokens_map.json",
+          "size": 99
+        },
+        {
+          "path": "tokenizer.json",
+          "size": 2113710
+        },
+        {
+          "path": "tokenizer_config.json",
+          "size": 396
+        }
+      ],
+      "dataset": "wikitext-2",
+      "eligible_bits": null,
+      "model_sha256": null,
+      "status": "BLOCKED",
+      "protection_experiment": null,
+      "evidence": null,
+      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence. Registered source is FP16, not BF16; conversion needs its own identity and validation.",
+      "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities pythia160m_bf16"
+    },
+    {
+      "id": "pythia160m_int8",
+      "family": "pythia160m",
+      "target_precision": "INT8",
+      "source_revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+      "source_files": [
+        {
+          "path": "config.json",
+          "size": 569
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "29d2e457a664e41c12c735f20a36dc0956a665f614a54ce5db21a32e75965270",
+          "size": 374998696
+        },
+        {
+          "path": "special_tokens_map.json",
+          "size": 99
+        },
+        {
+          "path": "tokenizer.json",
+          "size": 2113710
+        },
+        {
+          "path": "tokenizer_config.json",
+          "size": 396
+        }
+      ],
+      "dataset": "wikitext-2",
+      "eligible_bits": null,
+      "model_sha256": null,
+      "status": "BLOCKED",
+      "protection_experiment": null,
+      "evidence": null,
+      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence. Quantization/packing recipe and exact runtime storage mapping are unvalidated; registry source weights are not the requested precision.",
+      "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities pythia160m_int8"
+    },
+    {
+      "id": "qwen3_0_6b_bf16",
+      "family": "qwen3_0_6b",
+      "target_precision": "BF16",
+      "source_revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+      "source_files": [
+        {
+          "path": "config.json",
+          "size": 726
+        },
+        {
+          "path": "generation_config.json",
+          "size": 239
+        },
+        {
+          "path": "merges.txt",
+          "size": 1671853
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b",
+          "size": 1503300328
+        },
+        {
+          "path": "tokenizer.json",
+          "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "size": 11422654
+        },
+        {
+          "path": "tokenizer_config.json",
+          "size": 9732
+        },
+        {
+          "path": "vocab.json",
+          "size": 2776833
+        }
+      ],
+      "dataset": "wikitext-2",
+      "eligible_bits": null,
+      "model_sha256": null,
+      "status": "BLOCKED",
+      "protection_experiment": null,
+      "evidence": null,
+      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence.",
+      "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities qwen3_0_6b_bf16"
+    },
+    {
+      "id": "qwen3_0_6b_int8",
+      "family": "qwen3_0_6b",
+      "target_precision": "INT8",
+      "source_revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+      "source_files": [
+        {
+          "path": "config.json",
+          "size": 726
+        },
+        {
+          "path": "generation_config.json",
+          "size": 239
+        },
+        {
+          "path": "merges.txt",
+          "size": 1671853
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b",
+          "size": 1503300328
+        },
+        {
+          "path": "tokenizer.json",
+          "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "size": 11422654
+        },
+        {
+          "path": "tokenizer_config.json",
+          "size": 9732
+        },
+        {
+          "path": "vocab.json",
+          "size": 2776833
+        }
+      ],
+      "dataset": "wikitext-2",
+      "eligible_bits": null,
+      "model_sha256": null,
+      "status": "BLOCKED",
+      "protection_experiment": null,
+      "evidence": null,
+      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence. Quantization/packing recipe and exact runtime storage mapping are unvalidated; registry source weights are not the requested precision.",
+      "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities qwen3_0_6b_int8"
+    },
+    {
+      "id": "qwen3_0_6b_int4",
+      "family": "qwen3_0_6b",
+      "target_precision": "INT4",
+      "source_revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+      "source_files": [
+        {
+          "path": "config.json",
+          "size": 726
+        },
+        {
+          "path": "generation_config.json",
+          "size": 239
+        },
+        {
+          "path": "merges.txt",
+          "size": 1671853
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b",
+          "size": 1503300328
+        },
+        {
+          "path": "tokenizer.json",
+          "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          "size": 11422654
+        },
+        {
+          "path": "tokenizer_config.json",
+          "size": 9732
+        },
+        {
+          "path": "vocab.json",
+          "size": 2776833
+        }
+      ],
+      "dataset": "wikitext-2",
+      "eligible_bits": null,
+      "model_sha256": null,
+      "status": "BLOCKED",
+      "protection_experiment": null,
+      "evidence": null,
+      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence. Quantization/packing recipe and exact runtime storage mapping are unvalidated; registry source weights are not the requested precision.",
+      "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities qwen3_0_6b_int4"
+    }
+  ]
+}

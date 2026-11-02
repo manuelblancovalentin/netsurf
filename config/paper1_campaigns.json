@@ -1,0 +1,71 @@
+{
+  "resnet8": {
+    "configuration": "config/experiments/paper1_resnet8_common_grid_v1.toml",
+    "configuration_sha256": "0f1130ce2c0899106ef2d6232a64c19ad36d204b3ee7efb3cf13c0e25c25316d",
+    "checkpoint_sha256": "3c002613d1b2475eb51dd78dfb85a546c8ae658dee71cf6ade43b022fe205415",
+    "asset_lock_sha256": "65226641813cf4192d4898293b09d3861a2ccbcae0e4aca04beb3d15bd3bbbc9",
+    "exposure_source": "/projects/netsurf/manuelbv/workspace/runs/m92_resnet8_static_test1000_v1/20261029T084524.633748Z-f0bcc564",
+    "exposure_payload_sha256": "3ed95baa04ede8047f5b5eb04f9024f2e5f856c39abcc84b2ca1fb894b22db32",
+    "eligible_bits": 618880,
+    "probabilities": [
+      0.0001,
+      0.001,
+      0.003,
+      0.01
+    ],
+    "fault_fields": 128,
+    "mask_evaluations": 3328,
+    "workers": 2,
+    "exposure_partition_counts": {
+      "empirical_validation": 1,
+      "evaluation": 1000,
+      "ranking": 64
+    }
+  },
+  "kws": {
+    "configuration": "config/experiments/paper1_kws_common_grid_v1.toml",
+    "configuration_sha256": "8bb73b4de8503756374e5c94b86aab172fa45f3b08b53ce3b47fd9f833c0e8ac",
+    "checkpoint_sha256": "aeea436800704fce17b17292e4412630ad856e9d777c044c64ef748a880bd0ae",
+    "asset_lock_sha256": "09fc5867d721363a0156e2f9f6fdedefe2aa0ae7384cc72396bc594e283bfac7",
+    "exposure_source": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_static_ber_sweep1000_v1/20261029T183410.488907Z-32c31070",
+    "exposure_payload_sha256": "b7b725fd1c196f2d5896b67aba34dfe8aa864b8308875df098d48be6135975e0",
+    "eligible_bits": 176128,
+    "probabilities": [
+      0.0001,
+      0.001,
+      0.003,
+      0.01
+    ],
+    "fault_fields": 128,
+    "mask_evaluations": 4352,
+    "workers": 2,
+    "exposure_partition_counts": {
+      "empirical_validation": 1,
+      "evaluation": 1000,
+      "ranking": 64
+    }
+  },
+  "toycar": {
+    "configuration": "config/experiments/paper1_toycar_common_grid_v1.toml",
+    "configuration_sha256": "56a51f973e13ed178cf90feb411f061ecc722732efc36d883994935dc5ff9e00",
+    "checkpoint_sha256": "87cf24194ef93d1d9b11a591d805526b98008e351655d29883c825c9c106ba24",
+    "asset_lock_sha256": "7fafb690025f40903d92fecbd88adc1c5ebab2bd41626073ed82174d1ce12a84",
+    "exposure_source": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_static_ber_pilot64_parallel_repair_v1/20261029T234704.724222Z-3913968c",
+    "exposure_payload_sha256": "5d9c1eaa69e24b5f2139b7bf69ae0d775cc8727d458d0b66c5cfe897ab44b554",
+    "eligible_bits": 2113536,
+    "probabilities": [
+      0.0001,
+      0.001,
+      0.003,
+      0.01
+    ],
+    "fault_fields": 128,
+    "mask_evaluations": 3328,
+    "workers": 2,
+    "exposure_partition_counts": {
+      "empirical_validation": 2,
+      "evaluation": 64,
+      "ranking": 16
+    }
+  }
+}
