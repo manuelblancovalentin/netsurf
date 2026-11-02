@@ -17,6 +17,7 @@ from typing import Sequence
 
 from ..manifests import canonical_json_bytes
 from ..transformer_data import read_sst2_parquet, sst2_fault_partitions
+from ..transformer_data import read_wikitext_parquet, wikitext_joined_text
 from ..torch_storage import TorchStoredLinearWeights
 from ..transformer_assets import AssetBlocked, ReadyTransformerAsset, verify_running_interpreter
 from ..transformer_risk import TaskRisk, classification_risk, language_model_risk_from_stats, teacher_forced_windows
@@ -158,12 +159,30 @@ class PinnedTransformerAdapter:
                     rows.extend([None] * len(batch))
         return classification_risk(rows, [x.label for x in examples])
 
-    def token_sequence(self) -> tuple[int, ...]:
+    def token_sequence(self, *, split: str = "test") -> tuple[int, ...]:
         self._require_loaded()
-        if self.asset.target == "distilbert_sst2_fp32" or self.asset.record.get("dataset_format") != "wikitext2-raw-text/v1":
+        if self.asset.target == "distilbert_sst2_fp32":
+            raise AssetBlocked("classification target has no causal-LM token sequence")
+        format_id = self.asset.record.get("dataset_format")
+        if format_id == "wikitext2-raw-parquet/v1":
+            if split not in {"validation", "test"}:
+                raise AssetBlocked("WikiText-2 calibration and evaluation splits are fixed")
+            relative = f"wikitext-2-raw-v1/{split}-00000-of-00001.parquet"
+            if relative not in {item["path"] for item in self.asset.dataset_files}:
+                raise AssetBlocked("READY inventory lacks requested WikiText-2 split")
+            rows = read_wikitext_parquet(self.asset.dataset_path / relative)
+            text, text_sha256 = wikitext_joined_text(rows)
+            expected_text = (self.asset.record.get("text_sha256") or {}).get(split)
+            if expected_text is not None and text_sha256 != expected_text:
+                raise AssetBlocked("WikiText-2 joined text differs from READY identity")
+        elif format_id == "wikitext2-raw-text/v1" and split == "test":
+            text = self.asset.dataset_path.read_text(encoding="utf-8")
+        else:
             raise AssetBlocked("pinned WikiText-2 raw text contract required")
-        text = self.asset.dataset_path.read_text(encoding="utf-8")
         ids = list(self.tokenizer(text, add_special_tokens=False)["input_ids"])
+        if format_id == "wikitext2-raw-parquet/v1" and (self.asset.record.get("bos_mode") != "none" or
+            self.asset.record.get("eos_mode") != "none"):
+            raise AssetBlocked("Kona WikiText-2 protocol forbids BOS/EOS insertion")
         if self.asset.record.get("bos_mode") == "prepend":
             ids.insert(0, self.tokenizer.bos_token_id)
         elif self.asset.record.get("bos_mode") != "none":
@@ -174,9 +193,18 @@ class PinnedTransformerAdapter:
             raise AssetBlocked("EOS behavior is not pinned")
         if any(not isinstance(x, int) or x < 0 for x in ids):
             raise AssetBlocked("invalid token ID sequence")
-        digest = hashlib.sha256(canonical_json_bytes(ids)).hexdigest()
-        if digest != self.asset.record["token_sequence_sha256"]:
+        if format_id == "wikitext2-raw-parquet/v1":
+            import numpy as np
+            digest = hashlib.sha256(np.asarray(ids, dtype="<i4").tobytes()).hexdigest()
+            expected = (self.asset.record.get("token_sequence_sha256") or {}).get(split)
+        else:
+            digest = hashlib.sha256(canonical_json_bytes(ids)).hexdigest()
+            expected = self.asset.record.get("token_sequence_sha256")
+        if expected is not None and digest != expected:
             raise AssetBlocked("token sequence differs from READY identity")
+        self.last_token_sequence_identity = {"split": split, "n_tokens": len(ids),
+            "token_ids_sha256": digest, "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            "context": 1024, "stride": 512, "bos": "none", "eos": "none"}
         return tuple(ids)
 
     def evaluate_language_model(self, token_ids: Sequence[int], *, context: int,

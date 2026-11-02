@@ -341,6 +341,31 @@ def test_optional_restricted_stored_bit_population():
     assert store.hashes() == before
 
 
+def test_optional_teacher_forced_adapter_scores_each_token_once():
+    torch = pytest.importorskip("torch")
+    from types import SimpleNamespace
+    from netsurf.adapters.transformers_pinned import PinnedTransformerAdapter
+
+    class ToyLM(torch.nn.Module):
+        def forward(self, input_ids, use_cache=False):
+            assert use_cache is False
+            vocab = 4
+            logits = torch.zeros((1, input_ids.shape[1], vocab), dtype=torch.float32)
+            for position in range(input_ids.shape[1]):
+                logits[0, position, (int(input_ids[0, position]) + 1) % vocab] = 2.0
+            return SimpleNamespace(logits=logits)
+
+    adapter = PinnedTransformerAdapter(SimpleNamespace(target="pythia160m_bf16"))
+    adapter.model = ToyLM().eval()
+    adapter.tokenizer = object()
+    adapter.storage = object()
+    tokens = (0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3)
+    first = adapter.evaluate_language_model(tokens, context=5, stride=3)
+    second = adapter.evaluate_language_model(tokens, context=5, stride=3)
+    assert first == second and first.total_units == len(tokens) - 1
+    assert first.failed_units == 0 and first.perplexity == pytest.approx(math.exp(first.mean_nll))
+
+
 def test_forced_engineering_events_cannot_be_misreported_as_bernoulli_draws():
     from netsurf.faults import FaultModel, FaultSchedule
     from netsurf.identities import BitIdentity
