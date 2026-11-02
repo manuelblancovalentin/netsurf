@@ -292,6 +292,30 @@ def test_optional_tied_output_weight_is_explicitly_excluded():
     assert set(store.parameters) == {"projection.weight"}
 
 
+def test_optional_restricted_stored_bit_population():
+    torch = pytest.importorskip("torch")
+    from netsurf.faults import FaultEvent, FaultModel, FaultSchedule
+    from netsurf.identities import BitIdentity
+    from netsurf.protection import ProtectionMask
+    from netsurf.torch_storage import TorchStoredLinearWeights
+
+    model = torch.nn.Sequential(torch.nn.Linear(2, 2, bias=False)).eval()
+    bits = (BitIdentity("0.weight", 0, 31), BitIdentity("0.weight", 1, 30))
+    store = TorchStoredLinearWeights(model, "FP32", eligible_bits=bits)
+    assert store.bit_count == 2 and store.bit_at(0) == bits[0] and store.bit_at(1) == bits[1]
+    law = FaultModel("weight", "restricted_stored_weights", "persistent_trial", "forced_engineering", 0.0)
+    wrong = FaultSchedule(law, 1, (FaultEvent(None, BitIdentity("0.weight", 0, 0)),), 2, 1)
+    mask = ProtectionMask("none", frozenset(), 2, 0, {})
+    with pytest.raises(ValueError, match="restricted eligible"):
+        with store.injected(wrong, mask):
+            pass
+    good = FaultSchedule(law, 2, (FaultEvent(None, bits[0]),), 2, 1)
+    before = store.hashes()
+    with store.injected(good, mask):
+        assert store.hashes() != before
+    assert store.hashes() == before
+
+
 def test_forced_engineering_events_cannot_be_misreported_as_bernoulli_draws():
     from netsurf.faults import FaultModel, FaultSchedule
     from netsurf.identities import BitIdentity

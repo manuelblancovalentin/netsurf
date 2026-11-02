@@ -35,7 +35,8 @@ class TorchParameterDescriptor:
 
 
 class TorchStoredLinearWeights:
-    def __init__(self, model: object, precision: str):
+    def __init__(self, model: object, precision: str, *,
+                 eligible_bits: tuple[BitIdentity, ...] | None = None):
         import torch
 
         self.model = model
@@ -53,9 +54,13 @@ class TorchStoredLinearWeights:
             pointers.setdefault(pointer, []).append(name)
         selected = {}
         excluded_tied = {}
+        requested_names = ({bit.parameter for bit in eligible_bits}
+                           if eligible_bits is not None else None)
         for name, parameter in all_parameters:
             parent, _, leaf = name.rpartition(".")
             if leaf != "weight" or not isinstance(modules.get(parent), torch.nn.Linear):
+                continue
+            if requested_names is not None and name not in requested_names:
                 continue
             aliases = pointers[parameter.untyped_storage().data_ptr()]
             if len(aliases) != 1:
@@ -77,7 +82,18 @@ class TorchStoredLinearWeights:
         self.descriptors = tuple(TorchParameterDescriptor(name, tuple(value.shape),
             str(value.dtype), hashlib.sha256(self._bytes(value)).hexdigest())
             for name, value in self.parameters.items())
-        self.bit_count = sum(item.scalars * self.codec.width for item in self.descriptors)
+        self._eligible_bits = None
+        self._eligible_set = None
+        if eligible_bits is not None:
+            if not eligible_bits or len(set(eligible_bits)) != len(eligible_bits):
+                raise ValueError("restricted eligible bit population is empty or duplicated")
+            for bit in eligible_bits:
+                self._validate_stored_coordinate(bit)
+            self._eligible_bits = tuple(eligible_bits)
+            self._eligible_set = frozenset(eligible_bits)
+            self.bit_count = len(eligible_bits)
+        else:
+            self.bit_count = sum(item.scalars * self.codec.width for item in self.descriptors)
 
     @staticmethod
     def _byte_view(parameter):
@@ -92,16 +108,23 @@ class TorchStoredLinearWeights:
         return {name: hashlib.sha256(self._bytes(value)).hexdigest()
                 for name, value in self.parameters.items()}
 
-    def _validate_identity(self, identity: BitIdentity) -> None:
+    def _validate_stored_coordinate(self, identity: BitIdentity) -> None:
         parameter = self.parameters.get(identity.parameter)
         if parameter is None:
             raise ValueError(f"fault bit outside eligible linear-weight population: {identity.key()}")
         if not 0 <= identity.flat_index < parameter.numel() or not 0 <= identity.bit_index < self.codec.width:
             raise ValueError(f"fault bit outside stored word: {identity.key()}")
 
+    def _validate_identity(self, identity: BitIdentity) -> None:
+        self._validate_stored_coordinate(identity)
+        if self._eligible_set is not None and identity not in self._eligible_set:
+            raise ValueError(f"fault bit outside restricted eligible population: {identity.key()}")
+
     def bit_at(self, ordinal: int) -> BitIdentity:
         if not 0 <= ordinal < self.bit_count:
             raise IndexError(ordinal)
+        if self._eligible_bits is not None:
+            return self._eligible_bits[ordinal]
         for item in self.descriptors:
             extent = item.scalars * self.codec.width
             if ordinal < extent:

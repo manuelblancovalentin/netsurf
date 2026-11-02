@@ -6,6 +6,7 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 
 from .manifests import canonical_json_bytes, digest_object, sha256_file
 
@@ -20,7 +21,9 @@ def validate_frozen_plan(document: dict) -> str:
     for key in ("target", "source_commit", "asset_manifest_sha256", "asset_record_sha256",
                 "eligible_population_sha256", "partitions_sha256"):
         value = document.get(key)
-        if not isinstance(value, str) or (key != "target" and len(value) != 64):
+        valid_hash = isinstance(value, str) and re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", value)
+        if not isinstance(value, str) or (key != "target" and
+            (not valid_hash or (key != "source_commit" and len(value) != 64))):
             raise PlanBlocked(f"missing or invalid binding: {key}")
     n = document.get("eligible_bits")
     budgets = document.get("budgets")
