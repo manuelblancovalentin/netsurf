@@ -135,7 +135,11 @@ checkpoint load, and two changed bit coordinates. The output is write-once,
 has exact events, byte hashes, risk values, a finalized marker and checksums.
 Its two events are explicitly tagged `forced_engineering`; they are not
 represented as draws from a BER-zero Bernoulli law. It is not a publication
-effectiveness comparison.
+effectiveness comparison. Kona's prepared resource estimates are **272 MB
+disk / 1.2 GB RAM** for DistilBERT, **1,351 MB disk / 2.5 GB RAM** for
+Pythia, and **1,204 MB disk / 4 GB RAM** for Qwen, all CPU and zero VRAM.
+These are asset-side estimates, not measured NetSuRF inference peaks; the
+model load, checkpoint comparison and full-logit attention output add cost.
 
 The next production plan must be frozen **after** the READY record and exact
 eligible `N` are known, but **before** any final effects are inspected. A
