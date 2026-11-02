@@ -272,3 +272,12 @@ ToyCar conditional studies use schema 6.8 / campaign 1.2 and optimize
 before freezing a campaign. Selection and final file cohorts must be disjoint,
 both-class and exposure-audited; all masks are sealed before final evaluation.
 No production campaign is launched automatically.
+
+### Offline interaction attribution (M9.10)
+
+The separate `m910-interaction-attribution` worktree analyzes finalized KWS,
+ResNet-8 and ToyCar exact response tables without inference. See
+[the M910 evidence report](docs/M910_INTERACTION_ATTRIBUTION.md) for the
+hash-pinned source inventory, signed decomposition, uncertainty limitations,
+all-pool figures and reproduction commands. New derived outputs never replace
+historical bundles.

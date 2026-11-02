@@ -758,3 +758,27 @@ output digests and file/window identities support offline verification. The
 committed-code engineering replay retains payload
 `9f4fbfb8f38279216a75f74cefce45303d6c6e5890e5b76658acce48af76efaa`.
 No published protection-superiority claim follows from this tiny smoke.
+
+## M9.10 offline interaction attribution
+
+The M99 status above describes that milestone's delivery; the researcher has
+since completed the production campaign. M910 verifies all six completed
+M96–M99 production campaign/BER arms (56 pool conditions, 112 bundles) and
+analyzes their saved responses. No new model inference is required.
+
+From the `m910-interaction-attribution` worktree, use the existing canonical
+interpreter and a fresh output directory:
+
+```bash
+/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf.interaction_attribution \
+  --sources config/analysis/m910_sources.json \
+  --output workspace/runs/m910_user_analysis \
+  --seed 910001 --bootstrap-replicates 500
+```
+
+The source inventory pins exact campaign hashes. All complete source receipts,
+response tables, selections, cohorts and fault laws are verified before use.
+Reports include all pools, not favorable subsets; signed effects and field,
+pool and input-resampling uncertainty remain separate. See
+`docs/M910_INTERACTION_ATTRIBUTION.md` for finalized outputs, test results,
+detectability limitations and manuscript-ready figures.

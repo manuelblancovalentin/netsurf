@@ -478,3 +478,22 @@ already underwent clean reference inference: remaining files are not
 inference-naive or an independently collected dataset. Unknown manual,
 concurrent and incomplete-run exposures still require researcher disclosure.
 See `docs/M99_TOYCAR_CONDITIONAL.md` for the frozen pilot and engineering evidence.
+
+## M9.10 offline interaction attribution
+
+The exact selection-table contrast decomposes into clean isolated prediction,
+outside-background conditioning correction and within-candidate nonadditive
+correction on the SAME recorded cohort. The background intercept cancels in
+equal-context mask contrasts. All signed effects and candidate interaction
+orders are retained. This is an algebraic decision attribution, not a causal
+claim about architectural redundancy or a new protection optimizer.
+
+Model-selection empirical regret and resampled winner stability remain
+selection-biased diagnostics. They cannot replace independent final mask
+comparisons. Final paired-swap records without complete final subcubes cannot
+identify the same decomposition on final inputs. Field, candidate-pool and
+input-population uncertainty remain distinct. ToyCar file resampling uses
+whole labeled files within class and recomputes AUC for every paired state;
+there is no additive per-file AUC loss or independent score-pair sample size.
+All new mechanism analyses are exploratory, with original comparison-family
+contracts preserved. See `docs/M910_INTERACTION_ATTRIBUTION.md`.
