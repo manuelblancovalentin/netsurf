@@ -167,6 +167,9 @@ def _seal_directory(root, payload, *, frozen=False, metadata=None, report=None, 
     file="plan.json" if frozen else "scientific_payload.json"
     _write_json(root/file,payload)
     digest=digest_object(payload)
+    if frozen and metadata is not None:
+        # Timings are checksummed provenance, never part of the scientific plan.
+        _write_json(root/"execution.json",{"schema_version":VERSION,"execution":metadata})
     if not frozen:
         _write_json(root/"manifest.json",{"schema_version":VERSION,"protocol":PROTOCOL,
             "benchmark":{"checkpoint_sha256":payload["checkpoint_sha256"]},
@@ -201,6 +204,8 @@ def freeze(request_path, output):
     partitions=_partitions(config,cap,raw["samples"])
     audit=audit_exposure(cap)
     exposure_gate(partitions,audit,raw["purpose"])
+    source_seconds=monotonic()-t0
+    sampling_start=monotonic()
     d=raw["design"]
     values=storage.values(); descriptors={s.parameter:s for s in storage.descriptors}
     pools=[]
@@ -217,6 +222,7 @@ def freeze(request_path, output):
                 "zero_point":q.zero_points[ch if len(q.zero_points)>1 else 0],
                 "storage":"INT8 two's complement kernel, bit 0 LSB"})
         pools.append(pool)
+    sampling_seconds=monotonic()-sampling_start
     arms=[exposure(len(universe),len(context.original),**{
         "probability" if d["axis"]=="ber" else "expected":v}) for v in d["values"]]
     operations=[]
@@ -247,11 +253,12 @@ def freeze(request_path, output):
             "higher-order approximation error grows with candidate exposure, not necessarily architecture"],
         "primary_comparison":"outside_additive minus original_S5; held-out paired whole fields",
         "sampling_limits":"status-stratified SRS supports every primary eligible bit; small draws need not cover every tensor/tier; no outcome filtering; mask quality is a pool-level estimand, not a weighted bit mean",
-        "selection_separation":"final samples and fields never accessed during selection; all pool selections must seal before final",
-        "cost_metadata":{"freeze_seconds":monotonic()-t0}}
+        "selection_separation":"final samples and fields never accessed during selection; all pool selections must seal before final"}
     # Runtime is not part of the reproducibility-critical frozen scientific plan.
-    plan.pop("cost_metadata")
-    return _seal_directory(output,plan,frozen=True)
+    return _seal_directory(output,plan,frozen=True,metadata={
+        "source_and_exposure_verification_seconds":source_seconds,
+        "candidate_sampling_and_identity_seconds":sampling_seconds,
+        "freeze_seconds":monotonic()-t0})
 
 
 def _identity(row):
@@ -450,7 +457,7 @@ def execute(plan_path,pool_id,arm,phase,output,*,selection_registry=None):
         "inherited_conformance_reference_inputs":cap.reference_inputs,
         "reference_representation":benchmark.representation_manifest() if hasattr(benchmark,"representation_manifest") else None,
         "exposure_audit_sha256":digest_object(audit),
-        "source_sampling_cost":"reported separately by plan freezing; not an inference operation",
+        "source_sampling_cost":"see frozen-plan execution.json when present; earlier plans did not record this timer",
         "aggregation_and_schedule_overhead_seconds":max(0.,costs["evaluation_including_apply_restore_seconds"]-
             costs["exact_outputs_seconds"]-costs["model_apply_seconds"]-costs["model_restore_seconds"]),
         "timer_limitation":"model_apply/restore time interpreter reinitialization; aggregation residual also includes schedule application/decoding; conformance initialization separate"})

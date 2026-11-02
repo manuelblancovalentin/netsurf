@@ -84,10 +84,13 @@ def test_selection_seal_final_repeat_and_corruption(monkeypatch,tmp_path):
     assert adapters[-1].roles==["conditional_final_evaluation"]
     assert f["frozen_masks"]==payload["frozen_masks"] and len(f["field_risks"])==2
     assert all(r["proposed"]==r["applied"]+r["suppressed"] and r["restored"] for r in f["records"])
-    from netsurf.scaling_reporting import analyze,plot_bundle
+    from netsurf.scaling_reporting import analyze,plot_bundle,oracle_summary
     analyze(path,tmp_path/"registry/plan.json",tmp_path/"finals",tmp_path/"analysis",plots=False)
     plot_bundle(tmp_path/"analysis",tmp_path/"figures")
     assert (tmp_path/"figures/cost_error.png").stat().st_size>100
+    oracle_summary([tmp_path/"selections/one"],tmp_path/"oracle")
+    assert len(s.verify_directory(tmp_path/"oracle")["rows"])==2
+    with pytest.raises(ValueError):oracle_summary([tmp_path/"finals/one"],tmp_path/"bad_oracle")
     with pytest.raises(ValueError):s.seal(path,tmp_path,tmp_path/"duplicated")
 
 
@@ -109,3 +112,13 @@ def test_schema_and_templates():
     for path in (root/"config/examples").glob("m11_*.toml"):
         raw=s.load_request(path)
         assert set(raw)==set(schema["required"])
+
+
+def test_frozen_timing_is_not_scientific_content(tmp_path):
+    payload={"schema_version":s.VERSION,"protocol":s.PROTOCOL,"test":1}
+    a=s._seal_directory(tmp_path/"a",payload,frozen=True,metadata={"seconds":1.})
+    b=s._seal_directory(tmp_path/"b",payload,frozen=True,metadata={"seconds":9.})
+    assert a["scientific_payload_sha256"]==b["scientific_payload_sha256"]
+    assert a["file_sha256"]==b["file_sha256"]
+    assert s.verify_directory(tmp_path/"a",frozen=True)==payload
+    assert "execution.json" in json.loads((tmp_path/"a/checksums.json").read_text())["files"]

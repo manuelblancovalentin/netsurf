@@ -8,6 +8,60 @@ from .interaction_attribution import mean_interval
 from .conditional_scaling import paired_summary
 
 
+def oracle_summary(bundles, output):
+    """Independent saved-oracle audits, not pooled populations or paired K effects."""
+    rows=[]
+    for bundle in bundles:
+        p=verify_directory(bundle)
+        if p.get("phase")!="selection" or "oracle_comparison" not in p:
+            raise ValueError("finalized exact-oracle selection evidence required")
+        c=json.loads((Path(bundle)/"manifest.json").read_text())["execution"]
+        k=p["candidate_manifest"]["k"]; n=len(p["outside_fields"])
+        for method,stats in p["oracle_comparison"]["diagnostics"].items():
+            rows.append({"source_payload_sha256":digest_object(p),"checkpoint_sha256":p["checkpoint_sha256"],
+                "risk_metric":p["risk_metric"],"k":k,"fields":n,"method":method,**stats,
+                "oracle_calls":n*2**k,"linear_calls":n*(k+1),
+                "measured_total_evaluation_seconds":c["evaluation_including_apply_restore_seconds"],
+                "centering_closure_error":p["oracle_comparison"]["centering_closure_error"]})
+    payload={"schema_version":VERSION,"protocol":PROTOCOL,"checkpoint_sha256":"multiple: see rows",
+        "rows":rows,"new_inference_calls":0,"limits":[
+            "Different K pools/field seeds are not a matched causal K comparison.",
+            "Clean absolute-risk error includes the changed outside-background intercept.",
+            "Restricted regret is on selection fields only. No method efficacy claim.",
+            "Analytic call ratios are not measured end-to-end speedups."]}
+    lines=["# M11 exact oracle audit", "", "| K | Fields | Method | Maximum error | Restricted selection regret | Strict reversals | Oracle / linear calls |",
+        "|---|---|---|---|---|---|---|"]
+    for r in rows:
+        lines.append(f"| {r['k']} | {r['fields']} | {r['method']} | {r['max_absolute_error']:.9g} | {r['finite_field_selection_regret']:.9g} | {r['strict_reversals']} | {r['oracle_calls']} / {r['linear_calls']} |")
+    lines += ["",*payload["limits"]]
+    result=_seal_directory(output,payload,report="\n".join(lines)+"\n")
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    figures=Path(str(output)+"-figures");figures.mkdir(parents=True,exist_ok=False)
+    for identity in sorted({r["checkpoint_sha256"] for r in rows}):
+        selected=[r for r in rows if r["checkpoint_sha256"]==identity]
+        fig,axes=plt.subplots(1,3,figsize=(13,4))
+        for method in ("clean","outside"):
+            data=sorted((r for r in selected if r["method"]==method),key=lambda r:r["k"])
+            axes[0].scatter([r["k"] for r in data],[r["max_absolute_error"] for r in data],label=method)
+            axes[1].scatter([r["measured_total_evaluation_seconds"] for r in data],
+                [r["finite_field_selection_regret"] for r in data],label=method)
+        data=[r for r in selected if r["method"]=="outside"]
+        for name in ("oracle_calls","linear_calls"):
+            axes[2].plot([r["k"] for r in data],[r[name]/r["fields"] for r in data],"o-",label=name)
+        axes[0].set(xlabel="K (different pools)",ylabel="Maximum absolute risk error")
+        axes[1].set(xlabel="Measured oracle evaluation seconds",ylabel="Finite-selection-field restricted regret")
+        for ax in axes[:2]:ax.set_yscale("symlog",linthresh=1e-10)
+        axes[2].set(xlabel="K",ylabel="Exact cohort calls per outside field",yscale="log")
+        for ax in axes:ax.legend()
+        fig.suptitle(f"{selected[0]['risk_metric']} | {identity[:12]} | engineering, not efficacy")
+        fig.tight_layout();fig.savefig(figures/f"oracle_{identity[:12]}.png",dpi=160);plt.close(fig)
+    (figures/"source.json").write_text(json.dumps({"payload_sha256":digest_object(payload),
+        "figures":{p.name:sha256_file(p) for p in figures.glob("*.png")}},indent=2))
+    return result
+
+
 def analyze(plan_path, selection_registry, final_root, output, *, plots=True):
     plan=verify_directory(Path(plan_path).parent,frozen=True)
     registry=verify_directory(Path(selection_registry).parent,frozen=True)
@@ -73,15 +127,29 @@ def plot_bundle(bundle,output):
     import matplotlib.pyplot as plt
     payload=verify_directory(bundle); output=Path(output); output.mkdir(parents=True,exist_ok=False)
     rows=payload["rows"]
-    fig,axes=plt.subplots(1,2,figsize=(10,4))
+    fig,axes=plt.subplots(1,3,figsize=(13,4))
     for arm in sorted({r["arm"] for r in rows}):
         selected=[r for r in rows if r["arm"]==arm]
         axes[0].scatter([r["k"] for r in selected],[r["seconds"] for r in selected],label=f"BER {selected[0]['ber']:.4g}")
         measured=[r for r in selected if r["outside_error"] is not None]
         axes[1].scatter([r["k"] for r in measured],[r["outside_error"] for r in measured],label=f"BER {selected[0]['ber']:.4g}")
+        axes[2].scatter([r["seconds"] for r in measured],[r["selection_regret"] for r in measured],label=f"BER {selected[0]['ber']:.4g}")
     axes[0].set(xlabel="Candidate bits K",ylabel="Measured inference/apply/restore seconds")
     axes[1].set(xlabel="Candidate bits K (exact oracle only)",ylabel="Max absolute risk-prediction error")
+    axes[2].set(xlabel="Measured inference/apply/restore seconds",ylabel="Finite-selection-field restricted regret")
     for ax in axes:ax.legend()
     fig.suptitle("M11 bounded evidence; not a superiority or generalization claim")
     fig.tight_layout();fig.savefig(output/"cost_error.png",dpi=160);plt.close(fig)
-    (output/"source.json").write_text(json.dumps({"payload_sha256":digest_object(payload),"figure_sha256":sha256_file(output/"cost_error.png")},indent=2))
+    fig,ax=plt.subplots(figsize=(8,max(3,len(rows)*.4)))
+    for i,row in enumerate(rows):
+        contrast=next(c for c in row["paired_final_comparisons"] if c["target"]=="original_S5" and c["baseline"]=="outside_additive")
+        # Flip the saved paired contrast to the prespecified outside-minus-S5 direction.
+        mean=-contrast["mean_difference"];ci=contrast["simultaneous_interval"]
+        interval=None if ci is None else [-ci[1],-ci[0]]
+        ax.errorbar(mean,i,xerr=None if interval is None else [[mean-interval[0]],[interval[1]-mean]],fmt="o",color="tab:blue")
+    ax.set_yticks(range(len(rows)),[f"{r['pool']} / p={r['ber']:.4g}" for r in rows])
+    ax.axvline(0,color="gray",lw=1);ax.set_xlabel("Paired final risk: outside-additive minus original S5")
+    ax.set_title("Whole-field paired Bonferroni intervals; fixed masks/cohort")
+    fig.tight_layout();fig.savefig(output/"paired_final.png",dpi=160);plt.close(fig)
+    (output/"source.json").write_text(json.dumps({"payload_sha256":digest_object(payload),"figures":{
+        name:sha256_file(output/name) for name in ("cost_error.png","paired_final.png")}},indent=2))

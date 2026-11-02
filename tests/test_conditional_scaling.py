@@ -56,6 +56,17 @@ def test_large_pool_linear_cost_negative_values_and_failure_regime():
     with pytest.raises(ValueError):measure_field(lambda s:0,64,exhaustive=True)
 
 
+def test_large_pool_analytic_failure_and_same_mask_boundary():
+    # No 2**64 allocation: pair interaction has a closed-form Bernoulli risk.
+    table=measure_field(lambda s:float({42,43}<=set(s)),64)
+    mask=choose([table[(i,)]-table[()] for i in range(64)],21)
+    assert 42 not in mask and 43 not in mask
+    p=.1
+    actual_regret=p*p  # protecting bit42 would eliminate this pure pair risk
+    assert actual_regret>0 and actual_regret<=2*error_bound(43,p,1)
+    assert paired_summary([[.3,.3],[.4,.4]],["same_a","same_b"])[0]["mean_difference"]==0
+
+
 def test_exposure_and_regret_bound():
     assert exposure(176128,22016,expected=100)["logical_ber"]==100/154112
     assert exposure(618880,77360,probability=.001)["expected_applied_flips"]==541.52
