@@ -20,6 +20,8 @@ from netsurf.transformer_assets import AssetBlocked, load_ready_asset
 from netsurf.transformer_plan import PlanBlocked, require_final_gate, seal_selection, validate_frozen_plan
 from netsurf.transformer_handoff import audit_handoff
 from netsurf.manifests import digest_object
+from netsurf.transformer_conformance import conformance_cases
+from netsurf.transformer_data import Sst2Row, sst2_fault_partitions, sst2_records_digest, wikitext_joined_text
 
 
 @pytest.mark.parametrize("precision,positive,negative,zero,subnormal,inf,nan", [
@@ -56,6 +58,29 @@ def test_exponent_flip_and_word_order():
     assert fp32.fields(fp32.xor(raw[:4], 0, 23))["exponent"] == 126
 
 
+@pytest.mark.parametrize("precision,raw", [
+    ("FP32", struct.pack("<f", -0.125)),
+    ("BF16", b"\x00\xbe"),
+])
+def test_conformance_cases_encode_sign_exponent_significand_and_exceptions(precision, raw):
+    codec = StorageBitCodec(precision)
+    cases = conformance_cases("classifier.weight", 3, raw, codec)
+    assert set(cases) == {"sign", "exponent", "significand", "infinity", "nan"}
+    for name, events in cases.items():
+        changed = raw
+        for event in events:
+            assert event.parameter == "classifier.weight" and event.flat_index == 3
+            changed = codec.xor(changed, 0, event.bit_index)
+        if name == "sign":
+            assert codec.fields(changed)["sign"] != codec.fields(raw)["sign"]
+        elif name == "exponent":
+            assert codec.fields(changed)["exponent"] != codec.fields(raw)["exponent"]
+        elif name == "significand":
+            assert codec.fields(changed)["significand"] != codec.fields(raw)["significand"]
+        else:
+            assert codec.fields(changed)["category"] == name
+
+
 def test_task_risk_failure_policy_and_exact_scoring_windows():
     result = classification_risk([(2.0, 0.0), None, (float("nan"), 0.0)], [0, 1, 0])
     assert result.failed_units == 2 and result.total_units == 3
@@ -63,6 +88,7 @@ def test_task_risk_failure_policy_and_exact_scoring_windows():
     assert result.sample_count == 3 and result.metrics["failure_fraction"] == pytest.approx(2 / 3)
     assert result.mean_nll >= 2 * FAILURE_PENALTY_NATS / 3
     windows = teacher_forced_windows(list(range(12)), 5, 3)
+    assert windows == ((0, 5, 1), (3, 8, 5), (6, 11, 8), (9, 12, 11))
     assert [target for _, end, first in windows for target in range(first, end)] == list(range(1, 12))
     assert any(windows[i][0] < windows[i - 1][1] for i in range(1, len(windows)))
     lm = language_model_risk([(0.0, 1.0), None], [1, 0])
@@ -72,6 +98,26 @@ def test_task_risk_failure_policy_and_exact_scoring_windows():
     assert stats.logit_record_kind == "target_logit_and_logsumexp"
     with pytest.raises(ValueError):
         classification_risk([(0, 1)], [2])
+
+
+def test_sst2_fault_cohorts_and_kona_record_digest():
+    train = tuple(Sst2Row("train", i, f"train {i}", i % 2) for i in range(16))
+    validation = tuple(Sst2Row("validation", i, f"validation {i}", i % 2) for i in range(8))
+    parts = sst2_fault_partitions(train, validation, engineering_count=2,
+                                  calibration_count=4, selection_count=3)
+    assert [row.source_index for row in parts["engineering"]] == [0, 1]
+    assert [row.source_index for row in parts["evaluation"]] == list(range(2, 8))
+    assert not ({row.source_index for row in parts["calibration"]} &
+                {row.source_index for row in parts["selection"]})
+    assert parts == sst2_fault_partitions(train, validation, engineering_count=2,
+                                           calibration_count=4, selection_count=3)
+    expected = hashlib.sha256(b"0\t0\t" + hashlib.sha256(b"validation 0").hexdigest().encode()
+                              + b"\n").hexdigest()
+    assert sst2_records_digest(validation[:1]) == expected
+    assert wikitext_joined_text(["alpha", "", "beta"])[0] == "alpha\n\n\n\nbeta"
+    with pytest.raises(ValueError, match="source splits"):
+        sst2_fault_partitions(validation, train, engineering_count=2,
+                              calibration_count=4, selection_count=3)
 
 
 def test_expected_faults_and_budget():
@@ -225,6 +271,25 @@ def test_optional_torch_runtime_storage_restore():
         assert report.suppressed_events == 1
         assert torch.equal(model(x), clean)
     assert store.hashes() == before
+
+
+def test_optional_tied_output_weight_is_explicitly_excluded():
+    torch = pytest.importorskip("torch")
+    from netsurf.torch_storage import TorchStoredLinearWeights
+
+    class Tied(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.embedding = torch.nn.Embedding(3, 2)
+            self.output = torch.nn.Linear(2, 3, bias=False)
+            self.output.weight = self.embedding.weight
+            self.projection = torch.nn.Linear(2, 2, bias=False)
+
+    model = Tied().eval()
+    store = TorchStoredLinearWeights(model, "FP32")
+    assert "output.weight" in store.excluded_tied_parameters
+    assert "output.weight" not in store.parameters
+    assert set(store.parameters) == {"projection.weight"}
 
 
 def test_forced_engineering_events_cannot_be_misreported_as_bernoulli_draws():

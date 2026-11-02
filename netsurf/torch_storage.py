@@ -45,18 +45,21 @@ class TorchStoredLinearWeights:
             raise ValueError("model must be in eval mode before storage inspection")
         modules = dict(model.named_modules())
         all_parameters = list(model.named_parameters(remove_duplicate=False))
-        pointers: dict[int, str] = {}
+        pointers: dict[int, list[str]] = {}
         for name, parameter in all_parameters:
             if parameter.device.type != "cpu":
                 raise ValueError(f"CPU stored-weight backend only: {name}")
             pointer = parameter.untyped_storage().data_ptr()
-            if pointer in pointers:
-                raise ValueError(f"aliased/tied parameter storage: {pointers[pointer]} and {name}")
-            pointers[pointer] = name
+            pointers.setdefault(pointer, []).append(name)
         selected = {}
+        excluded_tied = {}
         for name, parameter in all_parameters:
             parent, _, leaf = name.rpartition(".")
             if leaf != "weight" or not isinstance(modules.get(parent), torch.nn.Linear):
+                continue
+            aliases = pointers[parameter.untyped_storage().data_ptr()]
+            if len(aliases) != 1:
+                excluded_tied[name] = tuple(aliases)
                 continue
             if parameter.dtype != required:
                 raise ValueError(f"eligible {name} dtype {parameter.dtype} differs from {required}")
@@ -68,6 +71,9 @@ class TorchStoredLinearWeights:
         if not selected:
             raise ValueError("no verified dense/linear projection weights")
         self.parameters = dict(sorted(selected.items()))
+        # Tied output projections are outside this initial fault population.
+        # Record every excluded alias rather than treating it as independent bits.
+        self.excluded_tied_parameters = dict(sorted(excluded_tied.items()))
         self.descriptors = tuple(TorchParameterDescriptor(name, tuple(value.shape),
             str(value.dtype), hashlib.sha256(self._bytes(value)).hexdigest())
             for name, value in self.parameters.items())

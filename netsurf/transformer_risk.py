@@ -76,14 +76,16 @@ def teacher_forced_windows(token_ids: Sequence[int], context: int, stride: int) 
     if context < 2 or not 1 <= stride < context or len(token_ids) < 2:
         raise ValueError("context >= 2, 1 <= stride < context and >= 2 tokens required")
     result = []
-    first = 1
-    while first < len(token_ids):
-        end = min(len(token_ids), first + stride)
-        start = max(0, end - context)
-        if first <= start:
-            raise ValueError("window has no preceding context")
+    start, first = 0, 1
+    while True:
+        end = min(len(token_ids), start + context)
+        if first <= start or first >= end:
+            raise ValueError("window has no preceding context or scored target")
         result.append((start, end, first))
+        if end == len(token_ids):
+            break
         first = end
+        start += stride
     return tuple(result)
 
 

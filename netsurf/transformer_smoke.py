@@ -6,13 +6,17 @@ from dataclasses import asdict
 import json
 import os
 from pathlib import Path
+import resource
+import time
 
-from .adapters.transformers_pinned import PinnedTransformerAdapter, read_sst2_jsonl
+from .adapters.transformers_pinned import PinnedTransformerAdapter, read_sst2_cohorts
 from .faults import FaultEvent, FaultModel, FaultSchedule
 from .identities import BitIdentity
 from .manifests import canonical_json_bytes, digest_object, git_provenance, sha256_file
 from .protection import ProtectionMask
 from .transformer_assets import load_ready_asset
+from .transformer_conformance import conformance_cases
+from .transformer_data import Sst2Row, sst2_records_digest
 
 
 def _write_exclusive(path: Path, value: bytes) -> None:
@@ -31,7 +35,11 @@ def read_smoke_receipt(directory: Path) -> dict:
     for relative, expected in checksums.items():
         if sha256_file(root / relative) != expected:
             raise ValueError(f"corrupt smoke receipt: {relative}")
-    return json.loads((root / "payload.json").read_text())
+    payload = json.loads((root / "payload.json").read_text())
+    manifest = json.loads((root / "manifest.json").read_text())
+    if manifest["payload_sha256"] != digest_object(payload) or (root / "FINALIZED").read_text().strip() != manifest["payload_sha256"]:
+        raise ValueError("smoke receipt finalization does not bind its payload")
+    return payload
 
 
 def run_distilbert_smoke(manifest_path: Path, portfolio_path: Path,
@@ -43,12 +51,12 @@ def run_distilbert_smoke(manifest_path: Path, portfolio_path: Path,
     if staging.exists():
         raise FileExistsError(f"interrupted smoke receipt retained for audit: {staging}")
     asset = load_ready_asset(manifest_path, "distilbert_sst2_fp32", portfolio_path)
-    all_examples = read_sst2_jsonl(asset)
-    identities = asset.record["partitions"]["engineering"][:2]
-    if len(identities) != 2:
-        raise ValueError("two prespecified engineering examples required")
-    by_id = {x.source_index: x for x in all_examples}
-    examples = tuple(by_id[index] for index in identities)
+    cohorts = read_sst2_cohorts(asset)
+    examples = cohorts["engineering"]
+    identities = [row.source_index for row in examples]
+    if len(examples) != 32:
+        raise ValueError("32 prespecified engineering examples required")
+    started = time.monotonic()
     adapter = PinnedTransformerAdapter(asset)
     adapter.load()
     baseline = adapter.storage.hashes()
@@ -74,16 +82,38 @@ def run_distilbert_smoke(manifest_path: Path, portfolio_path: Path,
     one = ProtectionMask("protect_first", frozenset((first,)), adapter.storage.bit_count, 1, {})
     full = ProtectionMask("full_protection_control", frozenset((first, second)),
                           adapter.storage.bit_count, 2, {})
+    width_bytes = adapter.storage.codec.byte_width
+    source_word = adapter.storage._bytes(classifier)[first_index * width_bytes:(first_index + 1) * width_bytes]
+    cases = conformance_cases("classifier.weight", first_index, source_word, adapter.storage.codec)
+    if cases["sign"] != (first,):
+        raise ValueError("sign conformance identity differs from primary forced event")
     trials = {}
-    for name, schedule, mask in (("one_bit", single, none), ("multi_bit", double, none),
-                                 ("full_control", double, full), ("equal_budget_protected", double, one)):
+    planned = [("one_bit", single, none), ("multi_bit", double, none),
+               ("full_control", double, full), ("equal_budget_protected", double, one)]
+    for offset, name in enumerate(("exponent", "significand", "infinity", "nan"), start=3):
+        schedule = FaultSchedule(law, 1000 + offset,
+            tuple(FaultEvent(None, bit) for bit in cases[name]),
+            adapter.storage.bit_count, len(examples))
+        planned.append((name, schedule, none))
+    for name, schedule, mask in planned:
+        trial_started = time.monotonic()
         with adapter.storage.injected(schedule, mask) as report:
-            if name == "one_bit" and adapter.storage.hashes() == baseline:
-                raise ValueError("injected bytes did not reach runtime parameter storage")
+            mutated = adapter.storage._bytes(classifier)[first_index * width_bytes:(first_index + 1) * width_bytes]
+            expected = source_word
+            for event in schedule.events:
+                if event.bit.parameter == "classifier.weight" and event.bit.flat_index == first_index and event.bit not in mask.protected:
+                    expected = adapter.storage.codec.xor(expected, 0, event.bit.bit_index)
+            if mutated != expected:
+                raise ValueError(f"{name}: inference-time stored word differs from exact XOR schedule")
+            if report.applied_events and adapter.storage.hashes() == baseline:
+                raise ValueError(f"{name}: injected bytes did not reach runtime parameter storage")
             risk = adapter.evaluate_sst2(examples)
         if adapter.storage.hashes() != baseline:
             raise ValueError("runtime state was not restored")
         trials[name] = {"risk": asdict(risk), "report": asdict(report),
+                        "source_word_hex": source_word.hex(), "runtime_word_hex": mutated.hex(),
+                        "runtime_word_category": adapter.storage.codec.fields(mutated)["category"],
+                        "elapsed_seconds": time.monotonic() - trial_started,
                         "schedule_events": [event.key() for event in schedule.events],
                         "schedule_seed": schedule.seed,
                         "schedule_full_sha256": digest_object({"model": asdict(schedule.model),
@@ -95,17 +125,32 @@ def run_distilbert_smoke(manifest_path: Path, portfolio_path: Path,
         raise ValueError("full suppression did not reproduce clean outputs")
     if trials["one_bit"]["risk"]["logits"] == asdict(clean)["logits"]:
         raise ValueError("injected classifier bit did not measurably affect model inference")
+    for name in ("infinity", "nan"):
+        if trials[name]["runtime_word_category"] != name:
+            raise ValueError(f"{name} encoded category was not present during inference")
     if adapter.evaluate_sst2(examples) != clean:
         raise ValueError("post-trial clean inference differs from reference")
-    payload = {"schema_version": "transformer-smoke/v1", "status": "engineering-only",
+    payload = {"schema_version": "transformer-smoke/v2", "status": "engineering-only",
         "asset_manifest_sha256": asset.manifest_sha256, "asset_record_sha256": asset.record_sha256,
         "source": git_provenance(source_root), "target": asset.target,
         "eligible_population": "contiguous CPU nn.Linear.weight FP32 stored bytes only",
         "eligible_bits": adapter.storage.bit_count,
         "descriptors": [asdict(x) for x in adapter.storage.descriptors],
-        "engineering_source_indices": identities, "risk_version": "transformer-risk/v1",
+        "engineering_source_indices": identities,
+        "cohort_counts": {name: len(rows) for name, rows in cohorts.items()},
+        "cohort_source_indices": {name: [row.source_index for row in rows] for name, rows in cohorts.items()},
+        "cohort_records_sha256": {name: sst2_records_digest(tuple(
+            Sst2Row("train" if name in ("calibration", "selection") else "validation",
+                    row.source_index, row.text, row.label) for row in rows))
+            for name, rows in cohorts.items()},
+        "environment_lock_sha256": asset.record.get("requirements_lock_sha256"),
+        "clean_reference_report_sha256": asset.record.get("clean_report_sha256"),
+        "excluded_tied_parameters": adapter.storage.excluded_tied_parameters,
+        "risk_version": "transformer-risk/v1",
         "clean": asdict(clean), "trials": trials,
-        "limitation": "two exposed engineering examples; no effectiveness or production claim"}
+        "runtime_seconds": time.monotonic() - started,
+        "peak_rss_mb": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024,
+        "limitation": "32 exposed validation engineering examples; forced faults, no BER or publication effectiveness claim"}
     output.parent.mkdir(parents=True, exist_ok=True)
     staging.mkdir()
     _write_exclusive(staging / "payload.json", canonical_json_bytes(payload) + b"\n")

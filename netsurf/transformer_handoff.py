@@ -29,7 +29,7 @@ def audit_handoff(manifest_path: Path, portfolio_path: Path, output: Path) -> di
         model = record.get("model") or {}
         rows.append({"target": registry["id"], "asset_status": record["status"],
             "source_matches": model.get("repository") == registry["model"].get("source"),
-            "revision_matches": model.get("revision") == registry["model"].get("revision"),
+            "revision_matches": model.get("commit", model.get("revision")) == registry["model"].get("revision"),
             "blockers": record.get("blockers", []),
             "interpreter_exists": bool(record.get("interpreter")) and Path(record["interpreter"]).is_file()})
     payload = {"schema_version": "transformer-handoff-audit/v1",

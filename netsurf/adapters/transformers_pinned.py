@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Sequence
 
 from ..manifests import canonical_json_bytes
+from ..transformer_data import read_sst2_parquet, sst2_fault_partitions
 from ..torch_storage import TorchStoredLinearWeights
 from ..transformer_assets import AssetBlocked, ReadyTransformerAsset, verify_running_interpreter
 from ..transformer_risk import TaskRisk, classification_risk, language_model_risk_from_stats, teacher_forced_windows
@@ -54,6 +55,29 @@ def read_sst2_jsonl(asset: ReadyTransformerAsset) -> tuple[LabeledText, ...]:
     return tuple(examples)
 
 
+def read_sst2_cohorts(asset: ReadyTransformerAsset) -> dict[str, tuple[LabeledText, ...]]:
+    """Read only the asset-hash-verified rows; keep fault-outcome cohorts separate."""
+    if asset.target != "distilbert_sst2_fp32":
+        raise AssetBlocked("SST-2 cohort requested for a different target")
+    if asset.record.get("dataset_format") == "sst2-labeled-parquet/v1":
+        inventory = {item["path"] for item in asset.dataset_files}
+        train_file = "sst2/train-00000-of-00001.parquet"
+        validation_file = "sst2/validation-00000-of-00001.parquet"
+        if not {train_file, validation_file} <= inventory:
+            raise AssetBlocked("READY inventory lacks labeled SST-2 train/validation files")
+        train = read_sst2_parquet(asset.dataset_path / train_file, "train")
+        validation = read_sst2_parquet(asset.dataset_path / validation_file, "validation")
+        if len(validation) != 872:
+            raise AssetBlocked("SST-2 validation cohort differs from READY reference")
+        partitions = sst2_fault_partitions(train, validation)
+        return {name: tuple(LabeledText(row.source_index, row.text, row.label) for row in rows)
+                for name, rows in partitions.items()}
+    examples = read_sst2_jsonl(asset)
+    by_id = {row.source_index: row for row in examples}
+    return {name: tuple(by_id[index] for index in asset.record["partitions"][name])
+            for name in ("engineering", "calibration", "selection", "evaluation")}
+
+
 class PinnedTransformerAdapter:
     def __init__(self, asset: ReadyTransformerAsset):
         self.asset = asset
@@ -68,7 +92,7 @@ class PinnedTransformerAdapter:
         import torch
         from transformers import AutoConfig, AutoModelForCausalLM, AutoModelForSequenceClassification, AutoTokenizer
 
-        torch.set_num_threads(1)
+        torch.set_num_threads(self.asset.backend["threads"])
         torch.use_deterministic_algorithms(True)
         if torch.is_autocast_enabled("cpu") or torch.is_autocast_enabled("cuda"):
             raise AssetBlocked("autocast would change the consumed numerical representation")

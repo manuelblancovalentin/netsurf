@@ -43,7 +43,8 @@ def export_smoke(smoke_dir: Path, readiness_manifest: Path, source_root: Path,
     source_files = [
         "netsurf/storage_bit_codec.py", "netsurf/torch_storage.py", "netsurf/transformer_risk.py",
         "netsurf/transformer_assets.py", "netsurf/adapters/transformers_pinned.py",
-        "netsurf/transformer_smoke.py", "netsurf/transformer_baselines.py",
+        "netsurf/transformer_smoke.py", "netsurf/transformer_conformance.py",
+        "netsurf/transformer_data.py", "netsurf/transformer_baselines.py",
         "config/transformer_target_status.json", "docs/TRANSFORMER_BENCHMARK_PROTOCOL.md",
     ]
     with zipfile.ZipFile(staging / "complete.zip", "x", compression=zipfile.ZIP_DEFLATED) as archive:

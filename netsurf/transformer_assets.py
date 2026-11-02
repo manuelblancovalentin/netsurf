@@ -39,6 +39,7 @@ class ReadyTransformerAsset:
     labels: dict | None
     backend: dict
     record: dict
+    dataset_files: tuple[dict, ...] = ()
 
 
 def _verified_file(root: Path, item: dict, kind: str) -> None:
@@ -49,7 +50,10 @@ def _verified_file(root: Path, item: dict, kind: str) -> None:
     if not isinstance(expected, str) or not _SHA.fullmatch(expected):
         raise AssetBlocked(f"{kind}: missing SHA-256 for {relative}")
     path = (root / relative).resolve()
-    if not path.is_relative_to(root.resolve()) or not path.is_file():
+    # Hugging Face snapshots contain symlinks into their sibling blobs/ tree.
+    # Keep that repository boundary, then verify the pinned content hash.
+    allowed_root = root.parent.parent if root.parent.name == "snapshots" else root
+    if not path.is_relative_to(allowed_root.resolve()) or not path.is_file():
         raise AssetBlocked(f"{kind}: missing or escaping file {relative}")
     if sha256_file(path) != expected:
         raise AssetBlocked(f"{kind}: changed bytes for {relative}")
@@ -78,18 +82,53 @@ def load_ready_asset(manifest_path: Path, target: str, portfolio_path: Path) -> 
         # description cannot be guessed into an executable source identity.
         model = source.get("model") or {}
         dataset = source.get("dataset") or {}
-        backend = source.get("execution_backend") or {}
+        environment = source.get("environment") or {}
+        reference = source.get("reference_results") or {}
+        provenance = reference.get("provenance") or {}
+        if target == "distilbert_sst2_fp32":
+            if source.get("precision", {}).get("source") != "float32 as stored" or source.get("precision", {}).get("derived") is not None:
+                raise AssetBlocked("DistilBERT READY stored FP32 representation changed")
+            precision = "FP32"
+        else:
+            precision = source.get("target_precision")
+        if (not reference.get("gate") or not all(reference["gate"].values()) or
+            not reference.get("repeat_bitwise_identical") or
+            reference.get("protocol") != dataset.get("protocol")):
+            raise AssetBlocked(f"{target}: READY clean conformance gate missing")
+        report_path = Path(reference.get("smoke_report", ""))
+        if not report_path.is_file() or sha256_file(report_path) != reference.get("smoke_report_sha256"):
+            raise AssetBlocked(f"{target}: clean reference report changed")
+        lock_path = Path(environment.get("requirements_lock", ""))
+        if not lock_path.is_file() or sha256_file(lock_path) != environment.get("requirements_lock_sha256"):
+            raise AssetBlocked(f"{target}: environment lock changed")
+        interpreter_path = Path(source.get("interpreter", ""))
+        if not interpreter_path.is_file() or environment.get("interpreter") != str(interpreter_path):
+            raise AssetBlocked(f"{target}: pinned interpreter missing or changed")
+        backend = {"device": environment.get("device"), "attention": environment.get("attention"),
+                   "threads": provenance.get("threads"), "python_version": environment.get("python"),
+                   "torch_version": environment.get("torch"),
+                   "transformers_version": environment.get("packages", {}).get("transformers")}
+        if (provenance.get("attention") != backend["attention"] or
+            provenance.get("python") != backend["python_version"] or
+            provenance.get("torch") != backend["torch_version"] or
+            provenance.get("transformers") != backend["transformers_version"] or
+            provenance.get("cuda_available") is not False or
+            provenance.get("deterministic_algorithms") is not True):
+            raise AssetBlocked(f"{target}: clean backend provenance differs from READY environment")
         record = {
             "target": target, "status": "READY", "source": model.get("repository"),
-            "revision": model.get("revision"), "precision": source.get("target_precision"),
+            "revision": model.get("commit"), "precision": precision,
             "model_root": model.get("path"), "model_files": model.get("files"),
             "tokenizer_files": source.get("tokenizer"),
-            "dataset_path": dataset.get("executable_path"),
-            "dataset_sha256": dataset.get("executable_sha256"),
+            "dataset_path": dataset.get("path"),
+            "dataset_files": dataset.get("files"),
+            "dataset_sha256": digest_object(dataset.get("files")),
             "interpreter": source.get("interpreter"),
-            "interpreter_sha256": source.get("interpreter_sha256"),
+            "interpreter_sha256": sha256_file(interpreter_path),
+            "requirements_lock_sha256": environment["requirements_lock_sha256"],
+            "clean_report_sha256": reference["smoke_report_sha256"],
             "backend": backend, "labels": dataset.get("label_mapping"),
-            "dataset_format": dataset.get("netsurf_format"),
+            "dataset_format": "sst2-labeled-parquet/v1" if dataset.get("protocol") == "kona-assets/sst2-distilbert/1" else None,
             "partitions": source.get("splits"),
             "token_sequence_sha256": dataset.get("token_sequence_sha256"),
             "bos_mode": dataset.get("bos_mode"), "eos_mode": dataset.get("eos_mode"),
@@ -124,14 +163,22 @@ def load_ready_asset(manifest_path: Path, target: str, portfolio_path: Path) -> 
             raise AssetBlocked(f"{target}: checkpoint/tokenizer differs from portfolio pin: {pin['path']}")
     dataset_path = Path(record.get("dataset_path", "")).resolve()
     dataset_hash = record.get("dataset_sha256")
-    if not dataset_path.is_file() or not isinstance(dataset_hash, str) or sha256_file(dataset_path) != dataset_hash:
+    dataset_files = record.get("dataset_files")
+    if record.get("dataset_format") == "sst2-labeled-parquet/v1":
+        if not dataset_path.is_dir() or not isinstance(dataset_files, list) or not dataset_files:
+            raise AssetBlocked(f"{target}: labeled Parquet inventory missing")
+        if digest_object(dataset_files) != dataset_hash:
+            raise AssetBlocked(f"{target}: changed dataset inventory")
+        for item in dataset_files:
+            _verified_file(dataset_path, item, "dataset")
+    elif not dataset_path.is_file() or not isinstance(dataset_hash, str) or sha256_file(dataset_path) != dataset_hash:
         raise AssetBlocked(f"{target}: missing or changed dataset identity")
     interpreter = Path(record.get("interpreter", "")).resolve()
     interpreter_hash = record.get("interpreter_sha256")
     if not interpreter.is_file() or not isinstance(interpreter_hash, str) or sha256_file(interpreter) != interpreter_hash:
         raise AssetBlocked(f"{target}: incompatible or changed Python interpreter")
     backend = record.get("backend")
-    if not isinstance(backend, dict) or backend.get("device") != "cpu" or backend.get("attention") != "eager" or backend.get("threads") != 1 or not all(backend.get(key) for key in ("python_version", "torch_version", "transformers_version")):
+    if not isinstance(backend, dict) or backend.get("device") != "cpu" or backend.get("attention") != "eager" or backend.get("threads") not in (1, 8) or not all(backend.get(key) for key in ("python_version", "torch_version", "transformers_version")):
         raise AssetBlocked(f"{target}: unvalidated numerical/attention backend")
     labels = record.get("labels")
     if target == "distilbert_sst2_fp32" and (
@@ -144,7 +191,8 @@ def load_ready_asset(manifest_path: Path, target: str, portfolio_path: Path) -> 
         raise AssetBlocked(f"{target}: exact token-ID sequence not pinned")
     return ReadyTransformerAsset(target, model_root, dataset_path, interpreter,
         record["precision"], record["revision"], sha256_file(path), digest_object(record),
-        tuple(files), tuple(tokens), dataset_hash, interpreter_hash, labels, backend, record)
+        tuple(files), tuple(tokens), dataset_hash, interpreter_hash, labels, backend, record,
+        tuple(dataset_files or ()))
 
 
 def verify_running_interpreter(asset: ReadyTransformerAsset) -> None:
