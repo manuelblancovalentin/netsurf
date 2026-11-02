@@ -173,7 +173,11 @@ def load_ready_asset(manifest_path: Path, target: str, portfolio_path: Path) -> 
             _verified_file(dataset_path, item, "dataset")
     elif not dataset_path.is_file() or not isinstance(dataset_hash, str) or sha256_file(dataset_path) != dataset_hash:
         raise AssetBlocked(f"{target}: missing or changed dataset identity")
-    interpreter = Path(record.get("interpreter", "")).resolve()
+    # Preserve the environment entrypoint symlink: resolving it to the base
+    # Python binary loses that environment's site-packages when executed.
+    interpreter = Path(record.get("interpreter", ""))
+    if not interpreter.is_absolute():
+        raise AssetBlocked(f"{target}: interpreter path is not absolute")
     interpreter_hash = record.get("interpreter_sha256")
     if not interpreter.is_file() or not isinstance(interpreter_hash, str) or sha256_file(interpreter) != interpreter_hash:
         raise AssetBlocked(f"{target}: incompatible or changed Python interpreter")
@@ -201,7 +205,7 @@ def verify_running_interpreter(asset: ReadyTransformerAsset) -> None:
     import platform
     from importlib.metadata import PackageNotFoundError, version
 
-    if Path(sys.executable).resolve() != asset.interpreter:
+    if Path(sys.executable).resolve() != asset.interpreter.resolve():
         raise AssetBlocked(f"use pinned interpreter {asset.interpreter}; observed {sys.executable}")
     if platform.python_version() != asset.backend["python_version"]:
         raise AssetBlocked("Python version differs from READY backend")

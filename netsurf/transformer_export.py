@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import subprocess
 import zipfile
 
 from .manifests import canonical_json_bytes, sha256_file
@@ -52,8 +53,13 @@ def export_smoke(smoke_dir: Path, readiness_manifest: Path, source_root: Path,
             if file.is_file():
                 archive.write(file, "smoke/" + file.name)
         archive.write(readiness_manifest, "assets/NETSURF_ASSET_READINESS.json")
+        source_commit = receipt["source"]["commit"]
+        if receipt["source"]["dirty"]:
+            raise ValueError("complete source archive requires a committed-source receipt")
         for relative in source_files:
-            archive.write(source_root / relative, "source/" + relative)
+            frozen = subprocess.check_output(["git", "show", f"{source_commit}:{relative}"],
+                                             cwd=source_root)
+            archive.writestr("source/" + relative, frozen)
     commands = "\n".join(
         f"scp {scp_host}:{(destination / name).as_posix()} ~/Downloads/{name}"
         for name in ("compact.zip", "complete.zip")

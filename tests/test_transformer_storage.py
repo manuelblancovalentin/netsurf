@@ -224,6 +224,11 @@ def test_readiness_rejects_absence_status_and_changed_bytes(tmp_path):
     record["status"] = "READY"
     manifest.write_text(json.dumps({"schema_version": "netsurf-transformer-readiness/v1", "records": [record]}))
     assert load_ready_asset(manifest, "distilbert_sst2_fp32", portfolio).target == record["target"]
+    env_entrypoint = tmp_path / "env-python"
+    env_entrypoint.symlink_to(interpreter)
+    record["interpreter"] = str(env_entrypoint)
+    manifest.write_text(json.dumps({"schema_version": "netsurf-transformer-readiness/v1", "records": [record]}))
+    assert load_ready_asset(manifest, "distilbert_sst2_fp32", portfolio).interpreter == env_entrypoint
     checkpoint.write_bytes(b"changed")
     with pytest.raises(AssetBlocked, match="changed bytes"):
         load_ready_asset(manifest, "distilbert_sst2_fp32", portfolio)
