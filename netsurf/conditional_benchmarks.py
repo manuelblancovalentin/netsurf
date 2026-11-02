@@ -26,6 +26,8 @@ class ConditionalCapability:
     reference_inputs: int = 200
 
     def indices(self, role, offset, count):
+        if self.risk == "one_minus_file_roc_auc":
+            raise ValueError("ToyCar requires explicit complete-file cohorts, not positional windows")
         roles = ("conditional_calibration", "conditional_model_selection", "conditional_final_evaluation")
         if role not in roles or type(offset) is not int or type(count) is not int:
             raise ValueError("unsupported conditional role or noninteger sample request")
@@ -36,6 +38,10 @@ class ConditionalCapability:
 
     def record(self):
         from dataclasses import asdict
+        if self.target == "toycar_int8":
+            from .cohort_risk import CONTRACT
+            return {"schema_version": "2.0.0", **asdict(self), "risk_contract": CONTRACT,
+                    "partitioning": "explicit complete-file identities, never contiguous window offsets"}
         return {"schema_version": "1.0.0", **asdict(self),
                 "window_interpretation": "disjoint source positions; no iid or identical-class-composition claim",
                 "risk_units": "natural-log nats per image/clip; integer softmax, probability floor 1e-12"}
@@ -49,6 +55,10 @@ CAPABILITIES = (
     ConditionalCapability("resnet8_int8", "mlperf_tiny_ic_int8_v1",
         "mlperf_tiny_ic_resnet8_int8_v1", "mlperf-tiny/ic", "test", "cifar10_test",
         ((0, 1000), (1000, 3000), (3000, 10000))),
+    ConditionalCapability("toycar_int8", "mlperf_tiny_ad_int8_v1",
+        "mlperf_tiny_ad_toycar_int8_v1", "mlperf-tiny/ad", "official_248_files",
+        "dcase2020_toycar_official_development_test", ((0, 248),) * 3,
+        risk="one_minus_file_roc_auc", reference_inputs=392),
 )
 
 
@@ -56,9 +66,6 @@ def conditional_capability(adapter):
     for value in CAPABILITIES:
         if adapter in {value.adapter, value.target}:
             return value
-    if adapter in {"toycar_int8", "mlperf_tiny_ad_int8_v1"}:
-        raise ValueError("ToyCar conditional workflow BLOCKED: freeze disjoint both-class file cohorts and "
-                         "a nondecomposable 1-file-ROC-AUC result/uncertainty contract; reconstruction MSE is not task risk")
     raise ValueError(f"no validated conditional capability for {adapter}")
 
 
@@ -95,6 +102,9 @@ def create_conditional_adapter(configuration):
     if tf.__version__ != "2.14.1":
         raise ValueError("schema 6.7 requires pinned TensorFlow 2.14.1 BUILTIN_REF")
     verified_storage(configuration.benchmark)
+    if configuration.schema_version == "6.8.0":
+        from .adapters.toycar_conditional import ConditionalToyCarAdapter
+        return ConditionalToyCarAdapter(configuration)
     if configuration.benchmark.adapter == "mlperf_tiny_ic_int8_v1":
         from .adapters.mlperf_tiny import MlperfTinyImageClassificationAdapter
 
@@ -195,11 +205,18 @@ def audit_exposure(cap, *, roots=None, allowed_campaign=None):
             runs.append({"bundle": str(bundle), "scientific_payload_sha256": digest,
                 "checksums_sha256": sha256_file(bundle / "checksums.json"),
                 "original_test_indices": indices, "same_frozen_campaign": same})
-    return {"schema_version": "1.0.0", "checkpoint_sha256": model_sha,
+            if cap.target == "toycar_int8":
+                from .toycar_exposure import role_inventory
+                runs[-1]["role_inventory"] = role_inventory(payload)
+                runs[-1]["workflow"] = payload.get("workflow", {})
+    result = {"schema_version": "1.0.0", "checkpoint_sha256": model_sha,
         "source_split": cap.source_split, "runs": runs, "exposed_test_indices": sorted(exposed),
         "limitations": "Known finalized payloads only, including official-subset original-index aliases; "
         "failed/manual/concurrent/out-of-root work needs disclosure. Full clean reference already used all test images. "
         "Payload checksums verified; multi-GB prediction artifacts not reread."}
+    if cap.target == "toycar_int8":
+        result["limitations"] = result["limitations"].replace("test images", "248 official files")
+    return result
 
 
 def check_exposure(cap, audit, offset, count, purpose):
@@ -219,7 +236,7 @@ def configuration_exposure(configuration):
                           configuration.samples.evaluation_count, configuration.workflow.get("purpose", "engineering"))
 
 
-def validate_workflow(raw, samples, backgrounds, oracle, paired, context, source):
+def validate_workflow(raw, samples, backgrounds, oracle, paired, context, source, *, scalar_cohort=False):
     """Reuse separated-selection validation, without the historical KWS exposure gate."""
     from .selection_preflight import validate_workflow as validate
     from .cross_pool import PROVENANCE
@@ -235,9 +252,11 @@ def validate_workflow(raw, samples, backgrounds, oracle, paired, context, source
     result.update({k: v for k, v in raw.items() if k in extra})
     if type(raw.get("record_per_input", False)) is not bool:
         raise ValueError("record_per_input must be boolean")
+    if scalar_cohort and raw.get("record_per_input", False):
+        raise ValueError("scalar-cohort ROC-AUC has no additive per-input diagnostic; record_per_input must be false")
     campaign_keys = {"campaign_manifest", "campaign_sha256", "pool_id"}
     if raw.keys() & campaign_keys:
-        if not campaign_keys <= raw.keys() or raw.get("record_per_input") is not True:
+        if not campaign_keys <= raw.keys() or raw.get("record_per_input") is not (not scalar_cohort):
             raise ValueError("campaign binding incomplete or missing additive input diagnostics")
         if result["mode"] == "final_only" and not {"final_registry", "final_registry_sha256"} <= raw.keys():
             raise ValueError("campaign final requires sealed all-pool registry")

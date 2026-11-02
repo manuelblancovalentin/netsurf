@@ -45,8 +45,8 @@ def test_capability_windows_and_alias_exposure():
     assert cap.indices("conditional_final_evaluation", 225, 128) == tuple(range(3225, 3353))
     with pytest.raises(ValueError, match="exceeds"):
         cap.indices("conditional_model_selection", 1999, 2)
-    with pytest.raises(ValueError, match="BLOCKED"):
-        conditional_capability("toycar_int8")
+    # M99 replaces the M98 blocker with an explicitly nonadditive capability.
+    assert conditional_capability("toycar_int8").risk == "one_minus_file_roc_auc"
     assert _indices({"x": [{"source_split": "cifar10_test_mlperf_tiny_ic01_official_200", "indices": [3225]}]}, cap.source_split) == {3225}
     audit = {"exposed_test_indices": [3225], "limitations": "test"}
     with pytest.raises(ValueError, match="exposure overlap"):

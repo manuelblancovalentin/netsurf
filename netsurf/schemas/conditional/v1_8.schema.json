@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/conditional/6.8.0",
+  "title": "ToyCar complete-file scalar-cohort conditional protection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scientific_protocol", "experiment", "benchmark", "samples", "cohorts", "risk", "candidates", "backgrounds", "execution", "restricted_oracle", "protection_context", "paired_swap_evaluation", "workflow", "output"],
+  "properties": {
+    "schema_version": {"const": "6.8.0"},
+    "scientific_protocol": {"const": "scalar-cohort-conditional-protection/v9"},
+    "experiment": {"type": "object"},
+    "benchmark": {
+      "type": "object",
+      "required": ["adapter", "id", "checkpoint", "dataset", "asset_lock", "split", "inference_backend", "quantization", "quantization_backend", "injectable_parameters"],
+      "properties": {
+        "adapter": {"const": "mlperf_tiny_ad_int8_v1"},
+        "id": {"const": "mlperf_tiny_ad_toycar_int8_v1"},
+        "split": {"const": "official_248_files"},
+        "inference_backend": {"const": "tensorflow_lite_builtin_ref_v1"},
+        "quantization": {"const": "tflite_affine_int8"},
+        "quantization_backend": {"const": "tflite_affine_integer_v1"},
+        "injectable_parameters": {"const": ["kernels"]}
+      }
+    },
+    "samples": {"type": "object", "properties": {
+      "calibration_offset": {"const": 0}, "model_selection_offset": {"const": 0}, "evaluation_offset": {"const": 0},
+      "require_disjoint": {"const": true}
+    }},
+    "cohorts": {
+      "type": "object", "additionalProperties": false,
+      "required": ["conditional_calibration", "conditional_model_selection", "conditional_final_evaluation"],
+      "properties": {
+        "conditional_calibration": {"$ref": "#/$defs/files"},
+        "conditional_model_selection": {"$ref": "#/$defs/files"},
+        "conditional_final_evaluation": {"$ref": "#/$defs/files"}
+      }
+    },
+    "risk": {"type": "object", "additionalProperties": false, "required": ["metric", "direction"], "properties": {
+      "metric": {"const": "one_minus_file_roc_auc"}, "direction": {"const": "minimize"}
+    }},
+    "candidates": {"$ref": "v1_7.schema.json#/properties/candidates"},
+    "backgrounds": {"type": "object"}, "execution": {"type": "object"},
+    "restricted_oracle": {"$ref": "v1_7.schema.json#/properties/restricted_oracle"},
+    "protection_context": {"type": "object", "properties": {"mode": {"const": "verified_global_mask"}}},
+    "paired_swap_evaluation": {"$ref": "v1_7.schema.json#/properties/paired_swap_evaluation"},
+    "workflow": {"allOf": [
+      {"$ref": "v1_7.schema.json#/properties/workflow"},
+      {"properties": {"record_per_input": {"const": false}}}
+    ]},
+    "output": {"type": "object"}
+  },
+  "$defs": {"files": {"type": "array", "minItems": 2, "maxItems": 248, "uniqueItems": true,
+    "items": {"type": "integer", "minimum": 0, "maximum": 247}}},
+  "allOf": [
+    {"$ref": "v1_7.schema.json#/allOf/0"},
+    {"$ref": "v1_7.schema.json#/allOf/1"},
+    {"$ref": "v1_7.schema.json#/allOf/2"}
+  ]
+}

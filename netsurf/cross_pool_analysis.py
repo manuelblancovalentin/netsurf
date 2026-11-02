@@ -96,6 +96,9 @@ def cross_pool_statistics(effects, *, seed, replicates, field_effects=None):
 
 def aggregate_campaign(path, output, *, plots=True):
     path = Path(path).resolve(); record = load_campaign(path); digest = sha256_file(path)
+    if record["schema_version"] == "1.2.0":
+        from .cohort_analysis import aggregate_scalar_campaign
+        return aggregate_scalar_campaign(path, output, plots=plots)
     root = path.parent
     evidence, arrays, scalar_arrays, common_ids, seeds = [], [], [], None, set()
     for pool in record["pools"]:

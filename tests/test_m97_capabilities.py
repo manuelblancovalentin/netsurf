@@ -16,7 +16,8 @@ def test_complete_portfolio_and_fail_closed_capabilities():
     assert len(records) == 18 and len({r['family'] for r in records}) == 11
     assert require_capability('kws_dscnn_int8', 'conditional_restricted')
     assert require_capability('resnet8_int8', 'conditional_restricted')  # M98 validated extension.
-    for name in ('toycar_int8', 'streaming_dscnn1d_int8', 'qwen3_0_6b_int4'):
+    assert require_capability('toycar_int8', 'conditional_restricted')  # M99 complete-file extension.
+    for name in ('streaming_dscnn1d_int8', 'qwen3_0_6b_int4'):
         with pytest.raises(UnsupportedCapability,match='BLOCKED'):
             require_capability(name,'conditional_restricted')
     assert 'not ROC-AUC' in capability_record('toycar_int8')['surrogate_loss']

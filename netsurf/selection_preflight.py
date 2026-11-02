@@ -101,6 +101,8 @@ def selection_contract(configuration):
     context = configuration.protection_context.to_dict()
     context.pop("source_bundle")
     return {
+        **({"cohorts": dict(configuration.cohorts), "scalar_cohort_contract": "1.0.0"}
+           if configuration.schema_version == "6.8.0" else {}),
         **({"campaign_sha256": configuration.workflow["campaign_sha256"], "pool_id": configuration.workflow["pool_id"]}
            if "campaign_sha256" in configuration.workflow else {}),
         "benchmark": benchmark,
@@ -174,6 +176,9 @@ def load_frozen_selection(configuration):
             final_ids = {f"{cap.source_split}:{i}" for i in cap.indices(
                 configuration.samples.evaluation_role, configuration.samples.evaluation_offset,
                 configuration.samples.evaluation_count)}
+        if configuration.schema_version == "6.8.0":
+            from .cohort_risk import SOURCE
+            final_ids = {f"{SOURCE}:{i}" for i in configuration.cohorts[configuration.samples.evaluation_role]}
         if selected_ids & final_ids:
             raise ValueError("frozen selection samples overlap final samples")
         return record

@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/campaign/1.2.0",
+  "title": "Complete-file scalar-cohort conditional protection campaign",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "name",
+    "purpose",
+    "benchmark_template",
+    "design",
+    "samples",
+    "statistics"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.2.0"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+    },
+    "purpose": {
+      "enum": [
+        "engineering",
+        "confirmation"
+      ]
+    },
+    "benchmark_template": {
+      "type": "string",
+      "minLength": 1
+    },
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_count",
+        "pool_seeds",
+        "selection_seed_bases",
+        "selection_replicates",
+        "selection_fields_per_seed",
+        "final_seeds",
+        "final_fields",
+        "logical_ber"
+      ],
+      "properties": {
+        "candidate_count": {
+          "enum": [
+            6,
+            8
+          ]
+        },
+        "pool_seeds": {
+          "$ref": "#/$defs/seeds"
+        },
+        "selection_seed_bases": {
+          "$ref": "#/$defs/seeds"
+        },
+        "selection_replicates": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "selection_fields_per_seed": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "final_seeds": {
+          "$ref": "#/$defs/seeds"
+        },
+        "final_fields": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "logical_ber": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        }
+      }
+    },
+    "samples": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selection_offset",
+        "selection_count",
+        "final_offset",
+        "final_count"
+      ],
+      "properties": {
+        "selection_offset": {
+          "const": 0
+        },
+        "selection_count": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "final_offset": {
+          "const": 0
+        },
+        "final_count": {
+          "type": "integer",
+          "minimum": 2
+        }
+      }
+    },
+    "statistics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bootstrap_seed",
+        "bootstrap_replicates",
+        "confidence"
+      ],
+      "properties": {
+        "bootstrap_seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bootstrap_replicates": {
+          "type": "integer",
+          "minimum": 100
+        },
+        "confidence": {
+          "const": 0.95
+        }
+      }
+    }
+  },
+  "$defs": {
+    "seeds": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    }
+  },
+  "$comment": "Requires a schema-6.8 ToyCar template with explicit disjoint both-class file cohorts. Executable validator checks source hashes, exposure, seed independence and matching counts. Statistics bootstrap fields are reserved compatibility fields: v1.2 computes pool/whole-field inference, never additive input bootstrap."
+}
