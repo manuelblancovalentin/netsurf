@@ -177,6 +177,14 @@ new significance claim. KWS selected-minus-S5 means are negative in each campaig
 but that is a weaker question than selected versus the exact isolated comparator.
 ResNet and ToyCar currently provide no resolved equal-pool advantage over isolated.
 
+### Supported and unsupported claims by benchmark
+
+| Benchmark | Supported by these finalized records | Not established |
+|---|---|---|
+| KWS | Background conditioning changes many selection-mask orderings; the selected-minus-S5 mean is negative in each recorded campaign. All pools and independently evaluated final masks are retained. | A resolved cross-pool selected-minus-exact-isolated advantage, a universal ranking improvement, or causal architectural redundancy. The recurring pools are not independent across BERs. |
+| ResNet-8 | The exact decomposition closes; outside-conditioned additive ordering nearly matches the integrated ordering on these selection fields. Eight-field selection margins can be small relative to field variability. | Held-out conditional-selection superiority, an accuracy/chance floor inferred from CE, or unique attribution of selection/final disagreement to input shift rather than field noise. |
+| ToyCar | Complete-cohort AUC is nonadditive and many forced candidate states change it. Background AUC degrades substantially, while expected mask contrasts are much smaller; cohort differences and unstable winners are observable. | Absence of interactions, zero true protection benefit, an additive reconstruction-loss explanation of AUC, or untouched confirmation on the now-exposed production files. |
+
 ## ToyCar resolution, degradation and exposure
 
 Complete-file scoring is unchanged. The 24-file selection cohort has 12 normal
@@ -389,5 +397,66 @@ existing pinned-backend/local-evidence skips remain explicit in the full suite.
 The full suite's preexisting MNIST tests use a new read-only symlink in this
 worktree's ignored `workspace/benchmarks/`, not a changed checkpoint.
 
-Final commit, final analysis hash, final regression totals and archive identity
-are recorded in the delivery section below after the committed-source replay.
+## Verified delivery
+
+Implementation commit: `f2d8254ae7fc0fae4a3c59d239b6008182db5114`, under
+`manuelblancovalentin <manuel.blanco.valentin@gmail.com>`. The final documentation
+commit follows it. No other worktree or branch was merged or changed.
+
+The clean committed-source replay is finalized at:
+
+```text
+/projects/netsurf/manuelbv/workspace/implementation-worktrees/m910-interaction-attribution/workspace/runs/m910_production_attribution_committed
+```
+
+Its scientific payload is **byte-identical** to the preceding complete derivation:
+
+```text
+cb9099abed7a74c06dcae1c96a8f1122c3a8efdb6527e1a28475560601399ace
+```
+
+All 296 derived artifact checksums verify. All 112 historical scientific payloads
+and checksum inventories were verified before and after analysis. Maximum
+decomposition closure error is `3.552713678800501e-15`. The committed replay
+took **81.68 seconds**, peak RSS **352,884 KiB (~345 MiB)**, zero new model calls.
+Environment: Python 3.11.17, NumPy 2.4.6, SciPy 1.17.1, Matplotlib 3.11.2.
+
+Separate supporting outputs:
+
+- `workspace/runs/m910_engineering_all_v1`: all seven engineering pool conditions,
+  payload `11cec468570e41aa7d9aab5dfeb63e23da789651594c6b0099ff6d7029c9c948`.
+- `workspace/runs/m910_toycar_exposure_v1`: refreshed metadata-only ledger,
+  payload `dc9cd42a58ccfd4d99ed0a502344f47c5ad1e39faf2a124470a37a7b363b8154`.
+
+Regression results on final implementation:
+
+- Canonical full suite: **383 passed, 16 skipped**, 83.70 seconds; five existing
+  TensorFlow Lite deprecation warnings remain visible.
+- New offline tests: **37 passed**. Cover all signed decomposition terms,
+  additive/pairwise/pure higher-order/beneficial risks, BER boundaries, ties,
+  whole-cohort AUC, exact complete-file resampling, strict response/provenance
+  rejection, deterministic replay, every-pool reporting and overwrite rejection.
+- Pinned MLPerf interpreter: **54 passed** across the new tests and existing
+  restricted-subcube/paired-swap algebra tests, 1.51 seconds. No inference is
+  required by these offline tests.
+- The 16 canonical skips are existing version-gated TF2.14.1 checks, optional
+  local evidence/upstream checkout checks, and three absent-`jsonschema` checks.
+  No required offline dependency is missing. No package changes were made.
+
+The delivery archive `workspace/exports/m910_handoff.zip` contains the report,
+incremental implementation/tests, source inventory, a Git patch against the M99
+base, complete derived production/engineering evidence and the exposure ledger.
+It excludes original datasets/models and historical bundles. The report and
+plots are directly readable; rerunning analysis requires the repository and
+the pinned historical source paths. The archive is a handoff, not a stand-alone
+model or dataset distribution.
+
+```bash
+# Kona: inspect the already-created delivery archive; no experiment is launched.
+sha256sum workspace/exports/m910_handoff.zip
+unzip -t workspace/exports/m910_handoff.zip
+
+# Mac: replace KONA_SSH_HOST with your actual configured host/alias.
+scp manuelbv@KONA_SSH_HOST:/projects/netsurf/manuelbv/workspace/implementation-worktrees/m910-interaction-attribution/workspace/exports/m910_handoff.zip ~/Downloads/
+shasum -a 256 ~/Downloads/m910_handoff.zip
+```
