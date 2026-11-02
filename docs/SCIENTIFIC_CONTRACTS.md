@@ -497,3 +497,30 @@ whole labeled files within class and recomputes AUC for every paired state;
 there is no additive per-file AUC loss or independent score-pair sample size.
 All new mechanism analyses are exploratory, with original comparison-family
 contracts preserved. See `docs/M910_INTERACTION_ATTRIBUTION.md`.
+
+## M11 outside-conditioned scaling
+
+`outside-conditioned-forced-clean/v1` measures h_G(empty) and h_G({b}) while
+every other candidate is forced clean. Its signed marginal is NOT full
+conditional vulnerability with other candidates still subject to Bernoulli
+faults. All outside events are independent Bernoulli on coordinates outside
+the candidate pool and fixed outside protection context. Global mask cardinality
+is invariant. Frozen selected masks are evaluated independently; no final
+optimum is selected. K>12 outputs do not claim an exact optimum or exact regret.
+
+The bounded-risk remainder/regret propositions and their assumptions are in
+`M11_THEORY.md`. Observed curvature bounds apply only to sampled fields, not
+all possible outside faults. Exact enumeration retains all candidate orders.
+Primary sampling is SRS within original S5-status strata, with positive inclusion
+probabilities across all eligible bit/tensor strata; small draws need not cover
+every stratum. Structural bit-tier enrichment is separate and cannot be pooled
+as the same population design. All planned pools, including adverse/null, remain.
+
+Independent seed streams are derived and recorded for each pool/size/BER/phase.
+Field, candidate-pool, input/cohort, mask-selection and approximation uncertainties
+are distinct. ToyCar resampling draws complete files within class and recomputes
+the scalar cohort AUC; windows/pairs are never independent task observations.
+Engineering input identities must already occur in the audited exposure ledger.
+Confirmation plans reject previous fault-outcome exposure; known-root audits
+cannot prove absence of manual/concurrent/out-of-root use. Prior KWS/ResNet/ToyCar
+contracts, source locks and finalized scientific payloads remain unchanged.

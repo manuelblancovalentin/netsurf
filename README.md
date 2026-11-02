@@ -21,6 +21,14 @@ or Hessian capability is inferred from a registry entry.
 
 ## Kona setup
 
+M11 adds a separate [conditional-scaling measurement protocol](docs/M11_THEORY.md)
+and [execution/evidence guide](docs/M11_RESULTS_AND_LIMITATIONS.md).
+`python -m netsurf scaling --help` exposes metadata-only freeze, selection,
+all-selection sealing, independent final comparisons and offline analysis.
+It measures K+1 candidate-forced-clean responses per outside field; it is not
+an adaptive optimizer or a claim of full conditional influence. Exact K<=12
+audits remain available. Research sweeps are never launched automatically.
+
 The private `proj` project is named `netsurf` and points to this repository and
 the Python 3.11 environment at
 `/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf`.

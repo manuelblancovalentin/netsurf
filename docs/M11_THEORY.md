@@ -134,6 +134,15 @@ Pairwise differences at the empty candidate state alone do not bound higher-orde
 interactions: a pure third-order function has zero such differences and nonzero
 third-order damage. M11 retains this falsifier.
 
+An additional *statistical*, not deterministic, route is possible: the exact
+per-G maxima κ_ij(G) lie in [0,2L]. With n independent enumerated fields and
+M=K(K−1)/2 pairs, union-Hoeffding upper limits for E κ_ij are
+min(2L, mean κ_ij + 2L sqrt(log(M/α)/(2n))). Substituting these in the curvature
+bound gives a simultaneous high-probability remainder limit. This can be looser
+than Section3 at small n. It is a derivation for future precision planning,
+not an implemented global certificate or permission to treat sampled maxima
+as deterministic bounds. The current artifact reports observed-field bounds.
+
 ## 6. Failure regimes and comparisons
 
 A purely third-order response on candidate indices3,4,5 has all singleton scores

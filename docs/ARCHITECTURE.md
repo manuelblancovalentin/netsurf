@@ -115,6 +115,22 @@ FaultModel -> deterministic FaultSchedule -> InjectionEngine
 
 ## Storage boundary
 
+### M11 conditional-response layer
+
+`conditional_scaling.py` contains model-free Bernoulli integration, bounded-risk
+and finite-sample regret calculations, diagnostic signed-marginal selection,
+exact-oracle audits and paired field/input statistics. `scaling_study.py` binds
+these to existing verified conditional adapters, source S5 masks, frozen
+probability-sampled pools and disjoint selection/final execution. No old schema-6
+algorithm or payload is reinterpreted. The independent request schema is
+`netsurf/schemas/scaling/v1.schema.json`, with strict executable validation.
+
+`scaling_reporting.py` regenerates tables/figures without inference and requires
+all prespecified final pool/arm results. `scaling_historical.py` verifies and
+reanalyzes the entire M910 source inventory offline. Both create new derived
+destinations; they never replace finalized evidence. Selection and final
+bundles bind exact faults, candidate identities, cohorts and source masks.
+
 `netsurf.paths` resolves shared datasets from environment variables and new
 results under `workspace/runs/` (override with `NETSURF_WORKSPACE`). Benchmark
 definitions belong under `config/`; generated data are ignored. Historical

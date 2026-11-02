@@ -782,3 +782,14 @@ Reports include all pools, not favorable subsets; signed effects and field,
 pool and input-resampling uncertainty remain separate. See
 `docs/M910_INTERACTION_ATTRIBUTION.md` for finalized outputs, test results,
 detectability limitations and manuscript-ready figures.
+
+## M11 frozen conditional-response studies
+
+Use [M11 results and execution instructions](M11_RESULTS_AND_LIMITATIONS.md)
+and [the mathematical contract](M11_THEORY.md) for the independent
+`netsurf scaling` schema-1.0.0 interface. Authoritative inference still requires
+`/projects/kona-assets/manuelbv/.venv-mlperf/bin/python` and its unchanged locked
+assets; plots/tests use the canonical Python3.11 environment. Freeze plans,
+finish and seal every prescribed selection, then evaluate frozen masks with
+independent final fields. Do not launch the expensive exploratory example
+campaigns automatically. A passed engineering smoke is not confirmation evidence.
