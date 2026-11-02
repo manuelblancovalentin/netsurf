@@ -1,202 +1,62 @@
-# Transformer storage and benchmark integration protocol
+# Transformer storage and benchmark protocol
 
-**Status, 2 November 2026:** source and synthetic engineering stage. Kona's
-`NETSURF_ASSET_READINESS.json` arrived during implementation. Its SHA-256 is
-`a8e767e23450cfdaef7b09341768754a55754d084e26647dde0a8606ccc000ee`.
-All three new FP32/BF16 target records say `PREPARED_AWAITING_APPROVAL`, not
-`READY`; the interpreter is planned but absent. No new model is accepted, no
-new effectiveness result is claimed, and no production fault campaign has
-run. This work belongs to the existing software-only ACM TECS manuscript and
-retains its three validated TinyML benchmarks as the evidence backbone.
+**2 November 2026.** DistilBERT/SST-2 is `READY` in Kona's verified asset manifest and has passed a 32-example real-model storage-fault conformance trial. Its fault/protection results are **engineering only**. No transformer BER or protection-budget effectiveness campaign has run. Pythia and Qwen BF16 are still `PREPARED_AWAITING_APPROVAL`; their model assets are not executable NetSuRF evidence. The three validated TinyML benchmarks remain the ACM TECS manuscript evidence backbone.
 
-## Scientific boundary and precision
+## DistilBERT source and executable boundary
 
-The initial faultable universe consists **only** of contiguous CPU
-`torch.nn.Linear.weight` parameters whose checkpoint and loaded runtime bytes
-match exactly and whose observed stored dtype is FP32 or BF16. Embeddings,
-layer-norm parameters, biases, activations, attention caches, optimizer state,
-quantization metadata and any unsupported tensor representation are outside
-this universe. The backend rejects aliases, tied parameter storage, tensor
-views, extra shared storage, dtype conversion, and non-eager attention. The
-loader uses local files and disables network access, training behavior,
-autocast and non-deterministic algorithms. It records the source checkpoint
-hashes and compares each eligible runtime tensor's bytes with its safetensors
-source before faulting. Only CPU eager attention with one thread is admitted;
-GPU, flash/SDPA substitution and compiled models need separate conformance.
+The Kona `READY` record pins `distilbert/distilbert-base-uncased-finetuned-sst-2-english` at commit `714eb0fa89d2f80546fda750413ed43d93601a13`, FP32 safetensors checkpoint SHA-256 `7c3919835e442510166d267fe7cbe847e0c51cd26d9ba07b89a57b952b49b8aa`, tokenizer hashes, all three SST-2 Parquet hashes, an environment lock hash, and the clean-reference report hash. The consumer verifies every byte before model loading, including Hugging Face snapshot symlinks into that repository's `blobs/` tree. It executes the manifest's absolute environment entrypoint, Python 3.11.18, PyTorch 2.9.1+cpu, Transformers 4.57.1, eight CPU threads, deterministic algorithms and eager attention. The loader uses local files only, eval mode, no autocast, no GPU and no stochastic generation. Every inspected eligible runtime tensor's dtype, shape and bytes must match its safetensors source.
 
-`stored-xor/v1` numbers bits from least-significant to most-significant. FP32
-has 1 sign, 8 exponent and 23 significand bits; BF16 has 1, 8 and 7. The
-codec mutates the little-endian encoded byte, including signed zero,
-subnormals, infinity and NaN. It does not calculate an approximate float
-delta and re-encode it. INT8's existing two's-complement codec and TFLite
-execution are unchanged. FP16 is unsupported here. INT8 and packed INT4
-transformer variants remain blocked until the exact source codes, scale,
-zero-point, grouping, physical nibble order and consumed inference bytes are
-verified; a convenience conversion is not an approved asset.
+The full **inspectable** fault universe is contiguous, non-aliased `torch.nn.Linear.weight` FP32 parameters: **1,377,878,016 encoded bits** in this DistilBERT executable. Embeddings, layer normalization, biases, activations and caches are excluded. Tied/aliased linear weights are explicitly listed and excluded rather than counted twice. `stored-xor/v1` performs exact little-endian XOR of sign, exponent or significand bits in the live parameter's stored bytes; it does not approximately modify a float. A trial preserves those mutated bytes across the complete input cohort. The backend checks the exact runtime word before inference, checks pointers, restores every original byte after the trial and verifies storage hashes. Protected coordinates suppress events logically; this is neither physical ECC nor a physical SEU model. The original INT8 TFLite path is unchanged.
 
-A trial keeps the same altered parameter bytes throughout its evaluation
-cohort. Protected coordinates suppress logical events. After each trial, the
-code restores all eligible bytes, verifies their hashes and checks that
-storage pointers have not changed. The one-bit smoke additionally requires
-changed logits, establishing that the altered runtime tensor was consumed.
-This is a logical stored-weight fault model, not a physical SEU rate or an ECC
-guarantee.
+## Real-model engineering evidence
 
-## Task risks and input identities
+The write-once receipt is [DistilBERT conformance v3](../workspace/runs/distilbert_sst2_fp32_conformance_v3/manifest.json). It binds committed source `ca2bd69e6d57e99e7ab80feaa4384533e5aad66e`, the READY manifest and target record, 32 public-labeled SST-2 validation rows, all cohort identities and digests, exact forced event lists, schedule and mask hashes, clean/faulted logits, losses, accuracy, failed examples, byte-exact restoration, elapsed time and checksums. The source was clean at execution.
 
-SST-2 uses public binary labels, 0 negative and 1 positive, and reports
-two-logit cross-entropy, accuracy, failure fraction and the exact logits for
-each engineering example. The pinned labeled JSONL map carries original
-source indices. `engineering`, `calibration`, `selection`, and `evaluation`
-indices must all be explicit, unique and pairwise disjoint. The smoke uses
-the first two prespecified engineering indices only. No unlabeled public test
-rows are accepted as evaluation labels.
+On those 32 engineering rows, clean mean cross-entropy was **0.15122652 nats** and accuracy **31/32**. A classifier sign-bit fault changed mean loss to **0.14985874**; an exponent bit to **0.15088426**; and a high significand bit to **0.15151826**. These signs are retained: a fault may help or harm this particular cohort. Exactly encoded infinity and quiet NaN each caused 32/32 nonfinite failures and the prespecified **30-nat** penalty per example. The same two-bit field yielded mean loss **0.15007465** unprotected and **0.15144299** when one coordinate was protected. Full suppression reproduced clean logits and loss exactly. All trials restored original stored bytes. Total trial wall time was **32.35 s** and peak RSS **823.3 MB**. These forced tests establish actual bit consumption and task-level protection execution; they are not random-BER effectiveness evidence. The earlier v2 receipt remains immutable and is superseded by the committed-source v3 receipt.
 
-Pythia and Qwen use teacher-forced WikiText-2 raw text only after its exact
-local bytes and token-ID sequence are pinned. The plan must specify tokenizer,
-`bos_mode`, `eos_mode`, context length and stride. Windows overlap for context,
-but each target token after the first is scored exactly once. The primary
-risk is mean target-token negative log-likelihood; perplexity is its
-exponential. Failed token fraction is separate. Overlapping windows do not
-become independent statistical replicates. For each token, the evidence
-retains the target logit and vocabulary log-sum-exp, the sufficient statistics
-for exact NLL, rather than an enormous full-vocabulary logit vector. No
-stochastic generation is used.
+Kona's clean reference evaluated all 872 labeled validation examples before this study. That was **clean inference exposure**; it is documented, not erased. NetSuRF fault outcomes have been observed only for validation rows 0–31. The held-out fault-outcome set begins at validation row 32. The GLUE public test split has withheld labels and is never treated as labeled evaluation data.
 
-For every model, a nonfinite logit row or runtime inference failure receives
-the prespecified **30-nat** loss penalty for its sample/token; finite NLLs
-are capped at 30 nats as well. Failures have zero classification credit and
-are counted separately. This bounded risk remains defined under NaN,
-infinity and exceptions; the cap is a scientific choice to be reviewed before
-a final campaign, never chosen from observed final effects.
+## Frozen targeted study
 
-## Asset gate
+The first production candidate uses **only the first 32 scalar words of `classifier.weight`, all 32 FP32 bits per word**: 1,024 prespecified bit coordinates. This fixed tensor-order rule does not use engineering fault outcomes or select favorable effects. It is a targeted classifier-bit fault model, not an estimate of whole-transformer reliability. The other 1,377,876,992 inspectable linear-weight bits are outside this study's fault-law support. Its candidate list and hashes are in the frozen JSON plan under `config/experiments/`.
 
-`NETSURF_ASSET_READINESS.json` is the sole real-execution handoff. The
-consumer reads Kona's actual `kona-assets/netsurf-asset-readiness/1` schema
-and rejects `PREPARED_AWAITING_APPROVAL`, `MISSING_ASSET`, `LICENSE_BLOCKED`
-and `BACKEND_BLOCKED` records before opening model data. The NetSuRF-specific
-executable mapping `netsurf-transformer-readiness/v1` requires one explicit
-`READY` record per target with registry source/revision, exact precision,
-model and tokenizer file inventories and SHA-256 values, dataset file and
-hash, absolute interpreter and hash, Python/PyTorch/Transformers versions,
-CPU/eager/one-thread backend, public class mapping or exact token-sequence
-hash, and disjoint partition identities. It compares the registry's pinned
-checkpoint hashes. Unsupported handoff schemas fail pending a reviewed
-mapping; mere file presence never establishes readiness. The source team
-does not edit asset manifests or locks.
+The plan reserves Kona-hash-ranked SST-2 train rows as 512 calibration and 128 distinct model-selection examples. It uses the first 32 selection examples for exact isolated-bit ranking, then holds the remaining 96 selection rows unused. Engineering uses validation rows 0–31; final uses validation rows 32–287 (256 labeled clips); rows 288–871 stay unused for future fault-outcome work. The model was fine-tuned on train, so selection data are not independent of model training; final validation fault outcomes remain disjoint. Complete identities and record hashes are frozen. All three BER arms share the same final clips and their dependence is recorded.
 
-A read-only 18-target handshake receipt is generated at
-`workspace/runs/transformer_handoff_audit_v1.json` by
-`python -m netsurf.transformer_cli audit-readiness`. It records the exact
-Kona manifest hash, portfolio hash, target statuses, revision matches and
-interpreter existence. The present receipt finds only the three previously
-validated TinyML targets `READY`; all transformer interpreters are absent.
+The BER grid is `p = 0, 1/1024, 4/1024, 16/1024`, chosen as **0, 1, 4 and 16 expected proposed faults** over the declared 1,024-bit support. For each nonzero BER there are 32 independent persistent Bernoulli fields with fresh fixed seeds. Each field is reused across all protection policies. Budgets are `B = 0, 128, 256, 1024`; expected applied faults are `(1024-B)p`. The methods are seeded random, encoded-bit significance ordering and exact empirical isolated-bit selection on the 32 selection clips. Exact isolated enumeration runs all 1,024 single-bit states and retains signed score values. There is no guided optimizer. The full-budget policy is a clean restoration control. The 128- and 256-bit masks are selected and sealed before any final field runs.
 
-The present portfolio registry pins Pythia `50f5173d…` and Qwen
-`c1899de2…`; Kona's prepared handoff specifies Pythia step143000
-`b56d9bee…` and Qwen `da87bfb6…`. Those revision changes require an
-explicit registry/protocol review before a READY record can execute. Pythia's
-BF16 target also requires a verified derived artifact from its source FP32
-weights. Qwen tied weights may be rejected by the first alias-safe backend.
-Those failures are explicit, not silently coerced.
+The primary field-level contrast is exact isolated versus random at the two intermediate budgets and three nonzero BERs. Exact isolated versus significance is secondary. The prespecified **12-comparison family** uses paired field-level sign-flip tests with Holm adjustment; 10,000 field bootstrap replicates give percentile intervals. The sign-flip test assumes a symmetric null distribution. Report mean cross-entropy, accuracy, failed clip fraction, expected applied faults, favorable/adverse field counts, median and maximum absolute field differences. Fields are independent stochastic units; 256 clips within a field are paired repeated measurements, not 256 independent fault replicates. Reusing clips across BERs induces cross-arm dependence. Fixed cohort analysis does not estimate uncertainty from sampling a new SST-2 input population. Heavy tails and nonfinite outcomes remain visible under the 30-nat capped-risk rule.
 
-## Fault law, feasibility and baselines
+The frozen cost is **1,025 selection model requests / 32,800 clip inferences** and **769 final model requests / 196,864 clip inferences**: **1,794 requests / 229,664 clip inferences** total. With batches of eight, this is 28,708 PyTorch forwards. The engineering throughput implies about **5.86 foreground hours**; this is a planning estimate, not a power calculation. Measured engineering peak RSS was 823.3 MB. The complete study has **96 independently seeded final fields**, eight unique protection policies per field, and a 128-event fail-closed per-field cap that never truncates a draw. Low-BER contrasts may be unresolved; the field count will not be increased after seeing favorable or adverse final effects.
 
-Independent Bernoulli bit faults are drawn using geometric success gaps over
-the ordered eligible universe. This is distributionally exact without
-materializing every bit. The saved schedule includes seed, event identities,
-law, proposed/applied/suppressed counts and event checksum. A prespecified
-event cap fails the run; it never truncates a schedule. With `N` eligible bits,
-`B` protected bits and BER `p`, expected proposed events are `Np`, applied
-events are `(N-B)p`, and suppressed events are `Bp`. These expected counts
-must accompany each result. Equal BER or equal expected event count does not
-mean equal physical reliability across storage technologies.
+Earlier frozen plan versions remain preserved. Versions 1–3 were invalidated before selection by the environment-entrypoint fix, language-model adapter completion, and a stronger offline schedule-replay gate. None has selection or final exposure. Version 4 is authoritative and source-hash bound; older versions fail closed. No selection or final stage has been launched automatically.
 
-The implemented bounded ranking primitives are seeded random, encoded MSB
-order, finite numerical bit displacement, global mean gradient, per-example
-absolute gradient, per-example positive gradient, and exact isolated-bit
-task-risk difference. Signed harmful and beneficial isolated effects remain
-signed. The numerical displacement and first-order rules reject nonfinite
-transitions rather than assigning favorable scores. The gradient score
-functions are implemented; autograd extraction and full-scale validation are
-pending. FKeras/Hessian is blocked until a specific numerical HVP passes
-conformance; autograd availability alone is insufficient. Historical
-qPolarGrad is unchanged and is not transplanted to transformers.
+## Foreground execution and evidence return
 
-## Execution stages and resource gate
-
-The only executable real-model stage now is a **bounded DistilBERT
-engineering smoke**. It loads once and performs seven two-example inference
-passes: clean twice, one-bit, two-bit, full suppression of the same two
-events, one-bit equal-budget protection against that two-bit field, and a
-post-restoration clean check. The upper bound is **14 clip inferences**, one
-checkpoint load, and two changed bit coordinates. The output is write-once,
-has exact events, byte hashes, risk values, a finalized marker and checksums.
-Its two events are explicitly tagged `forced_engineering`; they are not
-represented as draws from a BER-zero Bernoulli law. It is not a publication
-effectiveness comparison. Kona's prepared resource estimates are **272 MB
-disk / 1.2 GB RAM** for DistilBERT, **1,351 MB disk / 2.5 GB RAM** for
-Pythia, and **1,204 MB disk / 4 GB RAM** for Qwen, all CPU and zero VRAM.
-These are asset-side estimates, not measured NetSuRF inference peaks; the
-model load, checkpoint comparison and full-logit attention output add cost.
-
-The next production plan must be frozen **after** the READY record and exact
-eligible `N` are known, but **before** any final effects are inspected. A
-candidate initial grid is `p ∈ {0, 1/N, 4/N}` with budgets `B ∈
-{0, floor(0.01N), floor(0.05N), N}`. Its exact expected applied fields are
-`(N-B)p`; this avoids blindly reusing INT8 BER levels in a much larger
-floating-point universe. The final choice of clip/token counts, independent
-field count, baseline availability, random seeds, candidate budget and all
-request costs must be made in a hashed plan. Freeze calibration and every
-selection artifact before final evaluation. Share fault fields across
-protection methods; independent fields, not clips or overlapping LM windows,
-form stochastic replicates. Cohort sampling uncertainty and field
-uncertainty must be reported separately. Include clean, unprotected and full
-suppression controls. Report paired loss contrasts, accuracy or perplexity
-on separate axes, failure fractions and resource costs. Do not increase only
-favorable conditions after inspecting final effects.
-
-No production-run TOML or script is marked frozen while readiness and source
-conformance are absent. The 18-target status ledger is
-`config/transformer_target_status.json`; it does not change the historical
-portfolio registry or the manuscript's existing evidence.
-
-## Foreground commands and exports
-
-First obtain Kona's explicit READY manifest. The following single foreground
-command verifies it, selects its **verified absolute** interpreter, runs the
-bounded DistilBERT smoke, verifies/finalizes evidence, generates compact and
-complete ZIPs, and prints/saves Mac `scp` commands:
+The committed-source engineering receipt can be verified and exported with one foreground command:
 
 ```bash
 /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/scripts/run_distilbert_engineering_once.sh \
-  /absolute/path/NETSURF_ASSET_READINESS.json \
-  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_smoke_v1
+  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/plans/distilbert_sst2_classifier1024_v4/NETSURF_ASSET_READINESS.json \
+  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_fp32_conformance_v3
 ```
 
-The export produces `compact.zip`, `complete.zip`, `checksums.json` and
-`mac_scp_commands.txt` beside the smoke receipt. An existing finalized
-receipt is checksum-verified and reused; a corrupt or interrupted receipt
-fails closed. Offline aggregation:
+The paired targeted study is deliberately **not running**. Its single foreground Kona command validates the frozen plan, seals every selection member, runs every final member with immutable same-seed resume, aggregates offline, creates CSV/SVG analysis, makes compact and complete ZIPs, and saves/prints exact Mac `scp` commands:
 
 ```bash
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf.transformer_cli aggregate-smoke \
-  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_smoke_v1
+/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/scripts/run_distilbert_targeted_campaign_once.sh \
+  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/config/experiments/distilbert_sst2_classifier1024_v4.json \
+  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/plans/distilbert_sst2_classifier1024_v4/NETSURF_ASSET_READINESS.json \
+  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_classifier1024_v4
 ```
 
-No one-shot **production** launcher is issued for an unaccepted model. It
-must follow a frozen source/asset/partition/statistical plan and independent
-selection seal; issuing a runnable publication launcher now would bypass
-those gates.
+Selection-only is the same interpreter running `python -m netsurf.transformer_campaign_cli selection PLAN READINESS RUN_ROOT`. The `final` phase refuses to start without a plan-bound seal for all three methods. `aggregate` and `export` work offline on finalized members. A partial member is retained and rejected; no replacement seed or sample identity is silently generated. ZIPs and `mac_scp_commands.txt` appear next to the completed run. The researcher can inspect the plan and cost before starting the long foreground command.
 
-## Manuscript integration boundary
+## Pythia and Qwen feasibility
 
-The current manuscript benchmark and methodology tables may cite the three
-already validated TinyML rows as before. DistilBERT/Pythia/Qwen rows are
-`IMPLEMENTING`, with no effectiveness cells or BER/budget curves. Once a
-new model passes exact stored-bit conformance and a reproducible task-level
-protection campaign, add a separately labeled model row, precision/storage
-methodology, BER and budget figure panels, computational cost and limitations.
-Accuracy, ROC-AUC and perplexity must use separate axes. This protocol is
-manuscript-ready methods context, not a new manuscript or effectiveness claim.
+The teacher-forced adapter supports exact single-pass tokenization, 1,024-token contexts, stride 512, no BOS/EOS, joined WikiText-2 raw rows, and one score per token after position zero. It records token identity, target logit and log-sum-exp, token NLL, perplexity and failure fraction. A deterministic synthetic PyTorch fixture has passed; this is **not** Pythia or Qwen reliability evidence. The actual BF16 targets remain unavailable for NetSuRF execution until Kona marks each record `READY`, verified source revisions match the NetSuRF portfolio, and the exact runtime dtype and stored-byte restoration gate pass. Pythia's proposed BF16 artifact is derived from FP32 and requires its own approved hash and clean reference. Qwen's tied output weight is excluded explicitly by the alias-safe linear-weight population. On this CPU BF16 is not natively accelerated, so measure real-window throughput and peak RSS before freezing a large campaign. A distinct FP32 computation representation, if needed, requires a separate storage-to-computation fault contract and conformance; it cannot be relabeled BF16 execution.
+
+For any new model, calculate `lambda=(N-B)p` using its verified eligible bit count before proposing BERs. Equal BER or equal lambda across precisions has no physical reliability equivalence. INT8/INT4 transformer targets remain blocked until scale, zero point, grouping, packed-code ordering and actual inference consumption are verified. Gradient ranking primitives exist but no transformer autograd extraction or numerical Hessian-vector-product baseline is validated. FKeras/Hessian, qPolarGrad reinterpretation and a new optimizer are absent.
+
+## Manuscript boundary
+
+The status ledger `config/transformer_target_status.json` holds all 18 targets with evidence paths and hashes. DistilBERT may be described as a passed engineering backend and a frozen prospective study, with **no effectiveness point or curve yet**. Add a transformer benchmark row and BER/budget figures to the November 9 ACM TECS draft only after the paired result bundle is finalized and checksum-verified. Keep accuracy, ROC-AUC and perplexity on separate numerical axes. Do not modify the historical TinyML, M11 or asset evidence.

@@ -2,7 +2,7 @@
   "asset_readiness_manifest": {
     "path": "/projects/kona-assets/manuelbv/NETSURF_ASSET_READINESS.json",
     "schema": "kona-assets/netsurf-asset-readiness/1",
-    "sha256": "a8e767e23450cfdaef7b09341768754a55754d084e26647dde0a8606ccc000ee"
+    "sha256": "124de29e1f918bc3acc0153124dbfdf111f3b79984135a21652f7e89e222fc22"
   },
   "date": "2026-11-02",
   "entries": [
@@ -153,22 +153,28 @@
       "target": "vit_base_int8"
     },
     {
-      "asset_record_sha256": "6f0d0eede23a9f2d16122d0de0947857a43cbae02b5dd00f366ec3c33dbefd09",
-      "asset_status": "PREPARED_AWAITING_APPROVAL",
-      "blocker": "Approval to acquire (see NETSURF_ASSET_ACQUISITION_PLAN.md section 6) and to create the torch environment.",
+      "asset_record_sha256": "989fee0624a92f798511a029fc8917744dcb182cb8dd1801640594fc8dc0d504",
+      "asset_status": "READY",
+      "blocker": "Paired selection and final BER/budget campaign are frozen but have not run; no manuscript effectiveness claim.",
+      "engineering_receipt_manifest_sha256": "842613482ca5056fc5a22bc346068b3c026bd50f83ce7a9f78cf1a5ca2cff4a6",
+      "engineering_source_commit": "ca2bd69e6d57e99e7ab80feaa4384533e5aad66e",
       "evidence": [
-        "netsurf/storage_bit_codec.py",
-        "netsurf/adapters/transformers_pinned.py",
-        "tests/test_transformer_storage.py"
+        "workspace/runs/distilbert_sst2_fp32_conformance_v3/FINALIZED",
+        "workspace/runs/distilbert_sst2_fp32_conformance_v3/manifest.json",
+        "config/experiments/distilbert_sst2_classifier1024_v4.json",
+        "workspace/plans/distilbert_sst2_classifier1024_v4/NETSURF_ASSET_READINESS.json",
+        "docs/TRANSFORMER_BENCHMARK_PROTOCOL.md"
       ],
       "finalized_new_model_result": false,
+      "frozen_plan_object_sha256": "735ad6e8531628059bf891075e37885026b220a586bc2d0dc640e507238dc7d7",
+      "frozen_plan_sha256": "989363ec2af12ab4ccbc8344e0685e3512759fdd6f6469f65bde8e6e5d87989c",
       "precision": "FP32",
       "source_registry_status": "Asset acquisition required",
-      "status": "IMPLEMENTING",
+      "status": "FROZEN_FOR_RUN",
       "target": "distilbert_sst2_fp32"
     },
     {
-      "asset_record_sha256": "3a790c03a560f8fcfa7d165bea6edb1ae9e7d3f08272c8519d8f9ee687a2321f",
+      "asset_record_sha256": "89e1abad3237064ce8b9bbb4a37d122f6e07c476cf13c82922befc5ac339557e",
       "asset_status": "BACKEND_BLOCKED",
       "blocker": "No verified INT8 representation exists. A derived artifact needs an agreed recipe (algorithm, calibration set, scales, zero points, group size, packing, signed encoding) and a measured clean quality before any fault experiment; casting or a convenience quantisation flag does not qualify.; Depends on distilbert_sst2_fp32 being acquired and measured first.",
       "evidence": [
@@ -181,7 +187,7 @@
       "target": "distilbert_sst2_int8"
     },
     {
-      "asset_record_sha256": "62483eb82ce81e662f012a5c143ca7e2664b608633e7bb85cc22851ff527462d",
+      "asset_record_sha256": "a3717e3eab7e7c341a5938c3f0958f574b2a7617b3cd9ba23167e30cf5683522",
       "asset_status": "PREPARED_AWAITING_APPROVAL",
       "blocker": "Approval to acquire (see NETSURF_ASSET_ACQUISITION_PLAN.md section 6) and to create the torch environment.; Derived BF16 artifact is not created until the float32 reference perplexity is measured.",
       "evidence": [
@@ -196,7 +202,7 @@
       "target": "pythia160m_bf16"
     },
     {
-      "asset_record_sha256": "341f5cea61724efeda912f2cf800fa0dbddbe685a3f163a394e122b8dda366b8",
+      "asset_record_sha256": "7a9db08ae7b7e71fd59a9ddd34eac98f99b24e7d96c0f3b2ee8662a4f14de499",
       "asset_status": "BACKEND_BLOCKED",
       "blocker": "No verified INT8 representation exists. A derived artifact needs an agreed recipe (algorithm, calibration set, scales, zero points, group size, packing, signed encoding) and a measured clean quality before any fault experiment; casting or a convenience quantisation flag does not qualify.",
       "evidence": [
@@ -209,7 +215,7 @@
       "target": "pythia160m_int8"
     },
     {
-      "asset_record_sha256": "970ff99b25ec4597f43837905aef7d832bbfb2b15a8d14c14cb89b38a987dd7b",
+      "asset_record_sha256": "f1cc507eff185f1f3304ea6e56753026e9e73a059702c9e1430bde3432d70bac",
       "asset_status": "PREPARED_AWAITING_APPROVAL",
       "blocker": "Approval to acquire (see NETSURF_ASSET_ACQUISITION_PLAN.md section 6) and to create the torch environment.; BF16 on CPU is slow (software emulated on this CPU); a bounded window count is used for the smoke.",
       "evidence": [
@@ -224,7 +230,7 @@
       "target": "qwen3_0_6b_bf16"
     },
     {
-      "asset_record_sha256": "2a2aa2e56321634d20b6b2c91adbb4d0ab25d26be04ef9fb189b2dc3dd20a4ff",
+      "asset_record_sha256": "74cbdc8c23f208f39cf3c2c3b163ff728d1fda5813078640a2f9b50b7970b908",
       "asset_status": "BACKEND_BLOCKED",
       "blocker": "No verified INT8 representation exists. A derived artifact needs an agreed recipe (algorithm, calibration set, scales, zero points, group size, packing, signed encoding) and a measured clean quality before any fault experiment; casting or a convenience quantisation flag does not qualify.; Depends on qwen3_0_6b_bf16 being acquired and measured first.",
       "evidence": [
@@ -237,7 +243,7 @@
       "target": "qwen3_0_6b_int8"
     },
     {
-      "asset_record_sha256": "79cceb948fb1aaa730742b04593a9760abbff3f4b3bbc05ab151ef4c185ccb39",
+      "asset_record_sha256": "4d611759a5f0f9225ebe2f821b1c29184bd4ea6f9e9376a3623190394d1dd1d2",
       "asset_status": "BACKEND_BLOCKED",
       "blocker": "No verified INT4 representation exists. A derived artifact needs an agreed recipe (algorithm, calibration set, scales, zero points, group size, packing, signed encoding) and a measured clean quality before any fault experiment; casting or a convenience quantisation flag does not qualify.; NF4, GPTQ, AWQ and plain signed INT4 are different formats; the target format must be chosen by NetSuRF before an artifact is built.",
       "evidence": [
