@@ -32,18 +32,21 @@ def test_payload_verification_detects_changed_evidence(tmp_path):
         verify("synthetic", source)
 
 
-def test_static_recomputation_checks_replications_and_full_schedule_identity(tmp_path):
+@pytest.mark.parametrize("replication_count", [1, 2])
+def test_static_recomputation_checks_replications_and_full_schedule_identity(tmp_path, replication_count):
     (tmp_path / "measurements").mkdir()
-    write_json(tmp_path / "scientific_payload.json", {"replications": [
+    records = [
         {"replication": {"name": f"replication_{i}"},
          "benchmark": {"eligible_bits": 8, "partitions": {}},
-         "clean_evaluation": {"accuracy": 1, "categorical_crossentropy": 0}} for i in range(2)]})
+         "clean_evaluation": {"accuracy": 1, "categorical_crossentropy": 0}} for i in range(replication_count)]
+    write_json(tmp_path / "scientific_payload.json",
+               records[0] if replication_count == 1 else {"replications": records})
     trials, summaries = [], []
     values = {"no_protection": [.1, .2, .7, .8],
               "policy@0.125000": [.0, .2, .9, .9], "full_protection": [1.] * 4}
     for condition, accuracy in values.items():
         for i, value in enumerate(accuracy):
-            trials.append(dict(replication=f"replication_{i//2}", trial=i % 2,
+            trials.append(dict(replication=f"replication_{i//(4//replication_count)}", trial=i % (4//replication_count),
                 policy=f"ber=0.001/{condition}", schedule_sha256=f"field-{i}",
                 accuracy=value, categorical_crossentropy=1-value,
                 proposed_events=2, applied_events=0 if condition == "full_protection" else 2,
@@ -60,6 +63,9 @@ def test_static_recomputation_checks_replications_and_full_schedule_identity(tmp
     pairs = [dict(logical_ber=.001, coverage=.125, left="policy", right="no_protection",
                   metric="accuracy", mean_difference=e["mean"], standard_deviation=e["sd"],
                   ci_low=e["ci_low"], ci_high=e["ci_high"], matched_pairs=4)]
+    if replication_count == 1:
+        for trial in trials:
+            del trial["replication"]
     for name, data in [("trials", trials), ("protection_results", summaries), ("paired_comparisons", pairs)]:
         write_csv(tmp_path / f"measurements/{name}.csv", data)
     manifest = dict(benchmark={}, scientific_payload_sha256="synthetic",
@@ -72,6 +78,12 @@ def test_static_recomputation_checks_replications_and_full_schedule_identity(tmp
     write_csv(tmp_path / "measurements/trials.csv", trials)
     with pytest.raises(AssertionError):
         audit_static("static_synthetic", tmp_path, manifest)
+    if replication_count > 1:
+        for trial in trials:
+            del trial["replication"]
+        write_csv(tmp_path / "measurements/trials.csv", trials)
+        with pytest.raises(AssertionError, match="missing replication identity"):
+            audit_static("static_synthetic", tmp_path, manifest)
 
 
 def test_bounded_counterexample_by_exact_enumeration():

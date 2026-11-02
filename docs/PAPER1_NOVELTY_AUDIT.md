@@ -195,7 +195,7 @@ copying of either historical order.
 | Per-example positive | `E[max(0,g_x*delta)]` | Same three models | Positive per-example contribution is not positive aggregate damage |
 | Historical qPolarGrad | Recovered dense first-call semantics, separate alternatives | Historical/synthetic ablation only | No validated DS-CNN/ResNet/ToyCar qPolarGrad pathway |
 | Exact isolated | Restricted sampled bits / small pools | Isolated prediction reference and bounded-mask comparator | Not a computed whole-network isolated ranking |
-| FKeras paper/repository | Validated continuous KWS Hessian and tier-first mapping | Source/formula comparison and numerical smoke | Only 2 ranking examples, 4 test examples, 2 fields: no useful efficacy evidence; no principal-model-wide baseline |
+| FKeras paper/repository | Validated continuous KWS Hessian and tier-first mapping | Restored 128-clip study: 32 calibration clips, 32 fields/BER, three BERs and four budgets | Distinct from main 1000-clip cohort; one ranking realization; random/jump absent in this source |
 | Exact bounded conditional allocation | Frozen context, equal global cardinality, selection/final separation, three models | All-pool diagnostic comparisons | Small-pool result is not whole-network optimality; gains versus exact isolated unresolved |
 | TMR | Historical register/voter flow | Related work / historical audit | No matched v2 physical overhead or residual-failure curve |
 | Parity / SECDED / ABFT / Ranger | Not implemented as matched v2 mechanisms | Scope-aware related work | Actual fault domain, handling, implementation and cost prerequisites |
@@ -223,6 +223,27 @@ copying of either historical order.
 7. **“M11 adds formalism without practical gain.”** Put exact identity/proof in the
    appendix; report that worst-case bounds can be vacuous and bounded validation is
    not scalable efficacy evidence. Omit unexecuted spectral/scaling claims.
+
+## Unified-delivery correction (2 November)
+
+The earlier audit omitted the finalized `m97_kws_fkeras_exploratory_v1` run.
+Its full artifact inventory and raw paired data have now been checked. The new
+128-clip result figure closes the “only a four-clip smoke” gap; it preserves
+partial-tier gains, complete-tier ties and unresolved formula comparisons.
+The original audit's historical findings are not a reason to discard subsequently
+located evidence. Exact source/payload identities are in
+`config/paper1_fkeras_source.json` and the publication provenance manifest.
+
+Su, Li, Lu and Chen, “Applying Reinforcement Learning to Protect Deep Neural
+Networks from Soft Errors” (Sensors 2025, DOI
+[10.3390/s25134196](https://doi.org/10.3390/s25134196)), is additional verified
+peer-reviewed prior art. Its full methodology is available in
+[PMC12252199](https://pmc.ncbi.nlm.nih.gov/articles/PMC12252199/).
+Layer-wise DQN bit-position allocation and transfer-shaped rewards overlap the
+allocation motivation. Its modeled memory-entry fault process and granularity
+are not the present fixed-cardinality independent-coordinate experiment.
+Learning is not presumed incapable of interactions. No matched RL result exists
+locally; superiority to learned allocation is unsupported.
 
 The available evidence supports an honest internal engineering draft. Novelty and
 submission strength remain contingent on fair partial-tier baselines, explicit

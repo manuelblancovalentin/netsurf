@@ -20,7 +20,9 @@ the pinned literature/source records provide the primary evidence below.
 | `odonnell2014analysis` | Cambridge University Press 2014 book, DOI 10.1017/CBO9781139814782. | Standard Boolean/multilinear foundations, credited rather than claimed novel. |
 | `rauzy2022reliability` | AltaRica Association 2022 book, ISBN 978-82-692273-2-1, author-hosted full text. | Established reliability/conditional-importance background. |
 
-All 12 entries are cited and resolve in the compiled bibliography. The current
+| `su2025rl` | Peer-reviewed Sensors 25(13), 4196 (2025), DOI 10.3390/s25134196; full method and experiments read at https://pmc.ncbi.nlm.nih.gov/articles/PMC12252199/, §§3–4. | Layer-bit DQN allocation and reward-transfer prior art; no matched local efficacy comparison. |
+
+All 13 entries are cited and resolve in the compiled bibliography. The current
 rejected TCAD manuscript is a historical source, not cited as a published
 validation result. The source audit retains its equations and discrepancies.
 No physical implementation outcome from another paper is transferred into a

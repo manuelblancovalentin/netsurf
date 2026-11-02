@@ -61,22 +61,47 @@ def main():
             'PAPER1_NOVELTY_AUDIT.md', 'SCIENTIFIC_CONTRACTS.md',
             'MLPERF_TINY_M9_STATIC_ESTIMATORS.md', 'MLPERF_TINY_M93_MULTIBENCH.md',
             'M91_PUBLICATION_EVIDENCE.md', 'M97_FKERAS_REPRODUCTION.md',
-            'LEGACY_ESTIMATOR_RECONSTRUCTION.md']
+            'LEGACY_ESTIMATOR_RECONSTRUCTION.md', 'PAPER1_EXPANDED_CAMPAIGN.md']
     for name in docs:
         p = ROOT / 'docs' / name
         assert p.is_file(), p
         review['docs/' + name] = p
     review['workflows/paper1_evidence_audit.py'] = ROOT / 'workflows/paper1_evidence_audit.py'
-    for name in ('test_paper1_evidence_audit.py', 'test_paper1_manuscript.py'):
+    for name in ('paper1_campaign.py','run_paper1_resnet8.sh','run_paper1_kws.sh','run_paper1_toycar.sh'):
+        review['workflows/'+name]=ROOT/'workflows'/name
+    for name in ('test_paper1_evidence_audit.py', 'test_paper1_manuscript.py',
+                 'test_paper1_campaign.py','test_streaming_protection_gate.py'):
         review['tests/' + name] = ROOT / 'tests' / name
+    review['netsurf/streaming_validation.py']=ROOT/'netsurf/streaming_validation.py'
+    for name in ('paper1_campaigns.json','paper1_fkeras_source.json','paper1_target_status.json',
+                 'benchmark_expansion_registry.json'):
+        review['config/'+name]=ROOT/'config'/name
+    for name in ('resnet8','kws','toycar'):
+        name=f'paper1_{name}_common_grid_v1.toml'
+        review['config/experiments/'+name]=ROOT/'config/experiments'/name
+    for name in ('canonical-tests.log','canonical-tests-with-artifacts.log','pinned-tests.log'):
+        review['validation/'+name]=ROOT/'workspace'/name
+    for p in (ROOT/'workspace/streaming-derived-v2').iterdir():
+        if p.is_file():review['streaming-engineering/analysis/'+p.name]=p
+    for name in ('paper1_streaming_gate_v1','paper1_streaming_gate_repeat_v1'):
+        for p in (ROOT/'workspace/runs'/name).iterdir():
+            if p.is_file():review['streaming-engineering/'+name+'/'+p.name]=p
+    for p in (ROOT/'workspace/paper1-campaigns').rglob('*'):
+        if p.is_file() and p.name in ('plan.json','preflight.json','STAGE_COMPLETE.json'):
+            review['campaign-preflights/'+str(p.relative_to(ROOT/'workspace/paper1-campaigns'))]=p
     for name in ('NetSuRF_Software_Overleaf.zip', 'NetSuRF_Software_Internal_Review.pdf'):
         review[name] = out / name
     manifest = {
-        'kind': 'software_only_manuscript_delivery', 'version': 1,
+        'kind': 'software_only_manuscript_and_campaign_delivery', 'version': 2,
         'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         'source_branch': subprocess.check_output(['git', 'branch', '--show-current'], cwd=ROOT, text=True).strip(),
         'tracked_dirty': bool(subprocess.check_output(['git', 'diff', '--name-only', 'HEAD'], cwd=ROOT, text=True).strip()),
-        'new_scientific_inferences': 0, 'scientific_source_writes': 0,
+        'manuscript_builder_inferences': 0, 'historical_scientific_source_writes': 0,
+        'production_campaigns_launched': 0,
+        'benchmark_expansion_gate': 'INCOMPLETE',
+        'bounded_engineering_evidence': {
+            'streaming_independent_fields': 2, 'identical_execution_count': 2,
+            'payload_sha256':'c8ee6163da82e8cd4fee6f13e1e9ed9eb49da6daac1dd6dc490fe49618792674'},
         'files': {name: digest(p) for name, p in sorted(review.items())},
         'overleaf_members': {name: digest(p) for name, p in sorted(source.items())},
     }

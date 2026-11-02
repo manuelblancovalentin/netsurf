@@ -117,17 +117,17 @@ architectural redundancy.
 \Description{Six panels plot task quality against logarithmic logical BER, retaining all policies, clean controls, unprotected outcomes, uncertainty and high-BER stress points.}
 \label{fig:ber}\end{figure}
 
-\subsection{What the FKeras validation does and does not establish}
-The KWS engineering validation uses two calibration clips, four evaluation clips
-and two fault fields. Two eigenpairs pass normalized residual and orthogonality
-checks, and the two formulas generate different partial-tier masks
-(Table~\ref{tab:fkeras}). All protection conditions have accuracy 1.0 in that
-small test. This validates execution and mapping, not comparative protection
-efficacy. Adding indistinguishable full-tier FKeras curves to the main figures
-would not supply an independent baseline.
+\subsection{Matched partial-tier comparison on keyword spotting}
+A separate exploratory experiment uses 32 calibration clips, 128 evaluation
+clips, and 32 paired fields at each of three BERs. It compares both FKeras
+forms, MSB-first and the three gradient methods (Fig.~\ref{fig:matched128}).
+It has one ranking realization and previously exposed inputs. Clean accuracy
+is .9297, versus .9010 on the larger cohort; these studies are not pooled.
+The source did not include random or numerical-jump masks, so neither is
+invented in this panel. Two leading signed-magnitude eigenpairs are used.
 
 \begin{table}[t]\centering\small
-\caption{FKeras KWS mask validation: symmetric-difference bit counts between saved masks. Complete tiers yield identical sets. Partial tiers expose real formula/tie-order differences but currently lack a meaningful effectiveness study.}
+\caption{Saved mask symmetric differences in the 128-clip KWS experiment. Complete tiers yield identical sets and exact matched outcomes; partial tiers distinguish score/tie-order choices.}
 \label{tab:fkeras}
 \begin{tabular}{rrrrr}\toprule
 Coverage & Protected bits & Paper / repository & MSB / paper & MSB / repository\\\midrule
@@ -135,12 +135,36 @@ Coverage & Protected bits & Paper / repository & MSB / paper & MSB / repository\
 \bottomrule\end{tabular}
 \end{table}
 
-The printed and repository formulations are therefore both retained as validated
-score-level baselines with a bounded execution check. An adequately sampled
-partial-tier comparison is a missing experimental result, not a reason to
-redefine FKeras as global gradient-style ordering or infer that it loses.
-Historical qPolarGrad remains outside the principal curves for the analogous
-reason: no validated comparable result exists on these three models.
+At BER .01 and 6.25\% protection, mean accuracies are .6089 (MSB), .6877
+(global gradient), .7385 (absolute gradient), .5234 (positive gradient), .6926
+(FKeras paper) and .7231 (FKeras repository). Paper-form FKeras minus MSB is
+8.37 percentage points, with marginal 95\% interval [3.34,13.41] and source
+within-BER Holm $p=.0459$. Its cross-entropy difference is $-1.330$, interval
+$[-1.981,-.679]$, Holm $p=.0195$. These exploratory results support usefulness
+of sensitivity within a partial tier, not rejection of the Hessian baseline.
+
+The paper/repository accuracy difference at that cell is $-3.05$ percentage
+points, but its Holm $p=.2794$ does not establish a formula winner. At 18.75\%,
+paper-form FKeras minus MSB is only .049 percentage points, interval
+$[-1.116,1.213]$. At 12.5\% and 25\%, both FKeras masks coincide exactly with
+MSB and therefore cannot be independent competitors. Absolute-gradient ranking
+does not dominate the full grid: at BER .01 and 25\%, its mean is .8904 versus
+.9026 for MSB/FKeras. Shared-input uncertainty and broader generalization remain
+unresolved. Historical qPolarGrad still has no validated matched pathway on
+these architectures and remains a documented historical ablation, not a curve.
+
+\begin{figure}[t]\centering
+\includegraphics[width=\linewidth]{matched_kws128.png}
+\caption{\textbf{Does sensitivity within a bit tier change protection quality?}
+All six configured methods on the same 128 KWS clips and 32 paired fields per
+BER. Four interior budgets are measured. Accuracy bars are descriptive 95\%
+field-$t$ intervals; the lower row reports mean cross-entropy. Complete-tier
+FKeras/MSB curves coincide by mask identity, not independent replication.
+This exploratory cohort is separate from the 1,000-clip curves.}
+\Description{Three BER columns compare accuracy and cross-entropy versus
+coverage for significance, gradient and two Hessian scores. Partial-tier
+differences are visible at high BER; no method dominates all cells.}
+\label{fig:matched128}\end{figure}
 
 \subsection{Do conditional changes materially improve allocation?}
 Conditional diagnostics establish more than the counterexample alone, but less
@@ -186,9 +210,11 @@ statistics require retaining signs or magnitudes before reduction. The latter
 costs more in every recorded study (Table~\ref{tab:costs}). ToyCar's much larger
 calibration-window count is essential context for its 205.88-second shared cost.
 Recorded zero timers for simple baselines are not evidence of zero execution
-cost and are not used for speedup ratios. The tiny FKeras smoke records 1.12
-seconds for a shared eigensolve; that cannot be extrapolated as a fair comparison
-with 64-example gradient calibration.
+cost and are not used for speedup ratios. On the separate 32-calibration-clip
+comparison, global gradients took .398 seconds, shared per-example gradients
+5.591 seconds and the shared two-eigenpair solve 1.461 seconds. The solve is
+counted once across the two FKeras formulas. These times describe this bounded
+eigenpair count, not a general Hessian-versus-gradient complexity ordering.
 
 The complete static classifier grids contain 3,584 cohort evaluations each;
 ToyCar has 448. Recorded coordinator elapsed times are about 200.3, 45.0 and

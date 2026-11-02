@@ -54,6 +54,10 @@ def main():
     OUT.mkdir(exist_ok=args.refresh_draft)
     FIG.mkdir(parents=True,exist_ok=True); TAB.mkdir(parents=True,exist_ok=True)
     sources=read(LOCATORS); receipts={}; curves=[]; pairs=[]; inventory={}
+    fk_source=read(ROOT/'config/paper1_fkeras_source.json')
+    # Check EVERY saved artifact in the newly recovered experiment, not only plots.
+    fk_source['verified_files']=read(Path(fk_source['path'])/'checksums.json')['files']
+    sources['static_fkeras128']=fk_source
     for tag, source in sources.items():
         receipts[tag], m=verify(tag,source)
         if tag.startswith('static_'):
@@ -132,15 +136,38 @@ def main():
             tex.append([{'resnet':'ResNet-8 (pp)','kws':'KWS (pp)','toycar':'ToyCar (AUC)'}[model],f'{coverage*100:g}\\%',r['matched_pairs'],f'{mean*scale:+.3f}',f'[{lo*scale:+.3f}, {hi*scale:+.3f}]',f"{float(r['p_value_holm']):.4f}"])
     write_json(OUT/'illustrative_paired_effects.json',effects)
     table('paired_effects',tex,['static_'+m for m in MODELS],'BER .01; per-example absolute minus MSB, reversing saved contrasts if required. Source within-BER/metric Holm values retained.')
-    f=read(Path(sources['FKeras']['path'])/'summary.json'); rows=[]
+    f=read(Path(sources['static_fkeras128']['path'])/'summary.json'); rows=[]
     for cov in [.0625,.125,.1875,.25]:
         counts=[]
         for a,b in [('fkeras_paper','fkeras_repository'),('msb_first','fkeras_paper'),('msb_first','fkeras_repository')]:
             item=next(x for x in f['mask_equivalence'] if x['left']==f'{a}@{cov:.6f}' and x['right']==f'{b}@{cov:.6f}')
             counts.append(item['symmetric_difference_bits'])
         rows.append([f'{cov*100:g}\\%',item['protected_bits']]+counts)
-    table('fkeras_masks',rows,['FKeras/summary.json'],'Saved exact mask symmetric differences; numerical smoke, not efficacy.')
+    table('fkeras_masks',rows,['static_fkeras128/summary.json'],'Saved exact mask symmetric differences from the 128-clip exploratory comparison; one ranking realization.')
     write_json(OUT/'fkeras_compact.json',{'mask_equivalence':f['mask_equivalence'],'runtimes':f['estimator_runtimes_seconds'],'clean':f['clean_evaluation']})
+    methods=['msb_first','first_order_gradient_delta','per_sample_first_order_magnitude','per_sample_positive_damage','fkeras_paper','fkeras_repository']
+    labels=['MSB-first','Global gradient','Absolute gradient','Positive gradient','FKeras paper','FKeras repository']
+    colors=['#222222','#0072B2','#009E73','#CC79A7','#D55E00','#6A51A3']
+    data=[r for r in curves if r['benchmark']=='fkeras128']
+    fig,axs=plt.subplots(2,3,figsize=(6.65,5.1))
+    for col,prob in enumerate([.0001,.001,.01]):
+        for policy,label,color in zip(methods,labels,colors):
+            selected=sorted([r for r in data if r['ber']==prob and r['policy'] in (policy,'no_protection')],key=lambda r:r['coverage'])
+            x=[r['coverage']*100 for r in selected]
+            intervals(axs[0,col],x,selected,color,label)
+            axs[1,col].plot(x,[r['loss_mean'] for r in selected],'o--',color=color,lw=.85,ms=3,label=label)
+        axs[0,col].axhline(f['clean_evaluation']['accuracy'],color='gray',ls='-.',lw=.7)
+        axs[0,col].set_ylim(0,1.02)
+        for ax in axs[:,col]:
+            ax.set_xticks([0,6.25,12.5,18.75,25])
+            ax.tick_params(axis='x',labelsize=7)
+        axs[0,col].set_title(f'Logical BER {prob:g}')
+        for ax in axs[:,col]:
+            ax.set_xlabel('Protected eligible bits (%)');ax.set_xticks([0,12.5,25]);ax.grid(alpha=.15)
+    axs[0,0].set_ylabel('Accuracy');axs[1,0].set_ylabel('Cross-entropy')
+    h,l=axs[0,0].get_legend_handles_labels();fig.legend(h,l,loc='lower center',ncol=3,fontsize=8,frameon=False)
+    fig.subplots_adjust(left=.10,right=.99,bottom=.20,top=.93,hspace=.42,wspace=.33)
+    save(fig,'matched_kws128',['static_fkeras128'],'Separate 128-clip cohort; all six configured policies, three BERs, four budgets and shared zero/full controls. Accuracy bars are marginal 95% field-t intervals. CE means; full paired intervals in the CSV supplement. No merging with the 1000-clip study.')
 
     p=Path(sources['M910']['path']); ag=read(p/'aggregate_summary.json')['comparisons']
     arms=[('m96_kws_cross_pool_k6','KWS: first pool sample, p=.01'),('m97_kws_multiber_ber_0p001','KWS: common pools, p=.001'),('m97_kws_multiber_ber_0p003','KWS: common pools, p=.003'),('m97_kws_multiber_ber_0p01','KWS: common pools, p=.01'),('m98_resnet8_cross_pool_k6_v1','ResNet-8, p=.01'),('m99_toycar_cross_pool_k6_ber001','ToyCar, p=.001')]

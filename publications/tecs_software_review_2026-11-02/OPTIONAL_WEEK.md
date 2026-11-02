@@ -1,5 +1,11 @@
 # Optional additional week: decisions and missing evidence
 
+**Superseded planning record.** The 2 November unified manuscript/benchmark
+request replaces this split. Do not launch commands below as the current
+campaign protocol. See `docs/PAPER1_EXPANDED_CAMPAIGN.md` and
+`config/paper1_target_status.json`. The recovered 128-clip FKeras comparison is
+now in the manuscript, closing the older absence-of-efficacy statement.
+
 Software only. These are priorities for researcher approval, not an executed
 campaign or a claim that missing results are positive. Do not consume new
 confirmation inputs until their exposure ledger and prespecification are frozen.

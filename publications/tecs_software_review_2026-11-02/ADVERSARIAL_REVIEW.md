@@ -6,8 +6,10 @@ This is a complete engineering investigation, but **not yet a low-risk TECS
 submission**. Its strongest contribution is a controlled comparison of how
 familiar susceptibility scores translate into actual protection decisions under
 exact stored-code faults. It is not a new universal ranking method, physical
-protection design, or demonstrated superior conditional optimizer. The missing
-meaningful partial-tier FKeras comparison is the most consequential baseline gap.
+protection design, or demonstrated superior conditional optimizer. The recovered
+128-clip FKeras comparison closes the earlier absence of a meaningful partial-tier
+experiment, but not the need for a common larger cohort with random and numerical-jump
+controls. The broader benchmark-expansion gate remains incomplete.
 
 The PDF deliberately contains unfavorable and unresolved results. Completing a
 manuscript is not evidence that its contribution clears the journal's novelty bar.
@@ -17,7 +19,8 @@ manuscript is not evidence that its contribution clears the journal's novelty ba
 | Reviewer objection | Assessment | Fix already incorporated | Remaining risk / action |
 |---|---|---|---|
 | “Your own FCCM paper already presented NetSuRF and gradient/delta-guided protection.” | Correct; substantive overlap, not merely shared motivation. | Introduction and §2 explicitly credit the published flow. New claims concern frozen INT8 execution, corrected/matched baselines, multiple tasks and decision validation. No old implementation numbers or figures are reused. | Authors should approve an extension statement and explain the additional evidence in the cover letter. Do not market the framework name as novelty. |
-| “FKeras already ranks important bits and uses a weight Hessian.” | Correct. A full Hessian includes mixed curvature. | §5 gives both printed and effective repository formulas, identifies the continuous companion, and preserves tier-first ordering. §8.4 reports exact mask equivalence and the small execution check. | Existing 12.5%/25% budgets cannot distinguish strict INT8 tier-first masks. Add meaningful 6.25%/18.75% comparisons before claiming competitive coverage of this baseline. |
+| “FKeras already ranks important bits and uses a weight Hessian.” | Correct. A full Hessian includes mixed curvature. | §5 gives both printed and effective repository formulas and preserves tier-first ordering. §8.4 includes all three BERs and four budgets of the recovered 128-clip study: gains, ties and unresolved comparisons. | Full-tier masks are identical. Partial-tier outcomes depend on cohort, budget and formula. The frozen larger-cohort campaign adds missing common controls; it has not run. |
+| “Recent reinforcement learning already learns bit allocations.” | Correct; Su et al. (Sensors 2025) adds directly relevant peer-reviewed evidence. | §2 credits its layer-bit actions and distinguishes its memory-entry law and objective. | No local matched RL baseline. The paper cannot claim superiority over adaptive allocation or assert that RL ignores interactions. |
 | “PrioriFI and EISFINN already prioritize important faults.” | Correct, but fault discovery and expected mask-risk are different estimands. | §2 contrasts their sampling objectives with a fixed mask under coordinate-independent Bernoulli faults, without claiming to invent guided exploration. | No head-to-head result on their native objectives is provided. That is a scope boundary, not evidence of superiority. |
 | “Progressive attacks already use encoding-aware gradients and changing model state.” | Correct. | §2 explicitly acknowledges this. Deliberately selected damaging faults are not treated as samples of the Bernoulli law. | An encoding-aware gradient alone is not a novel contribution. |
 | “The selective-ECC companion release already studies contextual effects and allocation.” | Substantial overlap. Publication status does not erase prior art. | §2 cites it as a public dataset/software release, credits context analysis, and distinguishes layer/codeword choices, modeled ECC semantics and fault law. | Granularity and explicit contracts may be incremental. Do not claim the first interaction-aware allocation or dismiss learning methods as incapable of interactions. |
@@ -72,8 +75,9 @@ on interpretation, not an empirical contribution or speedup claim.
 1. **Novelty/extension:** a comparison of known scores may not meet TECS's
    contribution threshold even when exceptionally reproducible. The new
    experimentally established decision lessons must carry the paper.
-2. **FKeras efficacy gap:** full-tier equivalence is necessary to report but is
-   not a substitute for a meaningful partial-tier comparison.
+2. **FKeras comparison scope:** the restored 128-clip partial-tier study is real
+   evidence, not a four-clip execution check. It remains one ranking realization
+   on a different cohort from the main curves; do not splice those means together.
 3. **Precision and generalization:** ToyCar has eight fields, all tasks have one
    checkpoint, and prior data exposure prevents calling these fresh confirmation.
 4. **Statistical presentation:** fixed-cohort/mask field intervals are not input
@@ -81,5 +85,11 @@ on interpretation, not an empirical contribution or speedup claim.
 5. **Companion validity:** exact kernel mapping does not imply gradient validity
    through integer discontinuities. Keep empirical validation prominent.
 
-The additional-week priorities are in `OPTIONAL_WEEK.md`. No additional
-experiment is needed to read this complete internal draft; none was launched.
+6. **Expansion acceptance:** one short streaming fixture has a reproducible
+   comparison, but no independent full streaming corpus or transformer result.
+   Neither a metadata record nor the VWW blocked probe counts as an executed
+   additional benchmark study. Do not advertise broad-architecture generality.
+
+The integrated milestone supersedes the old optional-week plan. Frozen campaigns,
+costs, asset blockers and foreground commands are in
+`docs/PAPER1_EXPANDED_CAMPAIGN.md`. No production campaign was launched.

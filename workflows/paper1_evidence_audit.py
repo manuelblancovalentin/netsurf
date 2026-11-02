@@ -97,7 +97,14 @@ def audit_static(tag, path, manifest):
     prefix = "primary_metric" if toy else "accuracy"
     loss_prefix = "loss_metric" if toy else "loss"
     payload = read(path / "scientific_payload.json")
-    replications = {r["replication"]["name"]: r for r in payload["replications"]}
+    # The established bundle format stores a single replication at the root.
+    # Do not invent or collapse replication identities when reading either form.
+    records = payload["replications"] if "replications" in payload else [payload]
+    replications = {r["replication"]["name"]: r for r in records}
+    for row in trials:
+        if 'replication' not in row:
+            assert len(replications) == 1, 'missing replication identity in replicated evidence'
+            row['replication'] = next(iter(replications))
     for replication in replications.values():
         partitions = replication["benchmark"]["partitions"]
         identities = [{(part["source_split"], i) for i in part["indices"]}

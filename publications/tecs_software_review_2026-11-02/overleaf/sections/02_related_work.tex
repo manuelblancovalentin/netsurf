@@ -5,6 +5,15 @@ FKeras combines sensitivity analysis, fault injection, and selective protection 
 Progressive bit-flip attacks already exploit quantized weight encoding and gradient-guided, state-updating search~\cite{rakin2019bfa}. Their deliberately chosen damaging flips differ from independent Bernoulli events. Worst-case attack outcomes cannot be used as unweighted estimates of the latter expectation. Our experiments do not compare attack success rates or introduce an adversarial sampler.
 
 \paragraph{Selective protection and contextual effects.}
+Su et al. use DQN to choose layer-wise bit-position masks, with reward shaping
+and transfer across layers~\cite{su2025rl}. Each selected position protects that
+position in every weight of a layer. Their simulated memory-entry fault model
+and performance/cost reward differ from coordinate-wise Bernoulli faults and a
+fixed global bit budget here. This is a learned allocation policy, not an
+isolated sensitivity score. Its interaction-dependent feedback can represent
+multi-fault behavior; our analytical result does not rule that out. A matched
+reimplementation would require common fault laws, granularity and training cost;
+we do not insert unmatched published numbers into our curves.
 Bit-level redundancy work exploits structure in stored representations~\cite{catalan2025redundancy}, while the public \emph{Learned or Ranked?} companion release compares learned and rule-based allocation, search methods, and layer-interaction diagnostics~\cite{alobaidi2026selectiveeccdataset}. We cite the latter as a dataset/software release; peer-reviewed acceptance of its associated manuscript is not established here. Its contextual allocation analysis is relevant prior art regardless of that status. Its layer granularity, codeword protection semantics, and fault generators differ from our exact coordinate-Bernoulli formulation. We claim neither the first observation of nonadditivity nor the first context-dependent protection decision.
 
 \paragraph{Extension beyond the earlier NetSuRF flow.}

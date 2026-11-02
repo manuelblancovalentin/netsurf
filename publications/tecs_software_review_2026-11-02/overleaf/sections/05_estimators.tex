@@ -1,6 +1,28 @@
 \section{Susceptibility Estimation and Budgeted Allocation}
 \label{sec:estimators}
 Let $\ell_x$ be the ranking loss for calibration input $x$, $g_i(x)=\partial\ell_x/\partial w_i$ the companion gradient for the parameter containing bit $b$, and $\delta_b$ its exact jump from Eq.~\eqref{eq:delta}. We distinguish predicting a signed loss change from ordering bits by a nonnegative score.
+Write $z_b(x)=g_i(x)\delta_b$ and $[u]_+=\max(0,u)$.
+Table~\ref{tab:definitions} puts each competing score on the same footing;
+ordering and budget selection remain separate operations.
+\begin{table}[t]\centering\small
+\caption{Score definitions and ordering. A score is not a mitigation guarantee or an expected protection benefit. In the last three rows $i$ is the parameter containing bit $b$; absolute values on vectors are componentwise.}
+\label{tab:definitions}
+\begin{tabular}{lll}\toprule
+Method & Score or ordering criterion & Ordering\\\midrule
+Random & Seeded independent uniform scores & Global\\
+MSB-first & Encoded significance $k_b$ & Tier, then identity\\
+Numerical jump & $|\delta_b|$ & Global\\
+Global gradient & $|\E_x z_b(x)|$ & Global\\
+Absolute gradient & $\E_x|z_b(x)|$ & Global\\
+Positive gradient & $\E_x\!\left[[z_b(x)]_+\right]$ & Global\\
+FKeras paper & $|\sum_j\lambda_j(v_j^\top\theta)v_{ji}|$ & Tier, then score\\
+FKeras repository & $\sum_j|\lambda_j^2(v_j^\top\theta)v_{ji}|$ & Tier, then score\\
+Historical qPolarGrad & $|\E_x[\widetilde a_i(x)\delta_b]\E_x g_i(x)|$ & Historical scope\\
+\bottomrule\end{tabular}
+\end{table}
+The positive-gradient expectation applies \emph{after} taking the positive part
+of each example; it is not $[\E_x z_b(x)]_+$. The historical row describes the
+recovered dense first-call path, not a new convolutional generalization.
 
 \paragraph{Common static baselines.}
 Random assigns reproducible seeded scores over the same eligible population. Corrected MSB-first orders encoded positions $7,6,\ldots,0$, then canonical tensor/word identity. Numerical jump orders $|\delta_b|$ globally. Unlike MSB-first, it includes affine scale differences; unlike a task-sensitive estimator, it does not use input data or loss.
