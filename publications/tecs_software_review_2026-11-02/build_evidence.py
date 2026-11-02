@@ -163,7 +163,7 @@ def main():
             ax.tick_params(axis='x',labelsize=7)
         axs[0,col].set_title(f'Logical BER {prob:g}')
         for ax in axs[:,col]:
-            ax.set_xlabel('Protected eligible bits (%)');ax.set_xticks([0,12.5,25]);ax.grid(alpha=.15)
+            ax.set_xlabel('Protected eligible bits (%)');ax.grid(alpha=.15)
     axs[0,0].set_ylabel('Accuracy');axs[1,0].set_ylabel('Cross-entropy')
     h,l=axs[0,0].get_legend_handles_labels();fig.legend(h,l,loc='lower center',ncol=3,fontsize=8,frameon=False)
     fig.subplots_adjust(left=.10,right=.99,bottom=.20,top=.93,hspace=.42,wspace=.33)

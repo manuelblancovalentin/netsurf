@@ -91,3 +91,31 @@ The expanded-benchmark gate is incomplete: one streaming short fixture passed
 repeatable protection comparisons, VWW is provenance-blocked, and transformer
 assets/backend are not available. These engineering checks are not added to the
 paper as population-wide efficacy claims.
+
+## Archives and Mac download
+
+After compiling, create a new immutable delivery directory:
+
+```bash
+cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-expanded
+/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python \
+ publications/tecs_software_review_2026-11-02/package_review.py \
+ --output workspace/exports/NetSuRF_Paper1_Unified_2026-11-02
+```
+
+The packager refuses to overwrite an existing delivery. The review ZIP contains
+the PDF, Overleaf source, numerical figure data/provenance, claim matrix,
+adversarial review, campaign configurations/scripts, all18 ledger and both
+bounded streaming bundles. It does not contain all multi-gigabyte historical
+prediction files or shared datasets/checkpoints. The source manifest tells the
+researcher exactly which historical records were consumed.
+
+On the Mac (use the configured Kona SSH alias):
+
+```bash
+scp manuelbv@kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-expanded/workspace/exports/NetSuRF_Paper1_Unified_2026-11-02/NetSuRF_Software_Review_Package.zip ~/Downloads/
+scp manuelbv@kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-expanded/workspace/exports/NetSuRF_Paper1_Unified_2026-11-02/NetSuRF_Software_Overleaf.zip ~/Downloads/
+```
+
+For future production bundles the one-shot scripts create **both** compact and
+full-evidence ZIPs and print/save their own exact download commands.
