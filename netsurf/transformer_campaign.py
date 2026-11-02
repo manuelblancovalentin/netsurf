@@ -79,6 +79,15 @@ def validate_targeted_plan(plan: dict) -> str:
     return checksum
 
 
+def verify_campaign_source(plan: dict) -> None:
+    validate_targeted_plan(plan)
+    root = Path(__file__).resolve().parents[1]
+    for relative, expected in plan["source_files_sha256"].items():
+        source = (root / relative).resolve()
+        if not source.is_relative_to(root) or sha256_file(source) != expected:
+            raise PlanBlocked(f"campaign source changed: {relative}")
+
+
 def freeze_distilbert_plan(readiness_path: Path, portfolio_path: Path,
                            engineering_receipt: Path, output: Path,
                            snapshot: Path) -> dict:
@@ -199,12 +208,7 @@ def _bound(payload: dict) -> dict:
 
 def _prepare(plan_path: Path, readiness_path: Path, portfolio_path: Path):
     plan = json.loads(Path(plan_path).read_text())
-    validate_targeted_plan(plan)
-    source_root = Path(__file__).resolve().parents[1]
-    for relative, expected in plan["source_files_sha256"].items():
-        source = (source_root / relative).resolve()
-        if not source.is_relative_to(source_root) or sha256_file(source) != expected:
-            raise PlanBlocked(f"campaign source changed: {relative}")
+    verify_campaign_source(plan)
     if sha256_file(Path(readiness_path)) != plan["asset_manifest_sha256"]:
         raise PlanBlocked("READY manifest differs from frozen campaign plan")
     if sha256_file(Path(portfolio_path)) != plan["portfolio_sha256"]:
@@ -382,13 +386,18 @@ def run_final(plan_path: Path, readiness_path: Path, portfolio_path: Path,
 
 def aggregate(plan_path: Path, run_root: Path) -> dict:
     plan = require_final_gate(plan_path, Path(run_root) / "selection" / "seal.json")
-    validate_targeted_plan(plan)
-    source_root = Path(__file__).resolve().parents[1]
-    if any(sha256_file(source_root / relative) != expected
-           for relative, expected in plan["source_files_sha256"].items()):
-        raise PlanBlocked("campaign analysis source differs from frozen plan")
+    verify_campaign_source(plan)
     root = Path(run_root)
+    bits = targeted_classifier_bits()
+    policies = _policy_masks(plan, root, bits)
+    class OfflineUniverse:
+        bit_count = len(bits)
+        def bit_at(self, ordinal: int) -> BitIdentity:
+            return bits[ordinal]
+    universe = OfflineUniverse()
     clean = _read_bound(root / "final" / "clean.json", plan["plan_sha256"])
+    if clean["risk"]["total_units"] != plan["final"]["sample_count"]:
+        raise PlanBlocked("clean final cohort count changed")
     rows, tests = [], []
     for arm, ber in enumerate(plan["ber"][1:], start=1):
         fields = [_read_bound(_member_path(root, arm, field), plan["plan_sha256"])
@@ -396,6 +405,26 @@ def aggregate(plan_path: Path, run_root: Path) -> dict:
         if any(item["arm"] != arm or item["ber"] != ber or item["field"] != i
                for i, item in enumerate(fields)):
             raise PlanBlocked("final field identities changed")
+        for index, item in enumerate(fields):
+            seed = plan["final"]["seed"] + arm * 100000 + index
+            schedule = sparse_bernoulli_schedule(universe, ber=ber, seed=seed,
+                inference_count=plan["final"]["sample_count"],
+                max_events=plan["max_events_per_field"])
+            if (item["seed"] != seed or item["schedule_sha256"] != schedule.digest() or
+                item["schedule_events"] != [event.key() for event in schedule.events] or
+                set(item["policies"]) != set(policies)):
+                raise PlanBlocked("final event schedule or policy family differs from plan")
+            for name, mask in policies.items():
+                entry = item["policies"][name]
+                applied = sum(event.bit not in mask.protected for event in schedule.events)
+                if (entry["mask_sha256"] != mask.digest() or
+                    entry["report"]["schedule_hash"] != schedule.digest() or
+                    entry["report"]["proposed_events"] != len(schedule.events) or
+                    entry["report"]["applied_events"] != applied or
+                    entry["report"]["suppressed_events"] != len(schedule.events) - applied or
+                    entry["expected_faults"] != expected_faults(len(bits), mask.budget, ber) or
+                    entry["risk"]["total_units"] != plan["final"]["sample_count"]):
+                    raise PlanBlocked("final member accounting or risk cohort differs from plan")
         for control, budget in (("unprotected", 0), ("full", plan["eligible_bits"])):
             values = [item["policies"][control]["risk"] for item in fields]
             rows.append({"ber": ber, "budget": budget, "method": control,

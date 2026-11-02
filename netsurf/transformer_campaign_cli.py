@@ -11,7 +11,7 @@ import zipfile
 
 from .manifests import canonical_json_bytes, sha256_file
 from .transformer_campaign import (aggregate, freeze_distilbert_plan, run_final,
-                                   run_selection, validate_targeted_plan)
+                                   run_selection, validate_targeted_plan, verify_campaign_source)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -130,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
                   "request_counts": plan["costs"]}
     elif args.phase == "validate":
         plan = json.loads(args.plan.read_text())
-        validate_targeted_plan(plan)
+        verify_campaign_source(plan)
         if sha256_file(args.readiness) != plan["asset_manifest_sha256"]:
             raise ValueError("READY snapshot differs from frozen plan")
         result = {"status": "FROZEN_VALID", "plan_sha256": plan["plan_sha256"],
