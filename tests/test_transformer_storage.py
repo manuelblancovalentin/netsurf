@@ -22,6 +22,8 @@ from netsurf.transformer_handoff import audit_handoff
 from netsurf.manifests import digest_object
 from netsurf.transformer_conformance import conformance_cases
 from netsurf.transformer_data import Sst2Row, sst2_fault_partitions, sst2_records_digest, wikitext_joined_text
+from netsurf.transformer_campaign import targeted_classifier_bits, _selection_artifact, validate_targeted_plan
+from netsurf.transformer_campaign_cli import _figure
 
 
 @pytest.mark.parametrize("precision,positive,negative,zero,subnormal,inf,nan", [
@@ -118,6 +120,24 @@ def test_sst2_fault_cohorts_and_kona_record_digest():
     with pytest.raises(ValueError, match="source splits"):
         sst2_fault_partitions(validation, train, engineering_count=2,
                               calibration_count=4, selection_count=3)
+
+
+def test_targeted_campaign_bits_and_budget_masks():
+    bits = targeted_classifier_bits()
+    assert len(bits) == len(set(bits)) == 1024
+    assert bits[0].key() == "classifier.weight[0]#b0"
+    assert bits[-1].key() == "classifier.weight[31]#b31"
+    plan = {"plan_sha256": "a" * 64, "budgets": [0, 128, 256, 1024],
+            "eligible_population_sha256": digest_object([bit.key() for bit in bits])}
+    scores = {bit: float(index) for index, bit in enumerate(bits)}
+    first = _selection_artifact(plan, "exact_isolated", scores, bits)
+    assert first == _selection_artifact(plan, "exact_isolated", scores, bits)
+    assert len(first["masks"]["128"]) == 128
+    assert first["masks"]["0"] == [] and len(first["masks"]["1024"]) == 1024
+    assert first["payload_sha256"] == digest_object({k: v for k, v in first.items() if k != "payload_sha256"})
+    svg = _figure([{"ber": 1/1024, "budget": 128, "method": "random", "mean_nll": 0.3},
+                   {"ber": 4/1024, "budget": 128, "method": "random", "mean_nll": 0.4}], "ber")
+    assert svg.startswith("<svg") and "mean cross-entropy" in svg
 
 
 def test_expected_faults_and_budget():
