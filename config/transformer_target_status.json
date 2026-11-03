@@ -210,9 +210,24 @@
         "config/experiments/pythia160m_fp32_targeted96_v1.json",
         "config/experiments/pythia160m_bf16fp32_targeted96_v1.json",
         "docs/TRANSFORMER_LM_TARGETED96_PROTOCOL.md",
-        "scripts/run_transformer_lm_campaign_once.sh"
+        "scripts/run_transformer_lm_campaign_once.sh",
+        "workspace/runs/pythia160m_fp32_targeted96_v1_run1/selection/seal.json",
+        "workspace/runs/pythia160m_fp32_targeted96_v1_run1/analysis.json",
+        "workspace/runs/pythia160m_fp32_targeted96_v1_run1_export/complete.zip",
+        "workspace/runs/pythia160m_bf16fp32_targeted96_v1_run1/selection/seal.json",
+        "workspace/runs/pythia160m_bf16fp32_targeted96_v1_run1/analysis.json",
+        "workspace/runs/pythia160m_bf16fp32_targeted96_v1_run1_export/complete.zip",
+        "docs/TRANSFORMER_MANUSCRIPT_INTEGRATION.md"
       ],
-      "finalized_new_model_result": false,
+      "finalized_new_model_result": true,
+      "finalized_targeted96_analysis_sha256": {
+        "pythia160m_bf16fp32_targeted96_v1": "e5acd88b140e121c79c1c2327e8e6da014aa5df2ecdbb7d7d694fee942edc93e",
+        "pythia160m_fp32_targeted96_v1": "1baa55a33d3027b67b8eb1c3774630cdc19d918865e0b0903559fd4f31c2ab03"
+      },
+      "finalized_targeted96_complete_zip_sha256": {
+        "pythia160m_bf16fp32_targeted96_v1": "a51fe02c0ea903ff44b97ef846ab246e9ea20cd8867c1662fd9c4ddcad903345",
+        "pythia160m_fp32_targeted96_v1": "a1bde2b1a68df8c15607eb04a9c05b715b1009ee6d399301031cb5211c829b91"
+      },
       "frozen_targeted96_plan_object_sha256": {
         "pythia160m_bf16stored_fp32compute": "9d20067254f632cf5f93650a1980c6755847fa241be56e8e19a45975b6ae6043",
         "pythia160m_fp32stored_fp32compute": "cba91a5295ca2505ed0804ea0664f7f6f09a20db16be8259b9fff93722d798bf"
@@ -230,9 +245,9 @@
         "pythia160m_bf16stored_fp32compute"
       ],
       "source_registry_status": "Research-stage",
-      "status": "FROZEN_FOR_RUN",
+      "status": "FINALIZED",
       "target": "pythia160m_bf16",
-      "targeted_scope": "96 bits from 32 presampled verified linear-weight words; prospective final unrun; no full-model reliability claim"
+      "targeted_scope": "96 bits from 32 presampled verified linear-weight words; 64 paired final fields finalized; exploratory restricted-support result; no full-model reliability claim"
     },
     {
       "asset_record_sha256": "7a9db08ae7b7e71fd59a9ddd34eac98f99b24e7d96c0f3b2ee8662a4f14de499",
@@ -260,9 +275,19 @@
         "docs/TRANSFORMER_LM_ENGINEERING_EVIDENCE.md",
         "config/experiments/qwen3_0_6b_bf16_targeted96_v1.json",
         "docs/TRANSFORMER_LM_TARGETED96_PROTOCOL.md",
-        "scripts/run_transformer_lm_campaign_once.sh"
+        "scripts/run_transformer_lm_campaign_once.sh",
+        "workspace/runs/qwen3_0_6b_bf16_targeted96_v1_run1/selection/seal.json",
+        "workspace/runs/qwen3_0_6b_bf16_targeted96_v1_run1/analysis.json",
+        "workspace/runs/qwen3_0_6b_bf16_targeted96_v1_run1_export/complete.zip",
+        "docs/TRANSFORMER_MANUSCRIPT_INTEGRATION.md"
       ],
-      "finalized_new_model_result": false,
+      "finalized_new_model_result": true,
+      "finalized_targeted96_analysis_sha256": {
+        "qwen3_0_6b_bf16_targeted96_v1": "0438ab5e1e1f5d7cba72a16548bd5b98f4611c657a574bc4f599f71e0e4103f9"
+      },
+      "finalized_targeted96_complete_zip_sha256": {
+        "qwen3_0_6b_bf16_targeted96_v1": "5fa889ae32e7fc20132ea09f90476b3f672ca4006406d0e09dcef5c43c2abb62"
+      },
       "frozen_targeted96_plan_object_sha256": {
         "qwen3_0_6b_bf16": "f41e841bed8510a55378c3a3b738d1b221c1752f2ae2eb69197bab6bc6392573"
       },
@@ -270,9 +295,9 @@
       "precision": "BF16",
       "ready_consumer_record_sha256": "1e8448bb03baf060f1a8c403584d3b5edd91dad1d5c449a3a4ea68e627381106",
       "source_registry_status": "Asset acquisition required",
-      "status": "FROZEN_FOR_RUN",
+      "status": "FINALIZED",
       "target": "qwen3_0_6b_bf16",
-      "targeted_scope": "96 bits from 32 presampled verified linear-weight words; prospective final unrun; no full-model reliability claim"
+      "targeted_scope": "96 bits from 32 presampled verified linear-weight words; 64 paired final fields finalized; exploratory restricted-support result; no full-model reliability claim"
     },
     {
       "asset_record_sha256": "74cbdc8c23f208f39cf3c2c3b163ff728d1fda5813078640a2f9b50b7970b908",
