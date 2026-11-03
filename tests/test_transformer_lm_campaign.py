@@ -1,14 +1,20 @@
 """Small synthetic campaign-plan tests; no model asset or inference required."""
 import copy
+from contextlib import contextmanager
+from dataclasses import asdict
 import json
+import math
 from pathlib import Path
 
 import pytest
 
 from netsurf.identities import BitIdentity
-from netsurf.manifests import digest_object
+from netsurf.faults import InjectionReport
+from netsurf.manifests import canonical_json_bytes, digest_object, sha256_file
 from netsurf.protection import ProtectionMask
 from netsurf.torch_storage import expected_faults
+from netsurf.transformer_risk import TaskRisk
+import netsurf.transformer_lm_campaign as campaign
 from netsurf.transformer_lm_campaign import (_candidate_bits, _schedule, _verify_field,
     validate_plan, BERS, BUDGETS, METHODS, SOURCE_FILES)
 from netsurf.transformer_plan import PlanBlocked
@@ -30,6 +36,8 @@ def _synthetic_plan():
     plan={"schema_version":"transformer-campaign-plan/v1",
         "protocol_variant":"targeted-lm-96/v1","status":"FROZEN",
         "target":"qwen3_0_6b_bf16","source_commit":"b"*40,
+        "scope":"synthetic 96-bit storage fixture",
+        "source_files_sha256":{}, "registry_sha256":sha,
         "asset_manifest_sha256":sha,"asset_record_sha256":sha,
         "eligible_bits":96,"eligible_population_sha256":digest_object(bits),
         "candidate_bits":bits,"partitions_sha256":digest_object({
@@ -117,3 +125,63 @@ def test_verified_final_member_rejects_changed_counts_and_intent():
     broken_intent=copy.deepcopy(intent);broken_intent["seed"]+=1
     with pytest.raises(PlanBlocked,match="intent"):
         _verify_field(item,broken_intent,schedule,masks,clean,arm=2,field=3,ber=BERS[2])
+
+
+def test_full_synthetic_selection_seal_final_resume_analysis_and_export(tmp_path, monkeypatch):
+    plan=_synthetic_plan()
+    snapshot=tmp_path/"READY.json";snapshot.write_text("READY\n")
+    registry=tmp_path/"registry.json";registry.write_text("registry\n")
+    plan["asset_manifest_sha256"]=sha256_file(snapshot)
+    plan["registry_sha256"]=sha256_file(registry)
+    plan["plan_sha256"]=digest_object({k:v for k,v in plan.items() if k!="plan_sha256"})
+    path=tmp_path/"plan.json";path.write_bytes(canonical_json_bytes(plan)+b"\n")
+    bits=tuple(_candidate_bits(SyntheticStorage(16)))
+
+    class FakeStorage:
+        bit_count=96
+        def bit_at(self,index):return bits[index]
+
+    class FakeAdapter:
+        storage=FakeStorage()
+        active=()
+        calls=0
+
+        @contextmanager
+        def injected(self,schedule,mask):
+            applied=tuple(e.bit for e in schedule.events if e.bit not in mask.protected)
+            self.active=applied
+            try:
+                yield InjectionReport(schedule.digest(),len(schedule.events),
+                                      len(applied),len(schedule.events)-len(applied),
+                                      len(set(applied)))
+            finally:self.active=()
+
+        def evaluate_language_model(self,ids,*,context,stride):
+            self.calls+=1
+            positions={bit.bit_index for bit in self.active}
+            risk=1.0+0.01*len(self.active)+(0.08 if {14,15}<=positions else 0.0)
+            n=len(ids)-1
+            return TaskRisk(risk,None,math.exp(risk),0,n,
+                            tuple((0.0,risk) for _ in range(n)),
+                            tuple(None for _ in range(n)),
+                            "target_logit_and_logsumexp")
+
+    adapter=FakeAdapter()
+    monkeypatch.setattr(campaign,"_prepare",lambda *args:(plan,adapter,bits,
+        tuple(range(128)),tuple(range(257))))
+    root=tmp_path/"run"
+    selected=campaign.run_selection(path,snapshot,registry,root)
+    assert selected["status"]=="SEALED" and adapter.calls==97
+    campaign.run_selection(path,snapshot,registry,root)
+    assert adapter.calls==97
+    final=campaign.run_final(path,snapshot,registry,root)
+    assert final["members"]==64 and adapter.calls==610
+    campaign.run_final(path,snapshot,registry,root)
+    assert adapter.calls==610
+    analysis=campaign.aggregate(path,root)
+    assert len(analysis["rows"])==16 and len(analysis["comparisons"])==8
+    assert len([x for x in analysis["comparisons"] if "p_holm_primary2" in x])==2
+    exported=campaign.export(path,snapshot,registry,root,scp_host="kona")
+    assert (exported/"complete.zip").is_file()
+    assert campaign.export(path,snapshot,registry,root,scp_host="kona")==exported
+    assert adapter.active==()

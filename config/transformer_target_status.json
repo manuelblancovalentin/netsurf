@@ -198,7 +198,7 @@
     {
       "asset_record_sha256": "67a92f95e32e8b29dbd3ee8a0f4f868a250b1833f10f693c9a0d2d60fe250bd3",
       "asset_status": "READY",
-      "blocker": "Both FP32/FP32 and BF16/FP32 real-fault engineering smokes passed; native BF16 compute remains VALIDATION_FAILED. No frozen production BER/budget study.",
+      "blocker": "Targeted 96-bit selection/final plan is frozen and validated but unrun; full-model BER/budget study still needs scalable protection allocation.",
       "engineering_smoke_payload_sha256": "13fc5782437fbcdcda19bb9c3c4a9f2d4ba2bf5c523a779c772f1610cfe8f07c",
       "evidence": [
         "netsurf/storage_bit_codec.py",
@@ -206,9 +206,18 @@
         "tests/test_transformer_storage.py",
         "workspace/runs/pythia160m_fp32stored_fp32compute_fault_smoke_v1/FINALIZED",
         "workspace/runs/pythia160m_bf16stored_fp32compute_fault_smoke_v1/FINALIZED",
-        "docs/TRANSFORMER_LM_ENGINEERING_EVIDENCE.md"
+        "docs/TRANSFORMER_LM_ENGINEERING_EVIDENCE.md",
+        "config/experiments/pythia160m_fp32_targeted96_v1.json",
+        "config/experiments/pythia160m_bf16fp32_targeted96_v1.json",
+        "docs/TRANSFORMER_LM_TARGETED96_PROTOCOL.md",
+        "scripts/run_transformer_lm_campaign_once.sh"
       ],
       "finalized_new_model_result": false,
+      "frozen_targeted96_plan_object_sha256": {
+        "pythia160m_bf16stored_fp32compute": "9d20067254f632cf5f93650a1980c6755847fa241be56e8e19a45975b6ae6043",
+        "pythia160m_fp32stored_fp32compute": "cba91a5295ca2505ed0804ea0664f7f6f09a20db16be8259b9fff93722d798bf"
+      },
+      "frozen_targeted96_source_commit": "d8d3ba1",
       "precision": "BF16",
       "ready_consumer_record_sha256": "4e2207e2a8dd91619635e2198a0af514b35e08497392f7df0324098b71cd0ec5",
       "runtime_configuration_record_sha256": {
@@ -221,8 +230,9 @@
         "pythia160m_bf16stored_fp32compute"
       ],
       "source_registry_status": "Research-stage",
-      "status": "READY",
-      "target": "pythia160m_bf16"
+      "status": "FROZEN_FOR_RUN",
+      "target": "pythia160m_bf16",
+      "targeted_scope": "96 bits from 32 presampled verified linear-weight words; prospective final unrun; no full-model reliability claim"
     },
     {
       "asset_record_sha256": "7a9db08ae7b7e71fd59a9ddd34eac98f99b24e7d96c0f3b2ee8662a4f14de499",
@@ -240,21 +250,29 @@
     {
       "asset_record_sha256": "f65a3e1b5ae617f9a78310d61c32e29edea9ab8f5f8fde649d657c0212faf3f0",
       "asset_status": "READY",
-      "blocker": "Real BF16-storage/BF16-computation engineering fault smoke passed. No frozen production BER/budget study.",
+      "blocker": "Targeted 96-bit selection/final plan is frozen and validated but unrun; full-model BER/budget study still needs scalable protection allocation.",
       "engineering_smoke_payload_sha256": "d29bbea1dc2b99c35cca9429981219ea4244b223f385bfc5901b1e2d9e21d446",
       "evidence": [
         "netsurf/storage_bit_codec.py",
         "netsurf/adapters/transformers_pinned.py",
         "tests/test_transformer_storage.py",
         "workspace/runs/qwen3_0_6b_bf16_fault_smoke_v1/FINALIZED",
-        "docs/TRANSFORMER_LM_ENGINEERING_EVIDENCE.md"
+        "docs/TRANSFORMER_LM_ENGINEERING_EVIDENCE.md",
+        "config/experiments/qwen3_0_6b_bf16_targeted96_v1.json",
+        "docs/TRANSFORMER_LM_TARGETED96_PROTOCOL.md",
+        "scripts/run_transformer_lm_campaign_once.sh"
       ],
       "finalized_new_model_result": false,
+      "frozen_targeted96_plan_object_sha256": {
+        "qwen3_0_6b_bf16": "f41e841bed8510a55378c3a3b738d1b221c1752f2ae2eb69197bab6bc6392573"
+      },
+      "frozen_targeted96_source_commit": "d8d3ba1",
       "precision": "BF16",
       "ready_consumer_record_sha256": "1e8448bb03baf060f1a8c403584d3b5edd91dad1d5c449a3a4ea68e627381106",
       "source_registry_status": "Asset acquisition required",
-      "status": "READY",
-      "target": "qwen3_0_6b_bf16"
+      "status": "FROZEN_FOR_RUN",
+      "target": "qwen3_0_6b_bf16",
+      "targeted_scope": "96 bits from 32 presampled verified linear-weight words; prospective final unrun; no full-model reliability claim"
     },
     {
       "asset_record_sha256": "74cbdc8c23f208f39cf3c2c3b163ff728d1fda5813078640a2f9b50b7970b908",
