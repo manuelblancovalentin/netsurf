@@ -275,10 +275,10 @@ def _insert_study(db: sqlite3.Connection, source: dict) -> None:
                     continue
                 measured=(ber,method,coverage) in groups
                 if method=="no_protection" and coverage!=0 or method=="full_protection" and coverage!=1:
-                    continue
-                if method not in ("no_protection","full_protection") and coverage in (0,1):
-                    continue
-                if measured:
+                    status,reason="INCOMPATIBLE","control is defined only at its boundary budget"
+                elif method not in ("no_protection","full_protection") and coverage in (0,1):
+                    status,reason="INCOMPATIBLE","all rankers collapse to the measured no/full-protection control at this boundary"
+                elif measured:
                     status,reason="FINALIZED_MEASURED","checksum-verified source trial records"
                 elif method=="priorifi_derived":
                     status,reason="NOT_IMPLEMENTED","faithful feedback ranking and allocation conversion unvalidated"
@@ -363,9 +363,11 @@ def _insert_restricted(db: sqlite3.Connection, source: dict) -> None:
             budget=int(round(coverage*plan["eligible_bits"]))
             for method in METHODS:
                 if method=="fkeras_repository": continue
-                if method=="no_protection" and coverage!=0 or method=="full_protection" and coverage!=1: continue
-                if method not in ("no_protection","full_protection") and coverage in (0,1): continue
-                if (method,budget,ber) in groups:
+                if method=="no_protection" and coverage!=0 or method=="full_protection" and coverage!=1:
+                    status,reason="INCOMPATIBLE","control is defined only at its boundary budget"
+                elif method not in ("no_protection","full_protection") and coverage in (0,1):
+                    status,reason="INCOMPATIBLE","ranker collapses to the measured no/full-protection control"
+                elif (method,budget,ber) in groups:
                     status,reason="FINALIZED_RESTRICTED","verified targeted-universe final field records"
                 elif method in ("priorifi_derived","exponent_first"):
                     status,reason="NOT_IMPLEMENTED","no validated ranking-to-mask implementation for this targeted protocol"

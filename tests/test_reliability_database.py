@@ -59,6 +59,7 @@ def test_all_replications_are_pooled_and_masks_remain_distinct(tmp_path):
         assert row==(4,1.25,1.15,-1.25)
         assert db.execute("SELECT count(DISTINCT mask_sha256) FROM protection_masks WHERE method_id='msb_global'").fetchone()[0]==2
         assert db.execute("SELECT count(*) FROM coverage_matrix WHERE status='NOT_MEASURED'").fetchone()[0]>0
+        assert db.execute("SELECT count(*) FROM coverage_matrix").fetchone()[0]==72
     with pytest.raises(FileExistsError): build_database(source,db_path)
     assert db_path.exists()
 
