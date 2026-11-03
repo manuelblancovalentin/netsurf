@@ -178,11 +178,12 @@ def load_ready_asset(manifest_path: Path, target: str, portfolio_path: Path) -> 
             "partitions": source.get("splits"),
             "token_sequence_sha256": ({"test": report_data["token_ids_sha256"]} if is_lm else
                                       dataset.get("token_sequence_sha256")),
-            "text_sha256": ({"test": report_data["text_sha256"]} if is_lm else None),
             "bos_mode": "none" if is_lm else dataset.get("bos_mode"),
             "eos_mode": "none" if is_lm else dataset.get("eos_mode"),
-            "computation_precision": computation_precision,
         }
+        if is_lm:
+            record["text_sha256"] = {"test": report_data["text_sha256"]}
+            record["computation_precision"] = computation_precision
     elif document.get("schema_version") == "netsurf-transformer-readiness/v1":
         records = document.get("records")
         if not isinstance(records, list) or len({r.get("target") for r in records if isinstance(r, dict)}) != len(records):
