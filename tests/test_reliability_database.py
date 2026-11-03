@@ -113,3 +113,27 @@ def test_primary_payload_mismatch_fails_closed(tmp_path, monkeypatch):
     with pytest.raises(AssertionError):
         build_database(source,destination)
     assert not destination.exists()
+
+
+def test_v3_distinguishes_asset_readiness_and_expected_applied_faults(tmp_path, monkeypatch):
+    import netsurf.reliability_database as base
+    import netsurf.reliability_database_v3 as v3
+
+    sources,_=_fixture(tmp_path)
+    source=json.loads(sources.read_text())["studies"][0]
+    monkeypatch.setattr(base,"PRIMARY_STUDIES",{"tiny":source["scientific_payload_sha256"]})
+    monkeypatch.setattr(v3,"TARGETS",{"mini_int8":("mini_int8_full",8)})
+    monkeypatch.setattr(v3,"verified_asset_records",lambda _: [{
+        "target_id":"mini_int8",
+        "model":{"files":[{"path":"model.safetensors","sha256":"model"},
+                          {"path":"quantization_manifest.json","sha256":"quant"}],
+                 "artifact":{"kind":"test W8A8"}},
+        "reference_results":{"metrics":{"accuracy":1.0}},
+    }])
+    assets=tmp_path/"manifest.json";assets.write_text("{}")
+    database=tmp_path/"database.sqlite"
+    v3.build_database_v3(sources,database,assets)
+    with sqlite3.connect(database) as db:
+        assert db.execute("SELECT value FROM metadata WHERE key='schema_version'").fetchone()[0]==v3.SCHEMA_VERSION
+        assert db.execute("SELECT asset_status,adapter_status,experiment_status FROM asset_readiness").fetchone()==("READY","NOT_VALIDATED","NOT_MEASURED")
+        assert db.execute("SELECT expected_applied_faults FROM primary_condition_context WHERE method_id='msb_global'").fetchone()[0]==pytest.approx(.7)
