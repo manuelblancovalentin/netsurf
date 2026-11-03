@@ -16,7 +16,15 @@ from pathlib import Path
 
 from .manifests import digest_object, sha256_file
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"
+SOURCE_SCHEMA_VERSION = "1.0.0"
+# A primary designation is an exact, hash-bound scientific cohort, not a
+# convenient name pattern or a model-family match.
+PRIMARY_STUDIES = {
+    "resnet8_cifar10_int8_full": "3ed95baa04ede8047f5b5eb04f9024f2e5f856c39abcc84b2ca1fb894b22db32",
+    "kws_speechcommands_int8_full": "b7b725fd1c196f2d5896b67aba34dfe8aa864b8308875df098d48be6135975e0",
+    "toycar_int8_full_pilot64": "5d9c1eaa69e24b5f2139b7bf69ae0d775cc8727d458d0b66c5cfe897ab44b554",
+}
 METHODS = {
     "no_protection": ("Unprotected", "No protected eligible bits", "control"),
     "random_global": ("Random", "Seeded uniform bit ordering", "static"),
@@ -52,6 +60,9 @@ CREATE TABLE studies (
  source_path TEXT NOT NULL, source_payload_sha256 TEXT NOT NULL,
  source_checksums_sha256 TEXT NOT NULL, source_schema_version TEXT NOT NULL,
  study_kind TEXT NOT NULL, status TEXT NOT NULL);
+CREATE TABLE primary_studies (
+ study_id TEXT PRIMARY KEY REFERENCES studies(study_id),
+ source_payload_sha256 TEXT NOT NULL);
 CREATE TABLE methods (
  method_id TEXT PRIMARY KEY, display_name TEXT NOT NULL, mathematical_definition TEXT NOT NULL,
  ordering_policy TEXT NOT NULL, calibration_requirement TEXT NOT NULL, adaptivity TEXT NOT NULL,
@@ -133,7 +144,7 @@ CREATE VIEW reliability_grid AS
  SELECT c.study_id,s.study_kind,m.benchmark_id,m.checkpoint_sha256,m.precision,
         m.backend,m.eligible_bits,m.task_loss_name,m.quality_name,
         c.method_id,method.display_name AS method_name,c.coverage,c.protected_bits,c.ber,
-        c.field_count,c.replication_count,c.ranking_mask_count,c.mean_loss,c.loss_sd,
+        c.field_count,c.replication_count,c.ranking_mask_count,c.mean_loss,c.loss_sd,c.loss_se,
         c.loss_ci_low,c.loss_ci_high,c.loss_degradation,c.mean_quality,c.quality_sd,
         c.mean_auxiliary_loss,c.failure_fraction,c.paired_unprotected_delta_mean,
         c.paired_unprotected_ci_low,c.paired_unprotected_ci_high,c.status
@@ -148,6 +159,14 @@ CREATE VIEW restricted_grid AS
         c.failed_fraction,c.finite_loss_mean,c.status
  FROM restricted_conditions c JOIN restricted_studies s ON c.study_id=s.study_id
  JOIN methods method ON c.method=method.method_id;
+CREATE VIEW primary_conditions AS
+ SELECT g.* FROM reliability_grid g JOIN primary_studies p USING(study_id);
+CREATE VIEW primary_coverage AS
+ SELECT c.* FROM coverage_matrix c JOIN primary_studies p USING(study_id);
+CREATE VIEW fkeras_cohort_conditions AS
+ SELECT * FROM reliability_grid WHERE study_kind='distinct_cohort';
+CREATE VIEW engineering_conditions AS
+ SELECT * FROM reliability_grid WHERE study_kind='engineering_whole_kernel';
 CREATE INDEX trial_fields ON trial_observations(study_id,ber,replication,trial,schedule_sha256);
 """
 
@@ -413,7 +432,7 @@ def _insert_restricted(db: sqlite3.Connection, source: dict) -> None:
 def build_database(sources: Path, destination: Path) -> None:
     """Create a new database exclusively; refuse overwrite and verify every source byte."""
     spec=json.loads(Path(sources).read_text())
-    if spec["schema_version"]!=SCHEMA_VERSION:
+    if spec["schema_version"]!=SOURCE_SCHEMA_VERSION:
         raise ValueError("unsupported reliability source schema")
     destination=Path(destination)
     destination.parent.mkdir(parents=True,exist_ok=True)
@@ -432,6 +451,12 @@ def build_database(sources: Path, destination: Path) -> None:
             db.execute("INSERT INTO methods VALUES (?,?,?,?,?,?,?)",(method,name,definition,ordering,calibration,kind,"NOT_IMPLEMENTED" if kind=="not_implemented" else "SOURCE_ONLY" if kind=="source_only" else "IMPLEMENTED_OR_MEASURED"))
         for source in spec["studies"]:
             _insert_study(db,source)
+            if source["id"] in PRIMARY_STUDIES:
+                assert source["kind"] == "whole_kernel", source["id"]
+                assert source["scientific_payload_sha256"] == PRIMARY_STUDIES[source["id"]], source["id"]
+                db.execute("INSERT INTO primary_studies VALUES (?,?)", (source["id"], source["scientific_payload_sha256"]))
+        if any(source["id"] in PRIMARY_STUDIES for source in spec["studies"]):
+            assert db.execute("SELECT count(*) FROM primary_studies").fetchone()[0] == len(PRIMARY_STUDIES), "incomplete primary study receipt"
         for source in spec.get("restricted_studies",[]):
             _insert_restricted(db,source)
         for source in spec.get("excluded_studies",[]):
@@ -462,7 +487,7 @@ def build_database(sources: Path, destination: Path) -> None:
 
 
 def export_csv(database: Path, destination: Path, table: str) -> None:
-    if table not in ("aggregated_conditions","coverage_matrix","trial_observations","restricted_conditions","restricted_trials","restricted_coverage_matrix","planned_model_methods","reliability_grid","restricted_grid"):
+    if table not in ("aggregated_conditions","coverage_matrix","trial_observations","restricted_conditions","restricted_trials","restricted_coverage_matrix","planned_model_methods","reliability_grid","restricted_grid","primary_conditions","primary_coverage","fkeras_cohort_conditions","engineering_conditions"):
         raise ValueError(table)
     with sqlite3.connect(database) as db, Path(destination).open("x",newline="") as out:
         order=("target_id,method_id" if table=="planned_model_methods" else

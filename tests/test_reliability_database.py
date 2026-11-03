@@ -7,7 +7,7 @@ import sqlite3
 import pytest
 
 from netsurf.manifests import digest_object, sha256_file
-from netsurf.reliability_database import _mean_ci, _parse_policy, build_database
+from netsurf.reliability_database import _mean_ci, _parse_policy, build_database, export_csv
 
 
 def _write_csv(path, rows):
@@ -83,3 +83,33 @@ def test_ci_and_policy_mapping():
     assert _parse_policy("msb_global@0.125000",.01)==(.01,"msb_global",.125)
     with pytest.raises(ValueError,match="omitted BER"):
         _parse_policy("msb_global@0.125000")
+
+
+def test_primary_view_is_hash_bound_and_excludes_distinct_cohort(tmp_path, monkeypatch):
+    import netsurf.reliability_database as reliability
+    source,root=_fixture(tmp_path)
+    spec=json.loads(source.read_text())
+    digest=spec["studies"][0]["scientific_payload_sha256"]
+    monkeypatch.setattr(reliability,"PRIMARY_STUDIES",{"tiny":digest})
+    spec["studies"].append({**spec["studies"][0],"id":"tiny_fkeras_cohort","kind":"distinct_cohort"})
+    source.write_text(json.dumps(spec))
+    database=tmp_path/"separate.sqlite"
+    build_database(source,database)
+    with sqlite3.connect(database) as db:
+        assert db.execute("SELECT count(*) FROM primary_conditions").fetchone()[0]==2
+        assert db.execute("SELECT count(*) FROM fkeras_cohort_conditions").fetchone()[0]==2
+        assert db.execute("SELECT count(*) FROM reliability_grid").fetchone()[0]==4
+        assert db.execute("SELECT DISTINCT study_id FROM primary_conditions").fetchone()[0]=="tiny"
+    export_csv(database,tmp_path/"primary.csv","primary_conditions")
+    with (tmp_path/"primary.csv").open() as f:
+        assert {r["study_id"] for r in csv.DictReader(f)}=={"tiny"}
+
+
+def test_primary_payload_mismatch_fails_closed(tmp_path, monkeypatch):
+    import netsurf.reliability_database as reliability
+    source,_=_fixture(tmp_path)
+    monkeypatch.setattr(reliability,"PRIMARY_STUDIES",{"tiny":"0"*64})
+    destination=tmp_path/"bad-primary.sqlite"
+    with pytest.raises(AssertionError):
+        build_database(source,destination)
+    assert not destination.exists()
