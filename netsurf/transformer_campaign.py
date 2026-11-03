@@ -8,6 +8,7 @@ field runs until all three method selections are sealed under one plan.
 from __future__ import annotations
 
 from dataclasses import asdict
+import copy
 import json
 import math
 import os
@@ -47,25 +48,33 @@ SOURCE_FILES = (
     "netsurf/faults.py", "netsurf/protection.py", "netsurf/manifests.py",
     "scripts/run_distilbert_targeted_campaign_once.sh",
 )
+REPLICATION_SOURCE_FILES = (*SOURCE_FILES, "scripts/run_distilbert_replication_once.sh")
 
 
 def validate_targeted_plan(plan: dict) -> str:
     checksum = validate_frozen_plan(plan)
     bits = targeted_classifier_bits()
+    variant = plan.get("protocol_variant")
+    if variant not in (None, "validation-cohort-replication/v1"):
+        raise PlanBlocked("unknown targeted classifier protocol variant")
+    replication = variant is not None
+    selection_count = 256 if replication else 32
+    selection_clips = 262400 if replication else 32800
+    expected_sources = REPLICATION_SOURCE_FILES if replication else SOURCE_FILES
     if (plan["target"] != "distilbert_sst2_fp32" or plan["eligible_bits"] != 1024 or
         plan.get("candidate_bit_keys") != [bit.key() for bit in bits] or
         plan["eligible_population_sha256"] != digest_object(plan["candidate_bit_keys"]) or
         plan["budgets"] != [0, 128, 256, 1024] or
         plan["ber"] != [0.0, 1/1024, 4/1024, 16/1024] or
         plan["methods"] != list(METHODS) or
-        plan["selection"]["sample_count"] != 32 or plan["final"]["sample_count"] != 256 or
+        plan["selection"]["sample_count"] != selection_count or plan["final"]["sample_count"] != 256 or
         plan["final"]["fields"] != 32 or plan.get("max_events_per_field") != 128 or
-        set(plan.get("source_files_sha256", {})) != set(SOURCE_FILES)):
+        set(plan.get("source_files_sha256", {})) != set(expected_sources)):
         raise PlanBlocked("targeted classifier scientific design differs from frozen protocol")
     costs = plan["costs"]
-    if (costs["selection_model_requests"] != 1025 or costs["selection_clip_inferences"] != 32800 or
+    if (costs["selection_model_requests"] != 1025 or costs["selection_clip_inferences"] != selection_clips or
         costs["final_model_requests"] != 769 or costs["final_clip_inferences"] != 196864 or
-        costs["total_model_requests"] != 1794 or costs["total_clip_inferences"] != 229664 or
+        costs["total_model_requests"] != 1794 or costs["total_clip_inferences"] != selection_clips + 196864 or
         costs["final_fields"] != 96 or costs["policies_per_field"] != 8):
         raise PlanBlocked("campaign request/clip costs differ from complete enumeration")
     if (plan["analysis"]["seed"] in {plan["selection"]["seed"], plan["final"]["seed"]} or
@@ -74,8 +83,14 @@ def validate_targeted_plan(plan: dict) -> str:
         plan["analysis"]["multiple_comparison_procedure"] !=
         "Holm family of 12 paired sign-flip comparisons"):
         raise PlanBlocked("analysis family or seeds differ from frozen protocol")
-    if len(set(plan["selection_source_indices"])) != 32 or len(set(plan["final_source_indices"])) != 256:
+    if len(set(plan["selection_source_indices"])) != selection_count or len(set(plan["final_source_indices"])) != 256:
         raise PlanBlocked("selection/final cohort identities changed")
+    if replication and (plan["selection_source_indices"] != list(range(288, 544)) or
+                        plan["final_source_indices"] != list(range(544, 800)) or
+                        plan["selection"]["seed"] != 57101 or
+                        plan["final"]["seed"] != 57301 or
+                        plan["analysis"]["seed"] != 57501):
+        raise PlanBlocked("independent validation replication cohorts or seeds changed")
     return checksum
 
 
@@ -236,6 +251,104 @@ def freeze_distilbert_plan(readiness_path: Path, portfolio_path: Path,
     return plan
 
 
+def freeze_distilbert_replication(readiness_path: Path, portfolio_path: Path,
+                                 engineering_receipt: Path, output: Path,
+                                 snapshot: Path) -> dict:
+    """Freeze a task-matched validation replication before new fault outcomes.
+
+    Validation 288–543 is calibration; 544–799 is independent final evaluation.
+    Both are disjoint from the historical 0–31 engineering and 32–287 final
+    fault-outcome windows. The earlier full clean reference is disclosed.
+    """
+    output, snapshot = Path(output), Path(snapshot)
+    if output.exists() or snapshot.exists():
+        raise FileExistsError("replication plan or READY snapshot already exists")
+    prior_path = Path(__file__).resolve().parents[1] / \
+        "config/experiments/distilbert_sst2_classifier1024_v4.json"
+    prior = json.loads(prior_path.read_text())
+    verify_campaign_ready(prior_path, readiness_path, portfolio_path)
+    asset = load_ready_asset(readiness_path, "distilbert_sst2_fp32", portfolio_path)
+    receipt = read_smoke_receipt(engineering_receipt)
+    if (receipt.get("asset_record_sha256") != asset.record_sha256 or
+        receipt.get("source", {}).get("dirty") or
+        receipt.get("trials", {}).get("full_control", {}).get("risk") != receipt.get("clean")):
+        raise PlanBlocked("committed-source DistilBERT engineering gate is absent")
+    root = Path(__file__).resolve().parents[1]
+    known = {"distilbert_sst2_fp32_conformance_v2",
+             "distilbert_sst2_fp32_conformance_v3",
+             "distilbert_sst2_fp32_conformance_v3_export",
+             "distilbert_sst2_classifier1024_v4_run1",
+             "distilbert_sst2_classifier1024_v4_run1_export"}
+    observed = {path.name for path in (root / "workspace/runs").iterdir()
+                if path.name.startswith("distilbert")}
+    if observed != known:
+        raise PlanBlocked("unknown or missing DistilBERT fault-exposure artifact; audit it first")
+    for version in ("v2", "v3"):
+        payload = json.loads((root / "workspace/runs" /
+            f"distilbert_sst2_fp32_conformance_{version}/payload.json").read_text())
+        if payload.get("engineering_source_indices") != list(range(32)):
+            raise PlanBlocked("historical engineering exposure differs from audit")
+    if prior["final_source_indices"] != list(range(32, 288)) or \
+       len(list((root / "workspace/runs/distilbert_sst2_classifier1024_v4_run1/final")
+                .glob("ber_*/field_*.json"))) != 96:
+        raise PlanBlocked("historical finalized fault-outcome exposure differs from audit")
+    cohorts = read_sst2_cohorts(asset)
+    available = {row.source_index: row for row in cohorts["evaluation"]}
+    try:
+        selection = tuple(available[i] for i in range(288, 544))
+        evaluation = tuple(available[i] for i in range(544, 800))
+    except KeyError as error:
+        raise PlanBlocked("proposed validation window is unavailable") from error
+    all_indices = {name: [row.source_index for row in rows] for name, rows in cohorts.items()}
+    all_hashes = {name: _cohort_hash(rows,
+        "train" if name in ("calibration", "selection") else "validation")
+        for name, rows in cohorts.items()}
+    plan = copy.deepcopy(prior)
+    plan.pop("plan_sha256")
+    plan.update({"protocol_variant": "validation-cohort-replication/v1",
+        "scope": "same first 32 FP32 classifier words; independent validation calibration/final",
+        "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"],
+            cwd=root, text=True).strip(),
+        "source_files_sha256": {name: sha256_file(root / name) for name in REPLICATION_SOURCE_FILES},
+        "portfolio_sha256": sha256_file(portfolio_path),
+        "asset_manifest_sha256": asset.manifest_sha256,
+        "asset_record_sha256": asset.record_sha256,
+        "clean_reference_report_sha256": asset.record["clean_report_sha256"],
+        "engineering_receipt_manifest_sha256": sha256_file(Path(engineering_receipt) / "manifest.json"),
+        "cohort_source_indices": all_indices, "cohort_records_sha256": all_hashes,
+        "selection_source_indices": list(range(288, 544)),
+        "final_source_indices": list(range(544, 800)),
+        "selection_records_sha256": _cohort_hash(selection, "validation"),
+        "final_records_sha256": _cohort_hash(evaluation, "validation"),
+        "exposure_note": "Kona clean reference saw all 872 validation records. NetSuRF prior fault outcomes used 0–31 and 32–287. New calibration is 288–543; final is 544–799; 800–871 remains unconsumed. Other out-of-root experiments remain a disclosure obligation."})
+    plan["partitions_sha256"] = digest_object({
+        "cohort_source_indices": all_indices,
+        "cohort_records_sha256": all_hashes,
+        "selection": plan["selection_source_indices"],
+        "final": plan["final_source_indices"],
+        "selection_records_sha256": plan["selection_records_sha256"],
+        "final_records_sha256": plan["final_records_sha256"]})
+    plan["selection"].update({"seed": 57101, "sample_count": 256})
+    plan["final"].update({"seed": 57301,
+        "schedule_seed_rule": "57301 + 100000*BER_arm + field_index"})
+    plan["analysis"].update({"seed": 57501,
+        "hypothesis_family": "Primary: significance versus exact isolated at BER 16/1024 and budgets 128 and 256, two-sided Holm across two. All twelve original-style field contrasts are reported with Holm across twelve as secondary sensitivity.",
+        "same_fixed_evaluation_clips_across_arms": True})
+    plan["costs"].update({"selection_clip_inferences": 262400,
+        "total_clip_inferences": 459264,
+        "estimated_wall_hours_from_engineering_throughput": 11.72})
+    plan["plan_sha256"] = digest_object(plan)
+    validate_targeted_plan(plan)
+    snapshot.parent.mkdir(parents=True, exist_ok=True)
+    with snapshot.open("xb") as stream:
+        stream.write(Path(readiness_path).read_bytes())
+        stream.flush(); os.fsync(stream.fileno())
+    if sha256_file(snapshot) != plan["asset_manifest_sha256"]:
+        raise PlanBlocked("replication READY snapshot changed during freeze")
+    _write_json(output, plan)
+    return plan
+
+
 def _cohort_hash(rows, split: str) -> str:
     return sst2_records_digest(tuple(Sst2Row(split, r.source_index, r.text, r.label) for r in rows))
 
@@ -277,11 +390,19 @@ def _prepare(plan_path: Path, readiness_path: Path, portfolio_path: Path):
     if all_cohort_hashes != plan["cohort_records_sha256"] or \
        all_cohort_indices != plan["cohort_source_indices"]:
         raise PlanBlocked("Kona cohort identities differ from frozen plan")
-    selection = cohorts["selection"][:plan["selection"]["sample_count"]]
-    evaluation = cohorts["evaluation"][:plan["final"]["sample_count"]]
+    if plan.get("protocol_variant") == "validation-cohort-replication/v1":
+        available = {row.source_index: row for row in cohorts["evaluation"]}
+        try:
+            selection = tuple(available[index] for index in plan["selection_source_indices"])
+            evaluation = tuple(available[index] for index in plan["final_source_indices"])
+        except KeyError as error:
+            raise PlanBlocked("replication validation row is absent from READY data") from error
+    else:
+        selection = cohorts["selection"][:plan["selection"]["sample_count"]]
+        evaluation = cohorts["evaluation"][:plan["final"]["sample_count"]]
     if [row.source_index for row in selection] != plan["selection_source_indices"] or \
        [row.source_index for row in evaluation] != plan["final_source_indices"] or \
-       _cohort_hash(selection, "train") != plan["selection_records_sha256"] or \
+       _cohort_hash(selection, "validation" if plan.get("protocol_variant") else "train") != plan["selection_records_sha256"] or \
        _cohort_hash(evaluation, "validation") != plan["final_records_sha256"]:
         raise PlanBlocked("fault-exposure input identities differ from plan")
     if plan["partitions_sha256"] != digest_object({
@@ -515,9 +636,20 @@ def aggregate(plan_path: Path, run_root: Path) -> dict:
     for rank, index in enumerate(order):
         cumulative = max(cumulative, min(1.0, (len(tests) - rank) * tests[index]["p_unadjusted_signflip"]))
         tests[index]["p_holm_family12"] = cumulative
+    if plan.get("protocol_variant") == "validation-cohort-replication/v1":
+        primary = [item for item in tests if item["ber"] == 16/1024 and
+                   item["comparison"] == "exact_isolated_vs_significance"]
+        if len(primary) != 2 or {item["budget"] for item in primary} != {128, 256}:
+            raise PlanBlocked("prespecified two-comparison primary family is absent")
+        running = 0.0
+        for rank, item in enumerate(sorted(primary, key=lambda value: value["p_unadjusted_signflip"])):
+            running = max(running, min(1.0, (2 - rank) * item["p_unadjusted_signflip"]))
+            item["p_holm_primary2"] = running
     report = _bound({"schema_version": "transformer-targeted-analysis/v1",
         "plan_sha256": plan["plan_sha256"], "clean": clean["risk"], "rows": rows,
-        "comparisons": tests, "scope": "targeted classifier 1,024-bit support; fault fields are independent units",
+        "comparisons": tests, "scope": ("independent validation-cohort replication; same targeted classifier 1,024-bit support; fault fields are independent units"
+                                      if plan.get("protocol_variant") else
+                                      "targeted classifier 1,024-bit support; fault fields are independent units"),
         "uncertainty": "percentile bootstrap over 32 fields; sign-flip assumes symmetric null; fixed inputs do not estimate corpus-sampling uncertainty"})
     output = root / "analysis.json"
     if output.exists():

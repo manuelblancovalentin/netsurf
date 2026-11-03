@@ -12,7 +12,7 @@ from netsurf.manifests import digest_object, sha256_file
 from netsurf.torch_storage import expected_faults, sparse_bernoulli_schedule
 from netsurf.transformer_campaign import (_bound, _member_path, _policy_masks,
     _selection_artifact, _write_json, aggregate, targeted_classifier_bits, SOURCE_FILES,
-    verify_campaign_ready)
+    REPLICATION_SOURCE_FILES, validate_targeted_plan, verify_campaign_ready)
 from netsurf.transformer_plan import PlanBlocked, seal_selection
 
 
@@ -99,6 +99,26 @@ def test_aggregate_cli_prints_summary_not_analysis(tmp_path, monkeypatch, capsys
     assert output["status"] == "ANALYSIS_VERIFIED"
     assert output["rows"] == output["comparisons"] == 1
     assert "large_detail" not in output
+
+
+def test_replication_plan_locks_fresh_validation_windows_and_seeds():
+    root = Path(__file__).resolve().parents[1]
+    plan = json.loads((root / "config/experiments/distilbert_sst2_classifier1024_v4.json").read_text())
+    plan["protocol_variant"] = "validation-cohort-replication/v1"
+    plan["source_files_sha256"] = {name: sha256_file(root / name) for name in REPLICATION_SOURCE_FILES}
+    plan["selection_source_indices"] = list(range(288, 544))
+    plan["final_source_indices"] = list(range(544, 800))
+    plan["selection"].update({"seed": 57101, "sample_count": 256})
+    plan["final"]["seed"] = 57301
+    plan["analysis"]["seed"] = 57501
+    plan["costs"]["selection_clip_inferences"] = 262400
+    plan["costs"]["total_clip_inferences"] = 459264
+    plan["plan_sha256"] = digest_object({k: v for k, v in plan.items() if k != "plan_sha256"})
+    assert validate_targeted_plan(plan) == plan["plan_sha256"]
+    plan["final_source_indices"][-1] = 800
+    plan["plan_sha256"] = digest_object({k: v for k, v in plan.items() if k != "plan_sha256"})
+    with pytest.raises(PlanBlocked, match="replication cohorts"):
+        validate_targeted_plan(plan)
 
 
 def test_offline_aggregation_replays_every_field_and_rejects_changed_schedule(tmp_path):

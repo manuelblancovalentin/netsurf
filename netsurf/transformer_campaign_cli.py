@@ -10,7 +10,8 @@ from pathlib import Path
 import zipfile
 
 from .manifests import canonical_json_bytes, sha256_file
-from .transformer_campaign import (aggregate, freeze_distilbert_plan, run_final,
+from .transformer_campaign import (aggregate, freeze_distilbert_plan,
+                                   freeze_distilbert_replication, run_final,
                                    run_selection, validate_targeted_plan, verify_campaign_ready,
                                    verify_campaign_source)
 
@@ -19,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PORTFOLIO = ROOT / "config/benchmark_expansion_registry.json"
 
 
-def _figure(rows: list[dict], horizontal: str) -> str:
+def _figure(rows: list[dict], horizontal: str, *, title: str = "DistilBERT targeted 1,024-bit study: mean cross-entropy") -> str:
     """A dependency-free, labeled engineering figure; CE axes never mix tasks."""
     x_values = sorted({row[horizontal] for row in rows})
     y_values = [row["mean_nll"] for row in rows]
@@ -30,7 +31,7 @@ def _figure(rows: list[dict], horizontal: str) -> str:
     colors = ("#4978b5", "#a65a2a", "#278453")
     lines = ['<svg xmlns="http://www.w3.org/2000/svg" width="780" height="450" viewBox="0 0 780 450">',
              '<rect width="780" height="450" fill="white"/>',
-             '<text x="35" y="25" font-size="17">DistilBERT targeted 1,024-bit study: mean cross-entropy</text>',
+             f'<text x="35" y="25" font-size="17">{title}</text>',
              '<path d="M70 40V370H730" fill="none" stroke="black"/>',
              f'<text x="350" y="430" font-size="14">{horizontal} (BER is per eligible stored bit)</text>',
              '<text x="5" y="45" font-size="13">nats</text>']
@@ -80,8 +81,11 @@ def export(plan_path: Path, readiness_path: Path, run_root: Path, *, scp_host: s
     writer = csv.DictWriter(stream, fieldnames=("ber", "budget", "method", "expected_applied_faults", "mean_nll", "accuracy", "failed_clip_fraction"))
     writer.writeheader(); writer.writerows(report["rows"])
     (stage / "table.csv").write_text(stream.getvalue())
-    (stage / "ber_loss.svg").write_text(_figure(report["rows"], "ber"))
-    (stage / "budget_loss.svg").write_text(_figure(report["rows"], "budget"))
+    title = ("DistilBERT validation replication: mean cross-entropy"
+             if plan.get("protocol_variant") else
+             "DistilBERT targeted 1,024-bit study: mean cross-entropy")
+    (stage / "ber_loss.svg").write_text(_figure(report["rows"], "ber", title=title))
+    (stage / "budget_loss.svg").write_text(_figure(report["rows"], "budget", title=title))
     (stage / "summary.json").write_bytes(canonical_json_bytes({
         "schema_version": "transformer-targeted-summary/v1",
         "plan_sha256": plan["plan_sha256"], "clean": report["clean"],
@@ -114,7 +118,7 @@ def export(plan_path: Path, readiness_path: Path, run_root: Path, *, scp_host: s
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("phase", choices=("freeze", "validate", "selection", "final", "aggregate", "export"))
+    parser.add_argument("phase", choices=("freeze", "freeze-replication", "validate", "selection", "final", "aggregate", "export"))
     parser.add_argument("plan", type=Path)
     parser.add_argument("readiness", type=Path)
     parser.add_argument("run_root", type=Path)
@@ -125,6 +129,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.engineering_receipt is None:
             parser.error("freeze requires --engineering-receipt")
         plan = freeze_distilbert_plan(args.readiness, PORTFOLIO,
+            args.engineering_receipt, args.plan, args.run_root)
+        result = {"status": "FROZEN", "plan_sha256": plan["plan_sha256"],
+                  "request_counts": plan["costs"]}
+    elif args.phase == "freeze-replication":
+        if args.engineering_receipt is None:
+            parser.error("freeze-replication requires --engineering-receipt")
+        plan = freeze_distilbert_replication(args.readiness, PORTFOLIO,
             args.engineering_receipt, args.plan, args.run_root)
         result = {"status": "FROZEN", "plan_sha256": plan["plan_sha256"],
                   "request_counts": plan["costs"]}
