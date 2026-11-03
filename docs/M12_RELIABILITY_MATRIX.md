@@ -56,9 +56,12 @@ MSB-first masks; 6.25% and 18.75% are the distinguishing budgets. The KWS
 continuous Hessian implementation passed the existing finite-difference test
 and a new 16-calibration-clip preflight: 22,016 weights, two eigenpairs,
 25 HVPs, normalized residuals 3.25e-16 and 6.71e-13, 1.06 s after adapter
-construction, 28.28 s total process wall time, 513 MiB peak RSS. This does
-**not** establish the full 1,000-clip cost or convergence; measure that before
-a large matched run. The implementation is KWS-only. ResNet-8's straight-through surrogate is
+construction, 28.28 s total process wall time, 513 MiB peak RSS. A second
+bounded preflight used the **planned 64 ranking clips**: 25 HVPs, residuals
+3.21e-16 and 3.88e-16, 1.18 s after construction, 29.66 s whole process,
+765 MiB peak RSS. This establishes bounded eigensolver feasibility, not the
+full matched-protection runtime or effectiveness. The implementation is KWS-only.
+ResNet-8's straight-through surrogate is
 not a validated continuous Hessian of the integer reference; ToyCar's file AUC
 is not the differentiable reconstruction-MSE surrogate. Neither is presently
 FKeras-ready. Do not configure a fabricated FKeras mask for them.
@@ -80,6 +83,13 @@ final fields. ToyCar is incompatible with the source class-change metric unless
 a separately named, justified AUC-specific adaptation is prespecified.
 The full ASPLOS paper was not available from this environment; source behavior
 is verified, but exact paper/source correspondence remains an audit limitation.
+The source-style complete calibration requires at least 176,128 isolated KWS
+bit evaluations or 618,880 ResNet-8 evaluations, before any held-out fault
+fields. Naively multiplying the historical coordinator-time/evaluation ratios
+gives approximately 37 h and 24 days respectively; these are rough capacity
+warnings, not validated throughput predictions, and source-model differences
+may dominate. A truncated prioritization trace is **not** a full-universe
+protection ranking under the documented adaptation.
 
 ## Resource and execution boundary
 
@@ -96,9 +106,9 @@ host-resource check and researcher approval while the two M11 runs are active.
 No new publication campaign was launched by this M12 work. At the M12 check,
 the two M11 workers were each consuming approximately one CPU core and
 0.7–0.8 GiB RSS; the host reported 425 GiB available RAM and 17 TiB free on
-`/projects`. Storage capacity is not the immediate limit, but full-cohort
-FKeras calibration time and simultaneous CPU contention remain unmeasured
-for the proposed production run.
+`/projects`. Storage capacity is not the immediate limit. The 64-clip FKeras
+eigensolve itself is measured above; simultaneous CPU contention, repeated
+worker setup and complete matched-run elapsed time remain unmeasured.
 
 Run the v3 read-only builder with the existing canonical interpreter:
 
@@ -138,7 +148,7 @@ For a frozen, unexecuted matched plan, use a foreground dry-run first:
   --output workspace/m12_kws_followup
 ```
 
-Only after researcher approval of the live host-resource and full-calibration
+Only after researcher approval of the live host-resource and planned campaign
 cost, repeat with `--execute` in tmux. That command verifies plan hashes and
 assets, runs the canonical CLI in the foreground, verifies its finalized
 bundle, makes a new source receipt and v3 database, then exports ZIPs and
@@ -146,8 +156,8 @@ Mac download commands. It never overwrites a prior finalized run. No
 production run has been invoked here.
 
 The next authorized experimental step is **not** to run all three plans at
-once. First measure KWS full-cohort FKeras eigensolver cost and convergence on
-prespecified calibration inputs; then approve a bounded, paired partial-tier
+once. The KWS 64-clip FKeras eigensolver preflight has converged; next approve
+a bounded, paired partial-tier
 campaign with distinct final field seeds. Transformer plans must wait for
 NetSuRF adapter conformance, exact eligible-bit maps, restoration, task-risk
 and resource gates. PrioriFI must wait for an explicit feasible full-universe

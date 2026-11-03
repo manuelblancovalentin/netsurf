@@ -58,7 +58,7 @@ def execute(receipt_path: Path, name: str, sources: Path, assets: Path,
              "policy_budget_evaluations":plan["policy_budget_evaluations"],
              "rough_elapsed_hours":plan["rough_elapsed_hours_from_source_ratio"],
              "rough_output_gib":estimate,"disk_free_gib":round(free_gib,2),
-             "warning":"Full-cohort FKeras, contention and setup are not included in rough time/disk estimates."}
+             "warning":"The 64-clip KWS FKeras eigensolve passed a bounded preflight; contention, repeated setup and campaign ranking are not captured by the rough time/disk ratio."}
     if not run:
         return {**summary,"status":"PREFLIGHT_ONLY_NOT_EXECUTED"}
     if not output.exists():
