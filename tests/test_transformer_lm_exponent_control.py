@@ -1,10 +1,15 @@
 """Model-free exponent-control state and schedule checks."""
 import copy
+from contextlib import contextmanager
+import math
 import pytest
 
+from netsurf.faults import InjectionReport
 from netsurf.identities import BitIdentity
 from netsurf.torch_storage import sparse_bernoulli_schedule
 from netsurf.transformer_lm_exponent_control import BERS, SEED_BASE, _policies, _verify_field
+from netsurf.transformer_risk import TaskRisk
+import netsurf.transformer_lm_exponent_control as control
 
 
 class Panel:
@@ -70,3 +75,50 @@ def test_all_sealed_policies_preserve_panel_budget():
         assert len(mask.protected) == mask.budget
         if name.endswith("b12"): assert mask.budget == 12
         if name.endswith("b24"): assert mask.budget == 24
+
+
+def test_synthetic_fresh_field_family_and_offline_analysis(tmp_path, monkeypatch):
+    bits = Panel.bits
+    names = ("random", "significance", "exponent_first", "exact_isolated")
+    masks = {f"{name}_b{budget}": [bit.key() for bit in bits[:budget]]
+             for name in names for budget in (12, 24)}
+    plan = {"plan_sha256": "a" * 64, "target": "synthetic", "candidate_bits": [bit.key() for bit in bits],
+            "masks": masks, "status_limit": "synthetic control"}
+    class FakeAdapter:
+        storage = Panel()
+        active = None
+
+        @contextmanager
+        def injected(self, schedule, mask):
+            self.active = (schedule, mask)
+            applied = sum(event.bit not in mask.protected for event in schedule.events)
+            try:
+                yield InjectionReport(schedule.digest(), len(schedule.events), applied,
+                                      len(schedule.events) - applied, applied)
+            finally:
+                self.active = None
+
+        def evaluate_language_model(self, ids, *, context, stride):
+            value = 1.0 if self.active is None else 1.0 + .01 * sum(
+                event.bit not in self.active[1].protected for event in self.active[0].events)
+            return TaskRisk(value, None, math.exp(value), 0, 256,
+                            tuple([(0.0, value)] * 256), tuple([None] * 256),
+                            "target_logit_and_logsumexp")
+    adapter = FakeAdapter()
+    monkeypatch.setattr(control, "validate", lambda *args: (plan, adapter, [0] * 257, bits))
+    monkeypatch.setattr(control, "_static_plan", lambda *args: plan)
+    root = tmp_path / "run"
+    assert control.run_final(tmp_path / "plan", tmp_path / "pilot.zip",
+                             tmp_path / "ready.json", tmp_path / "registry.json", root) == {
+                                 "completed": 64, "expected": 64}
+    report = control.aggregate(tmp_path / "plan", root)
+    assert len(report["rows"]) == 20
+    assert len(report["comparisons"]) == 12
+    assert len([x for x in report["comparisons"] if "p_holm_primary2" in x]) == 2
+    assert adapter.active is None
+    assert control.run_final(tmp_path / "plan", tmp_path / "pilot.zip",
+                             tmp_path / "ready.json", tmp_path / "registry.json", root)["completed"] == 64
+    (root / "ber_01/field_000.json").unlink()
+    with pytest.raises(ValueError, match="partial final"):
+        control.run_final(tmp_path / "plan", tmp_path / "pilot.zip",
+                          tmp_path / "ready.json", tmp_path / "registry.json", root)
