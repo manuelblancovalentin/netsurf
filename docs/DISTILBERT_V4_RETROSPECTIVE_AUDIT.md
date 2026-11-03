@@ -2,6 +2,10 @@
 
 This note audits the finalized `distilbert_sst2_classifier1024_v4_run1` evidence. It is retrospective. It does not change the frozen plan, selected masks, final records, or original analysis. The fault population is exactly the first 32 FP32 `classifier.weight` words, or 1,024 encoded bits. It is not full-model coverage.
 
+## Recovered export provenance gate
+
+The export failure was caused by a global READY-manifest byte comparison. The v4 plan froze manifest SHA-256 `124de29e1f918bc3acc0153124dbfdf111f3b79984135a21652f7e89e222fc22`, while the later Kona manifest is `3192d3ce57b7a11089af4c1e0f802e851ebc8b179fd823a793fecf333313db35`. At the top level, Kona added `consumable_runtime_configurations`, `runtime_configuration_summary` and `runtime_configurations`, and updated `summary` (`PREPARED_AWAITING_APPROVAL`, `READY`) and `targets`. Within `targets`, only `pythia160m_bf16` and `qwen3_0_6b_bf16` changed. The former changed `blockers`, `consumable_configuration`, `environment`, `failed_configuration`, `model`, `note`, `precision`, `reference_results`, `resources` and `status`; the latter changed `blockers`, `comparison_first_32_windows`, `environment`, `model`, `reference_results`, `resources`, `runtime_configuration` and `status`. The DistilBERT target record is byte-equivalent as a JSON object in both snapshots: raw target SHA-256 `989fee0624a92f798511a029fc8917744dcb182cb8dd1801640594fc8dc0d504`. Thus its checkpoint, tokenizer, labeled dataset, interpreter, numerical backend and clean-reference identities did not change. The source correction at commit `b71b5fc` requires the original frozen snapshot and revalidates the complete target-specific scientific identity and live referenced bytes, while allowing unrelated global manifest growth. Regression tests reject changes to the relevant target. Export reused the completed selection, all 96 final fields and saved analysis; no v4 scientific inference was repeated.
+
 ## Provenance and completeness
 
 | Item | Verified identity |
