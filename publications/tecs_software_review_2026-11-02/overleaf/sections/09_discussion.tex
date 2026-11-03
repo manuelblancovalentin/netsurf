@@ -37,13 +37,17 @@ multi-fault allocation. Bounded conditional experiments address that distinction
 locally; their uncertain and small gains against isolated allocation do not
 justify claiming an effective general optimizer.
 
-Transfer to other model families remains an empirical question. A separate
-FP32 sentiment-classification backend has passed bounded
-stored-bit and restoration checks, but engineering conformance is not evidence
-of protection effectiveness. Language-model expansion also requires separating
+Transfer to other model families remains an empirical question. The targeted
+FP32 result in Section~\ref{sec:distilbert} concerns 32 classifier weights,
+not representative transformer layers or whole-model reliability. Its isolated
+calibration and final evaluation differ in both sample count and training
+exposure. An intervention that holds calibration fixed while varying background
+faults, and separately holds the fault law fixed while varying calibration,
+would be needed to distinguish those explanations. A completed targeted
+comparison does not supply either causal test. Language-model expansion also requires separating
 the faulted storage format from the arithmetic used for inference: BF16-stored
 weights widened into FP32 computation do not constitute native BF16 inference.
-Neither path contributes protection curves to the present results. Future
+No language-model protection result is included here. Future
 comparisons must declare their eligible populations and expected fault counts,
 retain nonfinite outcomes, and keep perplexity separate from classification
 accuracy and anomaly-detection AUC.

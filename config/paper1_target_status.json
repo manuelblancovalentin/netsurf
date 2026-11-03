@@ -302,12 +302,14 @@
       "eligible_bits": 1377878016,
       "campaign_eligible_bits": 1024,
       "model_sha256": "7c3919835e442510166d267fe7cbe847e0c51cd26d9ba07b89a57b952b49b8aa",
-      "status": "RUNNING_ENGINEERING_VERIFIED",
+      "status": "VERIFIED_TARGETED_FP32_ONLY",
       "implementation_commit": "2ca15ac",
       "protection_experiment": "distilbert_sst2_classifier1024_v4_run1",
-      "evidence": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_fp32_conformance_v3/manifest.json",
+      "evidence": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_classifier1024_v4_run1_export/complete.zip",
+      "archive_sha256": "9df099fa58b125315aa68ec528cb3ee71bbe00c7f7c33744e3f1f274849259a4",
+      "analysis_payload_sha256": "1abf4fe3e5901b432dc37578298e0dfda80367d598169aeaace3990ee3d68a7e",
       "engineering_payload_sha256": "62a379160e207fb9041451e28b9e6d76ae44646ae4291cfa4e8e95c2afc877cf",
-      "blocker": "Frozen targeted-classifier campaign was running at the 2 November status check. No finalized protection effectiveness result incorporated. Full inspectable population and 1024-bit campaign fault support are distinct.",
+      "blocker": "Targeted 1024-bit classifier study finalized and independently audited offline. This does not validate whole-transformer protection or representative fault-population generalization; calibration uses 32 model-training examples. No adaptive-search effectiveness evidence incorporated.",
       "validation_command": "/projects/kona-assets/manuelbv/envs/torch-2.9.1-cpu-py311/bin/python -m netsurf.transformer_campaign_cli --help"
     },
     {

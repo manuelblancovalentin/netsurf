@@ -17,8 +17,11 @@ calling it a diagonal estimator that cannot contain interactions is wrong.
 The printed projection is `sum_i lambda_i (v_i^T theta) v_i`. NetSuRF preserves
 this signed expression and uses its magnitude for ordering. The pinned `sum`
 implementation effectively accumulates `sum_i abs(lambda_i^2 (v_i^T theta) v_i)`:
-both the extra eigenvalue and absolute-before-sum matter. Neither variant is
-selected for favorable outcomes. The validated solver is a numerical correction,
+both the extra eigenvalue and absolute-before-sum matter. For the current paper,
+the published projection is the **sole FKeras baseline**, selected because it
+is the cited method, not because of an observed outcome. Historical source-form
+audits and bundles remain unchanged; their dispute is not a claimed contribution.
+The validated solver is a numerical correction,
 not a faithful reproduction of the historical power-iteration defects.
 
 **NetSuRF distinction:** exact deployed-code risk versus a continuous companion

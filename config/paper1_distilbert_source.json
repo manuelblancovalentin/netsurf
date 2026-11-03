@@ -1,0 +1,11 @@
+{
+  "schema_version": "manuscript-source/v1",
+  "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_classifier1024_v4_run1_export",
+  "complete_sha256": "9df099fa58b125315aa68ec528cb3ee71bbe00c7f7c33744e3f1f274849259a4",
+  "compact_sha256": "f677ce2cf0f0da5eaa33cbc14aaa1def52cca24055106da55520e51d80a72529",
+  "checksums_sha256": "191763339cc9d5ab6ce1606e467433ba26d23a7c4b955ae41d9c2c9ab00fb198",
+  "plan_sha256": "735ad6e8531628059bf891075e37885026b220a586bc2d0dc640e507238dc7d7",
+  "analysis_payload_sha256": "1abf4fe3e5901b432dc37578298e0dfda80367d598169aeaace3990ee3d68a7e",
+  "ready_snapshot_sha256": "124de29e1f918bc3acc0153124dbfdf111f3b79984135a21652f7e89e222fc22",
+  "scope": "First 32 classifier.weight FP32 words; 1024 bits; not whole-model protection"
+}

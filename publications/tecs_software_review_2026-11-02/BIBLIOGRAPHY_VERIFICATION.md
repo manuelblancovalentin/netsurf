@@ -28,3 +28,26 @@ validation result. The source audit retains its equations and discrepancies.
 No physical implementation outcome from another paper is transferred into a
 NetSuRF v2 result. The special ECC dataset's long title is intentional to avoid
 misidentifying the release as a published journal article.
+# Published-FKeras / targeted-FP32 revision — 2 November 2026
+
+The main manuscript now cites exactly one FKeras method: Eq. (3) and the
+MSB-tier-first ordering in §3.1/Fig. 1 of the published method. Checked against
+the [author-hosted paper](https://kastner.ucsd.edu/wp-content/uploads/2024/05/admin/jats24-fkeras.pdf).
+The software snapshot citation documents implementation assumptions; it is not
+an alternative experimental definition in the main paper. Historical audits
+below and original bundles remain available, not rewritten as if they never existed.
+
+Two identity references added for the targeted case study:
+
+- `sanh2019distilbert`: [arXiv:1910.01108](https://arxiv.org/abs/1910.01108),
+  Victor Sanh, Lysandre Debut, Julien Chaumond and Thomas Wolf; 2019, revised
+  v4 in 2020. The source states acceptance at the NeurIPS 2019 EMC2 workshop;
+  the cited object is the arXiv version, not a journal article.
+- `socher2013sst`: [ACL Anthology D13-1170](https://aclanthology.org/D13-1170/),
+  Socher et al., EMNLP 2013, pp. 1631–1642. Authors/title/pages verified from the
+  publisher's metadata. No DOI was invented. The frozen SST-2 data revision and
+  model checkpoint are separately hash-bound in the archived experiment.
+
+Zotero local API was unavailable; no library configuration was changed. These
+entries use primary-source metadata. The bibliography now has 15 unique cited
+entries. Novelty statements and publication-status qualifications remain unchanged.

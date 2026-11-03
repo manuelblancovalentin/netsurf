@@ -11,7 +11,8 @@ Branch: `paper1-expanded-benchmarks`, based on manuscript commit
 expanded-architecture acceptance gate is INCOMPLETE.** One exposed streaming
 fixture now has an executed, repeatable protection comparison. The attempted
 VWW gate fails explicitly on image provenance. No verified local transformer
-checkpoint/data/backend combination was found. Neither blocked probes nor
+checkpoint/data/backend combination was found in the initial audit; that finding
+is superseded by the finalized targeted DistilBERT archive described below. Neither blocked probes nor
 source metadata are counted as completed benchmark experiments.
 
 The authoritative 18-target status ledger is
@@ -34,7 +35,7 @@ This branch does not transplant those engines.
 | ResNet-18 FP32 / INT8 | Capability/prerequisite records only | ImageNet terms/data, model, exact backend; INT8 recipe |
 | MobileNetV3-small FP32 / INT8 | Records only | Same; Imagenette is not ImageNet-1k |
 | ViT-Base FP32 / INT8 | Records only | Same plus attention execution/storage conformance |
-| DistilBERT SST-2 FP32 / INT8 | Records only | Weights/tokenizer/labeled data and approved backend; INT8 recipe |
+| DistilBERT SST-2 FP32 / INT8 | Finalized FP32 classifier-subset comparison; no INT8 result | Full-model or representative-population protection and INT8 recipe remain unverified |
 | Pythia-160M BF16 / INT8 | Records only | Source metadata is FP16, not BF16; corpus, conversion and storage validation |
 | Qwen3-0.6B BF16 / INT8 / INT4 | Records only | Assets/corpus/backend; explicit INT8/INT4 packing and conversion |
 
@@ -48,15 +49,17 @@ paired summaries were independently recomputed; no inference or mask was rerun.
 
 This is 128 evaluation clips, 32 calibration clips, one ranking realization,
 32 paired fault fields per BER, three BERs and four budgets. It is **not**
-the 1000-clip primary KWS cohort. The new six-panel figure retains all its
-methods, budgets and BERs. At BER .01 and 6.25%, paper-form FKeras minus MSB
+the 1000-clip primary KWS cohort. The current six-panel figure retains all
+budgets and BERs, with one published-form FKeras series and the four other
+baseline methods. The historical implementation-variant series is preserved
+in the original bundle, not used as a second manuscript baseline. At BER .01 and 6.25%, FKeras minus MSB
 is +8.374 percentage points (field-t interval +3.337 to +13.411; source
 within-BER Holm p=.04590). At 18.75% it is +0.049 points with an interval
-crossing zero. Paper/repository differences do not establish one formula's
-superiority after the recorded multiplicity correction. At complete tiers,
-their masks and outcomes equal MSB exactly.
+crossing zero. The full original multiplicity family is retained. At complete
+tiers, its masks and outcomes equal MSB exactly.
 
-The printed score is the absolute projected Hessian vector; the repository sum
+For archival audit only (not the main manuscript comparison): the printed score
+is the absolute projected Hessian vector; the repository sum
 is the sum of componentwise absolute squared-eigenvalue contributions, not
 simply an extra eigenvalue outside an otherwise unchanged formula. The same
 signed-eigenvalue convention, continuous companion, tier-first policy and
@@ -196,17 +199,25 @@ inference or download is hidden inside the manuscript build.
 
 ## Asset and dependency boundary
 
-**Superseding update, 2 November 2026:** DistilBERT FP32/SST-2 passed the
-separate engineering gate and its frozen targeted-classifier campaign is now
-running in `transformer-integration` at commit `2ca15ac`. That worktree and
-its running processes were not modified. The earlier acquisition/install
+**Superseding completed-evidence update, 2 November 2026:** DistilBERT
+FP32/SST-2 completed its frozen targeted-classifier campaign. The original
+READY snapshot, plan, sealed masks, 96 paired fields and 768 policy outcomes
+in `distilbert_sst2_classifier1024_v4_run1_export/complete.zip` passed the
+independent offline manuscript audit. Source plan commit is `b063b277`;
+archive SHA-256 is `9df099fa58b125315aa68ec528cb3ee71bbe00c7f7c33744e3f1f274849259a4`.
+No current global-readiness rewrite is used to redefine this historical study.
+That worktree and its processes were not modified. The earlier acquisition/install
 suggestions below are historical and must **not** be run now. The installed
 approved interpreter is
 `/projects/kona-assets/manuelbv/envs/torch-2.9.1-cpu-py311/bin/python`.
 Engineering payload
 `62a379160e207fb9041451e28b9e6d76ae44646ae4291cfa4e8e95c2afc877cf`
-was reverified from finalized files. No running campaign measurements were
-read into figures or treated as publication effectiveness evidence.
+was previously reverified from finalized files. The newly verified protection
+evidence is confined to 1,024 bits in 32 classifier weights, 256 examples and
+32 fields per nonzero BER. All original 12 paired capped-loss comparisons were
+recomputed, and every outcome was checked against archived logits and locked
+labels. This is not a whole-transformer effectiveness result. Detailed audit:
+`publications/tecs_software_review_2026-11-02/REVISION_FKERAS_DISTILBERT.md`.
 
 The Pythia-derived BF16 checkpoint exists, with three distinct numerical paths:
 upstream FP32/FP32; derived BF16 storage/FP32 computation; and native BF16.
@@ -222,9 +233,8 @@ it is not the older post-trained Qwen checkpoint in the portfolio.
 
 The 18-target ledger retains the historical source pins, adds distinct runtime
 variant status and does not silently relabel a model or precision. The immutable
-prior ZIP remains unchanged. Current manuscript figures still use only
-finalized TinyML effectiveness evidence; the transformer conformance boundary
-is stated in the discussion. The integrated completion gate remains incomplete.
+prior ZIP remains unchanged. Current INT8 curves remain separate from the
+targeted FP32 effect table. The integrated completion gate remains incomplete.
 
 ### Earlier acquisition audit now superseded for DistilBERT and Pythia
 
@@ -279,7 +289,7 @@ No target is silently replaced with another precision or smaller dataset.
 2. Researcher executes the frozen common grids; inspect **all** conditions,
    paired effects, catastrophic trials and ranking/evaluation cost. Do not
    cherry-pick methods or retroactively narrow the multiplicity family.
-3. Verify and incorporate the already-running DistilBERT campaign only after
+3. Preserve the verified targeted DistilBERT case study; add any further study only after
    finalization. Await the separate Pythia mixed-precision READY record and
    real conformance before freezing a language-model campaign. If unresolved
    on 9 November, report the gate incomplete rather than invent results.

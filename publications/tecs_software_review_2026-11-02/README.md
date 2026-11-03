@@ -11,6 +11,8 @@ The historical draft and scientific bundles remain unchanged.
 
 ## Read and build
 
+- `REVISION_FKERAS_DISTILBERT.md`: current November 9 revision, single published
+  FKeras baseline, finalized targeted FP32 evidence, integrity checks and limits.
 - `overleaf/main.tex`: complete manuscript; ten main sections, proofs and
   auxiliary loss curves in appendices, verified bibliography.
 - `ADVERSARIAL_REVIEW.md`: novelty/validity objections, concrete fixes and
@@ -58,12 +60,24 @@ Protection cost means eligible-bit cardinality only. No physical mechanism or
 physical cost/radiation claim is made. The main static grids retain all methods
 and observed BERs. The recovered FKeras comparison includes 128 clips, 32 fields
 per BER and four budgets; it is separately plotted, not pooled with 1000 clips.
-The new common-cohort partial-tier campaigns are frozen, not executed. Historical qPolarGrad is described
+No finalized common-cohort partial-tier campaign was found. Historical qPolarGrad is described
 faithfully and is not assigned unmeasured modern-model results.
 
 One audit correction is substantive: ToyCar's 16 calibration units are complete
 files, **3,136 windows**, not 16 windows. Its reported per-example construction
 time is interpreted accordingly. No underlying result changed.
+
+The latest revision adds the finalized 1,024-bit FP32 classifier case study in a
+separate subsection/table, not on INT8 axes. The original READY snapshot and
+archive hashes bind its identity. All 12 paired loss tests are recomputed and
+all 768 accuracy/capped-loss outcomes are verified against saved logits and
+locked labels. Calibration mismatch and interactions remain confounded.
+No Pythia/Qwen or adaptive-search effectiveness results are invented.
+
+The main FKeras series is the published projection with tier-first allocation.
+Historical repository-form outputs are preserved but not main baselines. The
+supplementary measured-grid heatmap retains paired uncertainty and does not
+replace the BER/budget curves. See the revision note for offline commands.
 
 The title emphasizes what is actually measured, avoiding either an arbitrary new
 acronym or an implication of a superior optimizer. The four historical authors

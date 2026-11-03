@@ -5,7 +5,7 @@ Write $z_b(x)=g_i(x)\delta_b$ and $[u]_+=\max(0,u)$.
 Table~\ref{tab:definitions} puts each competing score on the same footing;
 ordering and budget selection remain separate operations.
 \begin{table}[t]\centering\small
-\caption{Score definitions and ordering. A score is not a mitigation guarantee or an expected protection benefit. In the last three rows $i$ is the parameter containing bit $b$; absolute values on vectors are componentwise.}
+\caption{Score definitions and ordering. A score is not a mitigation guarantee or an expected protection benefit. Here $i$ is the parameter containing bit $b$; absolute values on vectors are componentwise.}
 \label{tab:definitions}
 \begin{tabular}{lll}\toprule
 Method & Score or ordering criterion & Ordering\\\midrule
@@ -15,8 +15,7 @@ Numerical jump & $|\delta_b|$ & Global\\
 Global gradient & $|\E_x z_b(x)|$ & Global\\
 Absolute gradient & $\E_x|z_b(x)|$ & Global\\
 Positive gradient & $\E_x\!\left[[z_b(x)]_+\right]$ & Global\\
-FKeras paper & $|\sum_j\lambda_j(v_j^\top\theta)v_{ji}|$ & Tier, then score\\
-FKeras repository & $\sum_j|\lambda_j^2(v_j^\top\theta)v_{ji}|$ & Tier, then score\\
+FKeras~\cite{weng2024fkeras} & $|\sum_j\lambda_j(v_j^\top\theta)v_{ji}|$ & Tier, then score\\
 Historical qPolarGrad & $|\E_x[\widetilde a_i(x)\delta_b]\E_x g_i(x)|$ & Historical scope\\
 \bottomrule\end{tabular}
 \end{table}
@@ -37,20 +36,24 @@ The first retains the magnitude of the mean effect; the second prevents cancella
 
 These gradients are obtained from architecture-specific companions reconstructed from the frozen constants. Kernel identities, flattened indices, decoded values, and affine metadata correspond to the reference model. Straight-through derivatives pass through activation rounding and clipping, while forward arithmetic does not reproduce all integer multiplier rounding. The classification ranking loss is sparse cross-entropy on companion logits; exact evaluation uses the reference probabilities. ToyCar ranking differentiates float-target reconstruction MSE. Neither the gradient nor the ranking loss is relabeled as a derivative of exact integer inference.
 
-\paragraph{FKeras: two score definitions, one explicit ordering rule.}
-For decoded kernel vector $\theta$ and leading eigenpairs of a continuous companion loss Hessian, the printed FKeras parameter projection is~\cite{weng2024fkeras}
+\paragraph{FKeras.}
+For decoded kernel vector $\theta$ and leading eigenpairs of a continuous companion loss Hessian, we use the published parameter projection~\cite{weng2024fkeras}
 \begin{equation}
-h^{\mathrm{paper}}=\sum_{j=1}^{k}\lambda_j(v_j^\top\theta)v_j.
+h_{\mathrm{FKeras}}=\sum_{j=1}^{k}\lambda_j(v_j^\top\theta)v_j.
 \label{eq:fkeras}
 \end{equation}
-We rank its magnitude within bit-significance tiers. The pinned public repository's sum strategy instead effectively computes~\cite{fkerasSource}
-\begin{equation}
-h^{\mathrm{repository}}=\sum_{j=1}^{k}\left|\lambda_j^2(v_j^\top\theta)v_j\right|,
-\label{eq:fkerasrepo}
-\end{equation}
-with elementwise magnitude before accumulation. Both the additional eigenvalue and the cancellation convention can change parameter ordering. We retain both variants rather than choosing whichever performs better.
-
-The validated KWS adaptation uses a continuous float64 DS-CNN loss, without activation requantization, and signed eigenvalues ordered by magnitude. This is different from the straight-through companion above. Residual, symmetry, orthogonality, work-limit, and parameter-mapping checks qualify the eigensolver. The implementation reproduces the two score forms given validated eigenpairs, not every numerical behavior of the historical upstream solver. Eigenvector sign changes leave both expressions invariant. A weight Hessian contains mixed curvature; its clean-point score nevertheless does not explicitly condition on BER or a protection mask.
+The absolute component $|h_{\mathrm{FKeras},i}|$ orders parameters within each
+bit-significance tier. This definition is chosen to represent the published
+method, independently of the observed outcomes. Implementation assumptions for
+our quantized KWS adaptation are a continuous float64 DS-CNN cross-entropy loss,
+without activation requantization; two signed eigenpairs ordered by eigenvalue
+magnitude; and canonical tensor/word identity for ties. These choices do not
+assert equivalence to every numerical setting of the upstream implementation~\cite{fkerasSource}.
+Residual, symmetry, orthogonality and parameter-mapping checks qualify the
+bounded eigensolve. Its Hessian is neither an integer-program Hessian nor the
+straight-through gradient object above. A full weight Hessian contains mixed
+curvature; this clean-point score does not explicitly condition on BER or the
+current mask.
 
 FKeras orders bit tiers first and parameter sensitivity within each tier. For $n$ homogeneous INT8 words, any such policy selects all $n$ sign bits at 12.5\% coverage and all sign/bit-6 bits at 25\%. The masks therefore coincide with corrected MSB-first at those budgets, irrespective of the Hessian score. Partial-tier budgets are necessary to test score-dependent allocation decisions. No extra bit-jump multiplier is inserted into FKeras to change this rule.
 

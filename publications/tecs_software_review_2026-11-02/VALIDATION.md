@@ -4,7 +4,45 @@ Date: 2 November 2026. Branch: `paper1-expanded-benchmarks`.
 Base manuscript: `589aaa67f485ae3eb36febe70132304a1b9f27ae`.
 The delivery manifest binds the final committed source and archive contents.
 
-## Manuscript and historical evidence
+## Current published-FKeras / DistilBERT revision
+
+- Full canonical regression suite: **351 passed, 12 skipped**, 85.34 s. Five
+  existing TensorFlow Lite deprecation warnings remain visible.
+- Final focused manuscript, archive/statistics, evidence-reader and campaign
+  contract checks: **22 passed**, 2.05 s.
+- Compiled **22-page** ACM TECS internal-review PDF. No unresolved references,
+  citations, overfull boxes or fatal errors. Existing optional bibliography-field
+  warnings, underfull spacing and the intentional internal-review ACM metadata
+  warning remain; no bibliographic field was fabricated to silence them.
+- Main text uses one published-form FKeras definition/series. All original
+  source evidence and broader comparison families remain unchanged.
+- Original INT8 audit rerun: 126 records / 612 consumed files; 10,112 trial rows,
+  358 summaries, 2,184 paired comparisons. The displayed FKeras filter changes
+  neither the raw observations nor the historical scientific payload.
+- DistilBERT complete/compact/checksum archives pinned and verified; all 122
+  complete-archive members inventoried. Original READY snapshot, 14 source-file
+  hashes, plan, selection seal and all 101 bound run records verified.
+- 96 fault fields / 768 policy evaluations: schedules, masks, cardinalities,
+  event accounting and zero-applied clean controls checked. All 12 original
+  bootstrap/sign-flip/12-test Holm results recomputed. Additional accuracy
+  intervals are descriptive, not a new testing family.
+- Independent stored-logit/locked-label verification: **768/768** saved accuracy
+  and capped-loss values exactly reproduced, comprising 196,608 dependent
+  example outcomes. No inference was run by either manuscript reader.
+- Rendered updated KWS figure, FP32 table/result pages and supplementary
+  paired-effect heatmap inspected. A clipped prototype margin was corrected
+  before export. Main reliability curves and scientific inputs are retained.
+- No finalized common-grid KWS or matched adaptive-search result was found in
+  inspected source trees. No Pythia/Qwen protection results are included.
+- Historical ZIPs, finalized results, asset locks and researcher TOMLs were not
+  modified. No environment change, download, production run, merge or push.
+
+The figures/tables are manuscript derivatives. Full test output is preserved
+as `validation/manuscript-revision-tests.log` in the new review archive. The
+complete/compact original DistilBERT archives are included verbatim under
+`distilbert-source/`, alongside their published export checksums.
+
+## Prior manuscript and historical evidence (before this revision)
 
 - 126 finalized source records / 612 consumed files reverified.
 - 10,112 raw static rows recomputed into 358 summaries; 2,184 paired summaries
@@ -80,8 +118,9 @@ push, training or publication-scale execution was performed. Only this
 worktree's own unfinalized presentation files were regenerated.
 Earlier development preflight receipts were retained, not erased.
 
-Expanded architecture acceptance remains **INCOMPLETE**: no verified transformer
-assets/backend; VWW unresolved; streaming lacks a full independent task cohort.
+Expanded architecture acceptance remains **INCOMPLETE**: targeted DistilBERT
+FP32 protection is now verified, but whole-model/representative transformer
+protection is not; VWW unresolved; streaming lacks a full independent task cohort.
 The paper does not turn gaps into results. Checkpoint generalization, input
 exposure, weak ToyCar precision and unresolved conditional-versus-isolated
 benefit remain scientific limitations.

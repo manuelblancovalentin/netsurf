@@ -56,7 +56,8 @@ def main():
               if p.is_file() and p.suffix in ('.md', '.csv', '.py')}
     for p in (HERE / 'evidence').iterdir():
         if p.is_file():
-            review['evidence/' + p.name] = p
+            prefix = 'evidence/superseded_readiness/' if p.name == 'transformer_readiness_update.json' else 'evidence/'
+            review[prefix + p.name] = p
     docs = ['PAPER1_ORIGINAL_TO_CURRENT_AUDIT.md', 'PAPER1_EVIDENCE_INVENTORY.md',
             'PAPER1_NOVELTY_AUDIT.md', 'SCIENTIFIC_CONTRACTS.md',
             'MLPERF_TINY_M9_STATIC_ESTIMATORS.md', 'MLPERF_TINY_M93_MULTIBENCH.md',
@@ -70,10 +71,11 @@ def main():
     for name in ('paper1_campaign.py','run_paper1_resnet8.sh','run_paper1_kws.sh','run_paper1_toycar.sh'):
         review['workflows/'+name]=ROOT/'workflows'/name
     for name in ('test_paper1_evidence_audit.py', 'test_paper1_manuscript.py',
-                 'test_paper1_campaign.py','test_streaming_protection_gate.py'):
+                 'test_paper1_campaign.py','test_streaming_protection_gate.py',
+                 'test_paper1_distilbert_evidence.py'):
         review['tests/' + name] = ROOT / 'tests' / name
     review['netsurf/streaming_validation.py']=ROOT/'netsurf/streaming_validation.py'
-    for name in ('paper1_campaigns.json','paper1_fkeras_source.json','paper1_target_status.json',
+    for name in ('paper1_campaigns.json','paper1_fkeras_source.json','paper1_distilbert_source.json','paper1_target_status.json',
                  'benchmark_expansion_registry.json'):
         review['config/'+name]=ROOT/'config'/name
     for name in ('resnet8','kws','toycar'):
@@ -81,6 +83,14 @@ def main():
         review['config/experiments/'+name]=ROOT/'config/experiments'/name
     for name in ('canonical-tests.log','canonical-tests-with-artifacts.log','pinned-tests.log'):
         review['validation/'+name]=ROOT/'workspace'/name
+    review['validation/manuscript-revision-tests.log']=ROOT/'workspace/manuscript-revision-tests.log'
+    review['validation/manuscript-revision-latex.log']=ROOT/'workspace/manuscript-revision-latex.log'
+    distilbert=json.loads((ROOT/'config/paper1_distilbert_source.json').read_text())
+    for name,key in [('complete.zip','complete_sha256'),('compact.zip','compact_sha256'),
+                     ('checksums.json','checksums_sha256')]:
+        path=Path(distilbert['path'])/name
+        assert digest(path)==distilbert[key], f'archived DistilBERT source changed: {name}'
+        review['distilbert-source/'+name]=path
     for p in (ROOT/'workspace/streaming-derived-v2').iterdir():
         if p.is_file():review['streaming-engineering/analysis/'+p.name]=p
     for name in ('paper1_streaming_gate_v1','paper1_streaming_gate_repeat_v1'):
@@ -92,13 +102,16 @@ def main():
     for name in ('NetSuRF_Software_Overleaf.zip', 'NetSuRF_Software_Internal_Review.pdf'):
         review[name] = out / name
     manifest = {
-        'kind': 'software_only_manuscript_and_campaign_delivery', 'version': 2,
+        'kind': 'software_only_manuscript_and_campaign_delivery', 'version': 3,
         'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         'source_branch': subprocess.check_output(['git', 'branch', '--show-current'], cwd=ROOT, text=True).strip(),
         'tracked_dirty': bool(subprocess.check_output(['git', 'diff', '--name-only', 'HEAD'], cwd=ROOT, text=True).strip()),
         'manuscript_builder_inferences': 0, 'historical_scientific_source_writes': 0,
         'production_campaigns_launched': 0,
         'benchmark_expansion_gate': 'INCOMPLETE',
+        'main_fkeras_definition': 'published projection; absolute component within bit tiers',
+        'distilbert_scope': '1024 FP32 bits in first32 classifier scalar words; not whole-model protection',
+        'distilbert_scientific_payload_sha256':distilbert['analysis_payload_sha256'],
         'bounded_engineering_evidence': {
             'streaming_independent_fields': 2, 'identical_execution_count': 2,
             'payload_sha256':'c8ee6163da82e8cd4fee6f13e1e9ed9eb49da6daac1dd6dc490fe49618792674'},

@@ -34,9 +34,9 @@ def table(name, values, sources, recipe):
     (TAB / (name+'.tex')).write_text('\n'.join(' & '.join(map(str,row))+r' \\' for row in values)+'\n')
     products.append(dict(artifact='overleaf/tables/'+name+'.tex', sources=sources, recipe=recipe))
 
-def save(fig, name, sources, recipe):
+def save(fig, name, sources, recipe, *, tight=False):
     for extension in ['pdf','png']:
-        fig.savefig(FIG/(name+'.'+extension), dpi=400)
+        fig.savefig(FIG/(name+'.'+extension), dpi=400, bbox_inches='tight' if tight else None)
     plt.close(fig)
     products.append(dict(artifact='overleaf/figures/'+name+'.png', vector_alternative='overleaf/figures/'+name+'.pdf', sources=sources, recipe=recipe))
 
@@ -139,15 +139,15 @@ def main():
     f=read(Path(sources['static_fkeras128']['path'])/'summary.json'); rows=[]
     for cov in [.0625,.125,.1875,.25]:
         counts=[]
-        for a,b in [('fkeras_paper','fkeras_repository'),('msb_first','fkeras_paper'),('msb_first','fkeras_repository')]:
+        for a,b in [('msb_first','fkeras_paper')]:
             item=next(x for x in f['mask_equivalence'] if x['left']==f'{a}@{cov:.6f}' and x['right']==f'{b}@{cov:.6f}')
             counts.append(item['symmetric_difference_bits'])
         rows.append([f'{cov*100:g}\\%',item['protected_bits']]+counts)
-    table('fkeras_masks',rows,['static_fkeras128/summary.json'],'Saved exact mask symmetric differences from the 128-clip exploratory comparison; one ranking realization.')
+    table('fkeras_masks',rows,['static_fkeras128/summary.json'],'Published-form FKeras versus MSB only; saved exact mask symmetric differences from the 128-clip exploratory comparison; one ranking realization. Historical variants retained in source, not used as main baselines.')
     write_json(OUT/'fkeras_compact.json',{'mask_equivalence':f['mask_equivalence'],'runtimes':f['estimator_runtimes_seconds'],'clean':f['clean_evaluation']})
-    methods=['msb_first','first_order_gradient_delta','per_sample_first_order_magnitude','per_sample_positive_damage','fkeras_paper','fkeras_repository']
-    labels=['MSB-first','Global gradient','Absolute gradient','Positive gradient','FKeras paper','FKeras repository']
-    colors=['#222222','#0072B2','#009E73','#CC79A7','#D55E00','#6A51A3']
+    methods=['msb_first','first_order_gradient_delta','per_sample_first_order_magnitude','per_sample_positive_damage','fkeras_paper']
+    labels=['MSB-first','Global gradient','Absolute gradient','Positive gradient','FKeras']
+    colors=['#222222','#0072B2','#009E73','#CC79A7','#D55E00']
     data=[r for r in curves if r['benchmark']=='fkeras128']
     fig,axs=plt.subplots(2,3,figsize=(6.65,5.1))
     for col,prob in enumerate([.0001,.001,.01]):
@@ -167,7 +167,42 @@ def main():
     axs[0,0].set_ylabel('Accuracy');axs[1,0].set_ylabel('Cross-entropy')
     h,l=axs[0,0].get_legend_handles_labels();fig.legend(h,l,loc='lower center',ncol=3,fontsize=8,frameon=False)
     fig.subplots_adjust(left=.10,right=.99,bottom=.20,top=.93,hspace=.42,wspace=.33)
-    save(fig,'matched_kws128',['static_fkeras128'],'Separate 128-clip cohort; all six configured policies, three BERs, four budgets and shared zero/full controls. Accuracy bars are marginal 95% field-t intervals. CE means; full paired intervals in the CSV supplement. No merging with the 1000-clip study.')
+    save(fig,'matched_kws128',['static_fkeras128'],'Separate 128-clip cohort; five published-method baselines, three BERs, four budgets and shared zero/full controls. Sole FKeras series uses the published projection and tier-first ordering. Historical repository variant is excluded by methodological decision, not outcome selection. Accuracy bars are marginal 95% field-t intervals. CE means; original paired intervals and multiplicity family retained in CSV. No merging with 1000-clip study.')
+
+    # Prototype only: all 3 x 4 measured cells in the same 128-clip cohort.
+    # One fixed reference and consistent positive-is-better convention. Do not
+    # fabricate the pending common-grid campaign or interpolate absent cells.
+    heatrows=[]; fig,axs=plt.subplots(1,2,figsize=(6.65,3.05))
+    for ax,metric in zip(axs,('accuracy','categorical_crossentropy')):
+        values=np.zeros((3,4)); annotations=np.empty((3,4),dtype=object)
+        for i,prob in enumerate([.0001,.001,.01]):
+            for j,cov in enumerate([.0625,.125,.1875,.25]):
+                r=next(x for x in pairs if x['benchmark']=='fkeras128' and float(x['logical_ber'])==prob
+                       and float(x['coverage'])==cov and x['metric']==metric
+                       and {x['left'],x['right']}=={'msb_first','fkeras_paper'})
+                sign=(1 if r['left']=='fkeras_paper' else -1)*(1 if metric=='accuracy' else -1)
+                mean=sign*float(r['mean_difference']);lo,hi=sorted([sign*float(r['ci_low']),sign*float(r['ci_high'])])
+                scale=100 if metric=='accuracy' else 1
+                values[i,j]=mean*scale
+                annotations[i,j]=(f'{mean*scale:+.2f}' if abs(mean*scale)>=.005
+                                  else (f'{mean*scale:+.1g}' if mean else '0'))
+                heatrows.append(dict(ber=prob,coverage=cov,metric=metric,baseline='MSB-first',method='FKeras',
+                    improvement=mean,ci_low=lo,ci_high=hi,matched_pairs=r['matched_pairs'],p_holm=r['p_value_holm']))
+        maximum=max(float(np.abs(values).max()),1e-12)
+        im=ax.imshow(values,cmap='RdBu',vmin=-maximum,vmax=maximum,aspect='auto',interpolation='nearest')
+        for (i,j),value in np.ndenumerate(values):
+            ax.text(j,i,annotations[i,j],ha='center',va='center',fontsize=8,
+                    color='white' if abs(value)>.6*maximum else '#222222')
+        ax.set_xticks(range(4),['6.25','12.5','18.75','25']);ax.set_yticks(range(3),['0.0001','0.001','0.01'])
+        ax.set_xlabel('Protected eligible bits (%)');ax.set_ylabel('Logical BER')
+        ax.set_title('Accuracy improvement (pp)' if metric=='accuracy' else 'Cross-entropy reduction (nats)')
+        fig.colorbar(im,ax=ax,fraction=.045,pad=.03)
+    fig.suptitle('FKeras versus MSB-first: positive means improvement',fontsize=10,y=1.02)
+    fig.text(.5,.92,'128 KWS clips; 32 paired fields per BER. Paired intervals accompany each cell.',ha='center',fontsize=8)
+    fig.subplots_adjust(left=.10,right=.95,top=.76,bottom=.19,wspace=.60)
+    save(fig,'fkeras_paired_heatmap_prototype',['static_fkeras128/measurements/paired_comparisons.csv'],
+         'Supplementary prototype; measured 3-BER x 4-budget grid only, fixed MSB reference. Positive means improvement. Accuracy FKeras-minus-MSB; CE MSB-minus-FKeras. Full paired intervals/original Holm values in fkeras_heatmap_cells.csv; not another independent experiment.',tight=True)
+    write_csv(OUT/'fkeras_heatmap_cells.csv',heatrows)
 
     p=Path(sources['M910']['path']); ag=read(p/'aggregate_summary.json')['comparisons']
     arms=[('m96_kws_cross_pool_k6','KWS: first pool sample, p=.01'),('m97_kws_multiber_ber_0p001','KWS: common pools, p=.001'),('m97_kws_multiber_ber_0p003','KWS: common pools, p=.003'),('m97_kws_multiber_ber_0p01','KWS: common pools, p=.01'),('m98_resnet8_cross_pool_k6_v1','ResNet-8, p=.01'),('m99_toycar_cross_pool_k6_ber001','ToyCar, p=.001')]

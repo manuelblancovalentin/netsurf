@@ -119,8 +119,8 @@ architectural redundancy.
 
 \subsection{Matched partial-tier comparison on keyword spotting}
 A separate exploratory experiment uses 32 calibration clips, 128 evaluation
-clips, and 32 paired fields at each of three BERs. It compares both FKeras
-forms, MSB-first and the three gradient methods (Fig.~\ref{fig:matched128}).
+clips, and 32 paired fields at each of three BERs. It compares FKeras,
+MSB-first and the three gradient methods (Fig.~\ref{fig:matched128}).
 It has one ranking realization and previously exposed inputs. Clean accuracy
 is .9297, versus .9010 on the larger cohort; these studies are not pooled.
 The source did not include random or numerical-jump masks, so neither is
@@ -129,24 +129,22 @@ invented in this panel. Two leading signed-magnitude eigenpairs are used.
 \begin{table}[t]\centering\small
 \caption{Saved mask symmetric differences in the 128-clip KWS experiment. Complete tiers yield identical sets and exact matched outcomes; partial tiers distinguish score/tie-order choices.}
 \label{tab:fkeras}
-\begin{tabular}{rrrrr}\toprule
-Coverage & Protected bits & Paper / repository & MSB / paper & MSB / repository\\\midrule
+\begin{tabular}{rrr}\toprule
+Coverage & Protected bits & FKeras / MSB symmetric difference\\\midrule
 \tablerows{tables/fkeras_masks.tex}
 \bottomrule\end{tabular}
 \end{table}
 
 At BER .01 and 6.25\% protection, mean accuracies are .6089 (MSB), .6877
 (global gradient), .7385 (absolute gradient), .5234 (positive gradient), .6926
-(FKeras paper) and .7231 (FKeras repository). Paper-form FKeras minus MSB is
+(FKeras). FKeras minus MSB is
 8.37 percentage points, with marginal 95\% interval [3.34,13.41] and source
 within-BER Holm $p=.0459$. Its cross-entropy difference is $-1.330$, interval
 $[-1.981,-.679]$, Holm $p=.0195$. These exploratory results support usefulness
 of sensitivity within a partial tier, not rejection of the Hessian baseline.
 
-The paper/repository accuracy difference at that cell is $-3.05$ percentage
-points, but its Holm $p=.2794$ does not establish a formula winner. At 18.75\%,
-paper-form FKeras minus MSB is only .049 percentage points, interval
-$[-1.116,1.213]$. At 12.5\% and 25\%, both FKeras masks coincide exactly with
+At 18.75\%, FKeras minus MSB is only .049 percentage points, interval
+$[-1.116,1.213]$. At 12.5\% and 25\%, FKeras masks coincide exactly with
 MSB and therefore cannot be independent competitors. Absolute-gradient ranking
 does not dominate the full grid: at BER .01 and 25\%, its mean is .8904 versus
 .9026 for MSB/FKeras. Shared-input uncertainty and broader generalization remain
@@ -156,15 +154,83 @@ these architectures and remains a documented historical ablation, not a curve.
 \begin{figure}[t]\centering
 \includegraphics[width=\linewidth]{matched_kws128.png}
 \caption{\textbf{Does sensitivity within a bit tier change protection quality?}
-All six configured methods on the same 128 KWS clips and 32 paired fields per
+Five baselines on the same 128 KWS clips and 32 paired fields per
 BER. Four interior budgets are measured. Accuracy bars are descriptive 95\%
 field-$t$ intervals; the lower row reports mean cross-entropy. Complete-tier
 FKeras/MSB curves coincide by mask identity, not independent replication.
-This exploratory cohort is separate from the 1,000-clip curves.}
+All points are measured, not interpolated comparison cells.}
 \Description{Three BER columns compare accuracy and cross-entropy versus
-coverage for significance, gradient and two Hessian scores. Partial-tier
+coverage for significance, gradient and the published FKeras score. Partial-tier
 differences are visible at high BER; no method dominates all cells.}
 \label{fig:matched128}\end{figure}
+
+\subsection{Targeted FP32 classifier-bit case study}
+\label{sec:distilbert}
+A separate frozen DistilBERT~\cite{sanh2019distilbert} sentiment-classification study evaluates SST-2~\cite{socher2013sst}
+with FP32 storage and FP32 CPU computation. Its fault-law support is only
+1,024 bits: every sign, exponent and significand bit of the first 32 scalar
+weights of the final classifier. The rest of the model is executed but is not
+faultable. Thus 12.5\% coverage means 128 protected bits of this subset, not
+12.5\% of the transformer. These results are not placed on the INT8 axes.
+
+The comparison uses seeded random ordering, descending FP32 bit-position
+significance, and exact isolated damage measured on 32 model-training examples.
+Selection masks were sealed before final faults on 256 validation examples.
+Each BER has 32 independent fields, paired across policies and budgets;
+there is only one mask realization per method. Probabilities $1/1024$, $4/1024$
+and $16/1024$ give expected proposed counts of one, four and sixteen flips.
+The recorded risk is mean cross-entropy capped at 30 nats per example;
+nonfinite or failed outputs receive the same penalty and count as incorrect.
+No failed outputs were recorded in this study, but finite extreme logits can
+still activate the cap. At the highest BER and 128 protected bits, 144 of 8,192
+example outcomes under isolated ranking reach the cap, versus none under
+significance; these dependent example outcomes are not independent trials.
+The exact capped metric, not uncapped cross-entropy,
+defines both selection and evaluation.
+
+Clean accuracy is .89844 and capped cross-entropy .46101. At the highest BER,
+unprotected loss is 2.49980, versus .46734 for significance and .92546 for
+isolated ranking at 12.5\% coverage; random gives 2.49873. Full protection
+reproduces clean inference. At 25\%, significance gives .46117 and isolated
+.92551. All six BER/budget comparisons, including nearly null low-BER effects,
+are retained in Table~\ref{tab:distilbert}.
+
+\begin{table}[t]\centering\small
+\caption{\textbf{Does isolated calibration damage improve a targeted FP32 allocation?}
+Paired capped-loss improvement of isolated ranking over each named baseline:
+baseline minus isolated, positive favoring isolated. Entries are mean [95\%
+field-bootstrap interval], multiplied by the row's unit in nats. Each row has
+32 matched fields; $p_H$ retains the original 12-test Holm family. Intervals
+are marginal, not simultaneous. $Np$ is expected proposed flips over 1,024 bits.}
+\label{tab:distilbert}
+\begin{tabular}{rrclrlr}\toprule
+$Np$ & Coverage & Unit & Versus random & $p_H$ & Versus significance & $p_H$\\\midrule
+\tablerows{tables/distilbert_paired.tex}
+\bottomrule\end{tabular}
+\end{table}
+
+At the highest BER and 12.5\%, significance reduces loss relative to isolated
+ranking by .45812 nats, interval [.20842,.73082], with adjusted $p=.0012$.
+Accuracy tells a much smaller story: .89856 versus .89771, a difference of
+only .0854 percentage points (descriptive paired 95\% interval [0,.1831]).
+This is not a separate multiplicity-adjusted accuracy claim. Isolated ranking's mean
+loss benefit over random is 1.57327 nats, but its original adjusted $p=.0828$
+does not establish that contrast at .05. Large favorable loss differences
+occur in a minority of fields; the median difference against random is slightly
+negative. Marginal bootstrap intervals and multiplicity-adjusted tests answer
+different questions and must not be interchanged.
+
+The authoritative computation is PyTorch 2.9.1 CPU eager inference, with pinned
+model and tokenizer revision, maximum sequence length 128 and batch size eight.
+Original readiness and sample hashes are archived with the frozen plan; later
+readiness-catalog updates do not redefine the historical experiment.
+
+This targeted result does not establish a general transformer ranking failure
+or demonstrate higher-order interactions. The isolated score uses a small
+training-data cohort, whereas final outcomes use validation data. Calibration
+instability, representation-sensitive faults and simultaneous-fault interactions
+are confounded. Independent data and fields prevent final mask reselection;
+they do not identify which mechanism explains the observed difference.
 
 \subsection{Do conditional changes materially improve allocation?}
 Conditional diagnostics establish more than the counterexample alone, but less
@@ -212,8 +278,7 @@ calibration-window count is essential context for its 205.88-second shared cost.
 Recorded zero timers for simple baselines are not evidence of zero execution
 cost and are not used for speedup ratios. On the separate 32-calibration-clip
 comparison, global gradients took .398 seconds, shared per-example gradients
-5.591 seconds and the shared two-eigenpair solve 1.461 seconds. The solve is
-counted once across the two FKeras formulas. These times describe this bounded
+5.591 seconds and the two-eigenpair FKeras solve 1.461 seconds. These times describe this bounded
 eigenpair count, not a general Hessian-versus-gradient complexity ordering.
 
 The complete static classifier grids contain 3,584 cohort evaluations each;
@@ -226,3 +291,11 @@ fields. Exact candidate tables cost $2^K$ cohort evaluations per outside field;
 using $K=6$ limits this factor to 64 but says nothing about tractability of
 whole-network exact allocation. Computation and statistical resolution must be
 weighed together before expanding these diagnostics.
+
+For the targeted FP32 case, exhaustive isolated scoring required 1,025 model
+requests including its clean reference, or 32,800 example evaluations. Final
+evaluation used 769 requests, or 196,864 examples, including controls. Random
+and significance ordering required no inference for construction. The frozen
+archive does not record a campaign wall-time timer; its earlier throughput
+forecast is not relabeled as measured runtime. The exact computation counts
+are retained independently of that missing timing measurement.

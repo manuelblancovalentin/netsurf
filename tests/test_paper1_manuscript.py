@@ -14,7 +14,7 @@ def test_all_manuscript_citations_have_unique_bibliography_entries():
     cited = {key for group in re.findall(r'\\cite\{([^}]+)\}', text)
              for key in group.split(',')}
     entries = re.findall(r'@\w+\{([^,]+),', (PAPER / 'overleaf/references.bib').read_text())
-    assert len(entries) == len(set(entries)) == 13
+    assert len(entries) == len(set(entries)) == 15
     assert cited == set(entries)
 
 
@@ -62,6 +62,6 @@ def test_manuscript_derivation_imports_no_model_execution():
 def test_claim_matrix_complete_and_explicit_about_limits():
     with (PAPER / 'CLAIM_EVIDENCE.csv').open() as f:
         rows = list(csv.DictReader(f))
-    assert len(rows) == 32
+    assert len(rows) == 37
     assert len({r['claim_id'] for r in rows}) == len(rows)
     assert all(r['source_or_receipt'] and r['scope_limit'] and None not in r for r in rows)
