@@ -27,6 +27,8 @@ The output directory must be new. The builder checks the source receipt, every l
 | `coverage_matrix` | Explicit desired full-kernel `(study, method, coverage, BER)` cells, including missing and incompatible cases. |
 | `restricted_studies`, `restricted_trials`, `restricted_conditions`, `restricted_coverage_matrix` | Separate targeted FP32/BF16 universes; never join to the whole-kernel tables on the basis of the same percentage. The primary loss is capped classification NLL or penalized token NLL. `failed_fraction` is failed tokens/clips. `finite_loss` is the algebraic mean over nonfailed units after subtracting the frozen 30-nat failure penalty; finite units can still be capped at 30. These are not whole-model reliability claims. |
 | `planned_model_methods` | Method-by-target readiness ledger for additional full-model precision targets whose eligible population or BER grid is not yet frozen. These rows deliberately have no fabricated coverage/BER coordinates. |
+| `excluded_studies` | Checksum-verified finalized evidence intentionally excluded from the kernel-only comparison because its eligible population differs. |
+| `reliability_grid`, `restricted_grid` | Query views joining condition rows to exact model, representation, method, universe and task-risk identity. These are the exported long-form CSVs. They cannot silently mix whole-kernel and targeted universes. |
 
 ToyCar's `task_loss` is exactly `1 − file-level ROC-AUC`; `auxiliary_loss` is reconstruction MSE and must not be substituted for the task risk. Classification `task_loss` is categorical cross-entropy in nats and `task_quality` is accuracy. Restricted language-model loss is token NLL in nats with a 30-nat nonfinite-failure penalty. Never average loss units across architectures or tasks.
 
@@ -42,6 +44,8 @@ The confidence intervals describe fault-field variation conditional on each froz
 | DS-CNN/Speech Commands INT8 kernels | 176,128 | 1,000 clips | 8 | 0, 12.5, 25, 100% | 3,584 | `e65a5f2895dbc7445b61ab6655ec80e05287a2fa` |
 | ToyCar INT8 kernels | 2,113,536 | 64 complete files / 12,544 windows | 4 | 0, 12.5, 25, 100% | 448 | `2e255dddf956a474781a7b727f5a8af5113f72bc` |
 | DS-CNN published-form FKeras, separate cohort | 176,128 | 128 clips | 3 | 0, 6.25, 12.5, 18.75, 25, 100% | 2,496 | `060667ef1a2d34841d20548d0b65febba716b744` |
+
+The database also contains 19 separately identified, checksum-verified whole-kernel engineering pilots/smokes with their raw trials and condition rows. They have smaller or different evaluation cohorts and are **not pooled** into the principal curves. Together, the 23 whole-kernel/distinct-cohort studies contribute 15,764 trial rows and 809 measured condition rows. Several engineering reruns have identical scientific payload hashes; they remain separate execution records and must not be counted as independent scientific replications. The separate ResNet-8 kernel-plus-bias pilot has 629,952 eligible bits; it is verified and listed in `excluded_studies`, not silently merged with the 618,880-bit kernel-only universe.
 
 The 12.5% and 25% published FKeras and MSB masks in the separate KWS study have identical verified hashes: these are complete INT8 significance tiers. The 6.25% and 18.75% masks differ. Do not present the common-tier cells as independent allocation policies.
 

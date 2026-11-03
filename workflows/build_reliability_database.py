@@ -33,7 +33,7 @@ def plots(database: Path, directory: Path) -> None:
     directory.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(database) as db:
         db.row_factory=sqlite3.Row
-        studies=list(db.execute("SELECT s.study_id,m.task_loss_name FROM studies s JOIN models m USING(model_id)"))
+        studies=list(db.execute("SELECT s.study_id,m.task_loss_name FROM studies s JOIN models m USING(model_id) WHERE s.study_kind!='engineering_whole_kernel'"))
         names={r[0]:r[1] for r in db.execute("SELECT method_id,display_name FROM methods")}
         for study in studies:
             sid=study["study_id"]
@@ -177,9 +177,9 @@ def main() -> None:
     args.output.mkdir(parents=True,exist_ok=True)
     db=args.output/"reliability_v1.sqlite"
     build_database(args.sources,db)
-    export_csv(db,args.output/"conditions_long.csv","aggregated_conditions")
+    export_csv(db,args.output/"conditions_long.csv","reliability_grid")
     export_csv(db,args.output/"coverage_matrix.csv","coverage_matrix")
-    export_csv(db,args.output/"restricted_conditions_long.csv","restricted_conditions")
+    export_csv(db,args.output/"restricted_conditions_long.csv","restricted_grid")
     export_csv(db,args.output/"restricted_coverage_matrix.csv","restricted_coverage_matrix")
     export_csv(db,args.output/"planned_model_methods.csv","planned_model_methods")
     plots(db,args.output/"plots")

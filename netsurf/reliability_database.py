@@ -125,6 +125,29 @@ CREATE TABLE planned_model_methods (
  target_id TEXT NOT NULL, method_id TEXT NOT NULL REFERENCES methods(method_id),
  target_representation TEXT NOT NULL, status TEXT NOT NULL, reason TEXT NOT NULL,
  PRIMARY KEY(target_id,method_id));
+CREATE TABLE excluded_studies (
+ source_id TEXT PRIMARY KEY, source_path TEXT NOT NULL,
+ scientific_payload_sha256 TEXT NOT NULL, status TEXT NOT NULL,
+ reason TEXT NOT NULL);
+CREATE VIEW reliability_grid AS
+ SELECT c.study_id,s.study_kind,m.benchmark_id,m.checkpoint_sha256,m.precision,
+        m.backend,m.eligible_bits,m.task_loss_name,m.quality_name,
+        c.method_id,method.display_name AS method_name,c.coverage,c.protected_bits,c.ber,
+        c.field_count,c.replication_count,c.ranking_mask_count,c.mean_loss,c.loss_sd,
+        c.loss_ci_low,c.loss_ci_high,c.loss_degradation,c.mean_quality,c.quality_sd,
+        c.mean_auxiliary_loss,c.failure_fraction,c.paired_unprotected_delta_mean,
+        c.paired_unprotected_ci_low,c.paired_unprotected_ci_high,c.status
+ FROM aggregated_conditions c JOIN studies s ON c.study_id=s.study_id
+ JOIN models m ON s.model_id=m.model_id JOIN methods method ON c.method_id=method.method_id;
+CREATE VIEW restricted_grid AS
+ SELECT c.study_id,s.target,s.stored_precision,s.computation_precision,
+        s.eligible_bits,s.universe_description,s.task_loss_name,
+        c.method AS method_id,method.display_name AS method_name,c.coverage,
+        c.protected_bits,c.ber,c.field_count,c.mean_loss,c.loss_sd,
+        c.loss_ci_low,c.loss_ci_high,c.loss_degradation,c.mean_quality,
+        c.failed_fraction,c.finite_loss_mean,c.status
+ FROM restricted_conditions c JOIN restricted_studies s ON c.study_id=s.study_id
+ JOIN methods method ON c.method=method.method_id;
 CREATE INDEX trial_fields ON trial_observations(study_id,ber,replication,trial,schedule_sha256);
 """
 
@@ -177,9 +200,14 @@ def _study_model(source: dict, manifest: dict, summary: dict) -> tuple:
             loss_name, quality_name, json.dumps(calibration,sort_keys=True), json.dumps(evaluation,sort_keys=True))
 
 
-def _parse_policy(value: str) -> tuple[float, str, float]:
-    ber_text, condition = value.split("/", 1)
-    ber = float(ber_text.removeprefix("ber="))
+def _parse_policy(value: str, default_ber: float | None = None) -> tuple[float, str, float]:
+    if "/" in value:
+        ber_text, condition = value.split("/", 1)
+        ber = float(ber_text.removeprefix("ber="))
+    else:
+        if default_ber is None:
+            raise ValueError("legacy policy omitted BER but study has multiple BER conditions")
+        ber,condition=default_ber,value
     if "@" in condition:
         method, coverage = condition.rsplit("@", 1)
         return ber, ALIASES.get(method, method), float(coverage)
@@ -214,8 +242,10 @@ def _insert_study(db: sqlite3.Connection, source: dict) -> None:
         aggregates[key]=r
     groups=defaultdict(list)
     field_keys=defaultdict(dict)
+    distinct_bers={key[0] for key in aggregates}
+    default_ber=next(iter(distinct_bers)) if len(distinct_bers)==1 else None
     for r in csv.DictReader((root/"measurements/trials.csv").open()):
-        ber,method,coverage=_parse_policy(r["policy"])
+        ber,method,coverage=_parse_policy(r["policy"],default_ber)
         assert method in METHODS, (sid,method)
         rep=r.get("replication") or "replication_0"
         trial=int(r["trial"])
@@ -274,12 +304,12 @@ def _insert_study(db: sqlite3.Connection, source: dict) -> None:
                 if method == "fkeras_repository":
                     continue
                 measured=(ber,method,coverage) in groups
-                if method=="no_protection" and coverage!=0 or method=="full_protection" and coverage!=1:
+                if measured:
+                    status,reason="FINALIZED_MEASURED","checksum-verified source trial records"
+                elif method=="no_protection" and coverage!=0 or method=="full_protection" and coverage!=1:
                     status,reason="INCOMPATIBLE","control is defined only at its boundary budget"
                 elif method not in ("no_protection","full_protection") and coverage in (0,1):
                     status,reason="INCOMPATIBLE","all rankers collapse to the measured no/full-protection control at this boundary"
-                elif measured:
-                    status,reason="FINALIZED_MEASURED","checksum-verified source trial records"
                 elif method=="priorifi_derived":
                     status,reason="NOT_IMPLEMENTED","faithful feedback ranking and allocation conversion unvalidated"
                 elif method=="exponent_first":
@@ -404,6 +434,9 @@ def build_database(sources: Path, destination: Path) -> None:
             _insert_study(db,source)
         for source in spec.get("restricted_studies",[]):
             _insert_restricted(db,source)
+        for source in spec.get("excluded_studies",[]):
+            _verified_bundle(source)
+            db.execute("INSERT INTO excluded_studies VALUES (?,?,?,?,?)",(source["id"],source["path"],source["scientific_payload_sha256"],"INCOMPATIBLE",source["reason"]))
         for target,representation,status,reason in (
             ("distilbert_sst2_int8_full","INT8","ASSET_BLOCKED","no hash-bound validated full INT8 source in this receipt"),
             ("pythia160m_int8_full","INT8","ASSET_BLOCKED","no hash-bound validated full INT8 source in this receipt"),
@@ -429,7 +462,7 @@ def build_database(sources: Path, destination: Path) -> None:
 
 
 def export_csv(database: Path, destination: Path, table: str) -> None:
-    if table not in ("aggregated_conditions","coverage_matrix","trial_observations","restricted_conditions","restricted_trials","restricted_coverage_matrix","planned_model_methods"):
+    if table not in ("aggregated_conditions","coverage_matrix","trial_observations","restricted_conditions","restricted_trials","restricted_coverage_matrix","planned_model_methods","reliability_grid","restricted_grid"):
         raise ValueError(table)
     with sqlite3.connect(database) as db, Path(destination).open("x",newline="") as out:
         order=("target_id,method_id" if table=="planned_model_methods" else

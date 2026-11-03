@@ -60,6 +60,7 @@ def test_all_replications_are_pooled_and_masks_remain_distinct(tmp_path):
         assert db.execute("SELECT count(DISTINCT mask_sha256) FROM protection_masks WHERE method_id='msb_global'").fetchone()[0]==2
         assert db.execute("SELECT count(*) FROM coverage_matrix WHERE status='NOT_MEASURED'").fetchone()[0]>0
         assert db.execute("SELECT count(*) FROM coverage_matrix").fetchone()[0]==72
+        assert db.execute("SELECT count(*),min(eligible_bits) FROM reliability_grid").fetchone()==(2,8)
     with pytest.raises(FileExistsError): build_database(source,db_path)
     assert db_path.exists()
 
@@ -79,3 +80,6 @@ def test_mismatched_schedule_or_corrupt_source_fails_closed(tmp_path):
 def test_ci_and_policy_mapping():
     assert _mean_ci([2.0,2.0,2.0])==(2.0,0.0,0.0,2.0,2.0)
     assert _parse_policy("ber=0.01/first_order_gradient_delta@0.125000")==(.01,"gradient_global",.125)
+    assert _parse_policy("msb_global@0.125000",.01)==(.01,"msb_global",.125)
+    with pytest.raises(ValueError,match="omitted BER"):
+        _parse_policy("msb_global@0.125000")
