@@ -155,7 +155,7 @@
     {
       "asset_record_sha256": "989fee0624a92f798511a029fc8917744dcb182cb8dd1801640594fc8dc0d504",
       "asset_status": "READY",
-      "blocker": "Finalized v4 result covers first 32 FP32 classifier weights only; validation-cohort replication is frozen but unrun.",
+      "blocker": "Finalized v4 and independent validation-cohort replication cover the same first 32 FP32 classifier weights only; their high-BER allocation direction differs, and the calibration and final cohorts both changed.",
       "engineering_receipt_manifest_sha256": "842613482ca5056fc5a22bc346068b3c026bd50f83ce7a9f78cf1a5ca2cff4a6",
       "engineering_source_commit": "ca2bd69e6d57e99e7ab80feaa4384533e5aad66e",
       "evidence": [
@@ -168,7 +168,11 @@
         "workspace/runs/distilbert_sst2_classifier1024_v4_run1/analysis.json",
         "workspace/runs/distilbert_sst2_classifier1024_v4_run1_export/complete.zip",
         "config/experiments/distilbert_sst2_validation_replication_v1.json",
-        "docs/DISTILBERT_V4_RETROSPECTIVE_AUDIT.md"
+        "docs/DISTILBERT_V4_RETROSPECTIVE_AUDIT.md",
+        "workspace/runs/distilbert_sst2_validation_replication_v1_run1/selection/seal.json",
+        "workspace/runs/distilbert_sst2_validation_replication_v1_run1/analysis.json",
+        "workspace/runs/distilbert_sst2_validation_replication_v1_run1_export/complete.zip",
+        "docs/DISTILBERT_VALIDATION_REPLICATION_EVIDENCE.md"
       ],
       "finalized_analysis_sha256": "5fdd2bf99543190d947b099cc607fc016fb6cc35a9e100dc9d237e90e8bb9707",
       "finalized_complete_zip_sha256": "9df099fa58b125315aa68ec528cb3ee71bbe00c7f7c33744e3f1f274849259a4",
@@ -178,6 +182,9 @@
       "precision": "FP32",
       "ready_consumer_record_sha256": "23b96d38a0670a52e0eb82bbbd41577b549feb1a247691d11ada73a64d3abf87",
       "replication_plan_object_sha256": "a07ebf6849203e56613a11166f1ba651175da9814d2df594500dd41017d1bbc6",
+      "replication_selection_seal_sha256": "2f4c890f9b87557066824e2f4a4a092ca0eb5e9a61fb841fad962ab3c52c4fd1",
+      "replication_analysis_sha256": "154b002eb9e99febcd522f14290f9be5b171411e63f1486b4aa6bde89c2bf989",
+      "replication_complete_zip_sha256": "fbb13e175c0cbd8e83b76a6207463ad21d2beece92d5a2fd5aa5890bd4f423ea",
       "source_registry_status": "Asset acquisition required",
       "status": "FINALIZED",
       "target": "distilbert_sst2_fp32"
