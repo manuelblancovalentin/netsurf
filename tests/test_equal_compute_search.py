@@ -62,3 +62,16 @@ def test_held_out_gate_and_no_final_feedback():
     with pytest.raises(ValueError, match="share"):
         evaluate_held_out((random, search_allocation(universe, (4, 5, 6, 7),
             method="greedy_swap", **common)), {}, final_identity="final-b", evaluate=final)
+
+
+def test_saved_response_table_has_zero_marginal_model_calls():
+    kwargs = dict(query_budget=7, seed=91, selection_identity="archived-selection-half",
+                  calls_per_query=0, clip_inferences_per_query=0,
+                  cost_type="saved_table_lookup", evaluate=lambda mask: float(sum(mask)))
+    result = search_allocation(tuple(range(12)), (0, 1, 2),
+                               method="greedy_swap", **kwargs)
+    assert result.model_requests == result.clip_inferences == 0
+    assert result.saved_table_lookups == result.query_budget == 7
+    with pytest.raises(ValueError, match="cost"):
+        search_allocation(tuple(range(12)), (0, 1, 2), method="greedy_swap",
+                          **{**kwargs, "cost_type": "model_inference"})

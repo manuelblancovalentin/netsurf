@@ -40,20 +40,26 @@ class SearchResult:
     clip_inferences_per_query: int
     model_requests: int
     clip_inferences: int
+    cost_type: str
+    saved_table_lookups: int
     elapsed_seconds: float
     observations: tuple[SearchObservation, ...]
 
 
 def _check(universe: Sequence[Bit], initial: Sequence[Bit], query_budget: int,
            selection_identity: str, calls_per_query: int,
-           clip_inferences_per_query: int) -> tuple[tuple[Bit, ...], frozenset[Bit]]:
+           clip_inferences_per_query: int, cost_type: str) -> tuple[tuple[Bit, ...], frozenset[Bit]]:
     bits = tuple(universe)
     mask = frozenset(initial)
     if (not bits or len(set(bits)) != len(bits) or not mask or
         len(mask) != len(initial) or len(mask) >= len(bits) or not mask <= set(bits)):
         raise ValueError("unique universe and a nonempty, proper initial mask required")
-    if (query_budget < 1 or not selection_identity or calls_per_query < 1 or
-        clip_inferences_per_query < calls_per_query):
+    if (query_budget < 1 or not selection_identity or cost_type not in
+        {"model_inference", "saved_table_lookup"} or
+        (cost_type == "model_inference" and (calls_per_query < 1 or
+         clip_inferences_per_query < calls_per_query)) or
+        (cost_type == "saved_table_lookup" and
+         (calls_per_query != 0 or clip_inferences_per_query != 0))):
         raise ValueError("positive fixed query cost and selection identity required")
     return bits, mask
 
@@ -69,7 +75,8 @@ def search_allocation(universe: Sequence[Bit], initial: Sequence[Bit], *,
                       method: str, query_budget: int, seed: int,
                       selection_identity: str, calls_per_query: int,
                       clip_inferences_per_query: int,
-                      evaluate: RiskEvaluator) -> SearchResult:
+                      evaluate: RiskEvaluator,
+                      cost_type: str = "model_inference") -> SearchResult:
     """Use Q equal-cost queries, including the same initial-mask measurement.
 
     ``random_search`` samples uniform cardinality-B masks with replacement and
@@ -80,7 +87,7 @@ def search_allocation(universe: Sequence[Bit], initial: Sequence[Bit], *,
     if method not in {"random_search", "greedy_swap"}:
         raise ValueError("unknown allocation search method")
     bits, current = _check(universe, initial, query_budget, selection_identity,
-                           calls_per_query, clip_inferences_per_query)
+                           calls_per_query, clip_inferences_per_query, cost_type)
     rng = random.Random(seed)
     started = time.perf_counter()
     current_risk = _measure(evaluate, current)
@@ -101,6 +108,7 @@ def search_allocation(universe: Sequence[Bit], initial: Sequence[Bit], *,
         tuple(sorted(current)), len(current), query_budget, calls_per_query,
         clip_inferences_per_query, query_budget * calls_per_query,
         query_budget * clip_inferences_per_query,
+        cost_type, query_budget if cost_type == "saved_table_lookup" else 0,
         time.perf_counter() - started, tuple(observations))
 
 

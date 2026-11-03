@@ -2,9 +2,9 @@
   "asset_readiness_manifest": {
     "path": "/projects/kona-assets/manuelbv/NETSURF_ASSET_READINESS.json",
     "schema": "kona-assets/netsurf-asset-readiness/1",
-    "sha256": "124de29e1f918bc3acc0153124dbfdf111f3b79984135a21652f7e89e222fc22"
+    "sha256": "3192d3ce57b7a11089af4c1e0f802e851ebc8b179fd823a793fecf333313db35"
   },
-  "date": "2026-11-02",
+  "date": "2026-11-03",
   "entries": [
     {
       "asset_record_sha256": "b62355e20a7db105525e05cf703ff61900dec6273f43db6c953588e1abce414d",
@@ -155,7 +155,7 @@
     {
       "asset_record_sha256": "989fee0624a92f798511a029fc8917744dcb182cb8dd1801640594fc8dc0d504",
       "asset_status": "READY",
-      "blocker": "Paired selection and final BER/budget campaign are frozen but have not run; no manuscript effectiveness claim.",
+      "blocker": "Finalized v4 result covers first 32 FP32 classifier weights only; validation-cohort replication is frozen but unrun.",
       "engineering_receipt_manifest_sha256": "842613482ca5056fc5a22bc346068b3c026bd50f83ce7a9f78cf1a5ca2cff4a6",
       "engineering_source_commit": "ca2bd69e6d57e99e7ab80feaa4384533e5aad66e",
       "evidence": [
@@ -163,14 +163,23 @@
         "workspace/runs/distilbert_sst2_fp32_conformance_v3/manifest.json",
         "config/experiments/distilbert_sst2_classifier1024_v4.json",
         "workspace/plans/distilbert_sst2_classifier1024_v4/NETSURF_ASSET_READINESS.json",
-        "docs/TRANSFORMER_BENCHMARK_PROTOCOL.md"
+        "docs/TRANSFORMER_BENCHMARK_PROTOCOL.md",
+        "workspace/runs/distilbert_sst2_classifier1024_v4_run1/selection/seal.json",
+        "workspace/runs/distilbert_sst2_classifier1024_v4_run1/analysis.json",
+        "workspace/runs/distilbert_sst2_classifier1024_v4_run1_export/complete.zip",
+        "config/experiments/distilbert_sst2_validation_replication_v1.json",
+        "docs/DISTILBERT_V4_RETROSPECTIVE_AUDIT.md"
       ],
-      "finalized_new_model_result": false,
+      "finalized_analysis_sha256": "5fdd2bf99543190d947b099cc607fc016fb6cc35a9e100dc9d237e90e8bb9707",
+      "finalized_complete_zip_sha256": "9df099fa58b125315aa68ec528cb3ee71bbe00c7f7c33744e3f1f274849259a4",
+      "finalized_new_model_result": true,
       "frozen_plan_object_sha256": "735ad6e8531628059bf891075e37885026b220a586bc2d0dc640e507238dc7d7",
       "frozen_plan_sha256": "989363ec2af12ab4ccbc8344e0685e3512759fdd6f6469f65bde8e6e5d87989c",
       "precision": "FP32",
+      "ready_consumer_record_sha256": "23b96d38a0670a52e0eb82bbbd41577b549feb1a247691d11ada73a64d3abf87",
+      "replication_plan_object_sha256": "a07ebf6849203e56613a11166f1ba651175da9814d2df594500dd41017d1bbc6",
       "source_registry_status": "Asset acquisition required",
-      "status": "FROZEN_FOR_RUN",
+      "status": "FINALIZED",
       "target": "distilbert_sst2_fp32"
     },
     {
@@ -187,18 +196,32 @@
       "target": "distilbert_sst2_int8"
     },
     {
-      "asset_record_sha256": "a3717e3eab7e7c341a5938c3f0958f574b2a7617b3cd9ba23167e30cf5683522",
-      "asset_status": "PREPARED_AWAITING_APPROVAL",
-      "blocker": "Approval to acquire (see NETSURF_ASSET_ACQUISITION_PLAN.md section 6) and to create the torch environment.; Derived BF16 artifact is not created until the float32 reference perplexity is measured.",
+      "asset_record_sha256": "67a92f95e32e8b29dbd3ee8a0f4f868a250b1833f10f693c9a0d2d60fe250bd3",
+      "asset_status": "READY",
+      "blocker": "Both FP32/FP32 and BF16/FP32 real-fault engineering smokes passed; native BF16 compute remains VALIDATION_FAILED. No frozen production BER/budget study.",
+      "engineering_smoke_payload_sha256": "13fc5782437fbcdcda19bb9c3c4a9f2d4ba2bf5c523a779c772f1610cfe8f07c",
       "evidence": [
         "netsurf/storage_bit_codec.py",
         "netsurf/adapters/transformers_pinned.py",
-        "tests/test_transformer_storage.py"
+        "tests/test_transformer_storage.py",
+        "workspace/runs/pythia160m_fp32stored_fp32compute_fault_smoke_v1/FINALIZED",
+        "workspace/runs/pythia160m_bf16stored_fp32compute_fault_smoke_v1/FINALIZED",
+        "docs/TRANSFORMER_LM_ENGINEERING_EVIDENCE.md"
       ],
       "finalized_new_model_result": false,
       "precision": "BF16",
+      "ready_consumer_record_sha256": "4e2207e2a8dd91619635e2198a0af514b35e08497392f7df0324098b71cd0ec5",
+      "runtime_configuration_record_sha256": {
+        "pythia160m_bf16stored_bf16compute": "b6853de4d79891989e18562df8e75fe945ea8b7746a4f7355a49f0da41ad1ba7",
+        "pythia160m_bf16stored_fp32compute": "04e7713a3f3ce2a4d74e8309b967b7ff9aa3c0e6e10a1b16e89f796672622d8a",
+        "pythia160m_fp32stored_fp32compute": "b0c10ce641fb0ec83a02c0e8af7923e8263876374f2d236b44bb918cd29ece99"
+      },
+      "runtime_configurations": [
+        "pythia160m_fp32stored_fp32compute",
+        "pythia160m_bf16stored_fp32compute"
+      ],
       "source_registry_status": "Research-stage",
-      "status": "IMPLEMENTING",
+      "status": "READY",
       "target": "pythia160m_bf16"
     },
     {
@@ -215,18 +238,22 @@
       "target": "pythia160m_int8"
     },
     {
-      "asset_record_sha256": "f1cc507eff185f1f3304ea6e56753026e9e73a059702c9e1430bde3432d70bac",
-      "asset_status": "PREPARED_AWAITING_APPROVAL",
-      "blocker": "Approval to acquire (see NETSURF_ASSET_ACQUISITION_PLAN.md section 6) and to create the torch environment.; BF16 on CPU is slow (software emulated on this CPU); a bounded window count is used for the smoke.",
+      "asset_record_sha256": "f65a3e1b5ae617f9a78310d61c32e29edea9ab8f5f8fde649d657c0212faf3f0",
+      "asset_status": "READY",
+      "blocker": "Real BF16-storage/BF16-computation engineering fault smoke passed. No frozen production BER/budget study.",
+      "engineering_smoke_payload_sha256": "d29bbea1dc2b99c35cca9429981219ea4244b223f385bfc5901b1e2d9e21d446",
       "evidence": [
         "netsurf/storage_bit_codec.py",
         "netsurf/adapters/transformers_pinned.py",
-        "tests/test_transformer_storage.py"
+        "tests/test_transformer_storage.py",
+        "workspace/runs/qwen3_0_6b_bf16_fault_smoke_v1/FINALIZED",
+        "docs/TRANSFORMER_LM_ENGINEERING_EVIDENCE.md"
       ],
       "finalized_new_model_result": false,
       "precision": "BF16",
+      "ready_consumer_record_sha256": "1e8448bb03baf060f1a8c403584d3b5edd91dad1d5c449a3a4ea68e627381106",
       "source_registry_status": "Asset acquisition required",
-      "status": "IMPLEMENTING",
+      "status": "READY",
       "target": "qwen3_0_6b_bf16"
     },
     {
@@ -260,10 +287,10 @@
   "source_registry_sha256": "289471536a49d87e6055d25c0deaed98b616132650a397c0c80d614d145339dc",
   "status_meanings": {
     "BLOCKED": "required asset, precision or backend contract absent",
-    "FINALIZED": "checksum-verified task-level evidence",
+    "FINALIZED": "checksum-verified final task-level protection campaign; scope remains as declared in its frozen plan",
     "FROZEN_FOR_RUN": "asset, source, cohort and scientific plan hashes sealed",
     "IMPLEMENTING": "source and fixture work underway; asset/backend smoke incomplete",
-    "READY": "existing validated NetSuRF benchmark capability; no new transformer effectiveness claim",
+    "READY": "pinned asset and real-model fault backend passed engineering gate; effectiveness campaign may still be absent",
     "RUNNING": "frozen foreground run in progress"
   }
 }

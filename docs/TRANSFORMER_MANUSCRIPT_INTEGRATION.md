@@ -1,51 +1,18 @@
-# ACM TECS software manuscript: transformer integration evidence
+# ACM TECS software manuscript: transformer evidence status
 
-This is a companion evidence note for the existing November 9 manuscript,
-not a separate manuscript. It does not edit the paper1-engineering source or
-its figures. The previously validated ResNet-8/CIFAR-10, DS-CNN/KWS and
-ToyCar/AD results remain the established benchmark backbone.
+This updates the existing November 9 software-only manuscript evidence track. The three validated TinyML benchmarks remain its backbone. No historical manuscript artifact or finalized experiment is edited here.
 
-| Candidate row | Storage and task | Kona status at handoff SHA-256 `a8e767e2…` | Eligible-effectiveness evidence |
+| Target configuration | Actual storage → computation | Current NetSuRF evidence | Manuscript status |
 |---|---|---|---|
-| DistilBERT / SST-2 | source FP32, binary CE and accuracy | `PREPARED_AWAITING_APPROVAL` | None; synthetic codec demonstration only |
-| Pythia-160M / WikiText-2 | proposed derived BF16, token NLL/perplexity | `PREPARED_AWAITING_APPROVAL` | None; proposed revision differs from registry |
-| Qwen3-0.6B Base / WikiText-2 | source BF16, token NLL/perplexity | `PREPARED_AWAITING_APPROVAL` | None; proposed revision differs from registry |
+| DistilBERT/SST-2 | FP32 → FP32 | Finalized 1,024-classifier-bit v4 campaign, 96 paired fields; [read-only audit](DISTILBERT_V4_RETROSPECTIVE_AUDIT.md) | Eligible as a narrowly scoped targeted-classifier result, with cap and calibration limitations disclosed |
+| Pythia-160M/WikiText-2 | FP32 → FP32 | Finalized 32-token engineering fault smoke | No BER/budget effectiveness claim |
+| Pythia-160M/WikiText-2 | BF16 → distinct FP32 execution copy | Finalized 32-token engineering fault smoke; encoded BF16 XOR precedes exact widening | No BER/budget effectiveness claim; native BF16 compute remains validation failed |
+| Qwen3-0.6B Base/WikiText-2 | BF16 → BF16 | Finalized 32-token engineering fault smoke | No BER/budget effectiveness claim |
 
-The source-to-asset audit is an immutable read-only receipt at
-`workspace/runs/transformer_handoff_audit_v1.json`; the tiny synthetic
-FP32 encoded-bit demonstration is at
-`workspace/runs/transformer_fixture_v1.json`. Neither is a model-level
-effectiveness result. The exact storage methodology and task-risk/failure
-rules are in `docs/TRANSFORMER_BENCHMARK_PROTOCOL.md`.
+The authoritative readiness handoff used by the LM smokes is `NETSURF_ASSET_READINESS.json` SHA-256 `3192d3ce57b7a11089af4c1e0f802e851ebc8b179fd823a793fecf333313db35`. Each immutable smoke bundle includes that exact manifest, the reviewed NetSuRF runtime registry, source files, candidate identities, schedules, fault counts, task risks and restoration evidence. The three complete ZIPs were independently checked for manifest checksums and ZIP CRC integrity. Their exact receipts and limits are in [LM engineering evidence](TRANSFORMER_LM_ENGINEERING_EVIDENCE.md).
 
-## Method text for integration after acceptance
+## Method text for the current draft
 
-For a verified transformer, fault coordinates index the actual stored FP32
-or BF16 words of the declared contiguous CPU linear-weight population.
-Each fault flips one encoded bit by XOR in the runtime tensor that inference
-consumes. Candidate identities, checkpoint bytes, tokenizer, source indices,
-token sequence, inference backend, fault events and post-trial restoration
-are hashed. A protected coordinate suppresses the corresponding logical
-event under a common paired fault field. SST-2 risk is bounded mean
-cross-entropy with public binary labels; WikiText-2 risk is bounded
-teacher-forced mean token NLL, with each target token scored once despite
-overlapping context windows. Nonfinite and failed inferences receive a
-prespecified 30-nat penalty and remain separately counted.
+For a verified transformer, a fault coordinate indexes an actual stored FP32 or BF16 word of the declared CPU `nn.Linear.weight` population. NetSuRF XORs the encoded stored bit, checks the inference-consumed representation, and restores and hashes the original bytes after the trial. Embeddings, layer norms, biases, tied weights, and other operators are outside that population; eligible counts are per pinned model. For Pythia BF16 storage with FP32 computation, the BF16 word is mutated first and a distinct FP32 copy is rematerialized for inference. This is a different fault contract from native BF16 computation. A protection mask suppresses specified logical events under the same paired fault field. SST-2 uses public-label mean cross-entropy and accuracy. WikiText-2 uses deterministic teacher-forced target-token negative log-likelihood and perplexity, with each target scored once under the pinned 1,024-token context and 512-token stride. Nonfinite or failed target evaluations receive the prespecified 30-nat penalty and are counted separately.
 
-The paragraph above describes an **implemented interface and planned
-protocol**, not a completed real-model experiment. Do not place any new
-transformer in the paper's effectiveness tables or BER/budget figures until
-the READY asset gate, exact stored-bit smoke, equal-budget protection trial,
-frozen final protocol and checksum-verified result bundle all pass. When
-eligible, use separate panels for accuracy, ROC-AUC and perplexity; report
-runtime, bit population, BER, expected applied faults and failure fraction.
-
-## Remaining integration blockers
-
-The planned Torch environment and checkpoints are absent. DistilBERT
-requires public labeled validation rows and an engineering cohort disjoint
-from selection/final evaluation. Pythia requires the derived BF16 artifact
-to be pinned and its source revision reconciled; Qwen requires revision
-reconciliation and explicit tied-weight handling. Numerical backend and
-autograd estimator conformance remain pending. No production launcher,
-publication number or altered manuscript figure is justified yet.
+The DistilBERT v4 result concerns only 32 classifier words. Its high-BER cross-entropy contrast is dominated by a few catastrophic, finite-logit fields under the prespecified cap. The new validation-cohort replication plan is frozen but not run. No current transformer evidence supports a general full-model reliability claim, physical upset-rate claim, or effectiveness curve for Pythia or Qwen. Accuracy, ROC-AUC and perplexity should remain on separate axes. Production cost and fault-exposure feasibility must be measured before adding LLM BER or protection-budget panels.
