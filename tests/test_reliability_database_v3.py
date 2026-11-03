@@ -64,3 +64,27 @@ def test_frozen_followup_plan_is_hash_gated(tmp_path):
     config.write_text("changed")
     with pytest.raises(ValueError,match="frozen plan configuration changed"):
         checked_plan(receipt,"study")
+
+
+def test_export_verifies_product_and_writes_absolute_download_paths(tmp_path):
+    import zipfile
+    from workflows.export_reliability_database_v3 import export
+
+    product=tmp_path/"product";product.mkdir()
+    database=product/"reliability_v3.sqlite";database.write_bytes(b"database")
+    (product/"primary_conditions.csv").write_text("study_id\n")
+    files={path.name:sha256_file(path) for path in (database,product/"primary_conditions.csv")}
+    (product/"checksums.json").write_text(json.dumps({"schema_version":v3.SCHEMA_VERSION,"files":files}))
+    (product/"FINALIZED").write_text(f"reliability_database_sha256={files['reliability_v3.sqlite']}\n")
+    destination=tmp_path/"export"
+    export(product,destination)
+    commands=(destination/"mac_scp_commands.txt").read_text()
+    assert f"kona:{destination}/product_compact.zip" in commands
+    with zipfile.ZipFile(destination/"product_compact.zip") as archive:
+        assert "product/primary_conditions.csv" in archive.namelist()
+        assert "product/reliability_v3.sqlite" not in archive.namelist()
+    with zipfile.ZipFile(destination/"product_complete.zip") as archive:
+        assert "product/reliability_v3.sqlite" in archive.namelist()
+    database.write_bytes(b"corrupt")
+    with pytest.raises(ValueError,match="artifact changed"):
+        export(product,tmp_path/"bad_export")
