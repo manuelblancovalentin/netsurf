@@ -1,0 +1,54 @@
+{
+  "schema": "netsurf-w8a8-m12-handoff/v1",
+  "owner": "codex/transformer-integration",
+  "central_database_owner": "m12-reliability-database",
+  "m12_schema_observed": "1.2.0",
+  "readiness_manifest_sha256": "7128399521cef0d3e08f5d70bcb4f5b360fe2c85406c8ea8ac495e85be77b1b0",
+  "kona_source_commit": "1aea52b",
+  "netsurf_source_commit": "f71353b",
+  "status": "ADAPTER_ENGINEERING_VALIDATED; SELECTION_NOT_RUN; FINAL_NOT_MEASURED",
+  "scientific_scope": "complete declared stored INT8 QLinear qweight universe of each derived W8A8 executable; all other storage outside population",
+  "method_map": {
+    "unprotected": "no_protection",
+    "random": "random_global",
+    "msb_first": "msb_global",
+    "numerical_bit_jump": "numerical_jump_global",
+    "global_first_order": "gradient_global",
+    "per_example_absolute": "per_example_absolute_global",
+    "per_example_positive": "per_example_positive_global",
+    "full_protection": "full_protection"
+  },
+  "targets": [
+    {
+      "target_id": "distilbert_sst2_int8",
+      "m12_model_id": "distilbert_sst2_int8_full",
+      "eligible_bits": 344469504,
+      "ready_record_sha256": "e6d03c3bce030b060badb6d4e44e93008176848361e551e265f2c02b6ea06c68",
+      "plan_dir": "workspace/plans/distilbert_sst2_w8a8_reliability_v1",
+      "plan_file_sha256": "21c611dee0b68287fba1a7018973456b088080f90d9f46964e1f8f69a0816999",
+      "plan_sha256": "f1cb52004bd629ffdc8363106a30d535a4c670d7acd5f88bda5b98ddefaaf4bd",
+      "engineering_receipt_sha256": "ba115fd799af936b15b1373863becdb405f063d602d08028e7c0c682ebac394e"
+    },
+    {
+      "target_id": "pythia160m_int8",
+      "m12_model_id": "pythia160m_int8_full",
+      "eligible_bits": 988545024,
+      "ready_record_sha256": "85e7135f695a42a24669afe12483fa72ca97f4158b1e593074f470e712580723",
+      "plan_dir": "workspace/plans/pythia160m_w8a8_reliability_v1",
+      "plan_file_sha256": "434353aea4c35adfdd27f18b087a830811a7e822ddc8b59a90e909789f892979",
+      "plan_sha256": "26e62f1d960ea5127d7e1d7ad3149facb4df84caa90d05c8835c393ffabc54fc",
+      "engineering_receipt_sha256": "d74f75972c16dd1b0e1f37b91098263eaa7ec93a1b891d1579550fdfe9ee843c"
+    },
+    {
+      "target_id": "qwen3_0_6b_int8",
+      "m12_model_id": "qwen3_0_6b_int8_full",
+      "eligible_bits": 4767875072,
+      "ready_record_sha256": "c9bc0733982117e9ace2fab0403d3ae0458b7ae2c3e210f3590494187289bd88",
+      "plan_dir": "workspace/plans/qwen3_0_6b_w8a8_reliability_v1",
+      "plan_file_sha256": "736bf8aac2bc2af84f811c92a00bfe513f33edd0487fcea45cb5617e49c435e8",
+      "plan_sha256": "17f65c350906b8044bb834b845eceb096a2689c355f815cb45150dfebef8d4f9",
+      "engineering_receipt_sha256": "0c0c30bd53d893643f3efeed55424b2e037e91adcb8039b3644b62271cdebcb6"
+    }
+  ],
+  "ingest_gate": "Require a finalized complete campaign ZIP; verify plan, READY target record, quantization manifest, eligible universe, sealed mask bytes, every paired field schedule, analysis, FINALIZED marker and checksums inventory before inserting effectiveness rows. Engineering receipts alone must not populate primary conditions."
+}
