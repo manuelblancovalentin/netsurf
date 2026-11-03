@@ -138,7 +138,10 @@ class _ExactTFLiteKernelAdapter:
         if self.dataset_path not in locked_datasets:
             raise AssetLockError("dataset path differs from the pinned asset lock")
         locked_model = self.asset_lock.file(self.model_relative_path)
-        if locked_model != self.checkpoint:
+        # The same pinned inode can be exposed through /data and /mnt/raid0/ml
+        # mount aliases on Kona.  Preserve path pinning for different files,
+        # then enforce the recorded SHA-256 on the bytes below.
+        if locked_model != self.checkpoint and not locked_model.samefile(self.checkpoint):
             raise AssetLockError("checkpoint path differs from the pinned asset lock")
         model_record = self.asset_lock.file_record(self.model_relative_path)
         if model_record.get("sha256") != self.model_sha256:
