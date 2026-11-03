@@ -299,13 +299,16 @@
         }
       ],
       "dataset": "glue-sst2",
-      "eligible_bits": null,
-      "model_sha256": null,
-      "status": "BLOCKED",
-      "protection_experiment": null,
-      "evidence": null,
-      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence.",
-      "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities distilbert_sst2_fp32"
+      "eligible_bits": 1377878016,
+      "campaign_eligible_bits": 1024,
+      "model_sha256": "7c3919835e442510166d267fe7cbe847e0c51cd26d9ba07b89a57b952b49b8aa",
+      "status": "RUNNING_ENGINEERING_VERIFIED",
+      "implementation_commit": "2ca15ac",
+      "protection_experiment": "distilbert_sst2_classifier1024_v4_run1",
+      "evidence": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_fp32_conformance_v3/manifest.json",
+      "engineering_payload_sha256": "62a379160e207fb9041451e28b9e6d76ae44646ae4291cfa4e8e95c2afc877cf",
+      "blocker": "Frozen targeted-classifier campaign was running at the 2 November status check. No finalized protection effectiveness result incorporated. Full inspectable population and 1024-bit campaign fault support are distinct.",
+      "validation_command": "/projects/kona-assets/manuelbv/envs/torch-2.9.1-cpu-py311/bin/python -m netsurf.transformer_campaign_cli --help"
     },
     {
       "id": "distilbert_sst2_int8",
@@ -337,7 +340,7 @@
       "status": "BLOCKED",
       "protection_experiment": null,
       "evidence": null,
-      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence. Quantization/packing recipe and exact runtime storage mapping are unvalidated; registry source weights are not the requested precision.",
+      "blocker": "FP32 source and SST-2 backend now exist; no verified INT8 derivative or INT8 storage-fault contract. FP32 evidence cannot be relabeled INT8.",
       "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities distilbert_sst2_int8"
     },
     {
@@ -374,7 +377,20 @@
       "status": "BLOCKED",
       "protection_experiment": null,
       "evidence": null,
-      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence. Registered source is FP16, not BF16; conversion needs its own identity and validation.",
+      "blocker": "Old portfolio main-revision metadata is retained, not silently replaced. A separately derived step143000 BF16 artifact exists; native BF16 computation is VALIDATION_FAILED. BF16 storage with FP32 computation is a distinct configuration awaiting finalized READY and real fault conformance.",
+      "execution_variants": {
+        "native_bf16": {"status": "VALIDATION_FAILED", "authority": "researcher update and existing asset validation report"},
+        "bf16_storage_fp32_compute": {
+          "status": "ADAPTER_SYNTHETIC_ONLY_AWAITING_READY",
+          "target_id": "pythia160m_bf16_storage_fp32_compute",
+          "derived_checkpoint_sha256": "45c31786f3a41eb04c589fc5895d4b04c13e6e138975fb1d279e21269379bd4c",
+          "parent_revision": "b56d9bee36300031aeea723b73c4d62ac7fa71a2",
+          "header_eligible_bits_pending_runtime": 1977090048,
+          "implementation_commit": "3512a4c362d6718e09954130334b15ed7f1f0694",
+          "protocol": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/pythia-bf16-storage/docs/PYTHIA_BF16_STORAGE.md",
+          "real_fault_execution": "HELD_BY_RESEARCHER_PENDING_FINALIZED_READY"
+        }
+      },
       "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities pythia160m_bf16"
     },
     {
@@ -411,7 +427,7 @@
       "status": "BLOCKED",
       "protection_experiment": null,
       "evidence": null,
-      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence. Quantization/packing recipe and exact runtime storage mapping are unvalidated; registry source weights are not the requested precision.",
+      "blocker": "WikiText-2 and FP32/BF16 source artifacts now exist; no verified INT8 derivative, quantization metadata or exact INT8 storage mapping.",
       "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities pythia160m_int8"
     },
     {
@@ -457,7 +473,7 @@
       "status": "BLOCKED",
       "protection_experiment": null,
       "evidence": null,
-      "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence.",
+      "blocker": "Qwen3-0.6B-Base native-BF16 clean validation is ongoing, not READY. It is a different model from the preserved post-trained portfolio revision; no substitution or protection result accepted.",
       "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities qwen3_0_6b_bf16"
     },
     {

@@ -196,6 +196,38 @@ inference or download is hidden inside the manuscript build.
 
 ## Asset and dependency boundary
 
+**Superseding update, 2 November 2026:** DistilBERT FP32/SST-2 passed the
+separate engineering gate and its frozen targeted-classifier campaign is now
+running in `transformer-integration` at commit `2ca15ac`. That worktree and
+its running processes were not modified. The earlier acquisition/install
+suggestions below are historical and must **not** be run now. The installed
+approved interpreter is
+`/projects/kona-assets/manuelbv/envs/torch-2.9.1-cpu-py311/bin/python`.
+Engineering payload
+`62a379160e207fb9041451e28b9e6d76ae44646ae4291cfa4e8e95c2afc877cf`
+was reverified from finalized files. No running campaign measurements were
+read into figures or treated as publication effectiveness evidence.
+
+The Pythia-derived BF16 checkpoint exists, with three distinct numerical paths:
+upstream FP32/FP32; derived BF16 storage/FP32 computation; and native BF16.
+Native BF16 is VALIDATION_FAILED. The mixed path has a clean-reference report
+but no finalized separate READY handoff. The researcher explicitly holds
+real-model fault execution. Isolated implementation branch
+`pythia-bf16-storage`, commit `3512a4c362d6718e09954130334b15ed7f1f0694`,
+contains synthetic exact-widening/restoration tests and a blocked, exposure-
+calibrated preparation plan. It is not a production-ready campaign. See
+`workspace/implementation-worktrees/pythia-bf16-storage/docs/PYTHIA_BF16_STORAGE.md`
+from the canonical repository. Qwen3-0.6B-Base remains under clean validation;
+it is not the older post-trained Qwen checkpoint in the portfolio.
+
+The 18-target ledger retains the historical source pins, adds distinct runtime
+variant status and does not silently relabel a model or precision. The immutable
+prior ZIP remains unchanged. Current manuscript figures still use only
+finalized TinyML effectiveness evidence; the transformer conformance boundary
+is stated in the discussion. The integrated completion gate remains incomplete.
+
+### Earlier acquisition audit now superseded for DistilBERT and Pythia
+
 Read-only checks found no approved local ImageNet-1k, SST-2 or WikiText-2 data
 and no corresponding model weights in the audited shared roots. The HF cache
 held only WikiText metadata. Canonical Python lacks torch, transformers,
@@ -247,8 +279,9 @@ No target is silently replaced with another precision or smaller dataset.
 2. Researcher executes the frozen common grids; inspect **all** conditions,
    paired effects, catastrophic trials and ranking/evaluation cost. Do not
    cherry-pick methods or retroactively narrow the multiplicity family.
-3. Resolve assets/backend for one independent transformer task; then implement
-   exact storage and bounded smoke before a prospective campaign. If unresolved
+3. Verify and incorporate the already-running DistilBERT campaign only after
+   finalization. Await the separate Pythia mixed-precision READY record and
+   real conformance before freezing a language-model campaign. If unresolved
    on 9 November, report the gate incomplete rather than invent results.
 4. Resolve full streaming data/protocol or authoritative VWW provenance. The
    short fixture is engineering evidence only; it cannot carry generalization.
