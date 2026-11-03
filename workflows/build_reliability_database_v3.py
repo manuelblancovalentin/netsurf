@@ -10,6 +10,7 @@ from pathlib import Path
 
 from netsurf.manifests import sha256_file
 from netsurf.reliability_database import METHODS, PRIMARY_STUDIES, export_csv
+from netsurf import reliability_database_v3
 from netsurf.reliability_database_v3 import SCHEMA_VERSION, build_database_v3
 from .build_reliability_database import (
     COLORS, MODEL_LABELS, INTERIOR_BUDGETS, freeze_primary_plans,
@@ -140,7 +141,11 @@ def build_product(sources: Path, asset_manifest: Path, output: Path) -> None:
     with (output/"PRIMARY_README.md").open("a") as file:
         file.write("\n## M12 asset gate\n\nThe three W8A8 transformer assets are hash-verified READY, but their NetSuRF full-universe adapters and protection experiments are NOT VALIDATED/NOT MEASURED. See `asset_readiness.csv`. Their INT8 Linear weights use dynamic INT8 activations and INT32 accumulation; non-Linear operations remain floating point. No transformer row enters `primary_conditions.csv`.\n\n`plots_measured_only/` contains only actually measured interior budgets; `plots_target_matrix/` also shows the 6.25% and 18.75% missing-budget panels explicitly.\n")
     files = {str(path.relative_to(output)):sha256_file(path) for path in sorted(output.rglob("*")) if path.is_file()}
-    checks = {"schema_version":SCHEMA_VERSION,"sources_sha256":sha256_file(sources),"asset_manifest_sha256":sha256_file(asset_manifest),"files":files}
+    checks = {"schema_version":SCHEMA_VERSION,"sources_sha256":sha256_file(sources),
+              "asset_manifest_sha256":sha256_file(asset_manifest),
+              "builder_workflow_sha256":sha256_file(Path(__file__)),
+              "builder_schema_module_sha256":sha256_file(Path(reliability_database_v3.__file__)),
+              "files":files}
     (output/"checksums.json").write_text(json.dumps(checks, indent=2, sort_keys=True)+"\n")
     (output/"FINALIZED").write_text(f"reliability_database_sha256={files['reliability_v3.sqlite']}\n")
 

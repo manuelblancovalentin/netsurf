@@ -107,7 +107,7 @@ cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db
 /mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m workflows.build_reliability_database_v3 \
   --sources config/reliability_sources_v1.json \
   --assets /projects/kona-assets/manuelbv/NETSURF_ASSET_READINESS.json \
-  --output workspace/reliability_database_v3_m12_delivery
+  --output workspace/reliability_database_v3_m12_release
 ```
 
 The output contains `primary_conditions.csv`, `asset_readiness.csv`, the
@@ -124,9 +124,9 @@ changing it:
 
 ```bash
 /mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m workflows.export_reliability_database_v3 \
-  workspace/reliability_database_v3_m12_delivery \
-  workspace/reliability_database_v3_m12_delivery_export_abs
-cat workspace/reliability_database_v3_m12_delivery_export_abs/mac_scp_commands.txt
+  workspace/reliability_database_v3_m12_release \
+  workspace/reliability_database_v3_m12_release_export
+cat workspace/reliability_database_v3_m12_release_export/mac_scp_commands.txt
 ```
 
 For a frozen, unexecuted matched plan, use a foreground dry-run first:
