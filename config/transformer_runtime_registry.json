@@ -1,0 +1,167 @@
+{
+  "entries": [
+    {
+      "computation_precision": "FP32",
+      "dataset": {
+        "files": [
+          {
+            "path": "wikitext-2-raw-v1/test-00000-of-00001.parquet",
+            "sha256": "5f1bea067869d04849c0f975a2b29c4ff47d867f484f5010ea5e861eab246d91"
+          },
+          {
+            "path": "wikitext-2-raw-v1/train-00000-of-00001.parquet",
+            "sha256": "e83889baabc497075506f91975be5fac0d45c5290b6b20582c8cd1e853d0c9f7"
+          },
+          {
+            "path": "wikitext-2-raw-v1/validation-00000-of-00001.parquet",
+            "sha256": "204929b7ff9d6184953f867dedb860e40aa69c078fc1e54b3baaa8fb28511c4c"
+          }
+        ],
+        "local_root": "/data/datasets/wikitext2",
+        "revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+        "source": "Salesforce/wikitext"
+      },
+      "id": "pythia160m_fp32stored_fp32compute",
+      "model": {
+        "files": [
+          {
+            "path": "config.json",
+            "sha256": "76eb275107220e450d31258f792a2efcbee109d8b62ae0088260057dec06362f"
+          },
+          {
+            "path": "model.safetensors",
+            "sha256": "d829d1a5cf66032491679d64c5b18e85b82d37833a99c346905668b8553084d5"
+          },
+          {
+            "path": "special_tokens_map.json",
+            "sha256": "6f50ab5a5a509a1c309d6171f339b196a900dc9c99ad0408ff23bb615fdae7ad"
+          },
+          {
+            "path": "tokenizer.json",
+            "sha256": "c24618a1b3e6a38167beff1c72cffd126c3a66254347304b50547d12c5f25624"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "sha256": "70e38394e494931c6f773ba41e19460dd4436526b852207367f04341b4066d3f"
+          }
+        ],
+        "revision": "b56d9bee36300031aeea723b73c4d62ac7fa71a2",
+        "source": "EleutherAI/pythia-160m"
+      },
+      "readiness_record_sha256": "b0c10ce641fb0ec83a02c0e8af7923e8263876374f2d236b44bb918cd29ece99",
+      "target_precision": "FP32"
+    },
+    {
+      "computation_precision": "FP32",
+      "dataset": {
+        "files": [
+          {
+            "path": "wikitext-2-raw-v1/test-00000-of-00001.parquet",
+            "sha256": "5f1bea067869d04849c0f975a2b29c4ff47d867f484f5010ea5e861eab246d91"
+          },
+          {
+            "path": "wikitext-2-raw-v1/train-00000-of-00001.parquet",
+            "sha256": "e83889baabc497075506f91975be5fac0d45c5290b6b20582c8cd1e853d0c9f7"
+          },
+          {
+            "path": "wikitext-2-raw-v1/validation-00000-of-00001.parquet",
+            "sha256": "204929b7ff9d6184953f867dedb860e40aa69c078fc1e54b3baaa8fb28511c4c"
+          }
+        ],
+        "local_root": "/data/datasets/wikitext2",
+        "revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+        "source": "Salesforce/wikitext"
+      },
+      "id": "pythia160m_bf16stored_fp32compute",
+      "model": {
+        "files": [
+          {
+            "path": "config.json",
+            "sha256": "4f8f434128dda8ca1acc09a9296218302a1c1acb301ad66c52fe1f8e53ac7bab"
+          },
+          {
+            "path": "model.safetensors",
+            "sha256": "45c31786f3a41eb04c589fc5895d4b04c13e6e138975fb1d279e21269379bd4c"
+          },
+          {
+            "path": "special_tokens_map.json",
+            "sha256": "6f50ab5a5a509a1c309d6171f339b196a900dc9c99ad0408ff23bb615fdae7ad"
+          },
+          {
+            "path": "tokenizer.json",
+            "sha256": "c24618a1b3e6a38167beff1c72cffd126c3a66254347304b50547d12c5f25624"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "sha256": "70e38394e494931c6f773ba41e19460dd4436526b852207367f04341b4066d3f"
+          }
+        ],
+        "revision": "45c31786f3a41eb04c589fc5895d4b04c13e6e13",
+        "source": "kona-assets/pythia-160m-bf16-rne"
+      },
+      "readiness_record_sha256": "04e7713a3f3ce2a4d74e8309b967b7ff9aa3c0e6e10a1b16e89f796672622d8a",
+      "target_precision": "BF16"
+    },
+    {
+      "computation_precision": "BF16",
+      "dataset": {
+        "files": [
+          {
+            "path": "wikitext-2-raw-v1/test-00000-of-00001.parquet",
+            "sha256": "5f1bea067869d04849c0f975a2b29c4ff47d867f484f5010ea5e861eab246d91"
+          },
+          {
+            "path": "wikitext-2-raw-v1/train-00000-of-00001.parquet",
+            "sha256": "e83889baabc497075506f91975be5fac0d45c5290b6b20582c8cd1e853d0c9f7"
+          },
+          {
+            "path": "wikitext-2-raw-v1/validation-00000-of-00001.parquet",
+            "sha256": "204929b7ff9d6184953f867dedb860e40aa69c078fc1e54b3baaa8fb28511c4c"
+          }
+        ],
+        "local_root": "/data/datasets/wikitext2",
+        "revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+        "source": "Salesforce/wikitext"
+      },
+      "id": "qwen3_0_6b_bf16",
+      "model": {
+        "files": [
+          {
+            "path": "config.json",
+            "sha256": "504a6b58c4271583724e66584b6b7698aea18450209df6b2f7582df0e89cee59"
+          },
+          {
+            "path": "generation_config.json",
+            "sha256": "8c970692323e3ea0e9b8b0a4dca79388d31226e41f83c9fd6014804280ebf6e8"
+          },
+          {
+            "path": "merges.txt",
+            "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5"
+          },
+          {
+            "path": "model.safetensors",
+            "sha256": "cd2a512003e2f9f3cd3c32a9c3573f820bb28c940f73c57b1ddaa983d9223eba"
+          },
+          {
+            "path": "tokenizer.json",
+            "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "sha256": "3c04ed3ca964ea2f6b2b5faf0dc4d31aec1cb1e8b4bcf63f402d295046b422b5"
+          },
+          {
+            "path": "vocab.json",
+            "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+          }
+        ],
+        "revision": "da87bfb608c14b7cf20ba1ce41287e8de496c0cd",
+        "source": "Qwen/Qwen3-0.6B-Base"
+      },
+      "readiness_record_sha256": "f65a3e1b5ae617f9a78310d61c32e29edea9ab8f5f8fde649d657c0212faf3f0",
+      "target_precision": "BF16"
+    }
+  ],
+  "schema_version": "netsurf-transformer-runtime-registry/v1",
+  "source_readiness_sha256": "3192d3ce57b7a11089af4c1e0f802e851ebc8b179fd823a793fecf333313db35"
+}

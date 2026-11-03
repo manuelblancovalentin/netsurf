@@ -9,6 +9,8 @@ state are excluded and remain unchanged; this is not full-model coverage.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from contextlib import contextmanager
+import copy
 import hashlib
 import json
 import os
@@ -85,6 +87,7 @@ class PinnedTransformerAdapter:
         self.model = None
         self.tokenizer = None
         self.storage = None
+        self.storage_model = None
 
     def load(self) -> None:
         verify_running_interpreter(self.asset)
@@ -107,12 +110,71 @@ class PinnedTransformerAdapter:
         kind = AutoModelForSequenceClassification if self.asset.target == "distilbert_sst2_fp32" else AutoModelForCausalLM
         self.model = kind.from_pretrained(str(self.asset.model_root), config=config,
             local_files_only=True, trust_remote_code=False, use_safetensors=True,
-            torch_dtype="auto")
+            dtype=torch.float32 if self.asset.precision == "FP32" else torch.bfloat16)
         self.model.eval()
         if self.model.device.type != "cpu" or getattr(self.model.config, "_attn_implementation", None) != "eager":
             raise AssetBlocked("model loaded with unvalidated device or attention implementation")
         self.storage = TorchStoredLinearWeights(self.model, self.asset.precision)
         self._verify_checkpoint_storage()
+        if self.asset.precision == "BF16" and self.asset.computation_precision == "FP32":
+            # The source model remains the exact BF16 checkpoint representation.
+            # Inference consumes an independently allocated FP32 widening of it.
+            self.storage_model = self.model
+            self.model = copy.deepcopy(self.storage_model).to(dtype=torch.float32)
+            self.model.eval()
+            self._sync_computation_model()
+        elif self.asset.computation_precision != self.asset.precision:
+            raise AssetBlocked("unsupported storage-to-computation representation")
+
+    def _sync_computation_model(self) -> None:
+        """Materialize faulted BF16 storage into the actual FP32 inference copy."""
+        if self.storage_model is None:
+            return
+        import torch
+
+        source = dict(self.storage_model.named_parameters())
+        compute = dict(self.model.named_parameters())
+        source_buffers = dict(self.storage_model.named_buffers())
+        compute_buffers = dict(self.model.named_buffers())
+        if source.keys() != compute.keys() or source_buffers.keys() != compute_buffers.keys():
+            raise AssetBlocked("storage and computation model coordinates differ")
+        with torch.no_grad():
+            for name, tensor in source.items():
+                compute[name].copy_(tensor.to(dtype=compute[name].dtype))
+            for name, tensor in source_buffers.items():
+                compute_buffers[name].copy_(tensor.to(dtype=compute_buffers[name].dtype))
+        for name, tensor in self.storage.parameters.items():
+            target = compute[name]
+            expected = tensor.detach().to(dtype=torch.float32)
+            if (target.dtype != torch.float32 or
+                target.untyped_storage().data_ptr() == tensor.untyped_storage().data_ptr() or
+                TorchStoredLinearWeights._bytes(target) != TorchStoredLinearWeights._bytes(expected)):
+                raise AssetBlocked(f"BF16 fault was not materialized into FP32 inference tensor: {name}")
+
+    @contextmanager
+    def injected(self, schedule, mask):
+        """Restore both BF16 source and FP32 computation copy after one trial."""
+        self._require_loaded()
+        before = self.storage.hashes()
+        self._sync_computation_model()
+        compute_before = (None if self.storage_model is None else
+                          {name: hashlib.sha256(TorchStoredLinearWeights._bytes(
+                              dict(self.model.named_parameters())[name])).hexdigest()
+                           for name in self.storage.parameters})
+        try:
+            with self.storage.injected(schedule, mask) as report:
+                self._sync_computation_model()
+                yield report
+        finally:
+            self._sync_computation_model()
+            if self.storage.hashes() != before:
+                raise AssetBlocked("stored source bytes were not restored after trial")
+            if compute_before is not None:
+                restored = {name: hashlib.sha256(TorchStoredLinearWeights._bytes(
+                    dict(self.model.named_parameters())[name])).hexdigest()
+                    for name in self.storage.parameters}
+                if restored != compute_before:
+                    raise AssetBlocked("FP32 inference copy was not restored after trial")
 
     def _verify_checkpoint_storage(self) -> None:
         from safetensors import safe_open
@@ -212,6 +274,7 @@ class PinnedTransformerAdapter:
         self._require_loaded()
         if self.asset.target == "distilbert_sst2_fp32":
             raise ValueError("classification target has no causal-LM risk")
+        self._sync_computation_model()
         import torch
         rows: list[tuple[float, float] | None] = []
         targets: list[int] = []
