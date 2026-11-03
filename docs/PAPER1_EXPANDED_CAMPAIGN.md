@@ -36,8 +36,8 @@ This branch does not transplant those engines.
 | MobileNetV3-small FP32 / INT8 | Records only | Same; Imagenette is not ImageNet-1k |
 | ViT-Base FP32 / INT8 | Records only | Same plus attention execution/storage conformance |
 | DistilBERT SST-2 FP32 / INT8 | Finalized FP32 classifier-subset comparison; no INT8 result | Full-model or representative-population protection and INT8 recipe remain unverified |
-| Pythia-160M BF16 / INT8 | Records only | Source metadata is FP16, not BF16; corpus, conversion and storage validation |
-| Qwen3-0.6B BF16 / INT8 / INT4 | Records only | Assets/corpus/backend; explicit INT8/INT4 packing and conversion |
+| Pythia-160M BF16 / INT8 | BF16-stored/FP32-compute clean READY and bounded exact-fault smoke; INT8 unimplemented | No finalized BF16 protection campaign; native BF16 computation failed clean validation |
+| Qwen3-0.6B BF16 / INT8 / INT4 | Base-model native BF16 clean READY and bounded exact-fault smoke; INT8/INT4 unimplemented | No finalized BF16 protection campaign; preserve distinction from post-trained portfolio revision |
 
 ## The omitted FKeras experiment is now part of the manuscript
 
@@ -125,12 +125,27 @@ ROC-AUC for ToyCar, with reconstruction MSE separate.
 |---|---|---:|---:|---:|
 | `paper1_resnet8_common_grid_v1.toml` | 1000 images / 64 images | 6 | 3328 | 3,328,000 images |
 | `paper1_kws_common_grid_v1.toml` | 1000 clips / 64 clips | 8, including both FKeras forms | 4352 | 4,352,000 clips |
+| `paper1_kws_common_grid_v2.toml` | 1000 clips / 64 clips | 7, published-form FKeras only | 3840 | 3,840,000 clips |
 | `paper1_toycar_common_grid_v1.toml` | 64 files / 16 files | 6 | 3328 | 41,746,432 windows |
 
 Formula: 128 × (policies × four interior budgets + two controls). ToyCar uses
 196 windows/file. Loading, conformance, clean/calibration evaluation and score
 construction add work; they are not included in the faulted counts. Independent
-hardware trials are the 128 fields, not thousands of policy applications.
+fault-field realizations are the 128 fields, not thousands of policy applications.
+KWS v1 is retained byte-for-byte (SHA-256
+`8bb73b4de8503756374e5c94b86aab172fa45f3b08b53ce3b47fd9f833c0e8ac`)
+and remains unrun. The newly validated v2 has SHA-256
+`b3c9131c993aa1b90f91fd0217355a94af9bc68b606b14104f3ad3c85b15685c`.
+Its published-form-only family contains 7 policy-versus-unprotected and 21
+policy-pair comparisons per coverage: 112 Holm-adjusted tests per BER and task
+metric across four coverages. Paired identities include replication, BER, trial
+and the shared schedule hash. The v2 plan and preflight receipts are separately
+preserved under `workspace/paper1-campaigns/paper1_kws_common_grid_v2/`:
+`plan.json` SHA-256 `3ead1356d4d045b02a022450177746e31d588d2c0d64de121507169f762c657a`,
+`preflight.json` SHA-256 `4d37671fbb73100c0f14c7f6594ced42dc0d2aa8b247bc7469a324be758de4c4`,
+and `STAGE_COMPLETE.json` SHA-256
+`14aee536819ba365e4f746e3103b34fe270a5e9eccb2e1145bc912c5f564ef56`.
+The frozen v1 driver/source fingerprint was not changed to create v2.
 Theoretical proposed means are Np; at .0001/.001/.003/.01 these are:
 ResNet 61.888/618.88/1856.64/6188.8; KWS 17.6128/176.128/528.384/1761.28;
 ToyCar 211.3536/2113.536/6340.608/21135.36. Expected applied counts multiply
@@ -162,6 +177,7 @@ cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-expanded
 bash workflows/run_paper1_resnet8.sh --preflight-only
 bash workflows/run_paper1_kws.sh --preflight-only
 bash workflows/run_paper1_toycar.sh --preflight-only
+/projects/kona-assets/manuelbv/.venv-mlperf/bin/python scripts/preflight_paper1_kws_v2.py
 ```
 
 All three preflights have been exercised. They load/verify source inputs but do
@@ -176,6 +192,14 @@ bash workflows/run_paper1_resnet8.sh
 bash workflows/run_paper1_kws.sh
 bash workflows/run_paper1_toycar.sh
 ```
+
+The KWS v2 TOML is a validated prospective plan, **not a result**. If the
+researcher chooses to execute it, first rerun its pinned preflight, then run
+`/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf run
+config/experiments/paper1_kws_common_grid_v2.toml` in the foreground. The
+standard runner creates a new immutable bundle under `workspace/runs/`.
+No KWS v2 numerical curves belong in the manuscript until such a bundle is
+finalized and audited. The old v1 one-shot script still targets v1 only.
 
 Each script pins `/projects/kona-assets/manuelbv/.venv-mlperf/bin/python`,
 thread settings and source root. No activation, installation or wrapper process
@@ -219,17 +243,32 @@ recomputed, and every outcome was checked against archived logits and locked
 labels. This is not a whole-transformer effectiveness result. Detailed audit:
 `publications/tecs_software_review_2026-11-02/REVISION_FKERAS_DISTILBERT.md`.
 
-The Pythia-derived BF16 checkpoint exists, with three distinct numerical paths:
-upstream FP32/FP32; derived BF16 storage/FP32 computation; and native BF16.
-Native BF16 is VALIDATION_FAILED. The mixed path has a clean-reference report
-but no finalized separate READY handoff. The researcher explicitly holds
-real-model fault execution. Isolated implementation branch
-`pythia-bf16-storage`, commit `3512a4c362d6718e09954130334b15ed7f1f0694`,
-contains synthetic exact-widening/restoration tests and a blocked, exposure-
-calibrated preparation plan. It is not a production-ready campaign. See
-`workspace/implementation-worktrees/pythia-bf16-storage/docs/PYTHIA_BF16_STORAGE.md`
-from the canonical repository. Qwen3-0.6B-Base remains under clean validation;
-it is not the older post-trained Qwen checkpoint in the portfolio.
+The current Kona asset manifest, SHA-256
+`3192d3ce57b7a11089af4c1e0f802e851ebc8b179fd823a793fecf333313db35`,
+now marks the derived Pythia BF16-stored/FP32-compute configuration READY
+(WikiText-2 perplexity 25.4288), separately from upstream FP32/FP32
+(25.3784). Native BF16 computation remains VALIDATION_FAILED (76.54).
+Qwen3-0.6B-Base native-BF16 is READY for clean inference (perplexity 12.1009),
+but is a different checkpoint from the older post-trained portfolio pin.
+These clean results are asset validation, not NetSuRF protection evidence.
+The finalized, checksummed three-bit/32-token engineering fault smokes have
+payload hashes `13fc5782437fbcdcda19bb9c3c4a9f2d4ba2bf5c523a779c772f1610cfe8f07c`
+(Pythia mixed precision) and
+`d29bbea1dc2b99c35cca9429981219ea4244b223f385bfc5901b1e2d9e21d446`
+(Qwen native BF16). Both are explicitly ENGINEERING_ONLY and provide no BER
+effectiveness estimate. The pinned asset snapshot in each engineering manifest
+matches the current asset-manifest hash above. No LLM protection campaign is
+finalized. The earlier Pythia synthetic-only branch remains historical; its
+prior hold condition has been superseded by these newer immutable records.
+
+DistilBERT's frozen classifier matrix is FP32 `[2,768]`; flattening is
+row-major. Its first 32 words map to `classifier.weight[0,0:32]`, all feeding
+the NEGATIVE logit (label ID 0). The positive-logit row is not faultable in
+the targeted campaign. The checkpoint `config.json` label map has SHA-256
+`582122c8f414793d131e10022ce9ba04e3811a9da6389137ee2f18665b4f4d15`.
+This geometric restriction does not alter the already-sealed calibration or
+its 1,024-bit population. A class- and architecture-stratified study would
+require a separately frozen protocol, masks and independent evaluation.
 
 The 18-target ledger retains the historical source pins, adds distinct runtime
 variant status and does not silently relabel a model or precision. The immutable
@@ -289,10 +328,10 @@ No target is silently replaced with another precision or smaller dataset.
 2. Researcher executes the frozen common grids; inspect **all** conditions,
    paired effects, catastrophic trials and ranking/evaluation cost. Do not
    cherry-pick methods or retroactively narrow the multiplicity family.
-3. Preserve the verified targeted DistilBERT case study; add any further study only after
-   finalization. Await the separate Pythia mixed-precision READY record and
-   real conformance before freezing a language-model campaign. If unresolved
-   on 9 November, report the gate incomplete rather than invent results.
+3. Preserve the verified targeted DistilBERT case study. Pythia mixed-precision
+   and Qwen native-BF16 assets and bounded fault adapters are now ready, but
+   neither has a finalized BER effectiveness campaign. Do not equate readiness
+   with publication evidence or silently reuse TinyML BERs for LLM storage.
 4. Resolve full streaming data/protocol or authoritative VWW provenance. The
    short fixture is engineering evidence only; it cannot carry generalization.
 5. Nov10–12: adversarial review, author approval and editorial corrections.

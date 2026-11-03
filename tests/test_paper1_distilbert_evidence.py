@@ -2,6 +2,7 @@
 from pathlib import Path
 import importlib.util
 import json
+import struct
 
 import numpy as np
 import pytest
@@ -67,10 +68,40 @@ def test_main_manuscript_has_one_fkeras_definition_and_fp32_boundary():
     assert 'FKeras repository' not in main and 'eq:fkerasrepo' not in main
     assert 'FKeras paper &' not in main
     assert 'first 32 scalar' in main and 'capped cross-entropy' in main
+    assert 'negative}-class logit' in main
     assert 'Calibration' in main and 'confounded' in main
     assert 'not representative transformer layers' in main
     builder = (PAPER/'build_evidence.py').read_text()
     assert "labels=['MSB-first','Global gradient','Absolute gradient','Positive gradient','FKeras']" in builder
+
+
+def test_frozen_classifier_slice_is_one_logit_if_checkpoint_present():
+    plan = json.loads((ROOT/'config/paper1_distilbert_source.json').read_text())
+    source = Path(plan['path'])
+    # The frozen archive can be copied to another server; local asset absence is optional.
+    model = Path('/data/models/models--distilbert--distilbert-base-uncased-finetuned-sst-2-english/snapshots/714eb0fa89d2f80546fda750413ed43d93601a13/model.safetensors')
+    config = model.parent/'config.json'
+    if not source.is_dir() or not model.is_file() or not config.is_file():
+        pytest.skip('optional pinned DistilBERT asset unavailable')
+    with model.open('rb') as stream:
+        length = struct.unpack('<Q', stream.read(8))[0]
+        header = json.loads(stream.read(length))
+    assert header['classifier.weight']['shape'] == [2, 768]
+    assert header['classifier.weight']['dtype'] == 'F32'
+    assert json.loads(config.read_text())['id2label'] == {'0':'NEGATIVE','1':'POSITIVE'}
+    # C-order flat indices 0..31 all have output row 0; row 1 begins at 768.
+    assert {(flat // 768, flat % 768) for flat in range(32)} == {(0, col) for col in range(32)}
+
+
+def test_distilbert_table_keeps_all_original_contrasts_in_nats():
+    table = (PAPER/'overleaf/tables/distilbert_paired.tex').read_text().splitlines()
+    assert len(table) == 12
+    assert all(len(line.split('&')) == 6 for line in table)
+    assert audit.effect_number(-6.240210282025538e-05) == '-6.24e-05'
+    assert audit.effect_number(-.45812229111258507) == '-0.458'
+    assert '10^{-3}' not in '\n'.join(table)
+    assert sum('significance' in line for line in table) == 6
+    assert sum('random' in line for line in table) == 6
 
 
 def test_prototype_heatmap_uses_paired_measured_cells_only():

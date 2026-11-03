@@ -70,6 +70,7 @@ def main():
     review['workflows/paper1_evidence_audit.py'] = ROOT / 'workflows/paper1_evidence_audit.py'
     for name in ('paper1_campaign.py','run_paper1_resnet8.sh','run_paper1_kws.sh','run_paper1_toycar.sh'):
         review['workflows/'+name]=ROOT/'workflows'/name
+    review['scripts/preflight_paper1_kws_v2.py']=ROOT/'scripts/preflight_paper1_kws_v2.py'
     for name in ('test_paper1_evidence_audit.py', 'test_paper1_manuscript.py',
                  'test_paper1_campaign.py','test_streaming_protection_gate.py',
                  'test_paper1_distilbert_evidence.py'):
@@ -81,6 +82,7 @@ def main():
     for name in ('resnet8','kws','toycar'):
         name=f'paper1_{name}_common_grid_v1.toml'
         review['config/experiments/'+name]=ROOT/'config/experiments'/name
+    review['config/experiments/paper1_kws_common_grid_v2.toml']=ROOT/'config/experiments/paper1_kws_common_grid_v2.toml'
     for name in ('canonical-tests.log','canonical-tests-with-artifacts.log','pinned-tests.log'):
         review['validation/'+name]=ROOT/'workspace'/name
     review['validation/manuscript-revision-tests.log']=ROOT/'workspace/manuscript-revision-tests.log'
@@ -110,7 +112,7 @@ def main():
         'production_campaigns_launched': 0,
         'benchmark_expansion_gate': 'INCOMPLETE',
         'main_fkeras_definition': 'published projection; absolute component within bit tiers',
-        'distilbert_scope': '1024 FP32 bits in first32 classifier scalar words; not whole-model protection',
+        'distilbert_scope': '1024 FP32 bits in first32 classifier.weight words, all NEGATIVE-logit row0; not whole-model protection',
         'distilbert_scientific_payload_sha256':distilbert['analysis_payload_sha256'],
         'bounded_engineering_evidence': {
             'streaming_independent_fields': 2, 'identical_execution_count': 2,

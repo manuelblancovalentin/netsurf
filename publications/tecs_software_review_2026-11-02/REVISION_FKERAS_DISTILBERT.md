@@ -49,6 +49,11 @@ All zero-applied states match clean inference, not only full-protection controls
 
 Fault support is exactly 1,024 FP32 bits in the first 32 `classifier.weight`
 scalar words, not the transformer's full inspectable parameter population.
+The hash-pinned safetensors header gives shape `[2,768]` (FP32); row-major
+flat indices 0–31 are row 0, columns 0–31. The pinned model configuration
+maps output row 0 to NEGATIVE and row 1 to POSITIVE, so every targeted scalar
+feeds only the NEGATIVE logit. The existing frozen calibration is unchanged;
+architecture- and class-stratified testing requires a new protocol.
 Ranking uses 32 training examples; final data are validation indices 32–287.
 Prior clean-reference evaluation saw all 872 validation examples. Engineering
 fault outcomes used indices 0–31; the frozen plan records their exclusion.
@@ -110,8 +115,10 @@ treated as results. Related work distinguishes static scoring, empirical
 search, learned/RL allocation and physical mitigation. An adaptively selected
 or learned mask may be fixed at deployment and still exploit interactions.
 
-Pythia and Qwen have no admitted finalized protection evidence. Clean-reference
-metrics, backend preparation and READY metadata alone do not qualify. The
+Pythia BF16-stored/FP32-compute and Qwen3-0.6B-Base native-BF16 now have
+READY clean assets and finalized bounded three-bit engineering fault smokes,
+but no admitted finalized BER protection-effectiveness evidence. These distinct
+readiness levels do not qualify as publication comparisons. The
 paper retains the software-only scope and makes no physical-protection claim.
 The hostile review still identifies substantial novelty overlap with FCCM,
 FKeras, PrioriFI, learned allocation and standard reliability theory. The new

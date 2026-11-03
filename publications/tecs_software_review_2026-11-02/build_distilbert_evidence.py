@@ -228,10 +228,9 @@ def write_csv(path, rows):
         writer = csv.DictWriter(f, fieldnames=list(rows[0])); writer.writeheader(); writer.writerows(rows)
 
 
-def effect_cell(row):
-    # Common nats units, scientific notation only for small effects.
-    fmt = lambda x: f'{x:+.2e}' if abs(x) < .01 and x else f'{x:+.3f}'
-    return f"{fmt(row['mean'])} [{fmt(row['ci_low'])}, {fmt(row['ci_high'])}]"
+def effect_number(value):
+    """Display all capped cross-entropy effects in nats, without row scaling."""
+    return f'{value:+.2e}' if 0 < abs(value) < .01 else f'{value:+.3f}'
 
 
 def main():
@@ -246,19 +245,17 @@ def main():
     for name, rows in [('fields',raw), ('means',means), ('paired_loss',pairs), ('paired_accuracy',accuracy)]:
         write_csv(out/f'distilbert_{name}.csv', rows)
     lines = []
-    for i in range(0, len(pairs), 2):
-        a,b = pairs[i:i+2]
-        # One compact table; exact probabilities are defined by expected flips in text.
-        scale = 1e3 if i < 4 else 1.
-        scaled = lambda r: {**r, **{k: r[k]*scale for k in ('mean','ci_low','ci_high')}}
-        unit = r'$10^{-3}$' if scale == 1e3 else '1'
-        lines.append(' & '.join([str(int(1024*a['ber'])), f"{100*a['budget']/1024:g}\\%", unit,
-                                 effect_cell(scaled(a)), f"{a['p_holm']:.4f}",
-                                 effect_cell(scaled(b)), f"{b['p_holm']:.4f}"])+r' \\')
+    for row in pairs:
+        lines.append(' & '.join([
+            str(int(1024 * row['ber'])), f"{100 * row['budget'] / 1024:g}\\%",
+            row['baseline'], effect_number(row['mean']),
+            f"[{effect_number(row['ci_low'])}, {effect_number(row['ci_high'])}]",
+            f"{row['p_holm']:.4f}",
+        ]) + r' \\')
     (HERE/'overleaf/tables/distilbert_paired.tex').write_text('\n'.join(lines)+'\n')
     (out/'distilbert_table_provenance.json').write_text(json.dumps(dict(
         artifact='overleaf/tables/distilbert_paired.tex', source=pin,
-        recipe='All 12 original paired capped-loss contrasts, baseline minus isolated; 32 matched fields per BER, original 10000 field bootstrap/sign-flip draws and Holm family12. First two rows scaled by 1e-3 nats.',
+        recipe='All 12 original paired capped-loss contrasts in nats, baseline minus isolated; 32 matched fields per BER, original 10000 field bootstrap/sign-flip draws and Holm family12. No row scaling.',
         accuracy='distilbert_paired_accuracy.csv; additional descriptive intervals, no significance test',
         new_model_inferences=0), indent=2)+'\n')
     print(json.dumps({k:receipt[k] for k in ('verified_fields','verified_policy_evaluations',

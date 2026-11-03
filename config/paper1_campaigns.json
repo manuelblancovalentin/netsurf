@@ -45,6 +45,29 @@
       "ranking": 64
     }
   },
+  "kws_v2": {
+    "configuration": "config/experiments/paper1_kws_common_grid_v2.toml",
+    "configuration_sha256": "b3c9131c993aa1b90f91fd0217355a94af9bc68b606b14104f3ad3c85b15685c",
+    "checkpoint_sha256": "aeea436800704fce17b17292e4412630ad856e9d777c044c64ef748a880bd0ae",
+    "asset_lock_sha256": "09fc5867d721363a0156e2f9f6fdedefe2aa0ae7384cc72396bc594e283bfac7",
+    "exposure_source": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_static_ber_sweep1000_v1/20261029T183410.488907Z-32c31070",
+    "exposure_payload_sha256": "b7b725fd1c196f2d5896b67aba34dfe8aa864b8308875df098d48be6135975e0",
+    "eligible_bits": 176128,
+    "probabilities": [0.0001, 0.001, 0.003, 0.01],
+    "fault_fields": 128,
+    "ranking_policies": 7,
+    "interior_coverages": 4,
+    "shared_controls_per_field": 2,
+    "mask_evaluations": 3840,
+    "inference_items": 3840000,
+    "comparison_family_per_ber_metric": 112,
+    "workers": 2,
+    "exposure_partition_counts": {
+      "empirical_validation": 1,
+      "evaluation": 1000,
+      "ranking": 64
+    }
+  },
   "toycar": {
     "configuration": "config/experiments/paper1_toycar_common_grid_v1.toml",
     "configuration_sha256": "56a51f973e13ed178cf90feb411f061ecc722732efc36d883994935dc5ff9e00",

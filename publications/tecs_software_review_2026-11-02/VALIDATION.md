@@ -111,6 +111,33 @@ blocked-model dependency requests are in `docs/PAPER1_EXPANDED_CAMPAIGN.md`.
 
 ## Preservation and unfulfilled acceptance criteria
 
+### Targeted correction gate (2 November 2026)
+
+The authoritative 22-page manuscript was retained; its abstract, conclusion,
+reliability-versus-BER/budget figures, published-form FKeras comparison and
+supplementary heatmap were not regenerated or strengthened. The KWS v1 TOML
+still has SHA-256 `8bb73b4de8503756374e5c94b86aab172fa45f3b08b53ce3b47fd9f833c0e8ac`.
+The new seven-policy KWS v2 TOML validated under the pinned MLPerf interpreter,
+and its bounded asset/partition preflight completed without fault trials.
+It plans 128 fault fields, 3840 policy/control evaluations and 112 within-BER,
+per-metric Holm comparisons. Preflight receipts and hashes are listed in
+`docs/PAPER1_EXPANDED_CAMPAIGN.md`.
+
+The hash-pinned DistilBERT safetensors header and label mapping establish that
+the 32 selected classifier words all feed the NEGATIVE logit. The offline
+table builder rechecked all 96 archived fields, 768 policy outcomes and 12
+original paired tests, with zero new model inferences. All table effects and
+intervals now use nats; no statistical comparison, 30-nat cap or original
+historical payload was changed. Pythia/Qwen readiness was reconciled from the
+current asset manifest and separately checksummed engineering bundles; neither
+has a finalized publication protection result.
+
+`/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m pytest -q`:
+**354 passed, 12 skipped** (five existing TensorFlow Lite deprecation warnings).
+`latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex`: **passed**, 22
+pages, no overfull or undefined references. The revised table page was also
+visually inspected. No historical model or fault experiment was rerun.
+
 Canonical v2 and the prior manuscript worktree are untouched. Researcher-owned
 untracked files, M11 processes, original asset locks, models, datasets and
 finalized historical runs are not modified. No installation, download, merge,

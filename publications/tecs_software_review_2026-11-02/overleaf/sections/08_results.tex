@@ -172,6 +172,11 @@ with FP32 storage and FP32 CPU computation. Its fault-law support is only
 weights of the final classifier. The rest of the model is executed but is not
 faultable. Thus 12.5\% coverage means 128 protected bits of this subset, not
 12.5\% of the transformer. These results are not placed on the INT8 axes.
+The frozen classifier matrix has shape $2\times768$ in row-major storage;
+flat weight indices 0--31 are all in row 0, the \emph{negative}-class logit.
+No positive-logit classifier weight or earlier transformer weight was eligible.
+This one-logit geometry is an explicit limitation of the frozen calibration
+replication, not an architecture-stratified sample of the model.
 
 The comparison uses seeded random ordering, descending FP32 bit-position
 significance, and exact isolated damage measured on 32 model-training examples.
@@ -198,13 +203,13 @@ are retained in Table~\ref{tab:distilbert}.
 \begin{table}[t]\centering\small
 \caption{\textbf{Does isolated calibration damage improve a targeted FP32 allocation?}
 Paired capped-loss improvement of isolated ranking over each named baseline:
-baseline minus isolated, positive favoring isolated. Entries are mean [95\%
-field-bootstrap interval], multiplied by the row's unit in nats. Each row has
+baseline minus isolated, positive favoring isolated. Every effect and interval
+is in nats of capped cross-entropy (scientific notation for small values). Each row has
 32 matched fields; $p_H$ retains the original 12-test Holm family. Intervals
 are marginal, not simultaneous. $Np$ is expected proposed flips over 1,024 bits.}
 \label{tab:distilbert}
-\begin{tabular}{rrclrlr}\toprule
-$Np$ & Coverage & Unit & Versus random & $p_H$ & Versus significance & $p_H$\\\midrule
+\begin{tabular}{rrlrrr}\toprule
+$Np$ & Coverage & Baseline & Effect (nats) & 95\% CI (nats) & $p_H$\\\midrule
 \tablerows{tables/distilbert_paired.tex}
 \bottomrule\end{tabular}
 \end{table}
@@ -216,8 +221,11 @@ only .0854 percentage points (descriptive paired 95\% interval [0,.1831]).
 This is not a separate multiplicity-adjusted accuracy claim. Isolated ranking's mean
 loss benefit over random is 1.57327 nats, but its original adjusted $p=.0828$
 does not establish that contrast at .05. Large favorable loss differences
-occur in a minority of fields; the median difference against random is slightly
-negative. Marginal bootstrap intervals and multiplicity-adjusted tests answer
+occur in a minority of fields: 11 favorable, 20 adverse and one tied at this
+condition, with median difference $-2.46\times10^{-5}$ nats and maximum
+absolute field difference 13.52 nats. These extreme-field contributions
+matter to the mean and are retained rather than clipped beyond the prespecified
+per-example 30-nat cap. Marginal bootstrap intervals and multiplicity-adjusted tests answer
 different questions and must not be interchanged.
 
 The authoritative computation is PyTorch 2.9.1 CPU eager inference, with pinned
