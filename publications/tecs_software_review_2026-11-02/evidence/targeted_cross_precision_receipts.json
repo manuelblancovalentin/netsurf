@@ -1,0 +1,86 @@
+{
+  "schema": "paper1-targeted-cross-precision-receipts/v1",
+  "source_root": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs",
+  "derivation": "Read-only analysis of frozen plan, sealed masks, analysis.json and 32 final field records per BER. No model inference or mask regeneration.",
+  "distilbert_independent_validation": {
+    "run": "distilbert_sst2_validation_replication_v1_run1",
+    "plan_sha256": "a07ebf6849203e56613a11166f1ba651175da9814d2df594500dd41017d1bbc6",
+    "scientific_payload_sha256": "534529bfb3b204b18ebae3682d2191b96e3ddb94052df33354e85d5f4b0067c2",
+    "analysis_file_sha256": "154b002eb9e99febcd522f14290f9be5b171411e63f1486b4aa6bde89c2bf989",
+    "complete_export_zip_sha256": "fbb13e175c0cbd8e83b76a6207463ad21d2beece92d5a2fd5aa5890bd4f423ea",
+    "population": "classifier.weight[0:32], F32 shape [2,768], row-major NEGATIVE output-logit row 0, 1024 bits",
+    "selection_source_indices": "validation 288:544",
+    "final_source_indices": "validation 544:800",
+    "final_fields_per_ber": 32,
+    "risk": "per-example capped cross-entropy, 30 nats including nonfinite",
+    "high_ber": 0.015625,
+    "paired_significance_minus_isolated_nats": {
+      "128": {"mean": 0.0031782766396802106, "ci95": [0.0018532261988525576, 0.004764960054240305], "holm_primary2": 0.00019998000199980003},
+      "256": {"mean": 0.0018369971799494598, "ci95": [0.0012044281395770357, 0.0025497812002886035], "holm_primary2": 0.00019998000199980003}
+    },
+    "accuracy_significance_and_isolated": 0.890625,
+    "independence_warning": "Original and validation-cohort studies changed selection inputs, final inputs and fields; do not pool or attribute reversal to calibration size."
+  },
+  "language_model_pilots": [
+    {
+      "run": "pythia160m_fp32_targeted96_v1_run1",
+      "plan_sha256": "cba91a5295ca2505ed0804ea0664f7f6f09a20db16be8259b9fff93722d798bf",
+      "scientific_payload_sha256": "dff51c78760a51c0388bfb0bbac3af0f5c1b9b7f6cc44d72d13c82a8ff044c86",
+      "analysis_file_sha256": "1baa55a33d3027b67b8eb1c3774630cdc19d918865e0b0903559fd4f31c2ab03",
+      "complete_export_zip_sha256": "a1bde2b1a68df8c15607eb04a9c05b715b1009ee6d399301031cb5211c829b91",
+      "stored_precision": "FP32",
+      "computation_precision": "FP32",
+      "clean_pilot_perplexity": 39.62333947890374,
+      "full_test_reference_perplexity": 25.3784,
+      "high_ber_rows": {
+        "12": {"random_all_nll": 20.94861976057291, "significance": {"failed_fraction": 0.75, "finite_nll": 3.679307, "all_nll": 23.41982676833868}, "isolated": {"failed_fraction": 0.71875, "finite_nll": 3.679323, "all_nll": 22.597309567034245}},
+        "24": {"random_all_nll": 20.12610239163041, "significance": {"failed_fraction": 0.75, "finite_nll": 3.679467, "all_nll": 23.419866681098938}, "isolated": {"failed_fraction": 0.5, "finite_nll": 3.688944, "all_nll": 16.844471853226423}}
+      }
+    },
+    {
+      "run": "pythia160m_bf16fp32_targeted96_v1_run1",
+      "plan_sha256": "9d20067254f632cf5f93650a1980c6755847fa241be56e8e19a45975b6ae6043",
+      "scientific_payload_sha256": "161d7af8f4bf1c31c58478a8f6d207eb454daa11c56ee61600f6a11012d81519",
+      "analysis_file_sha256": "e5acd88b140e121c79c1c2327e8e6da014aa5df2ecdbb7d7d694fee942edc93e",
+      "complete_export_zip_sha256": "a51fe02c0ea903ff44b97ef846ab246e9ea20cd8867c1662fd9c4ddcad903345",
+      "stored_precision": "BF16",
+      "computation_precision": "FP32",
+      "clean_pilot_perplexity": 39.74782802271304,
+      "full_test_reference_perplexity": 25.428787,
+      "high_ber_rows": {
+        "12": {"random_all_nll": 20.949689, "significance": {"failed_fraction": 0.75, "finite_nll": 3.682416, "all_nll": 23.420604}, "isolated": {"failed_fraction": 0.71875, "finite_nll": 3.682434, "all_nll": 22.598184}},
+        "24": {"random_all_nll": 20.127267, "significance": {"failed_fraction": 0.75, "finite_nll": 3.682586, "all_nll": 23.420647}, "isolated": {"failed_fraction": 0.5, "finite_nll": 3.692160, "all_nll": 16.846080}}
+      }
+    },
+    {
+      "run": "qwen3_0_6b_bf16_targeted96_v1_run1",
+      "plan_sha256": "f41e841bed8510a55378c3a3b738d1b221c1752f2ae2eb69197bab6bc6392573",
+      "scientific_payload_sha256": "cc3fa8815c77f6d996dfaaf64f18775feade656f604b98414110ae2d243c71ee",
+      "analysis_file_sha256": "0438ab5e1e1f5d7cba72a16548bd5b98f4611c657a574bc4f599f71e0e4103f9",
+      "complete_export_zip_sha256": "5fa889ae32e7fc20132ea09f90476b3f672ca4006406d0e09dcef5c43c2abb62",
+      "stored_precision": "BF16",
+      "computation_precision": "BF16",
+      "clean_pilot_perplexity": 17.368017116968307,
+      "full_test_reference_perplexity": 12.10091,
+      "high_ber_rows": {
+        "12": {"random_all_nll": 7.955302917165682, "significance": {"failed_fraction": 0.0625, "finite_nll": 7.866923, "all_nll": 9.250240334658884}, "isolated": {"failed_fraction": 0.0, "finite_nll": 5.787829, "all_nll": 5.787828545435332}},
+        "24": {"random_all_nll": 7.671648797113448, "significance": {"failed_fraction": 0.0625, "finite_nll": 7.866103, "all_nll": 9.249471989343874}, "isolated": {"failed_fraction": 0.0, "finite_nll": 2.861025, "all_nll": 2.8610248904442415}}
+      }
+    }
+  ],
+  "lm_common_protocol": {
+    "candidate_count": 96,
+    "sampled_word_count": 32,
+    "candidate_positions_per_word": "sign, highest exponent, highest significand",
+    "selection_target_tokens": 127,
+    "final_target_tokens": 256,
+    "final_fields_per_ber": 32,
+    "high_ber": 0.041666666666666664,
+    "failure_penalty_nats": 30,
+    "finite_nll_derivation": "For each successful [target_logit, logsumexp] pair, max(0, logsumexp-target_logit), capped at 30. Exclude nonfinite failures from finite mean; retain them with 30-nat penalty in all-token mean. Mean over saved field records.",
+    "uncertainty_unit": "paired independent fault field conditional on one fixed token cohort and one mask per method",
+    "mask_composition": "At 12 and 24 bits, every significance mask is all sign bits; every exact-isolated mask is all highest-exponent bits.",
+    "pythia_dependence": "FP32 and BF16 variants use the same word ordinals, corresponding mask words and seed plans; distinct bit-width event hashes are not independent architectural replications.",
+    "scope": "No whole-model BER, full-corpus perplexity or multi-fault mechanism attribution."
+  }
+}

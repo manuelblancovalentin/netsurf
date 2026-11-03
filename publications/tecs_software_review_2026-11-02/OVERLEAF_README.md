@@ -25,6 +25,14 @@ not full-transformer protection; its risk is explicitly capped cross-entropy.
 The
 small conditional comparisons do not establish universal optimizer superiority.
 
+The current revision adds an independent 1,024-bit DistilBERT validation-cohort
+replication and a compact table of three 96-bit Pythia/Qwen targeted pilots.
+They are separate from the main INT8 curves. Their all-token NLL uses a
+prespecified 30-nat nonfinite penalty; successful-token NLL and failure
+fractions remain visible. The additional source and field-record hashes are
+listed in the review package's targeted cross-precision receipt. Neither an
+exponent-first comparator nor whole-model LM protection has been measured.
+
 Historical collaborators are restored to the author block, pending their
 approval of current authorship/order/affiliation and acknowledgments. This is a
 complete internal draft, not an assertion of journal submission readiness.

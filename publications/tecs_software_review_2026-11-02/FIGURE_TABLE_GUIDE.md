@@ -40,3 +40,16 @@ DistilBERT source/figure-table bindings are independently recorded in
 archived accuracy and capped-loss outcomes were additionally recomputed from
 full logits and hash-checked labels (`distilbert_logit_verification.json`).
 This is offline verification, not another inference experiment.
+
+The independent DistilBERT replication paragraph uses the finalized
+validation-cohort plan and 32 new matched fields per BER. Its paired capped-loss
+effects are not pooled with Table 5's original training-calibrated study.
+
+The new targeted language-model table is sourced from three separate finalized
+96-bit pilot bundles. Its all-token NLL and nonfinite-failure fractions are
+the archived analysis values; finite-token NLL is recomputed from the saved
+target-logit/logsumexp pairs across all 32 high-BER field records. The
+read-only verification script and source/ZIP hashes are recorded in
+evidence/targeted_cross_precision_receipts.json. This table does not estimate
+whole-model reliability or full-corpus perplexity, and it cannot attribute
+the observed mask contrast to multi-bit interactions.

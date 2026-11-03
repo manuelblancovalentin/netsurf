@@ -9,7 +9,12 @@ cannot substitute for file-level AUC evidence. FKeras's strict bit-tier ordering
 also shows why different scores need not produce different masks.
 In the separate targeted FP32 classifier study, a substantial loss difference
 coexists with a small accuracy difference, while calibration mismatch prevents
-attributing the result solely to interactions.
+attributing the result solely to interactions. An independent cohort/field
+replication reverses that capped-loss ordering at much smaller effect size,
+without an accuracy difference. Restricted 96-bit language-model pilots show
+that sign-versus-exponent protection and nonfinite penalties can dominate an
+encoding-blind significance comparison; they are not whole-model protection
+results or evidence that a static isolated ranking fails.
 
 An exact counterexample establishes that isolated susceptibility has no universal
 optimal-protection guarantee under simultaneous faults. The independent-pool

@@ -1,0 +1,113 @@
+{
+  "new_inferences": 0,
+  "products": [
+    {
+      "artifact": "overleaf/figures/protection_budget.png",
+      "recipe": "All six policies; raw pooled field means and descriptive 95% t intervals intersected with [0,1]. Fixed cohort, realized masks; guides join observed points only.",
+      "sources": [
+        "static_resnet",
+        "static_kws",
+        "static_toycar"
+      ],
+      "vector_alternative": "overleaf/figures/protection_budget.pdf"
+    },
+    {
+      "artifact": "overleaf/figures/protection_ber.png",
+      "recipe": "All six policies; raw pooled field means and descriptive 95% t intervals intersected with [0,1]. Fixed cohort, realized masks; guides join observed points only.",
+      "sources": [
+        "static_resnet",
+        "static_kws",
+        "static_toycar"
+      ],
+      "vector_alternative": "overleaf/figures/protection_ber.pdf"
+    },
+    {
+      "artifact": "overleaf/figures/estimator_validity.png",
+      "recipe": "Saved balanced-stratum positive-damage Spearman correlations and within-stratum bootstrap intervals; not population-wide bit estimates.",
+      "sources": [
+        "emp_resnet",
+        "emp_kws",
+        "emp_toycar"
+      ],
+      "vector_alternative": "overleaf/figures/estimator_validity.pdf"
+    },
+    {
+      "artifact": "overleaf/tables/ranking_costs.tex",
+      "recipe": "Saved construction seconds: numerical jump, global gradient, shared per-example gradients; do not sum shared rows.",
+      "sources": [
+        "emp_resnet",
+        "emp_kws",
+        "emp_toycar"
+      ]
+    },
+    {
+      "artifact": "overleaf/tables/paired_effects.tex",
+      "recipe": "BER .01; per-example absolute minus MSB, reversing saved contrasts if required. Source within-BER/metric Holm values retained.",
+      "sources": [
+        "static_resnet",
+        "static_kws",
+        "static_toycar"
+      ]
+    },
+    {
+      "artifact": "overleaf/tables/fkeras_masks.tex",
+      "recipe": "Published-form FKeras versus MSB only; saved exact mask symmetric differences from the 128-clip exploratory comparison; one ranking realization. Historical variants retained in source, not used as main baselines.",
+      "sources": [
+        "static_fkeras128/summary.json"
+      ]
+    },
+    {
+      "artifact": "overleaf/figures/matched_kws128.png",
+      "recipe": "Separate 128-clip cohort; five published-method baselines, three BERs, four budgets and shared zero/full controls. Sole FKeras series uses the published projection and tier-first ordering. Historical repository variant is excluded by methodological decision, not outcome selection. Accuracy bars are marginal 95% field-t intervals. CE means; original paired intervals and multiplicity family retained in CSV. No merging with 1000-clip study.",
+      "sources": [
+        "static_fkeras128"
+      ],
+      "vector_alternative": "overleaf/figures/matched_kws128.pdf"
+    },
+    {
+      "artifact": "overleaf/figures/fkeras_paired_heatmap_prototype.png",
+      "recipe": "Supplementary prototype; measured 3-BER x 4-budget grid only, fixed MSB reference. Positive means improvement. Accuracy FKeras-minus-MSB; CE MSB-minus-FKeras. Full paired intervals/original Holm values in fkeras_heatmap_cells.csv; not another independent experiment.",
+      "sources": [
+        "static_fkeras128/measurements/paired_comparisons.csv"
+      ],
+      "vector_alternative": "overleaf/figures/fkeras_paired_heatmap_prototype.pdf"
+    },
+    {
+      "artifact": "overleaf/figures/conditional_limits.png",
+      "recipe": "All six arms, equal-pool mean and marginal t intervals, selected minus frozen comparator. Negative favors selected; metrics on separate axes.",
+      "sources": [
+        "M910/aggregate_summary.json"
+      ],
+      "vector_alternative": "overleaf/figures/conditional_limits.pdf"
+    },
+    {
+      "artifact": "overleaf/figures/loss_ber.png",
+      "recipe": "Raw-trial mean auxiliary loss, all BERs; separate task units. Intervals retained in loss_curves.csv; not shown to avoid overplotting.",
+      "sources": [
+        "static_resnet",
+        "static_kws",
+        "static_toycar"
+      ],
+      "vector_alternative": "overleaf/figures/loss_ber.pdf"
+    },
+    {
+      "artifact": "overleaf/sections/08_results.tex, independent DistilBERT replication paragraph",
+      "recipe": "Frozen analysis high-BER exact-isolated-versus-significance paired capped-NLL effects, 32 fields and original two-test Holm family. No pooling with original training-calibrated study.",
+      "sources": [
+        "targeted_cross_precision_receipts.json/distilbert_independent_validation",
+        "distilbert_sst2_validation_replication_v1_run1/analysis.json"
+      ]
+    },
+    {
+      "artifact": "overleaf/sections/08_results.tex, targeted language-model table",
+      "recipe": "Frozen analysis all-token capped NLL and failure fractions. Successful-token finite NLL recomputed from every saved target-logit/logsumexp pair in 32 high-BER field records per study; original 30-nat failure penalty and exact 96-bit budgets retained.",
+      "sources": [
+        "targeted_cross_precision_receipts.json/language_model_pilots",
+        "pythia160m_fp32_targeted96_v1_run1/final/ber_02",
+        "pythia160m_bf16fp32_targeted96_v1_run1/final/ber_02",
+        "qwen3_0_6b_bf16_targeted96_v1_run1/final/ber_02"
+      ]
+    }
+  ],
+  "sources": "sources.json"
+}

@@ -117,3 +117,55 @@ not chase extra architectures merely to increase the benchmark count. Keep
 unfavorable, null and cap-dependent effects visible. If those checks remain
 incomplete, submit this as an honest internal-review draft, not a claimed
 low-risk submission-ready methods breakthrough.
+
+## Updated review after independent classifier and targeted LM pilots
+
+The independently sealed DistilBERT classifier replication **reverses** the
+original high-BER capped-loss ordering: exact isolated ranking now beats
+significance by only .003178 and .001837 nats at 128 and 256 protected bits,
+with no accuracy difference. It does not prove that a larger calibration
+cohort caused the reversal: calibration examples, final examples and fault
+fields all changed. Both studies use the first 32 row-major weights of the
+negative-class logit only. A hostile reviewer can reasonably object that
+neither study samples representative transformer storage.
+
+The Pythia and Qwen pilots are a useful encoding diagnostic, not a broad
+language-model result. They expose 96 deliberately sampled bits and show that
+significance-first masks choose signs while isolated masks choose highest
+exponents. Prior encoding-aware fault work and PrioriFI already challenge
+naive bit-significance assumptions; this cannot be marketed as a new general
+discovery. A prespecified exponent-first baseline, matched on the same 96
+bits and schedules, is the immediate missing comparator. Without it, the
+isolated ranking's advantage cannot be assigned to task-specific sensitivity.
+Pythia's large penalized mean differences are largely 30-nat nonfinite
+outcomes. Qwen has a finite-token loss separation too, but only on a
+256-token pilot cohort. FP32- and BF16-stored Pythia use the same word
+ordinals and corresponding mask choices, so they are not independent
+architectural confirmations. The precision and computation contracts also
+differ; BF16 storage widened to FP32 execution is not native BF16 inference.
+
+The primary TECS novelty risk remains unchanged: the earlier FCCM paper
+already established a NetSuRF engineering flow, FKeras already supplies
+bit-level Hessian-guided ranking, PrioriFI prioritizes sensitive fault
+locations, and the public selective-ECC companion release includes
+matched-cost allocation and interaction diagnostics. The manuscript's
+defensible incremental contribution is a precise, cross-task,
+representation-aware **decision evaluation** under exact stored-code faults,
+including negative and unstable results. It has not established a novel
+generalizable protection-decision principle or that multi-bit interactions
+make static rankings ineffective. The conditional identity and counterexample
+are analytical boundaries, not empirical causal attribution.
+
+This judgment was checked against the [FKeras full paper](https://kastner.ucsd.edu/wp-content/uploads/2024/05/admin/jats24-fkeras.pdf),
+the [PrioriFI authors' description and linked paper](https://kastner.ucsd.edu/priorifi-asplos26/),
+and the [public selective-ECC companion record](https://zenodo.org/records/23054820).
+The latter is a dataset release, not by itself proof that its accompanying
+manuscript was peer reviewed. Its codeword/layer protection and fault laws
+must not be equated with NetSuRF's per-encoded-bit Bernoulli objective.
+
+Submission-facing action: retain the stronger three-model INT8 engineering
+curves, add an exponent-first control and independently replicated calibration
+factorial before any representation-specific claim, and await the equal-compute
+search and M11 outcomes rather than predicting them. If those studies do not
+yield a clear new decision lesson beyond known ranking comparisons, TECS fit
+remains uncertain; the draft should not be strengthened by rhetoric alone.

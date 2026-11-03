@@ -72,7 +72,13 @@ separate subsection/table, not on INT8 axes. The original READY snapshot and
 archive hashes bind its identity. All 12 paired loss tests are recomputed and
 all 768 accuracy/capped-loss outcomes are verified against saved logits and
 locked labels. Calibration mismatch and interactions remain confounded.
-No Pythia/Qwen or adaptive-search effectiveness results are invented.
+An independent DistilBERT validation-cohort study and three finalized 96-bit
+Pythia/Qwen protection pilots are now summarized separately from the main INT8
+curves. They are targeted subset evidence, not whole-model effectiveness or
+full-corpus perplexity. The Pythia BF16-stored experiment uses FP32 computation;
+its FP32 counterpart shares sampled word ordinals and seed plans. The new table
+separates nonfinite-token frequency, finite-token NLL and 30-nat-penalized
+all-token NLL. No adaptive-search effectiveness result is invented.
 
 The main FKeras series is the published projection with tier-first allocation.
 Historical repository-form outputs are preserved but not main baselines. The

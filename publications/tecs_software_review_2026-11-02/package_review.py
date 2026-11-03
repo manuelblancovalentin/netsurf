@@ -10,6 +10,8 @@ import shutil
 import subprocess
 import zipfile
 
+from verify_targeted_evidence import verify_distilbert, verify_lm, RECEIPT
+
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 
@@ -38,6 +40,8 @@ def main():
     log = (HERE / 'overleaf/build/main.log').read_text()
     assert pdf.is_file()
     assert not any(token in log for token in ('undefined', 'Overfull', 'Fatal error'))
+    verify_distilbert()
+    verify_lm()
     out = args.output.resolve()
     out.mkdir(parents=True, exist_ok=False)
     source = {}
@@ -104,7 +108,7 @@ def main():
     for name in ('NetSuRF_Software_Overleaf.zip', 'NetSuRF_Software_Internal_Review.pdf'):
         review[name] = out / name
     manifest = {
-        'kind': 'software_only_manuscript_and_campaign_delivery', 'version': 3,
+        'kind': 'software_only_manuscript_and_campaign_delivery', 'version': 4,
         'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         'source_branch': subprocess.check_output(['git', 'branch', '--show-current'], cwd=ROOT, text=True).strip(),
         'tracked_dirty': bool(subprocess.check_output(['git', 'diff', '--name-only', 'HEAD'], cwd=ROOT, text=True).strip()),
@@ -114,6 +118,12 @@ def main():
         'main_fkeras_definition': 'published projection; absolute component within bit tiers',
         'distilbert_scope': '1024 FP32 bits in first32 classifier.weight words, all NEGATIVE-logit row0; not whole-model protection',
         'distilbert_scientific_payload_sha256':distilbert['analysis_payload_sha256'],
+        'independent_distilbert_replication_payload_sha256':
+            RECEIPT['distilbert_independent_validation']['scientific_payload_sha256'],
+        'targeted_lm_payloads_sha256': {
+            r['run']: r['scientific_payload_sha256']
+            for r in RECEIPT['language_model_pilots']
+        },
         'bounded_engineering_evidence': {
             'streaming_independent_fields': 2, 'identical_execution_count': 2,
             'payload_sha256':'c8ee6163da82e8cd4fee6f13e1e9ed9eb49da6daac1dd6dc490fe49618792674'},

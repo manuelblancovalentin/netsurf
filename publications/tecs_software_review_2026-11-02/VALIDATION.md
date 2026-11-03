@@ -1,5 +1,31 @@
 # Unified manuscript / campaign validation
 
+## 3 November targeted cross-precision revision
+
+The previous 22-page revision remains the source baseline. This targeted
+revision compiles to **24 pages** after three verified model/dataset citations;
+the abstract, main INT8 reliability plots,
+published-form FKeras series and supplementary heatmap are not regenerated.
+The independent DistilBERT study and three targeted LM pilots are disclosed
+in a separate cross-precision subsection. No scientific inference was run.
+
+The read-only targeted-evidence checker passed against four finalized run
+analyses and complete export ZIP hashes. It verified frozen plan/payload
+identities, both DistilBERT high-BER paired contrasts, all six high-BER LM
+table groups, every protected sign/exponent position, all 32 saved field
+records per LM condition, and exact FP32-to-BF16 category mapping of both
+Pythia precision runs' 64 nonzero-BER fault fields. Finite-token NLL was
+recomputed from saved logits, not estimated from the 30-nat penalized means.
+The full source and original result archives remain read-only.
+
+Compilation completed without unresolved references or overfull boxes; page
+17's table was inspected at 1600-pixel page scale and is legible. The first
+full regression run had 353 passed, 12 skipped and one manuscript-only
+failure because its claim-count test still expected 38 rather than 44 rows;
+the assertion was updated and the rerun passed: **354 passed, 12 skipped,
+5 existing TensorFlow Lite deprecation warnings**, 82.49 s. The historical validation
+notes below describe earlier frozen gates, not the current evidence state.
+
 Date: 2 November 2026. Branch: `paper1-expanded-benchmarks`.
 Base manuscript: `589aaa67f485ae3eb36febe70132304a1b9f27ae`.
 The delivery manifest binds the final committed source and archive contents.

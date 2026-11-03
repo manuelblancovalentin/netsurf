@@ -7,6 +7,15 @@ Branch: `paper1-expanded-benchmarks`, based on manuscript commit
 
 ## Decision and present gate
 
+**3 November completed-evidence update:** The original frozen plans and
+historical status statements below remain planning history. A second
+DistilBERT 1,024-bit classifier study and three 96-bit Pythia/Qwen targeted
+protection pilots have since finalized. The current manuscript receipts are in
+the targeted cross-precision evidence manifest; the 18-target ledger has
+updated targeted-only statuses. None is a whole-model language-model BER study.
+The two Pythia precision runs share sampled word ordinals and corresponding
+masks. Prospective equal-compute search and M11 campaigns remain unreported.
+
 **The manuscript and three prospective static campaigns are deliverable; the
 expanded-architecture acceptance gate is INCOMPLETE.** One exposed streaming
 fixture now has an executed, repeatable protection comparison. The attempted

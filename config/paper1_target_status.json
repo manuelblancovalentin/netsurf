@@ -1,6 +1,6 @@
 {
   "schema_version": "paper1-target-status/1.0.0",
-  "audited_on": "2026-11-02",
+  "audited_on": "2026-11-03",
   "implementation_branch": "paper1-expanded-benchmarks",
   "base_commit": "589aaa67f485ae3eb36febe70132304a1b9f27ae",
   "portfolio_path": "config/benchmark_expansion_registry.json",
@@ -309,7 +309,9 @@
       "archive_sha256": "9df099fa58b125315aa68ec528cb3ee71bbe00c7f7c33744e3f1f274849259a4",
       "analysis_payload_sha256": "1abf4fe3e5901b432dc37578298e0dfda80367d598169aeaace3990ee3d68a7e",
       "engineering_payload_sha256": "62a379160e207fb9041451e28b9e6d76ae44646ae4291cfa4e8e95c2afc877cf",
-      "blocker": "Targeted 1024-bit classifier study finalized and independently audited offline. This does not validate whole-transformer protection or representative fault-population generalization; calibration uses 32 model-training examples. No adaptive-search effectiveness evidence incorporated.",
+      "independent_replication_experiment": "distilbert_sst2_validation_replication_v1_run1",
+      "independent_replication_payload_sha256": "534529bfb3b204b18ebae3682d2191b96e3ddb94052df33354e85d5f4b0067c2",
+      "blocker": "Two separate targeted 1024-bit classifier studies are finalized; high-BER capped-loss ordering reverses and final accuracy ties in the validation-cohort replication. Both select the first 32 NEGATIVE-logit row weights. They cannot be pooled or generalized to whole-transformer protection; no adaptive-search effectiveness evidence incorporated.",
       "validation_command": "/projects/kona-assets/manuelbv/envs/torch-2.9.1-cpu-py311/bin/python -m netsurf.transformer_campaign_cli --help"
     },
     {
@@ -376,7 +378,7 @@
       "dataset": "wikitext-2",
       "eligible_bits": null,
       "model_sha256": null,
-      "status": "READY_ASSET_AND_FAULT_SMOKE",
+      "status": "VERIFIED_TARGETED_PILOT_ONLY",
       "asset_status": "READY_BF16_STORAGE_FP32_COMPUTE_ONLY",
       "asset_manifest_sha256": "3192d3ce57b7a11089af4c1e0f802e851ebc8b179fd823a793fecf333313db35",
       "consumable_target_id": "pythia160m_bf16stored_fp32compute",
@@ -385,12 +387,13 @@
       "clean_perplexity": 25.42878725701041,
       "engineering_eligible_linear_bits": 1977090048,
       "fault_adapter_status": "ENGINEERING_VALIDATED",
-      "publication_protection_status": "NOT_RUN",
-      "protection_experiment": null,
-      "evidence": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/pythia160m_bf16stored_fp32compute_fault_smoke_v1/manifest.json",
+      "publication_protection_status": "TARGETED_96_BIT_PILOT_FINALIZED",
+      "protection_experiment": "pythia160m_bf16fp32_targeted96_v1_run1",
+      "evidence": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/pythia160m_bf16fp32_targeted96_v1_run1_export/complete.zip",
+      "targeted_protection_payload_sha256": "161d7af8f4bf1c31c58478a8f6d207eb454daa11c56ee61600f6a11012d81519",
       "engineering_manifest_sha256": "b435c53d064c7990ee6e8c40824c7b9170735c82ddc274b1fb1a0b37ad4e8414",
       "engineering_payload_sha256": "13fc5782437fbcdcda19bb9c3c4a9f2d4ba2bf5c523a779c772f1610cfe8f07c",
-      "blocker": "The original portfolio main-revision record is preserved separately. The READY derived step143000 BF16-stored/FP32-compute configuration has clean perplexity 25.4288 and a finalized three-bit, 32-token engineering fault smoke; no BER protection-effectiveness experiment is finalized. Native BF16 computation remains VALIDATION_FAILED (perplexity 76.54).",
+      "blocker": "READY BF16-stored/FP32-compute asset has a finalized 96-bit targeted BER pilot only; no whole-model effectiveness result. Pilot clean cohort differs from the full test; native BF16 computation remains VALIDATION_FAILED.",
       "execution_variants": {
         "native_bf16": {"status": "VALIDATION_FAILED", "authority": "researcher update and existing asset validation report"},
         "bf16_storage_fp32_compute": {
@@ -483,7 +486,7 @@
       "dataset": "wikitext-2",
       "eligible_bits": null,
       "model_sha256": null,
-      "status": "READY_ASSET_AND_FAULT_SMOKE",
+      "status": "VERIFIED_TARGETED_PILOT_ONLY",
       "asset_status": "READY_NATIVE_BF16_CPU",
       "asset_manifest_sha256": "3192d3ce57b7a11089af4c1e0f802e851ebc8b179fd823a793fecf333313db35",
       "consumable_target_id": "qwen3_0_6b_bf16",
@@ -491,13 +494,14 @@
       "clean_perplexity": 12.100910650056639,
       "engineering_eligible_linear_bits": 7046430720,
       "fault_adapter_status": "ENGINEERING_VALIDATED",
-      "publication_protection_status": "NOT_RUN",
-      "protection_experiment": null,
-      "evidence": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/qwen3_0_6b_bf16_fault_smoke_v1/manifest.json",
+      "publication_protection_status": "TARGETED_96_BIT_PILOT_FINALIZED",
+      "protection_experiment": "qwen3_0_6b_bf16_targeted96_v1_run1",
+      "evidence": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/qwen3_0_6b_bf16_targeted96_v1_run1_export/complete.zip",
+      "targeted_protection_payload_sha256": "cc3fa8815c77f6d996dfaaf64f18775feade656f604b98414110ae2d243c71ee",
       "engineering_manifest_sha256": "0777a24d6956f8c989508eadeb7d7a4e086ce31b477aa4f20985422bb4876889",
       "engineering_payload_sha256": "d29bbea1dc2b99c35cca9429981219ea4244b223f385bfc5901b1e2d9e21d446",
       "consumable_model_revision": "da87bfb608c14b7cf20ba1ce41287e8de496c0cd",
-      "blocker": "The READY Qwen3-0.6B-Base native-BF16 checkpoint has clean perplexity 12.1009 and a finalized three-bit, 32-token engineering fault smoke. It differs from the preserved post-trained portfolio revision; no BER protection-effectiveness experiment is finalized.",
+      "blocker": "READY Qwen3-0.6B-Base native-BF16 checkpoint has a finalized 96-bit targeted BER pilot; no whole-model effectiveness result. Pilot cohort differs from the full test and this model differs from the post-trained portfolio revision.",
       "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities qwen3_0_6b_bf16"
     },
     {
@@ -591,6 +595,17 @@
       "evidence": null,
       "blocker": "Verified local checkpoint, dataset and backend are absent. Source-file hashes are registry metadata, not acquired target-precision evidence. Quantization/packing recipe and exact runtime storage mapping are unvalidated; registry source weights are not the requested precision.",
       "validation_command": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities qwen3_0_6b_int4"
+    }
+  ],
+  "additional_targeted_studies": [
+    {
+      "id": "pythia160m_fp32stored_fp32compute_targeted96",
+      "status": "FINALIZED_TARGETED_PILOT_ONLY",
+      "population": "96 sampled bits from 32 nn.Linear.weight words",
+      "protection_experiment": "pythia160m_fp32_targeted96_v1_run1",
+      "scientific_payload_sha256": "dff51c78760a51c0388bfb0bbac3af0f5c1b9b7f6cc44d72d13c82a8ff044c86",
+      "evidence": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/pythia160m_fp32_targeted96_v1_run1_export/complete.zip",
+      "limitation": "Not one of the original 18 precision targets; not whole-model effectiveness or full-corpus perplexity."
     }
   ]
 }

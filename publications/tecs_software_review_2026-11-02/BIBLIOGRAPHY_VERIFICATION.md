@@ -51,3 +51,20 @@ Two identity references added for the targeted case study:
 Zotero local API was unavailable; no library configuration was changed. These
 entries use primary-source metadata. The bibliography now has 15 unique cited
 entries. Novelty statements and publication-status qualifications remain unchanged.
+
+## Targeted cross-precision citations — 3 November 2026
+
+Three primary-source identity references were added, without changing the
+paper's established fault-method citations:
+
+- Pythia: Biderman et al., ICML 2023, PMLR 202, pp. 2397–2430; verified
+  proceedings record: https://proceedings.mlr.press/v202/biderman23a.html.
+- Qwen3: Qwen Team, 2025 technical report, arXiv:2505.09388; this is a
+  preprint identity reference, not proof of peer-reviewed publication:
+  https://arxiv.org/abs/2505.09388.
+- WikiText: Merity et al., Pointer Sentinel Mixture Models, arXiv:1609.07843;
+  the paper introduces the dataset. The manuscript's frozen WikiText-2 token
+  slices remain identified by the saved asset and plan hashes:
+  https://arxiv.org/abs/1609.07843.
+
+The revised bibliography has 18 unique cited entries after compilation.

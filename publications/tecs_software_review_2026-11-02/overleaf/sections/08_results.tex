@@ -240,6 +240,86 @@ instability, representation-sensitive faults and simultaneous-fault interactions
 are confounded. Independent data and fields prevent final mask reselection;
 they do not identify which mechanism explains the observed difference.
 
+An independently sealed \emph{second study} retains the same 1,024 eligible
+classifier bits and 30-nat capped-loss definition, but uses 256 different
+validation examples to construct the isolated ranking, 256 different validation
+examples for final evaluation, and new fault fields. At $16/1024$ BER, isolated
+ranking now reduces mean capped loss relative to significance by .003178 nats
+with 128 protected bits (paired 95\% field-bootstrap interval
+$[.001853,.004765]$), and .001837 nats with 256 bits
+($[.001204,.002550]$). Both use 32 paired fields; the two-test Holm-adjusted
+sign-flip $p$ values are .0002. Accuracy is identical between the two policies
+at both budgets (.890625). The order of the two rankings has thus reversed
+for capped loss, but the new effects are much smaller than the original
+.45812-nat contrast at 128 bits. The two studies are \emph{not} pooled as
+replications: calibration inputs, final inputs, and fault fields all changed.
+The larger calibration cohort alone cannot be identified as the cause.
+Moreover, both studies select only row 0 of the $2\times768$ final classifier
+matrix, so neither tests protection across both output logits.
+
+\subsection{Targeted floating-point language-model bits}
+\label{sec:targetedlm}
+Three further frozen pilots test 96 deliberately selected stored bits from 32
+sampled linear-layer words per model. Each word contributes its sign, highest
+exponent and highest significand bit. Pythia-160M~\cite{biderman2023pythia} is evaluated once with FP32
+storage/computation and once with BF16 storage widened to FP32 computation;
+Qwen3-0.6B~\cite{yang2025qwen3} uses BF16 storage/computation. These are distinct executable
+precision contracts, not whole-model fault studies. A 12-bit (24-bit) budget
+protects 12.5\% (25\%) of the \emph{96-bit subset} only. The proposed field
+has independent Bernoulli probability $4/96$ per eligible bit in Table~\ref{tab:lmtarget};
+the same 32 fields are paired across masks for each study. Ranking uses 127
+validation target tokens and final risk uses a fixed 256-token test cohort.
+Each token contributes its nonnegative NLL capped at 30 nats; nonfinite
+execution contributes 30 nats and is separately counted as a failed token.
+The intervals, where used, take fault fields rather than tokens as the
+independent stochastic units.
+
+\begin{table*}[t]\centering\scriptsize
+\caption{\textbf{What drives targeted FP32/BF16 allocation differences?}
+At $p=4/96$, all entries derive from 32 matched fault fields and a fixed
+256-token test cohort. ``Finite'' is mean NLL over successful tokens only;
+``all'' includes 30-nat penalties for nonfinite tokens. Random gives a
+descriptive all-token control. A budget is bits protected out of 96 sampled
+bits, not a percentage of all model weights. The two Pythia precisions use
+the same sampled word ordinals, corresponding masks and matched seed plan,
+not independent architectural confirmations.}
+\label{tab:lmtarget}
+\begin{tabular}{llrrrrrrr}\toprule
+ & Bits & Random & \multicolumn{3}{c}{Significance-first} & \multicolumn{3}{c}{Exact isolated}\\
+Model / stored, computed & protected & all NLL & fail \% & finite NLL & all NLL & fail \% & finite NLL & all NLL\\\midrule
+Pythia / FP32, FP32 & 12 & 20.949 & 75.00 & 3.679 & 23.420 & 71.88 & 3.679 & 22.597\\
+Pythia / FP32, FP32 & 24 & 20.126 & 75.00 & 3.679 & 23.420 & 50.00 & 3.689 & 16.844\\
+Pythia / BF16, FP32 & 12 & 20.950 & 75.00 & 3.682 & 23.421 & 71.88 & 3.682 & 22.598\\
+Pythia / BF16, FP32 & 24 & 20.127 & 75.00 & 3.683 & 23.421 & 50.00 & 3.692 & 16.846\\
+Qwen / BF16, BF16 & 12 & 7.955 & 6.25 & 7.867 & 9.250 & 0 & 5.788 & 5.788\\
+Qwen / BF16, BF16 & 24 & 7.672 & 6.25 & 7.866 & 9.249 & 0 & 2.861 & 2.861\\
+\bottomrule\end{tabular}
+\end{table*}
+
+All significance-first masks in this table protect sign bits, whereas all
+isolated masks protect highest-exponent bits. This mask-composition difference
+is the directly observed representation effect. For Pythia, the finite-token
+NLL under the two policies is nearly the same: the much larger penalized mean
+contrast mainly reflects different frequencies of nonfinite failures. For
+Qwen, isolated allocation additionally reduces \emph{finite}-token loss;
+its 24-bit finite NLL is 2.861 versus 7.866 under significance. At 24 bits,
+the paired mean all-token loss benefits of isolated versus significance are
+6.575 nats for FP32 Pythia (95\% field-bootstrap interval $[2.468,10.686]$),
+6.575 for BF16-stored Pythia ($[2.467,10.684]$), and 6.388 for BF16 Qwen
+($[4.236,8.927]$). These are descriptive effects on the declared subset and
+cohort, not gains in whole-model perplexity. At 12 bits, the Pythia contrasts
+remain unresolved by their prespecified two-test Holm procedure.
+
+The clean pilot perplexities, 39.62, 39.75 and 17.37 respectively, differ from
+their full WikiText-2~\cite{merity2016pointer} references (25.38, 25.43 and 12.10), so the 256-token
+cohorts cannot stand in for the full corpus. The two Pythia runs reuse the same
+sampled word ordinals and corresponding mask choices; differing bit widths
+produce distinct encoded event hashes, but do not create independent model
+replications. An exponent-first, representation-aware baseline is needed before
+attributing the isolated mask's advantage to task-specific calibration or
+multi-bit interactions. No direct interaction decomposition was performed in
+these language-model pilots.
+
 \subsection{Do conditional changes materially improve allocation?}
 Conditional diagnostics establish more than the counterexample alone, but less
 than a generally effective optimizer. A ten-candidate KWS audit recorded 15 of

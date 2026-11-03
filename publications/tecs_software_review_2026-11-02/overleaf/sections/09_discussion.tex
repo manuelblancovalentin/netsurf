@@ -44,13 +44,30 @@ calibration and final evaluation differ in both sample count and training
 exposure. An intervention that holds calibration fixed while varying background
 faults, and separately holds the fault law fixed while varying calibration,
 would be needed to distinguish those explanations. A completed targeted
-comparison does not supply either causal test. Language-model expansion also requires separating
+comparison does not supply either causal test. The independent validation-cohort
+replication reverses the original capped-loss ordering without changing the
+one-output-row eligibility restriction. Because calibration examples, final
+examples and fields all changed, the reversal cannot be assigned to calibration
+size alone. Accuracy ties in the replication show that a small capped-loss
+improvement is not automatically a decision improvement in classification accuracy.
+
+The targeted language-model pilots in Section~\ref{sec:targetedlm} require separating
 the faulted storage format from the arithmetic used for inference: BF16-stored
 weights widened into FP32 computation do not constitute native BF16 inference.
-No language-model protection result is included here. Future
-comparisons must declare their eligible populations and expected fault counts,
-retain nonfinite outcomes, and keep perplexity separate from classification
-accuracy and anomaly-detection AUC.
+They show a strong representation dependence on deliberately chosen
+sign/exponent/significand bits, not whole-model reliability. Significance-first
+selection protects signs; isolated selection protects high exponents. The Pythia
+penalized-loss contrast is dominated by nonfinite failures, whereas Qwen also
+has a substantial finite-token contrast. The Pythia precision variants reuse
+sampled word ordinals and matching seed plans, so their agreement is not a
+second architecture-level confirmation. An exponent-first baseline is needed
+before separating numerical encoding from task-specific susceptibility. None of
+these pilots identifies multiple-fault interaction as the cause of the ranking
+difference. Calibration-set instability, surrogate approximation error, and
+fault-field sampling uncertainty remain distinct possible contributors across
+the broader study. Future comparisons must declare eligible populations and
+expected fault counts, retain nonfinite outcomes, and keep penalized language
+loss separate from classification accuracy and anomaly-detection AUC.
 
 Finally, logical protected-bit count is deliberately the sole protection cost.
 No area, power, energy, latency, synthesis or radiation-calibrated reliability

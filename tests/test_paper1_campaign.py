@@ -65,8 +65,9 @@ def test_target_ledger_preserves_all_precision_targets_and_blockers():
     for target in ('pythia160m_bf16','qwen3_0_6b_bf16'):
         assert by_id[target]['asset_status'].startswith('READY')
         assert by_id[target]['fault_adapter_status']=='ENGINEERING_VALIDATED'
-        assert by_id[target]['publication_protection_status']=='NOT_RUN'
-        assert by_id[target]['protection_experiment'] is None
+        assert by_id[target]['publication_protection_status']=='TARGETED_96_BIT_PILOT_FINALIZED'
+        assert by_id[target]['protection_experiment']
+        assert by_id[target]['targeted_protection_payload_sha256']
         assert by_id[target]['engineering_payload_sha256']
     for e in ledger['entries']:
         if e['status'].startswith('BLOCKED'):
