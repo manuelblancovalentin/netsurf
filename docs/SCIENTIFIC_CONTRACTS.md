@@ -1,5 +1,16 @@
 # Scientific contracts
 
+## Separately identified BF16 storage and FP32 computation
+
+`bf16-storage-fp32-compute/v1` is a prospective Pythia execution contract, not
+native BF16 arithmetic. Faults XOR the pinned BF16 source words; exact widening
+(`uint16 << 16`) supplies the FP32 inference parameter. The computation cache is
+not another eligible population. Stored and computational bytes must both be
+restored, including after exceptions. Nonfinite token results are explicit;
+uncapped reference perplexity is distinct from any approved capped-risk endpoint.
+No real Pythia fault execution is authorized until a separately finalized READY
+record and real-model conformance gate pass. See `PYTHIA_BF16_STORAGE.md`.
+
 ## Quantization and bit identity
 
 For historical `q<6,2,1>`, the recovered convention is six encoded bits, two integer magnitude bits, one sign bit, three fractional bits, step `0.125`, and range `[-4, 3.875]`. Values are rounded to nearest with ties to even and saturated before encoding. Encoded bit index `0` is the LSB and index `5` is the two's-complement sign/MSB.

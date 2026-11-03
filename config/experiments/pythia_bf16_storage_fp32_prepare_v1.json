@@ -1,0 +1,40 @@
+{
+  "schema_version": "pythia-protection-preparation/v1",
+  "status": "DRAFT_BLOCKED_READY_AND_CONFORMANCE",
+  "target": "pythia160m_bf16_storage_fp32_compute",
+  "execution_contract": "bf16-storage-fp32-compute/v1",
+  "objective": "Bounded prospective targeted-projection protection test; not whole-transformer fault exposure.",
+  "whole_linear_population_bits": 1977090048,
+  "fault_support": {
+    "tensor": "gpt_neox.layers.0.attention.query_key_value.weight",
+    "selection_rule": "First eight words in canonical tensor order, all sixteen stored BF16 bits; no fault-outcome selection.",
+    "word_indices": [0, 1, 2, 3, 4, 5, 6, 7],
+    "bit_indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    "eligible_bits": 128
+  },
+  "expected_proposed_faults": [1, 4, 16],
+  "budgets": [0, 16, 32, 128],
+  "methods": ["random", "encoded_significance", "exact_isolated"],
+  "cohorts": {
+    "engineering": {"split": "test", "window_indices": [0]},
+    "selection": {"split": "validation", "window_indices": [0]},
+    "final": {"split": "test", "window_indices": [4, 5]}
+  },
+  "fields_per_ber": 16,
+  "fault_seeds": [720101, 720102, 720103],
+  "ranking_seed": 720001,
+  "context": 1024,
+  "stride": 512,
+  "bos": "none",
+  "eos": "none",
+  "primary_risk_proposal": "mean token NLL capped at 30 nats; failed tokens receive 30, raw NLL/perplexity and failures reported separately",
+  "analysis_proposal": "Paired field differences conditional on fixed token cohort; primary exact-isolated minus random at two partial budgets and three exposures; bootstrap fields and Holm within the six-contrast family. Ranking-seed uncertainty is not estimated by one mask.",
+  "gates": [
+    "Separate finalized READY record with storage/computation identities and final clean task gate",
+    "Real engineering stored-byte consumption, all-parameter widening and restoration conformance",
+    "Freeze full token hashes, actual window lengths, source fingerprint and exposure ledger before selection",
+    "Researcher approval of targeted support, capped-risk endpoint, field count and uncertainty plan",
+    "Finalize and seal all selection masks before any final fault evaluations",
+    "Dedicated execution integration remains pending real conformance; this preparation file is not accepted by netsurf run"
+  ]
+}

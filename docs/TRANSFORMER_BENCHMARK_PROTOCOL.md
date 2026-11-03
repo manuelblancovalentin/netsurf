@@ -1,5 +1,20 @@
 # Transformer storage and benchmark protocol
 
+**Subsequent status, 2 November:** the researcher has launched the frozen
+DistilBERT study in its original `transformer-integration` worktree. The
+historical "not running" statements below describe its prelaunch handoff, not
+current process status. Do not edit or restart that study. Its engineering
+receipt was reverified with payload
+`62a379160e207fb9041451e28b9e6d76ae44646ae4291cfa4e8e95c2afc877cf`;
+no unfinalized campaign outcomes are accepted as manuscript results.
+
+Pythia now has separate FP32 and BF16-storage/FP32-computation clean reports;
+the latter is awaiting a distinct finalized READY record. Native BF16 remains
+VALIDATION_FAILED. This branch prepares and synthetically tests the mixed
+storage/computation path only; see `PYTHIA_BF16_STORAGE.md`. Qwen Base remains
+under validation and must not be treated as the older post-trained portfolio
+checkpoint. No shared assets or existing source pins were changed.
+
 **2 November 2026.** DistilBERT/SST-2 is `READY` in Kona's verified asset manifest and has passed a 32-example real-model storage-fault conformance trial. Its fault/protection results are **engineering only**. No transformer BER or protection-budget effectiveness campaign has run. Pythia and Qwen BF16 are still `PREPARED_AWAITING_APPROVAL`; their model assets are not executable NetSuRF evidence. The three validated TinyML benchmarks remain the ACM TECS manuscript evidence backbone.
 
 ## DistilBERT source and executable boundary
