@@ -11,7 +11,8 @@ import zipfile
 
 from .manifests import canonical_json_bytes, sha256_file
 from .transformer_campaign import (aggregate, freeze_distilbert_plan, run_final,
-                                   run_selection, validate_targeted_plan, verify_campaign_source)
+                                   run_selection, validate_targeted_plan, verify_campaign_ready,
+                                   verify_campaign_source)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -63,8 +64,7 @@ def _figure(rows: list[dict], horizontal: str) -> str:
 def export(plan_path: Path, readiness_path: Path, run_root: Path, *, scp_host: str) -> Path:
     plan = json.loads(Path(plan_path).read_text())
     validate_targeted_plan(plan)
-    if sha256_file(Path(readiness_path)) != plan["asset_manifest_sha256"]:
-        raise ValueError("READY snapshot differs from frozen plan")
+    _, frozen_snapshot = verify_campaign_ready(plan_path, readiness_path, PORTFOLIO)
     report = aggregate(plan_path, run_root)
     destination = Path(run_root).with_name(Path(run_root).name + "_export")
     if destination.exists():
@@ -91,7 +91,7 @@ def export(plan_path: Path, readiness_path: Path, run_root: Path, *, scp_host: s
             archive.write(stage / name, name)
     with zipfile.ZipFile(stage / "complete.zip", "x", compression=zipfile.ZIP_DEFLATED) as archive:
         archive.write(plan_path, "plan.json")
-        archive.write(readiness_path, "assets/NETSURF_ASSET_READINESS.json")
+        archive.write(frozen_snapshot, "assets/NETSURF_ASSET_READINESS.json")
         for path in sorted(Path(run_root).rglob("*")):
             if path.is_file():
                 archive.write(path, "run/" + str(path.relative_to(run_root)))
@@ -131,8 +131,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.phase == "validate":
         plan = json.loads(args.plan.read_text())
         verify_campaign_source(plan)
-        if sha256_file(args.readiness) != plan["asset_manifest_sha256"]:
-            raise ValueError("READY snapshot differs from frozen plan")
+        verify_campaign_ready(args.plan, args.readiness, PORTFOLIO)
         result = {"status": "FROZEN_VALID", "plan_sha256": plan["plan_sha256"],
                   "request_counts": plan["costs"]}
     elif args.phase == "selection":
@@ -140,7 +139,11 @@ def main(argv: list[str] | None = None) -> int:
     elif args.phase == "final":
         result = run_final(args.plan, args.readiness, PORTFOLIO, args.run_root)
     elif args.phase == "aggregate":
-        result = aggregate(args.plan, args.run_root)
+        report = aggregate(args.plan, args.run_root)
+        result = {"status": "ANALYSIS_VERIFIED", "plan_sha256": report["plan_sha256"],
+                  "analysis": str(args.run_root / "analysis.json"),
+                  "analysis_sha256": sha256_file(args.run_root / "analysis.json"),
+                  "rows": len(report["rows"]), "comparisons": len(report["comparisons"])}
     else:
         result = {"export": str(export(args.plan, args.readiness, args.run_root,
                                         scp_host=args.scp_host))}

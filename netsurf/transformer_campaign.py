@@ -88,6 +88,60 @@ def verify_campaign_source(plan: dict) -> None:
             raise PlanBlocked(f"campaign source changed: {relative}")
 
 
+def verify_campaign_ready(plan_path: Path, readiness_path: Path,
+                          portfolio_path: Path, *, snapshot_path: Path | None = None):
+    """Verify the frozen target entry and its live bytes, ignoring other targets.
+
+    The plan's whole-manifest hash identifies the original READY snapshot. A
+    regenerated Kona manifest is acceptable only when that snapshot is still
+    available and the complete target entry is unchanged. The asset loader
+    also rehashes the referenced model, tokenizer, data, interpreter, lock and
+    clean-reference report on every call.
+    """
+    plan_path = Path(plan_path)
+    plan = json.loads(plan_path.read_text())
+    readiness_path = Path(readiness_path)
+    portfolio_path = Path(portfolio_path)
+    if sha256_file(portfolio_path) != plan["portfolio_sha256"]:
+        raise PlanBlocked("source portfolio differs from frozen campaign plan")
+    if snapshot_path is None:
+        snapshot_path = (readiness_path if sha256_file(readiness_path) ==
+                         plan["asset_manifest_sha256"] else
+                         Path(__file__).resolve().parents[1] / "workspace" / "plans" /
+                         plan_path.stem / "NETSURF_ASSET_READINESS.json")
+    snapshot_path = Path(snapshot_path)
+    if not snapshot_path.is_file() or sha256_file(snapshot_path) != plan["asset_manifest_sha256"]:
+        raise PlanBlocked("frozen READY snapshot is missing or differs from the plan")
+
+    def target_entry(path: Path) -> dict:
+        document = json.loads(path.read_text())
+        if document.get("schema") == "kona-assets/netsurf-asset-readiness/1":
+            records, key = document.get("targets"), "target_id"
+        elif document.get("schema_version") == "netsurf-transformer-readiness/v1":
+            records, key = document.get("records"), "target"
+        else:
+            raise PlanBlocked("READY snapshot schema differs from frozen target contract")
+        if not isinstance(records, list):
+            raise PlanBlocked("READY target records are absent")
+        matches = [record for record in records if isinstance(record, dict) and
+                   record.get(key) == plan["target"]]
+        if len(matches) != 1:
+            raise PlanBlocked("READY target entry is absent or duplicated")
+        return matches[0]
+
+    if target_entry(snapshot_path) != target_entry(readiness_path):
+        raise PlanBlocked("READY target entry differs from frozen snapshot")
+    frozen = load_ready_asset(snapshot_path, plan["target"], portfolio_path)
+    current = (frozen if snapshot_path.resolve() == readiness_path.resolve() else
+               load_ready_asset(readiness_path, plan["target"], portfolio_path))
+    if (frozen.record_sha256 != plan["asset_record_sha256"] or
+        current.record_sha256 != plan["asset_record_sha256"] or
+        frozen.record["clean_report_sha256"] != plan["clean_reference_report_sha256"] or
+        current.record["clean_report_sha256"] != plan["clean_reference_report_sha256"]):
+        raise PlanBlocked("READY target scientific identity differs from frozen plan")
+    return current, snapshot_path
+
+
 def freeze_distilbert_plan(readiness_path: Path, portfolio_path: Path,
                            engineering_receipt: Path, output: Path,
                            snapshot: Path) -> dict:
@@ -209,13 +263,7 @@ def _bound(payload: dict) -> dict:
 def _prepare(plan_path: Path, readiness_path: Path, portfolio_path: Path):
     plan = json.loads(Path(plan_path).read_text())
     verify_campaign_source(plan)
-    if sha256_file(Path(readiness_path)) != plan["asset_manifest_sha256"]:
-        raise PlanBlocked("READY manifest differs from frozen campaign plan")
-    if sha256_file(Path(portfolio_path)) != plan["portfolio_sha256"]:
-        raise PlanBlocked("source portfolio differs from frozen campaign plan")
-    asset = load_ready_asset(readiness_path, "distilbert_sst2_fp32", portfolio_path)
-    if asset.record_sha256 != plan["asset_record_sha256"]:
-        raise PlanBlocked("READY target record differs from frozen campaign plan")
+    asset, _ = verify_campaign_ready(plan_path, readiness_path, portfolio_path)
     bits = targeted_classifier_bits()
     if plan["eligible_bits"] != len(bits) or plan["eligible_population_sha256"] != digest_object(
         [bit.key() for bit in bits]):

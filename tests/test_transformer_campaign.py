@@ -3,6 +3,7 @@
 from dataclasses import asdict
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -10,8 +11,94 @@ from netsurf.faults import InjectionReport
 from netsurf.manifests import digest_object, sha256_file
 from netsurf.torch_storage import expected_faults, sparse_bernoulli_schedule
 from netsurf.transformer_campaign import (_bound, _member_path, _policy_masks,
-    _selection_artifact, _write_json, aggregate, targeted_classifier_bits, SOURCE_FILES)
+    _selection_artifact, _write_json, aggregate, targeted_classifier_bits, SOURCE_FILES,
+    verify_campaign_ready)
 from netsurf.transformer_plan import PlanBlocked, seal_selection
+
+
+def test_ready_contract_accepts_unrelated_manifest_updates(tmp_path, monkeypatch):
+    from netsurf import transformer_campaign as campaign
+
+    target = {"target_id": "distilbert_sst2_fp32", "status": "READY",
+              "model": {"commit": "pinned", "files": [{"sha256": "a" * 64}]},
+              "tokenizer": [{"sha256": "b" * 64}],
+              "dataset": {"files": [{"sha256": "c" * 64}]},
+              "environment": {"torch": "pinned", "attention": "eager"},
+              "reference_results": {"smoke_report_sha256": "d" * 64}}
+    frozen = tmp_path / "frozen.json"
+    current = tmp_path / "current.json"
+    portfolio = tmp_path / "portfolio.json"
+    plan_path = tmp_path / "plan.json"
+    frozen.write_text(json.dumps({"schema": "kona-assets/netsurf-asset-readiness/1",
+                                  "targets": [target, {"target_id": "pythia", "status": "PREPARED"}]}))
+    current.write_text(json.dumps({"schema": "kona-assets/netsurf-asset-readiness/1",
+                                   "targets": [target, {"target_id": "pythia", "status": "READY"},
+                                               {"target_id": "qwen", "status": "READY"}],
+                                   "runtime_configuration_summary": {"READY": 2}}))
+    portfolio.write_text("{}")
+    plan = {"target": "distilbert_sst2_fp32", "portfolio_sha256": sha256_file(portfolio),
+            "asset_manifest_sha256": sha256_file(frozen),
+            "asset_record_sha256": digest_object(target),
+            "clean_reference_report_sha256": "d" * 64}
+    plan_path.write_text(json.dumps(plan))
+    calls = []
+
+    def fake_loader(path, name, portfolio_path):
+        calls.append(Path(path))
+        assert name == plan["target"] and portfolio_path == portfolio
+        return SimpleNamespace(record_sha256=digest_object(target),
+                               record={"clean_report_sha256": "d" * 64})
+
+    monkeypatch.setattr(campaign, "load_ready_asset", fake_loader)
+    asset, snapshot = verify_campaign_ready(plan_path, current, portfolio,
+                                            snapshot_path=frozen)
+    assert snapshot == frozen and asset.record_sha256 == plan["asset_record_sha256"]
+    assert calls == [frozen, current]
+
+    for section, key, value in (("model", "commit", "changed"),
+                                ("tokenizer", None, [{"sha256": "e" * 64}]),
+                                ("dataset", "files", [{"sha256": "f" * 64}]),
+                                ("environment", "attention", "sdpa"),
+                                ("reference_results", "smoke_report_sha256", "0" * 64)):
+        altered = json.loads(current.read_text())
+        record = altered["targets"][0]
+        record[section] = value if key is None else {**record[section], key: value}
+        current.write_text(json.dumps(altered))
+        with pytest.raises(PlanBlocked, match="target entry differs"):
+            verify_campaign_ready(plan_path, current, portfolio, snapshot_path=frozen)
+        altered["targets"][0] = target
+        current.write_text(json.dumps(altered))
+
+    changed_plan = {**plan, "asset_record_sha256": "0" * 64}
+    plan_path.write_text(json.dumps(changed_plan))
+    with pytest.raises(PlanBlocked, match="scientific identity"):
+        verify_campaign_ready(plan_path, current, portfolio, snapshot_path=frozen)
+    changed_plan = {**plan, "clean_reference_report_sha256": "0" * 64}
+    plan_path.write_text(json.dumps(changed_plan))
+    with pytest.raises(PlanBlocked, match="scientific identity"):
+        verify_campaign_ready(plan_path, current, portfolio, snapshot_path=frozen)
+    plan_path.write_text(json.dumps(plan))
+
+    frozen.write_text(frozen.read_text() + " ")
+    with pytest.raises(PlanBlocked, match="frozen READY snapshot"):
+        verify_campaign_ready(plan_path, current, portfolio, snapshot_path=frozen)
+
+
+def test_aggregate_cli_prints_summary_not_analysis(tmp_path, monkeypatch, capsys):
+    from netsurf import transformer_campaign_cli as cli
+
+    analysis_path = tmp_path / "run" / "analysis.json"
+    analysis_path.parent.mkdir()
+    analysis_path.write_text("{}")
+    monkeypatch.setattr(cli, "aggregate", lambda *_: {
+        "plan_sha256": "a" * 64, "rows": [{"large_detail": list(range(100))}],
+        "comparisons": [{"large_detail": list(range(100))}]})
+    assert cli.main(["aggregate", str(tmp_path / "plan.json"),
+                     str(tmp_path / "ready.json"), str(analysis_path.parent)]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["status"] == "ANALYSIS_VERIFIED"
+    assert output["rows"] == output["comparisons"] == 1
+    assert "large_detail" not in output
 
 
 def test_offline_aggregation_replays_every_field_and_rejects_changed_schedule(tmp_path):
