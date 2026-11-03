@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "studies": [
+    {"id": "resnet8_cifar10_int8_full", "kind": "whole_kernel", "path": "/projects/netsurf/manuelbv/workspace/runs/m92_resnet8_static_test1000_v1/20261029T084524.633748Z-f0bcc564", "scientific_payload_sha256": "3ed95baa04ede8047f5b5eb04f9024f2e5f856c39abcc84b2ca1fb894b22db32", "checksums_sha256": "6a0ab14fbbe627cf6b6d24a981a7c7ce71d2b7ea7f631edafeb163db90e7db3b"},
+    {"id": "kws_speechcommands_int8_full", "kind": "whole_kernel", "path": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_static_ber_sweep1000_v1/20261029T183410.488907Z-32c31070", "scientific_payload_sha256": "b7b725fd1c196f2d5896b67aba34dfe8aa864b8308875df098d48be6135975e0", "checksums_sha256": "3b8c60276d9696cdb62a82cd1343c7acf74a2d98784daed996221741391fd96d"},
+    {"id": "toycar_int8_full_pilot64", "kind": "whole_kernel", "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_static_ber_pilot64_parallel_repair_v1/20261029T234704.724222Z-3913968c", "scientific_payload_sha256": "5d9c1eaa69e24b5f2139b7bf69ae0d775cc8727d458d0b66c5cfe897ab44b554", "checksums_sha256": "74de9921174e403dc5188c8ee6825e2f3deaa9d58afc6436877dd7316b080ae6"},
+    {"id": "kws_speechcommands_int8_fkeras128", "kind": "distinct_cohort", "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97/workspace/runs/m97_kws_fkeras_exploratory_v1/20261031T215413.151168Z-6bbb9223", "scientific_payload_sha256": "dd6ccdd8c000437082619ee67a79d25d067709eee210df8fc2c0daf5f712fb36", "checksums_sha256": "9bfa627e4b33e072e686caf28201ba632e5946df2436333c432ad75fdbc9f121"}
+  ],
+  "restricted_studies": [
+    {"id":"distilbert_fp32_classifier1024_original","run":"distilbert_sst2_classifier1024_v4_run1","plan":"distilbert_sst2_classifier1024_v4.json","payload_sha256":"1abf4fe3e5901b432dc37578298e0dfda80367d598169aeaace3990ee3d68a7e","analysis_sha256":"5fdd2bf99543190d947b099cc607fc016fb6cc35a9e100dc9d237e90e8bb9707"},
+    {"id":"distilbert_fp32_classifier1024_replication","run":"distilbert_sst2_validation_replication_v1_run1","plan":"distilbert_sst2_validation_replication_v1.json","payload_sha256":"534529bfb3b204b18ebae3682d2191b96e3ddb94052df33354e85d5f4b0067c2","analysis_sha256":"154b002eb9e99febcd522f14290f9be5b171411e63f1486b4aa6bde89c2bf989"},
+    {"id":"pythia160m_fp32_targeted96","run":"pythia160m_fp32_targeted96_v1_run1","plan":"pythia160m_fp32_targeted96_v1.json","payload_sha256":"dff51c78760a51c0388bfb0bbac3af0f5c1b9b7f6cc44d72d13c82a8ff044c86","analysis_sha256":"1baa55a33d3027b67b8eb1c3774630cdc19d918865e0b0903559fd4f31c2ab03"},
+    {"id":"pythia160m_bf16fp32_targeted96","run":"pythia160m_bf16fp32_targeted96_v1_run1","plan":"pythia160m_bf16fp32_targeted96_v1.json","payload_sha256":"161d7af8f4bf1c31c58478a8f6d207eb454daa11c56ee61600f6a11012d81519","analysis_sha256":"e5acd88b140e121c79c1c2327e8e6da014aa5df2ecdbb7d7d694fee942edc93e"},
+    {"id":"qwen3_bf16_targeted96","run":"qwen3_0_6b_bf16_targeted96_v1_run1","plan":"qwen3_0_6b_bf16_targeted96_v1.json","payload_sha256":"cc3fa8815c77f6d996dfaaf64f18775feade656f604b98414110ae2d243c71ee","analysis_sha256":"0438ab5e1e1f5d7cba72a16548bd5b98f4611c657a574bc4f599f71e0e4103f9"}
+  ]
+}
