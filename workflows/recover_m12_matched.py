@@ -125,11 +125,17 @@ def audit_saved(bundle: Path, plan: dict, config: dict, summary: dict) -> dict:
     for rep, rep_masks in masks.items():
         if set(rep_masks) != expected_mask_keys:
             raise ValueError(f"mask policy set differs for {rep}")
+        eligible_identities = {tuple(bit) for bit in rep_masks["full_protection"]}
+        if len(eligible_identities) != eligible:
+            raise ValueError(f"full mask does not enumerate the eligible bit population: {rep}")
         for policy, identities in rep_masks.items():
             requested = 0.0 if policy == "no_protection" else 1.0 if policy == "full_protection" else float(policy.rsplit("@", 1)[1])
             cardinality = min(eligible, max(0, math.floor(requested * eligible + 1e-12)))
-            if len(identities) != cardinality or len({tuple(bit) for bit in identities}) != cardinality:
+            selected = {tuple(bit) for bit in identities}
+            if len(identities) != cardinality or len(selected) != cardinality:
                 raise ValueError(f"mask cardinality or uniqueness differs: {rep}, {policy}")
+            if not selected.issubset(eligible_identities):
+                raise ValueError(f"mask contains a bit outside the eligible population: {rep}, {policy}")
             if any(len(bit) != 3 or not 0 <= int(bit[2]) < 8 or int(bit[1]) < 0 for bit in identities):
                 raise ValueError(f"invalid INT8 bit identity: {rep}, {policy}")
             digest = _mask_sha256(identities)

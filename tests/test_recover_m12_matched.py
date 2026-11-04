@@ -77,6 +77,16 @@ def test_offline_audit_rejects_wrong_mask_and_unpaired_field(tmp_path):
         audit_saved(bundle, plan, config, summary)
 
 
+def test_offline_audit_rejects_bits_outside_eligible_population(tmp_path):
+    bundle, plan, config, summary = _fixture(tmp_path)
+    masks_path = bundle / "artifacts/protection_masks.json"
+    masks = json.loads(masks_path.read_text())
+    masks["replication_0"]["msb_global@0.125000"][0] = ["other-kernel", 0, 0]
+    masks_path.write_text(json.dumps(masks))
+    with pytest.raises(ValueError, match="outside the eligible population"):
+        audit_saved(bundle, plan, config, summary)
+
+
 def test_offline_audit_rejects_missing_policy_trial(tmp_path):
     bundle, plan, config, summary = _fixture(tmp_path)
     trial_path = bundle / "measurements/trials.csv"
