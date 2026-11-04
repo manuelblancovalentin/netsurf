@@ -6,6 +6,9 @@ stored-bit fault law, authoritative backend, S4–S6 definition, or KWS FKeras
 formula. It does **not** establish protection superiority. The prior M97
 FKeras paper/source audit and its pinned citation remain in
 `docs/M97_FKERAS_REPRODUCTION.md`.
+The bounded smokes below were replayed from clean implementation commit
+`03033ca4623662998ae7751313d896067704547e`; their manifests record
+`source.dirty=false` and passed checksum verification.
 
 ## Exact adaptation and separate objectives
 
@@ -86,8 +89,8 @@ confirmation data. Neither used a new checkpoint or altered an asset lock.
 
 | Bundle | Scientific payload SHA-256 | FKeras score time | Mask symmetric difference at 6.25% / 12.5% / 18.75% / 25% |
 |---|---|---:|---|
-| `m12_resnet8_fkeras_smoke` | `64f2da6e9c781baa70d507e1f7d32f7825f4b397d3fd4c2dba7b18f1c842c048` | 3.23 s | 13,754 / 0 / 13,754 / 0 bits |
-| `m12_toycar_fkeras_smoke` | `2a81a96363f7abd8f973bf129276372c591315ad3bf14ceb0156b244e265cdcd` | 7.79 s | 90,630 / 0 / 90,630 / 0 bits |
+| `m12_resnet8_fkeras_smoke` | `93c0b33346c3efbddfd50e8bf03df395bcec3f05068dcf3796d4c64a388da3fc` | 3.26 s | 13,754 / 0 / 13,754 / 0 bits |
+| `m12_toycar_fkeras_smoke` | `1a68577b88f0500b87b00c4bb1f7d3af89e4ce176d3e5f339b0ce7f41dcc9001` | 7.52 s | 90,630 / 0 / 90,630 / 0 bits |
 
 The saved masks protect respectively 38,680 / 77,360 / 116,040 / 154,720
 ResNet bits and 132,096 / 264,192 / 396,288 / 528,384 ToyCar bits. At
@@ -100,12 +103,22 @@ one persistent fault state and kept `roc_auc` separate from
 `reconstruction_mse`. Two files yield only an extreme 0/1 AUC and cannot
 support a statistical claim.
 
-The two engineering bundles occupy about 179 MB and 597 MB. Their complete
+The final clean-source engineering bundles are
+`workspace/runs/m12_resnet8_fkeras_smoke/20261104T211211.346850Z-4bd48a9e`
+and
+`workspace/runs/m12_toycar_fkeras_smoke/20261104T211555.259943Z-840d09b2`.
+They occupy about 179 MB and 597 MB. Their complete
 foreground process durations were approximately one minute and three minutes,
-respectively; reported 3.23/7.79 seconds count only FKeras construction and
+respectively; reported 3.26/7.52 seconds count only FKeras construction and
 must not be used as end-to-end campaign estimates. Full-population score CSVs
-and masks dominate output size. Peak ToyCar smoke RSS observed during the
-process was approximately 1.5 GiB. The new schema-3.6 result payloads are
+and masks dominate output size. In a separate bounded full-population
+score-build check under `/usr/bin/time -v`, peak resident memory was
+1,071,388 KiB for ResNet and 1,187,208 KiB for ToyCar; FKeras scoring itself
+took 2.70 and 7.52 seconds after adapter/sample loading. Those are measured
+score-process peaks, not a guarantee for the larger evaluation workflow or
+longer calibration cohorts. During the ToyCar full engineering smoke, live
+RSS sampled about 1.5 GiB, but an instrumented process peak was not recorded.
+The new schema-3.6 result payloads are
 distinct from historical schema-3.5 KWS results.
 
 ## Configuration and future campaign gate
@@ -139,7 +152,8 @@ Engineering templates are
 `config/examples/m12_resnet8_fkeras_smoke.toml` and
 `config/examples/m12_toycar_fkeras_smoke.toml`. The optional foreground
 launcher `scripts/run_m12_fkeras_study_once.sh CONFIG.toml` validates and
-prints the operation plan before running a researcher-frozen configuration;
+prints the operation plan and a qualified, cohort-scaled historical
+fault-evaluation time estimate before running a researcher-frozen configuration;
 it is **not** a production authorization. Do not rerun the one-field smokes.
 
 For a matched effectiveness study, use the same eligible population, calibration
@@ -156,6 +170,34 @@ same method. Adding FKeras as one extra policy at four budgets and the same
 before any added fields or rerun of comparator policies. These estimates are
 not validated throughput measurements for the new configurations; extra
 independent fields and ranking-calibration changes scale cost further.
+For a freshly paired seven-method study at those same grids, six established
+methods plus FKeras and two shared controls imply 30 observations per proposed
+field: 7,680 ResNet observations (8 BERs × 32 fields) and 960 ToyCar
+observations (4 BERs × 8 fields). Scaling the historical source-ratio timing
+by observation count at unchanged 1,000-image/64-file cohorts gives rough
+fault-evaluation guides of 7.15 and 0.81 hours, respectively, **excluding**
+ranking, setup, finalization and any expanded field count. The runner prints
+the corresponding guide for the actual configured cohort and operation plan;
+it does not substitute for fresh resource admission and a measured pilot.
 The above tiny smokes cannot determine a
 scientifically powered trial count. Do not add BER points for plot smoothness
 or infer that MSE-based FKeras ranks file-AUC vulnerability accurately.
+
+## Regression receipt
+
+- Canonical Python 3.11 full suite: `330 passed, 15 skipped`.
+- Pinned MLPerf Python targeted FKeras/capability/KWS/ToyCar/ResNet suite:
+  `36 passed, 2 skipped`.
+- `netsurf validate` accepted both new schema-3.6 engineering TOMLs;
+  schema-3.5 KWS remains accepted. The new foreground runner passed shell
+  syntax validation and rejected an engineering example rather than rerunning
+  it as a production study.
+- Both final engineering bundles passed `netsurf inspect` checksum verification.
+
+The initial isolated-worktree full-suite attempt lacked the historical MNIST
+checkpoint at its worktree-relative path. A gitignored symlink now points to
+the unchanged, read-only canonical checkpoint SHA-256
+`1c58daf1bb23d1cdbaf38e68e4d957145be62435fd379bc3716904d57aa77780`;
+the rerun passed. No checkpoint or dataset bytes were edited. The remaining
+test warnings are upstream TensorFlow Lite/librosa/audioread deprecations, not
+numerical acceptance failures.
