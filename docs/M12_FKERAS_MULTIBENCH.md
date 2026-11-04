@@ -120,6 +120,11 @@ longer calibration cohorts. During the ToyCar full engineering smoke, live
 RSS sampled about 1.5 GiB, but an instrumented process peak was not recorded.
 The new schema-3.6 result payloads are
 distinct from historical schema-3.5 KWS results.
+The already-finalized tiny smoke reports contain a presentation-only inherited
+sentence calling their continuous model a "KWS companion" and mentioning the
+repository variant. The scientific manifests identify the correct ResNet/ToyCar
+companions and only `fkeras_paper`; the report renderer is corrected for future
+bundles. The finalized smoke bundles were not edited.
 
 ## Configuration and future campaign gate
 
@@ -185,9 +190,9 @@ or infer that MSE-based FKeras ranks file-AUC vulnerability accurately.
 
 ## Regression receipt
 
-- Canonical Python 3.11 full suite: `330 passed, 15 skipped`.
+- Canonical Python 3.11 full suite: `332 passed, 15 skipped`.
 - Pinned MLPerf Python targeted FKeras/capability/KWS/ToyCar/ResNet suite:
-  `36 passed, 2 skipped`.
+  `38 passed, 2 skipped`.
 - `netsurf validate` accepted both new schema-3.6 engineering TOMLs;
   schema-3.5 KWS remains accepted. The new foreground runner passed shell
   syntax validation and rejected an engineering example rather than rerunning

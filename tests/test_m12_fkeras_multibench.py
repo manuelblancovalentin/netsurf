@@ -9,6 +9,7 @@ from netsurf.fkeras_baseline import fkeras_msb_tier_order, leading_hessian_eigen
 from netsurf.fkeras_estimator import ContinuousTFLiteHessian, fkeras_family
 from netsurf.identities import BitIdentity
 from netsurf.study_config import StudyConfigurationError, load_study
+from netsurf.reporting import render_study_report
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -115,3 +116,27 @@ def test_non_kws_repository_variant_rejected_before_hvp():
     adapter = type("Adapter", (), {"benchmark_id": "mlperf-tiny/ad"})()
     with pytest.raises(ValueError, match="retained only"):
         fkeras_family(adapter, None, None, (), seed=1, options={}, requested=("fkeras_repository",))
+
+
+@pytest.mark.parametrize("adapter,loss_name", [
+    ("mlperf_tiny_ic_int8_v1", "classification cross-entropy"),
+    ("mlperf_tiny_ad_int8_v1", "window reconstruction MSE"),
+])
+def test_new_fkeras_report_identifies_correct_companion_and_only_published_form(adapter, loss_name):
+    summary = {
+        "clean_evaluation": {"accuracy": 1.0, "categorical_crossentropy": 0.0},
+        "eligible_bits": 8, "fkeras_diagnostics": {"eigenpairs": 2},
+        "scientific_payload_sha256": "test",
+    }
+    resolved = {
+        "experiment": {"name": "bounded"},
+        "benchmark": {"id": "bounded", "adapter": adapter, "quantization": "int8"},
+        "scientific_protocol": "test",
+        "samples": {"ranking_count": 1, "empirical_count": 1,
+                    "evaluation_count": 1, "require_disjoint": True},
+    }
+    report = render_study_report(summary, resolved)
+    assert loss_name in report
+    assert "published-form" in report.lower()
+    assert "repository sum-strategy" not in report
+    assert "KWS companion" not in report

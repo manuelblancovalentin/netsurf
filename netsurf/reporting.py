@@ -114,10 +114,18 @@ def render_study_report(summary: Mapping[str, Any], resolved: Mapping[str, Any],
         for row in identical:
             lines.append(f"| {row['replication']} | {row['left']} | {row['right']} | {row['protected_bits']} | yes |")
     if summary.get("fkeras_diagnostics"):
-        lines.extend(["", "## FKeras numerical contract", "",
-            "A separate continuous float64 KWS companion supplies the weight Hessian. It is not the Hessian of exact integer inference or of the S4–S6 straight-through model. Both formulas share a residual-checked largest-magnitude signed eigensolve; detailed eigenvalues, residuals, mapping and cost provenance are saved in summary.json and scientific_payload.json.",
-            "Paper-form magnitude is abs(sum λ(vᵀθ)v); the pinned repository sum-strategy is sum abs(λ²(vᵀθ)v). Neither is a signed finite-bit damage prediction. Full masks, exact isolated damage and task outcomes are separate comparisons.",
-            "Empirical correlations and estimator-agreement tables compare raw numerical scores, not the lexicographic tier-first policy. The actual mask table is authoritative for allocation equivalence. Tiny-sample within-stratum bootstrap intervals condition on the observed strata; they are not whole-population uncertainty or evidence of estimator superiority."])
+        if benchmark["adapter"] in {"mlperf_tiny_ic_int8_v1", "mlperf_tiny_ad_int8_v1"}:
+            model_name = "ResNet-8" if benchmark["adapter"] == "mlperf_tiny_ic_int8_v1" else "ToyCar"
+            loss_name = "classification cross-entropy" if model_name == "ResNet-8" else "window reconstruction MSE"
+            lines.extend(["", "## FKeras numerical contract", "",
+                f"A separate continuous float64 {model_name} companion supplies the weight Hessian of {loss_name}. It is not the Hessian of exact integer inference or of the S4–S6 straight-through model. The published-form score uses a residual-checked largest-magnitude signed eigensolve; eigenvalues, residuals, mapping and cost provenance are saved in summary.json and scientific_payload.json.",
+                "Published-form parameter magnitude is abs(sum λ(vᵀθ)v). It is not a signed finite-bit damage prediction. Strict bit-significance tiers determine the protection ordering; the Hessian score only breaks ties within a tier.",
+                "Empirical correlations compare raw numerical scores, not the lexicographic tier-first policy. The actual mask table is authoritative for allocation equivalence. Tiny-sample intervals are not whole-population uncertainty or evidence of estimator superiority."])
+        else:
+            lines.extend(["", "## FKeras numerical contract", "",
+                "A separate continuous float64 KWS companion supplies the weight Hessian. It is not the Hessian of exact integer inference or of the S4–S6 straight-through model. Both formulas share a residual-checked largest-magnitude signed eigensolve; detailed eigenvalues, residuals, mapping and cost provenance are saved in summary.json and scientific_payload.json.",
+                "Paper-form magnitude is abs(sum λ(vᵀθ)v); the pinned repository sum-strategy is sum abs(λ²(vᵀθ)v). Neither is a signed finite-bit damage prediction. Full masks, exact isolated damage and task outcomes are separate comparisons.",
+                "Empirical correlations and estimator-agreement tables compare raw numerical scores, not the lexicographic tier-first policy. The actual mask table is authoritative for allocation equivalence. Tiny-sample within-stratum bootstrap intervals condition on the observed strata; they are not whole-population uncertainty or evidence of estimator superiority."])
     if summary.get("empirical_candidate_count", 0):
         lines.extend([
             "", "## Exact isolated-bit reference", "",
