@@ -149,6 +149,8 @@ def _plots(database: Path, output: Path) -> None:
                                 color=COLORS[method], marker="o", markersize=3, capsize=2,
                                 linewidth=1, label=METHODS[method][0])
                 ax.set_xscale("log")
+                if key != "toycar":
+                    ax.set_yscale("symlog", linthresh=0.05)
                 ax.set_title(f"{budget:.2%} protected")
                 ax.set_xlabel("Logical bit-flip probability")
                 ax.grid(alpha=0.2)
@@ -180,6 +182,8 @@ def _plots(database: Path, output: Path) -> None:
                                 linewidth=1, linestyle="none" if key == "kws" and method == "fkeras_paper" else "-",
                                 label=METHODS[method][0])
                 ax.set_title(f"Logical BER {ber:g}")
+                if key != "toycar":
+                    ax.set_yscale("symlog", linthresh=0.05)
                 ax.set_xticks(BUDGETS, [f"{budget:.2%}" for budget in BUDGETS], rotation=30)
                 ax.set_xlabel("Protected eligible-bit fraction")
                 ax.grid(alpha=0.2)
@@ -222,7 +226,9 @@ def _readme(database: Path, output: Path, sources: dict) -> None:
               "reuse one ranking mask or vary masks across replications; inspect `ranking_mask_count` and "
               "the source replication-level tables before interpreting uncertainty. These are not "
               "independent training replicates. Paired policies share proposed fields, so marginal intervals do not "
-              "constitute paired significance tests. Logical BER is not radiation-calibrated and "
+              "constitute paired significance tests. Classification loss axes use a labeled symmetric-log "
+              "scale above 0.05 nats so high-BER tail values remain visible; ToyCar risk uses a linear axis. "
+              "Logical BER is not radiation-calibrated and "
               "ideal event suppression is not physical ECC.", "",
               "The source receipt, artifact hashes, complete queryable SQLite database and long-form "
               "CSV are included. Full source-bundle ZIPs are exported by each campaign recovery.", ""]
