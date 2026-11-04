@@ -156,9 +156,10 @@ numerical orderings.
 Engineering templates are
 `config/examples/m12_resnet8_fkeras_smoke.toml` and
 `config/examples/m12_toycar_fkeras_smoke.toml`. The optional foreground
-launcher `scripts/run_m12_fkeras_study_once.sh CONFIG.toml` validates and
+launcher `scripts/run_m12_fkeras_study_once.sh CONFIG.toml EXPECTED_SOURCE_COMMIT` validates and
 prints the operation plan and a qualified, cohort-scaled historical
-fault-evaluation time estimate before running a researcher-frozen configuration;
+whole-run time estimate before running one of the four hash-frozen M12
+configurations described in `M12_FKERAS_MATCHED_PLANS.md`;
 it is **not** a production authorization. Do not rerun the one-field smokes.
 
 For a matched effectiveness study, use the same eligible population, calibration
@@ -166,11 +167,13 @@ and final cohorts, exact mask cardinality and proposed fault fields as all
 other methods. Compare FKeras against MSB at partial tiers 6.25% and 18.75%.
 Before a production run, freeze BERs, primary paired contrasts, desired CI
 precision and independent field count; then measure resource cost of the
-actual cohort in a separate pilot. Existing whole-grid receipts provide only a
-rough initial capacity guide: 6,656 ResNet policy/budget observations over
-1,000 images took about 6.2 hours by a historical source-ratio estimate, while
-832 ToyCar observations over 64 complete files took about 0.7 hours by the
-same method. Adding FKeras as one extra policy at four budgets and the same
+actual cohort in a separate pilot. The authoritative finalized manifests report
+43,960.4 seconds (12.21 hours) of coordinator time for 6,656
+ResNet policy/budget observations over 1,000 images, and 3,383.0 seconds
+(0.94 hours) for 832 ToyCar observations over 64 complete files. Their
+recorded coordinator peak RSS was 5,088 and 10,755 MiB, respectively;
+these are historical full-run measurements, not memory caps. Adding FKeras
+as one extra policy at four budgets and the same
 32/8 fields per BER would add 1,024/128 policy-budget observations, respectively,
 before any added fields or rerun of comparator policies. These estimates are
 not validated throughput measurements for the new configurations; extra
@@ -178,10 +181,11 @@ independent fields and ranking-calibration changes scale cost further.
 For a freshly paired seven-method study at those same grids, six established
 methods plus FKeras and two shared controls imply 30 observations per proposed
 field: 7,680 ResNet observations (8 BERs × 32 fields) and 960 ToyCar
-observations (4 BERs × 8 fields). Scaling the historical source-ratio timing
-by observation count at unchanged 1,000-image/64-file cohorts gives rough
-fault-evaluation guides of 7.15 and 0.81 hours, respectively, **excluding**
-ranking, setup, finalization and any expanded field count. The runner prints
+observations (4 BERs × 8 fields). Scaling the measured historical whole-run
+time by observation count at unchanged 1,000-image/64-file cohorts gives
+rough guides of 14.09 and 1.08 hours, respectively. This is not a precise
+forecast: setup, ranking, BER mix and finalization need not scale linearly.
+The runner prints
 the corresponding guide for the actual configured cohort and operation plan;
 it does not substitute for fresh resource admission and a measured pilot.
 The above tiny smokes cannot determine a

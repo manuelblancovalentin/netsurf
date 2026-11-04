@@ -1,6 +1,7 @@
 """Bounded published-form FKeras gates; never consume untouched final examples."""
 
 from pathlib import Path
+import hashlib
 
 import numpy as np
 import pytest
@@ -10,6 +11,7 @@ from netsurf.fkeras_estimator import ContinuousTFLiteHessian, fkeras_family
 from netsurf.identities import BitIdentity
 from netsurf.study_config import StudyConfigurationError, load_study
 from netsurf.reporting import render_study_report
+from netsurf.api import configuration_operation_plan
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -140,3 +142,24 @@ def test_new_fkeras_report_identifies_correct_companion_and_only_published_form(
     assert "published-form" in report.lower()
     assert "repository sum-strategy" not in report
     assert "KWS companion" not in report
+
+
+@pytest.mark.parametrize("filename,digest,fields,evaluations", [
+    ("m12_resnet8_fkeras_matched_grid_v1.toml", "237f4697d69d9778cfd2f08510cc5ec4099ce1d1693b854c77906b83e901496a", 256, 7680),
+    ("m12_resnet8_fkeras_paired_precision_v1.toml", "00ab9e7e7697142c3205a4476b64c3ce7efe1a3f17f9ee68c79fefa344a67e46", 640, 5120),
+    ("m12_toycar_fkeras_matched_grid_v1.toml", "f8b59c0b3674f84ffd126fda82b6c03b3f441216b63e846aa95f591fc446d806", 160, 4800),
+    ("m12_toycar_fkeras_paired_precision_v1.toml", "967f4048e939a04b98f0ff81a600e8a450b6ed5bb2ba65ac65b18c7c72614057", 768, 6144),
+])
+def test_frozen_matched_plan_identity_and_work_count(filename, digest, fields, evaluations):
+    path = ROOT / "config/experiments" / filename
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == digest
+    config = load_study(path, check_inputs=False)
+    assert config.schema_version == "3.6.0"
+    assert config.benchmark.injectable_parameters == ("kernels",)
+    assert {row.name for row in config.estimators if row.name.startswith("fkeras_")} == {"fkeras_paper"}
+    fkeras = next(row for row in config.policies if row.name == "fkeras_paper")
+    assert fkeras.priority == ("bit_significance_desc", "estimator_score_desc", "stable_identity")
+    assert config.samples.require_disjoint
+    assert fields == len(config.protection.probabilities) * config.execution.trials * config.replications.count
+    assert evaluations == fields * (2 + len(config.policies) * len(config.protection.coverages))
+    assert configuration_operation_plan(config)["Fault evaluation"] == fields + evaluations
