@@ -13,7 +13,7 @@ from typing import Iterator, Mapping
 
 import numpy as np
 
-from ..asset_lock import AssetLockError, VerifiedAssetLock, load_verified_asset_lock
+from ..asset_lock import AssetLockError, VerifiedAssetLock, load_verified_asset_lock, sha256_path
 from ..faults import FaultSchedule, InjectionReport
 from ..identities import BitIdentity, ParameterSpec
 from ..protection import ProtectionMask
@@ -35,6 +35,12 @@ _OFFICIAL_INDEX_RELATIVE_PATH = (
     "benchmark/training/image_classification/perf_samples_idxs.npy"
 )
 _OFFICIAL_LABEL_RELATIVE_PATH = "benchmark/evaluation/datasets/ic01/y_labels.csv"
+
+
+def _same_locked_model(checkpoint: Path, locked_model: Path, expected_sha256: str) -> bool:
+    """Accept an alternate mount only when it has the lock's exact model bytes."""
+
+    return checkpoint == locked_model or sha256_path(checkpoint) == expected_sha256
 
 
 def bounded_synthetic_inference_signature(payload) -> dict[str, object]:
@@ -191,9 +197,16 @@ class MlperfTinyImageClassificationAdapter:
         if self.asset_lock_path is not None:
             self.asset_lock = load_verified_asset_lock(str(self.asset_lock_path))
             locked_model = self.asset_lock.file(_MODEL_RELATIVE_PATH)
-            if locked_model != self.checkpoint:
+            # Kona exposes the same pinned model through /data and /ml mounts.
+            # Path equality is sufficient, but not necessary, for asset identity:
+            # the lock has already verified its resolved file, and any alternate
+            # path must have exactly the locked bytes, not merely a similar name.
+            if not _same_locked_model(
+                self.checkpoint, locked_model,
+                self.asset_lock.file_record(_MODEL_RELATIVE_PATH)["sha256"],
+            ):
                 raise AssetLockError(
-                    f"checkpoint {self.checkpoint} is not the model resolved by {self.asset_lock_path}"
+                    f"checkpoint {self.checkpoint} differs from the model resolved by {self.asset_lock_path}"
                 )
             dataset_root = Path(
                 self.asset_lock.document["resolved"]["datasets"]["cifar10"]
