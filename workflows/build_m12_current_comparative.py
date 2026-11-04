@@ -218,8 +218,10 @@ def _readme(database: Path, output: Path, sources: dict) -> None:
               "identical full bit tiers, so the duplicated FKeras curve points are omitted from plots. "
               "Source trial observations and exact mask identities remain in the "
               "checksum-verified source bundles.", "",
-              "Plots use source-derived 95% field-level intervals, conditional on each frozen model, "
-              "cohort and mask. Paired policies share proposed fields, so marginal intervals do not "
+              "Plots use source-derived 95% intervals over the pooled scheduled fields. A method may "
+              "reuse one ranking mask or vary masks across replications; inspect `ranking_mask_count` and "
+              "the source replication-level tables before interpreting uncertainty. These are not "
+              "independent training replicates. Paired policies share proposed fields, so marginal intervals do not "
               "constitute paired significance tests. Logical BER is not radiation-calibrated and "
               "ideal event suppression is not physical ECC.", "",
               "The source receipt, artifact hashes, complete queryable SQLite database and long-form "
