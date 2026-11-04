@@ -137,6 +137,8 @@ def _plots(database: Path, output: Path) -> None:
                         "k--", linewidth=1.2, label="Unprotected")
                 ax.axhline(0, color="black", linestyle=":", linewidth=1, label="Fully protected / clean")
                 for method in methods:
+                    if key == "kws" and method == "fkeras_paper" and budget in (0.125, 0.25):
+                        continue  # exact same protected set and outcomes as MSB-first
                     points = [index.get((method, budget, ber)) for ber in bers]
                     points = [point for point in points if point is not None]
                     if not points:
@@ -165,7 +167,8 @@ def _plots(database: Path, output: Path) -> None:
                 ax.axhline(baseline, color="black", linestyle="--", linewidth=1.2, label="Unprotected")
                 ax.axhline(0, color="black", linestyle=":", linewidth=1, label="Fully protected / clean")
                 for method in methods:
-                    points = [index.get((method, budget, ber)) for budget in BUDGETS]
+                    points = [index.get((method, budget, ber)) for budget in BUDGETS
+                              if not (key == "kws" and method == "fkeras_paper" and budget in (0.125, 0.25))]
                     points = [point for point in points if point is not None]
                     if not points:
                         continue
@@ -174,7 +177,8 @@ def _plots(database: Path, output: Path) -> None:
                                 yerr=[[max(0, row["mean_loss"] - row["loss_ci_low"]) for row in points],
                                       [max(0, row["loss_ci_high"] - row["mean_loss"]) for row in points]],
                                 color=COLORS[method], marker="o", markersize=3, capsize=2,
-                                linewidth=1, label=METHODS[method][0])
+                                linewidth=1, linestyle="none" if key == "kws" and method == "fkeras_paper" else "-",
+                                label=METHODS[method][0])
                 ax.set_title(f"Logical BER {ber:g}")
                 ax.set_xticks(BUDGETS, [f"{budget:.2%}" for budget in BUDGETS], rotation=30)
                 ax.set_xlabel("Protected eligible-bit fraction")
@@ -210,7 +214,9 @@ def _readme(database: Path, output: Path, sources: dict) -> None:
     lines += ["", "FKeras means the **published mathematical form** only. ResNet-8 and ToyCar "
               "FKeras and PrioriFI-derived allocations remain unmeasured; PrioriFI is also unmeasured "
               "for KWS. No method is filled from a different cohort. The KWS 128-clip FKeras cohort "
-              "remains separate. Source trial observations and exact mask identities remain in the "
+              "remains separate. At KWS 12.5% and 25%, published-form FKeras and MSB-first select "
+              "identical full bit tiers, so the duplicated FKeras curve points are omitted from plots. "
+              "Source trial observations and exact mask identities remain in the "
               "checksum-verified source bundles.", "",
               "Plots use source-derived 95% field-level intervals, conditional on each frozen model, "
               "cohort and mask. Paired policies share proposed fields, so marginal intervals do not "
