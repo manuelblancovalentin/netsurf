@@ -52,6 +52,14 @@ Existing 3.0–3.4 readers and payload fields retain their behavior. This does n
 extend schema-6 conditional/cross-pool support to other architectures. See
 `docs/M97_FKERAS_REPRODUCTION.md` for exact fields and numerical scope.
 
+Experiment and measurement `3.6.0` extend only published-form FKeras to the
+pinned ResNet-8 and ToyCar INT8 kernel populations. Each has a separately named
+float64 continuous companion with exact decoded stored-kernel mapping. ToyCar
+uses reconstruction MSE for the Hessian, but complete-file `1-ROC-AUC` remains
+the authoritative protection risk. KWS `3.5.0` and all older payloads are
+unchanged; repository-form FKeras is not extended beyond its historical KWS
+comparison. See `docs/M12_FKERAS_MULTIBENCH.md`.
+
 The Python validators enforce the executable subset and load these documents as
 the machine-readable field contract. Breaking changes require a new schema file
 and a new reader. Experiment and measurement `4.0.0` add the conditional-search

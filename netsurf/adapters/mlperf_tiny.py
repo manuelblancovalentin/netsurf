@@ -138,6 +138,8 @@ class MlperfTinyImageClassificationAdapter:
     fused, per-channel-quantized TFLite graph.
     """
 
+    benchmark_id = "mlperf-tiny/ic"
+
     def __init__(
         self,
         checkpoint: Path,

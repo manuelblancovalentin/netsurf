@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/measurements/v3_6.schema.json",
+  "schema_version": "3.6.0",
+  "compatibility": "Retains v3.5 measurement fields and historical KWS FKeras definitions; adds published-form FKeras on pinned ResNet-8 and ToyCar only.",
+  "estimator_predictions.csv": {
+    "score": "within-bit-tier magnitude of the signed published Hessian projection for the separately named continuous companion loss; repeated over the eight bits of a kernel word",
+    "signed_prediction": "null; this parameter projection is not a signed finite-bit loss prediction"
+  },
+  "scientific_payload.json": {
+    "estimator_definitions": "saves eigenvectors, signed eigenvalues, raw parameter scores, exact tensor offsets and quantization metadata, residual/symmetry/orthogonality diagnostics, source pin and bounded work options",
+    "toycar_surrogate": "continuous per-window reconstruction MSE; exact mask effectiveness uses complete-file 1-ROC-AUC"
+  },
+  "summary.json": {
+    "mask_equivalence": "actual mask-set equality at equal coverage, including complete INT8 bit tiers",
+    "fkeras_diagnostics": "numerical provenance copied from the saved estimator output"
+  }
+}

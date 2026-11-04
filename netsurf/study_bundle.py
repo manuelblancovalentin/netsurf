@@ -94,7 +94,7 @@ def _summary(outcome: StudyOutcome, derived=None):
         "checks": payload["checks"],
         "scientific_payload_sha256": outcome.scientific_payload_sha256,
     }
-    if outcome.configuration.schema_version == "3.5.0":
+    if outcome.configuration.schema_version in {"3.5.0", "3.6.0"}:
         from .fkeras_baseline import mask_equivalence
         result["mask_equivalence"] = [
             {"replication": member.replication_name, **row}
@@ -187,7 +187,7 @@ def create_study_bundle(
     _write_csv(staging / "measurements/estimator_predictions.csv", prediction_fields, prediction_rows)
     if any(member.ranking_metrics for member in members):
         metric_fields = ["schema_version", "estimator", "implementation_version", "scope", "candidate_count", "spearman_positive_damage", "spearman_absolute_change", "kendall_positive_damage", "zero_score_fraction", "tied_score_fraction", "runtime_seconds", "sample_limited", "top_5_recall", "top_5_overlap", "top_10_recall", "top_10_overlap", "top_20_recall", "top_20_overlap", "signed_mae", "signed_rmse", "signed_bias"]
-        if config.schema_version in {"3.2.0", "3.3.0", "3.4.0", "3.5.0"}:
+        if config.schema_version in {"3.2.0", "3.3.0", "3.4.0", "3.5.0", "3.6.0"}:
             for requested in (5, 10, 20):
                 metric_fields.extend(
                     [
@@ -195,7 +195,7 @@ def create_study_bundle(
                         f"top_{requested}_random_expected_recall",
                     ]
                 )
-        if config.schema_version in {"3.3.0", "3.4.0", "3.5.0"}:
+        if config.schema_version in {"3.3.0", "3.4.0", "3.5.0", "3.6.0"}:
             metric_fields.extend(
                 [
                     "spearman_positive_damage_ci_low",
@@ -367,7 +367,7 @@ def create_study_bundle(
     if config.output.report:
         _write_bytes(staging / "report.md", render_study_report(summary, resolved, figure_paths=figures).encode("utf-8"))
     runtime = runtime_provenance()
-    if config.schema_version == "3.5.0":
+    if config.schema_version in {"3.5.0", "3.6.0"}:
         from importlib.metadata import PackageNotFoundError, version
         try:
             runtime["scipy"] = version("scipy")

@@ -298,3 +298,42 @@ class MlperfToyCarDifferentiableCompanion(_PinnedSequentialCompanion):
         return np.clip(
             np.rint(outputs.numpy() / scale + zero_point), -128, 127
         ).astype(np.int8)
+
+
+class MlperfToyCarContinuousCompanion(MlperfToyCarDifferentiableCompanion):
+    """Decoded float64 reconstruction-MSE surrogate for published-form FKeras.
+
+    This Hessian objective is per-window reconstruction MSE.  The exact task
+    risk used to judge a protection mask remains complete-file 1 - ROC-AUC.
+    """
+
+    implementation_version = "mlperf-toycar-continuous-float64/v1"
+    loss_version = "continuous-window-reconstruction-mse/v1"
+    numerical_dtype = "float64"
+
+    def _decode_input(self, encoded_inputs):
+        scale, zero_point = self._quantization(0)
+        return (self.tf.cast(encoded_inputs, self.tf.float64) - zero_point) * scale
+
+    def _requantize_ste(self, values, tensor_index):
+        return values
+
+    def losses(self, encoded_inputs: np.ndarray, labels: np.ndarray):
+        outputs = self.forward(encoded_inputs)
+        targets = self.tf.convert_to_tensor(
+            self.reconstruction_targets(labels), dtype=self.tf.float64
+        )
+        return self.tf.reduce_mean(self.tf.square(outputs - targets), axis=1)
+
+    def manifest(self):
+        return {
+            "implementation_version": self.implementation_version,
+            "loss_version": self.loss_version,
+            "parameter_source": "exact affine decoded frozen INT8 kernel codes",
+            "kernel_tensor_indices": list(self.kernel_indices),
+            "bias_source": "fixed decoded INT32 constants; neither differentiated nor fault eligible",
+            "activation_quantization": "removed in this separate continuous extension",
+            "dtype": "float64",
+            "authoritative_inference": False,
+            "limitations": ["reconstruction MSE is not the authoritative file-level 1-AUC risk", "not a Hessian of integer TFLite inference or the STE derivative operator", "ReLU kinks have no classical Hessian"],
+        }

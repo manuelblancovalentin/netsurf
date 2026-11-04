@@ -13,8 +13,8 @@ from .paths import workspace_root
 from .quantization import FixedPointFormat
 
 
-STUDY_SCHEMA_VERSION = "3.5.0"
-SUPPORTED_STUDY_SCHEMA_VERSIONS = {"3.0.0", "3.1.0", "3.2.0", "3.3.0", "3.4.0", STUDY_SCHEMA_VERSION}
+STUDY_SCHEMA_VERSION = "3.6.0"
+SUPPORTED_STUDY_SCHEMA_VERSIONS = {"3.0.0", "3.1.0", "3.2.0", "3.3.0", "3.4.0", "3.5.0", STUDY_SCHEMA_VERSION}
 SUPPORTED_PROTOCOLS = {
     "single-bit-susceptibility/v1": "single_bit",
     "estimator-validation/v1": "estimator_validation",
@@ -51,6 +51,16 @@ ESTIMATOR_IMPLEMENTATION_VERSIONS = {
     "legacy_qpolargrad": "recovered-dense-first-call/v1",
     "clean_activation_qpolargrad": "clean-dense-mean-cancelled/v1",
     "uncancelled_activation_drift": "clean-dense-mean-absolute/v1",
+}
+FKERAS_PAPER_VERSIONS = {
+    "mlperf_tiny_kws_int8_v1": "fkeras-paper-continuous-kws/v1",
+    "mlperf_tiny_ic_int8_v1": "fkeras-paper-continuous-resnet8/v1",
+    "mlperf_tiny_ad_int8_v1": "fkeras-paper-continuous-toycar/v1",
+}
+FKERAS_KERNEL_WORDS = {
+    "mlperf_tiny_kws_int8_v1": 22016,
+    "mlperf_tiny_ic_int8_v1": 77360,
+    "mlperf_tiny_ad_int8_v1": 264192,
 }
 
 
@@ -142,7 +152,7 @@ class StudyConfiguration:
 
     def resolved_document(self) -> dict[str, Any]:
         replications = asdict(self.replications)
-        if self.schema_version not in {"3.3.0", "3.4.0", "3.5.0"}:
+        if self.schema_version not in {"3.3.0", "3.4.0", "3.5.0", "3.6.0"}:
             # Preserve byte-for-byte scientific configuration semantics for
             # historical schema-3 readers and finalized reruns.
             replications.pop("estimator_seed_stride", None)
@@ -334,21 +344,25 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
         if not isinstance(value, dict):
             raise StudyConfigurationError(f"estimators[{index}] must be a table")
         optional_estimator = {"seed", "probes", "result_name"} if schema_version != "3.0.0" else {"seed", "probes"}
-        if schema_version == "3.5.0":
+        if schema_version in {"3.5.0", "3.6.0"}:
             optional_estimator.add("hessian")
         _keys(value, {"name", "implementation_version"}, optional_estimator, f"estimators[{index}]")
         if value["name"] not in SUPPORTED_ESTIMATORS:
             raise StudyConfigurationError(f"unsupported estimator: {value['name']}")
         hessian = value.get("hessian")
         if value["name"].startswith("fkeras_"):
-            if schema_version != "3.5.0" or benchmark["adapter"] != "mlperf_tiny_kws_int8_v1":
-                raise StudyConfigurationError("FKeras requires schema 3.5.0 and pinned KWS continuous companion")
+            if schema_version == "3.5.0":
+                allowed_fk = benchmark["adapter"] == "mlperf_tiny_kws_int8_v1"
+            else:
+                allowed_fk = schema_version == "3.6.0" and benchmark["adapter"] in FKERAS_PAPER_VERSIONS
+            if not allowed_fk or (benchmark["adapter"] != "mlperf_tiny_kws_int8_v1" and value["name"] != "fkeras_paper"):
+                raise StudyConfigurationError("FKeras requires pinned KWS schema 3.5 or published-form pinned INT8 companion schema 3.6")
             if not isinstance(hessian, dict):
                 raise StudyConfigurationError("FKeras requires explicit hessian options")
             _keys(hessian, {"eigenpairs", "max_iterations", "max_products", "tolerance", "ordering"}, set(), "hessian")
             if any(type(hessian[key]) is not int or hessian[key] < 1 for key in ("eigenpairs", "max_iterations", "max_products")):
                 raise StudyConfigurationError("Hessian counts must be positive integers")
-            if hessian["eigenpairs"] >= 22016 or hessian["ordering"] != "largest_magnitude_signed" or not 0 < float(hessian["tolerance"]) < 1:
+            if hessian["eigenpairs"] >= FKERAS_KERNEL_WORDS[benchmark["adapter"]] or hessian["ordering"] != "largest_magnitude_signed" or not 0 < float(hessian["tolerance"]) < 1:
                 raise StudyConfigurationError("unsupported Hessian dimension, ordering or tolerance")
         elif hessian is not None:
             raise StudyConfigurationError("hessian options are exclusive to FKeras")
@@ -385,6 +399,8 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
         expected_version = (
             "relative-word-bit-index/v1"
             if affine_tflite and value["name"] == "msb_first"
+            else FKERAS_PAPER_VERSIONS[benchmark["adapter"]]
+            if value["name"] == "fkeras_paper" and benchmark["adapter"] in FKERAS_PAPER_VERSIONS
             else ESTIMATOR_IMPLEMENTATION_VERSIONS[value["name"]]
         )
         if value["implementation_version"] != expected_version:
@@ -468,7 +484,7 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
             "count", "candidate_seed_stride", "hutchinson_seed_stride",
             "sample_offset_stride", "fault_seed_stride",
         }
-        if schema_version in {"3.3.0", "3.4.0", "3.5.0"}:
+        if schema_version in {"3.3.0", "3.4.0", "3.5.0", "3.6.0"}:
             required_replication_fields.add("estimator_seed_stride")
         optional_replication_fields: set[str] = set()
         _keys(
@@ -490,7 +506,7 @@ def load_study(path: str | Path, *, check_inputs: bool = True) -> StudyConfigura
         raise StudyConfigurationError(
             f"{benchmark['adapter']} currently validates persistent_trial faults only"
         )
-    if benchmark["adapter"] == "mlperf_tiny_ad_int8_v1" and schema_version not in {"3.4.0", "3.5.0"}:
+    if benchmark["adapter"] == "mlperf_tiny_ad_int8_v1" and schema_version not in {"3.4.0", "3.5.0", "3.6.0"}:
         raise StudyConfigurationError(
             "ToyCar task-specific reconstruction/AUC metrics require schema_version='3.4.0'"
         )

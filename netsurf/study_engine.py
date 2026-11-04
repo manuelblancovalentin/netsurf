@@ -256,10 +256,10 @@ def _execute_single_study(
         metrics = ranking_quality(
             empirical,
             outputs,
-            tie_aware_baselines=configuration.schema_version in {"3.2.0", "3.3.0", "3.4.0", "3.5.0"},
+            tie_aware_baselines=configuration.schema_version in {"3.2.0", "3.3.0", "3.4.0", "3.5.0", "3.6.0"},
             bootstrap_seed=(
                 configuration.execution.permutation_seed
-                if configuration.schema_version in {"3.3.0", "3.4.0", "3.5.0"}
+                if configuration.schema_version in {"3.3.0", "3.4.0", "3.5.0", "3.6.0"}
                 else None
             ),
             bootstrap_confidence=configuration.execution.confidence,
@@ -559,7 +559,7 @@ def execute_study(
         raise ValueError("injecting one adapter instance is unsupported for replicated studies")
 
     def child_configuration(index: int) -> StudyConfiguration:
-        if configuration.schema_version in {"3.3.0", "3.4.0", "3.5.0"}:
+        if configuration.schema_version in {"3.3.0", "3.4.0", "3.5.0", "3.6.0"}:
             # Schema 3.3 separates independently randomized ranking masks from
             # Hutchinson probe randomness.  Older schemas retain their exact
             # historical broad seed-stride behavior for reproducibility.
@@ -654,7 +654,7 @@ def execute_study(
     tracker.update("Replication aggregation", advance=1)
     primary = outcomes[0]
     replication_plan = asdict(plan)
-    if configuration.schema_version not in {"3.3.0", "3.4.0", "3.5.0"}:
+    if configuration.schema_version not in {"3.3.0", "3.4.0", "3.5.0", "3.6.0"}:
         replication_plan.pop("estimator_seed_stride", None)
     payload = {
         "schema": "netsurf-m3-replicated-study/v1",
