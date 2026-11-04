@@ -84,3 +84,29 @@ def test_offline_audit_rejects_missing_policy_trial(tmp_path):
     trial_path.write_text("\n".join(rows[:-1]) + "\n")
     with pytest.raises(ValueError, match="incomplete"):
         audit_saved(bundle, plan, config, summary)
+
+
+def test_offline_audit_preserves_complete_file_auc_semantics(tmp_path):
+    bundle, plan, config, _ = _fixture(tmp_path)
+    trial_path = bundle / "measurements/trials.csv"
+    with trial_path.open(newline="") as file:
+        old = list(csv.DictReader(file))
+    fields = ("replication", "trial", "policy", "schedule_sha256", "proposed_events",
+              "applied_events", "suppressed_events", "primary_metric_name",
+              "primary_metric_value", "loss_metric_name", "loss_metric_value")
+    with trial_path.open("w", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=fields)
+        writer.writeheader()
+        for row in old:
+            writer.writerow({key: row[key] for key in fields[:7]} | {
+                "primary_metric_name": "roc_auc", "primary_metric_value": row["accuracy"],
+                "loss_metric_name": "reconstruction_mse",
+                "loss_metric_value": row["categorical_crossentropy"],
+            })
+    summary = {"clean_evaluation": {"roc_auc": 0.9, "reconstruction_mse": 0.2},
+               "eligible_bits": 16}
+    assert audit_saved(bundle, plan, config, summary)["task_metric"] == "roc_auc"
+    rows = trial_path.read_text().replace("roc_auc", "accuracy", 1)
+    trial_path.write_text(rows)
+    with pytest.raises(ValueError, match="mislabeled"):
+        audit_saved(bundle, plan, config, summary)
