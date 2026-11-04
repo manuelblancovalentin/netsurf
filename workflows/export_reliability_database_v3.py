@@ -11,9 +11,10 @@ from netsurf.manifests import sha256_file
 from netsurf.reliability_database_v3 import SCHEMA_VERSION
 
 
-def export(product: Path, destination: Path) -> None:
+def export(product: Path, destination: Path, *, public_destination: Path | None = None) -> None:
     product = product.resolve()
     destination = destination.resolve()
+    public_destination = (public_destination or destination).resolve()
     destination.mkdir(parents=True, exist_ok=False)
     checks = json.loads((product/"checksums.json").read_text())
     if checks["schema_version"] != SCHEMA_VERSION:
@@ -37,7 +38,7 @@ def export(product: Path, destination: Path) -> None:
         with zipfile.ZipFile(path) as archive:
             if archive.testzip() is not None:
                 raise ValueError(f"archive failed integrity test: {path}")
-        archives[flavor] = {"path":str(path),"sha256":sha256_file(path),"bytes":path.stat().st_size}
+        archives[flavor] = {"path":str(public_destination/path.name),"sha256":sha256_file(path),"bytes":path.stat().st_size}
     (destination/"export_receipt.json").write_text(json.dumps({
         "schema_version":"1.0.0", "product":str(product),
         "product_database_sha256":checks["files"]["reliability_v3.sqlite"], "archives":archives,

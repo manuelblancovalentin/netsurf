@@ -57,6 +57,94 @@ def measured_primary_plots(database: Path, directory: Path) -> None:
             plt.close(fig)
 
 
+def matched_kws_plots(database: Path, directory: Path) -> None:
+    """Readable four-budget views of the distinct 1,000-clip matched study."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    study = "kws_partial_tier_fkeras_matched_v1_followup"
+    with sqlite3.connect(database) as db:
+        db.row_factory = sqlite3.Row
+        rows = [dict(row) for row in db.execute(
+            "SELECT * FROM reliability_grid WHERE study_id=?", (study,)
+        )]
+    if not rows:
+        return
+    directory.mkdir(parents=True, exist_ok=False)
+    methods = [
+        ("random_global", "Random"), ("msb_global", "MSB-first"),
+        ("numerical_jump_global", "Numerical bit jump"),
+        ("gradient_global", "Global first-order"),
+        ("per_example_absolute_global", "Per-example absolute gradient"),
+        ("per_example_positive_global", "Per-example positive gradient"),
+        ("fkeras_paper", "FKeras (published)"),
+    ]
+    index = {(r["method_id"], r["coverage"], r["ber"]): r for r in rows}
+    budgets = (0.0625, 0.125, 0.1875, 0.25)
+    bers = sorted({r["ber"] for r in rows})
+
+    fig, axes = plt.subplots(1, 4, figsize=(17, 4.6), sharey=True,
+                             layout="constrained")
+    for ax, budget in zip(axes, budgets):
+        control = [index[("no_protection", 0.0, ber)] for ber in bers]
+        ax.plot(bers, [r["loss_degradation"] for r in control], "k--",
+                linewidth=1.2, label="Unprotected")
+        ax.axhline(0, color="black", linestyle=":", linewidth=1,
+                   label="Fully protected / clean")
+        for method, label in methods:
+            if method == "fkeras_paper" and budget in (0.125, 0.25):
+                continue  # exactly the same protected set as MSB-first
+            points = [index[(method, budget, ber)] for ber in bers]
+            ax.errorbar(bers, [r["loss_degradation"] for r in points],
+                        yerr=[[max(0, r["mean_loss"]-r["loss_ci_low"]) for r in points],
+                              [max(0, r["loss_ci_high"]-r["mean_loss"]) for r in points]],
+                        marker="o", markersize=2.5, capsize=1.5, linewidth=1,
+                        color=COLORS.get(method), label=label)
+        ax.set_xscale("log")
+        ax.set_yscale("symlog", linthresh=0.05)
+        ax.set_title(f"{budget:.2%} of kernel bits protected")
+        ax.set_xlabel("Logical bit-flip probability")
+        ax.grid(alpha=0.2)
+    axes[0].set_ylabel("Cross-entropy increase from clean (nats)")
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="outside lower center", ncol=5, fontsize=8)
+    fig.suptitle("Keyword spotting: loss degradation versus BER (32 paired fields/BER)")
+    fig.savefig(directory / "kws_loss_vs_ber.png", dpi=180)
+    plt.close(fig)
+
+    chosen_bers = (1e-4, 1e-3, 1e-2, 1e-1)
+    fig, axes = plt.subplots(1, 4, figsize=(17, 4.6), layout="constrained")
+    for ax, ber in zip(axes, chosen_bers):
+        control = index[("no_protection", 0.0, ber)]
+        ax.axhline(control["loss_degradation"], color="black", linestyle="--",
+                   linewidth=1.2, label="Unprotected")
+        ax.axhline(0, color="black", linestyle=":", linewidth=1,
+                   label="Fully protected / clean")
+        for method, label in methods:
+            points = [index[(method, budget, ber)] for budget in budgets]
+            ax.errorbar(budgets, [r["loss_degradation"] for r in points],
+                        yerr=[[max(0, r["mean_loss"]-r["loss_ci_low"]) for r in points],
+                              [max(0, r["loss_ci_high"]-r["mean_loss"]) for r in points]],
+                        marker="o", markersize=3, capsize=2, linewidth=1,
+                        color=COLORS.get(method), label=label)
+        ax.set_title(f"Logical BER {ber:g}")
+        ax.set_xlim(0.05, 0.26)
+        ax.set_xticks(budgets)
+        ax.set_xticklabels([f"{b:.2%}" for b in budgets], rotation=30)
+        ax.set_xlabel("Protected kernel-bit fraction")
+        ax.grid(alpha=0.2)
+        if ber in (1e-3, 1e-1):
+            ax.text(0.5, 0.95, "FKeras = MSB at 12.5%, 25%",
+                    ha="center", va="top", transform=ax.transAxes, fontsize=7)
+    axes[0].set_ylabel("Cross-entropy increase from clean (nats)")
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="outside lower center", ncol=5, fontsize=8)
+    fig.suptitle("Keyword spotting: loss degradation versus protection budget (32 paired fields/BER)")
+    fig.savefig(directory / "kws_loss_vs_budget.png", dpi=180)
+    plt.close(fig)
+
+
 def expanded_method_dashboard(database: Path, output: Path) -> None:
     """One explicit row per method × primary or READY-asset target."""
     targets = tuple(PRIMARY_STUDIES) + (
@@ -134,6 +222,7 @@ def build_product(sources: Path, asset_manifest: Path, output: Path) -> None:
     primary_plots(db, output/"plots_target_matrix")
     if any(item["kind"]=="whole_kernel_followup" for item in json.loads(sources.read_text())["studies"]):
         plots(db, output/"plots_all_studies")
+        matched_kws_plots(db, output/"plots_kws_matched")
     primary_dashboard(db, output)
     expanded_method_dashboard(db,output)
     primary_readme(db, output)

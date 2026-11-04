@@ -17,12 +17,10 @@ from pathlib import Path
 from netsurf.manifests import sha256_file
 from netsurf.reliability_database import _verified_bundle
 from netsurf.reliability_database_v3 import verified_asset_records
-from .build_reliability_database_v3 import build_product
-from .export_reliability_database_v3 import export
-from .export_reliability_followup import export_source_bundle
 from .kws_matched_gate import CAMPAIGN, postflight as kws_postflight, preflight as kws_preflight
 
 PINNED_PYTHON = Path("/projects/kona-assets/manuelbv/.venv-mlperf/bin/python")
+ANALYSIS_PYTHON = Path("/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python")
 
 
 def live_resources() -> dict:
@@ -160,26 +158,16 @@ def execute(receipt_path: Path, name: str, sources: Path, assets: Path,
         new_sources.write_text(json.dumps(source_receipt,sort_keys=True,indent=2)+"\n")
     elif json.loads(new_sources.read_text())!=source_receipt:
         raise ValueError("resume source receipt differs")
-    derived=output/"derived_database"
-    if not derived.exists():
-        build_product(new_sources,assets,derived)
-    else:
-        checks=json.loads((derived/"checksums.json").read_text())
-        if checks["sources_sha256"]!=sha256_file(new_sources):
-            raise ValueError("existing derived database references different source receipt")
-        for path,digest in checks["files"].items():
-            if sha256_file(derived/path)!=digest:
-                raise ValueError(f"derived database changed: {path}")
-    archive=output/"export"
-    if not archive.exists():
-        export(derived,archive)
-    source_export = export_source_bundle(source, archive)
-    return {**summary,"status":"FINALIZED_DERIVED","run_directory":str(bundle),
-            "scientific_payload_sha256":source["scientific_payload_sha256"],
-            "database":str(derived/"reliability_v3.sqlite"),"export":str(archive),
-            "source_archives":source_export["archives"],
-            "mac_scp_commands":str(archive/"mac_scp_commands.txt"),
-            "kws_postflight":str(output/"kws_matched_postflight.json") if campaign_preflight else None}
+    if not ANALYSIS_PYTHON.is_file():
+        raise FileNotFoundError(f"separate analysis interpreter unavailable: {ANALYSIS_PYTHON}")
+    # All inference is complete. The separate entry point has no model-execution
+    # path and is intentionally run in the environment with plotting support.
+    recovered=subprocess.run(
+        [str(ANALYSIS_PYTHON),"-m","workflows.recover_reliability_followup",
+         "--output",str(output),"--sources",str(sources),"--assets",str(assets)],
+        check=True,stdout=subprocess.PIPE,text=True,
+    )
+    return {**summary, **json.loads(recovered.stdout)}
 
 
 def main() -> None:

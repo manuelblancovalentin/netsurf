@@ -13,9 +13,10 @@ from netsurf.reliability_database import _verified_bundle
 COMPACT_OMIT = frozenset({"measurements/estimator_predictions.csv"})
 
 
-def export_source_bundle(source: dict, destination: Path) -> dict:
+def export_source_bundle(source: dict, destination: Path, *, public_destination: Path | None = None) -> dict:
     root, _, _, checks = _verified_bundle(source)
     destination = destination.resolve()
+    public_destination = (public_destination or destination).resolve()
     if not destination.is_dir():
         raise ValueError("database export directory must exist before source export")
     receipt_path = destination / "source_export_receipt.json"
@@ -50,7 +51,7 @@ def export_source_bundle(source: dict, destination: Path) -> dict:
         with zipfile.ZipFile(target) as archive:
             if archive.testzip() is not None:
                 raise ValueError(f"source archive failed integrity check: {target}")
-        archives[kind] = {"path": str(target), "sha256": sha256_file(target),
+        archives[kind] = {"path": str(public_destination/target.name), "sha256": sha256_file(target),
                           "bytes": target.stat().st_size}
     receipt = {
         "schema_version": "1.0.0", "source_bundle": str(root),
