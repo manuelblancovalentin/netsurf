@@ -35,7 +35,12 @@ def _plan(receipt: Path, name: str) -> tuple[dict, Path, dict]:
     config = receipt.parent.parent / plan["configuration"]
     if sha256_file(config) != plan["configuration_sha256"]:
         raise ValueError("frozen plan TOML changed")
-    return plan, config, tomllib.loads(config.read_text())
+    if sha256_file(Path(plan["source_configuration"])) != plan["source_configuration_sha256"]:
+        raise ValueError("historical source configuration changed")
+    document = tomllib.loads(config.read_text())
+    if plan["status"] != "VALIDATED_NOT_EXECUTED" or document["experiment"]["name"] != name:
+        raise ValueError("frozen plan status or experiment identity differs")
+    return plan, config, document
 
 
 def _mask_sha256(identities: list) -> str:
