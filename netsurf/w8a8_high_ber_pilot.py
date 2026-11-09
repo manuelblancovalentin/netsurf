@@ -77,8 +77,8 @@ def _cohort(adapter: W8A8FaultAdapter):
 
 
 def run(target: str, manifest_path: Path, output_dir: Path) -> dict:
-    if target not in TARGETS or output_dir.exists():
-        raise ValueError("unsupported target or write-once output already exists")
+    if target not in TARGETS or (output_dir / "FINALIZED").exists():
+        raise ValueError("unsupported target or finalized output already exists")
     if Path(__import__("sys").executable).resolve() != INTERPRETER.resolve():
         raise ValueError(f"requires pinned W8A8 interpreter: {INTERPRETER}")
     asset = load_ready_w8a8(manifest_path, target)
@@ -98,17 +98,32 @@ def run(target: str, manifest_path: Path, output_dir: Path) -> dict:
             "cohort": cohort_identity,
             "fault_law": "independent Bernoulli over complete eligible stored INT8 qweight population",
             "fault_lifetime": "persistent across every input in one field evaluation",
-            "policies": ["unprotected"], "ber_arms": arms,
+            "policies": ["unprotected"], "ber_arms": list(arms),
             "fields_per_ber": FIELDS_PER_BER, "max_events_per_field": MAX_EVENTS,
             "failure_penalty_nats": 30.0,
             "analysis_warning": "engineering exposure search only; two fields cannot establish protection effectiveness",
             "stopping_scope": "this run stops at BER 0.001; 0.01 and 0.1 require measured feasibility and new plans"}
     plan["plan_sha256"] = digest_object(plan)
-    output_dir.mkdir(parents=True, exist_ok=False)
-    _write(output_dir / "plan.json", plan)
+    if output_dir.exists():
+        saved_plan = json.loads((output_dir / "plan.json").read_text())
+        if (saved_plan.get("plan_sha256") != digest_object({k: v for k, v in saved_plan.items()
+                                                            if k != "plan_sha256"}) or
+            any(saved_plan.get(key) != plan.get(key) for key in
+                ("target", "target_record_sha256", "ready_manifest_sha256",
+                 "eligible_bits", "eligible_population_sha256", "cohort", "ber_arms",
+                 "fields_per_ber", "max_events_per_field", "fault_law", "fault_lifetime"))):
+            raise ValueError("partial pilot plan or scientific identity changed")
+        plan = saved_plan
+    else:
+        output_dir.mkdir(parents=True, exist_ok=False)
+        _write(output_dir / "plan.json", plan)
     started = time.monotonic()
     clean = _risk(evaluate(cohort))
-    _write(output_dir / "clean_start.json", clean)
+    if (output_dir / "clean_start.json").exists():
+        if json.loads((output_dir / "clean_start.json").read_text()) != clean:
+            raise RuntimeError("partial pilot clean output changed on resume")
+    else:
+        _write(output_dir / "clean_start.json", clean)
     results = []
     zero_mask = BoundaryMask(adapter.universe.bits, False)
     for arm, specification in enumerate(arms):
@@ -118,22 +133,41 @@ def run(target: str, manifest_path: Path, output_dir: Path) -> dict:
                                     max_events=MAX_EVENTS)
             ordinals = np.asarray(field.ordinals, dtype="<u8")
             data_path = output_dir / f"ber_{arm}_field_{index}.ordinals.u64le"
-            with data_path.open("xb") as out:
-                out.write(ordinals.tobytes())
-                out.flush()
-                os.fsync(out.fileno())
             field_sha = field.sha256
+            exact_raw = ordinals.tobytes()
+            if data_path.exists():
+                if data_path.read_bytes() != exact_raw:
+                    raise RuntimeError("saved partial fault-field identities changed")
+            else:
+                with data_path.open("xb") as out:
+                    out.write(exact_raw)
+                    out.flush()
+                    os.fsync(out.fileno())
+            result_path = output_dir / f"ber_{arm}_field_{index}.json"
+            if result_path.exists():
+                record = json.loads(result_path.read_text())
+                if (record.get("ber") != specification["ber"] or
+                    record.get("seed") != seed or record.get("field_sha256") != field_sha or
+                    record.get("ordinals_u64le_sha256") != sha256_file(data_path) or
+                    record.get("proposed") != len(field.ordinals) or
+                    record.get("applied") != len(field.ordinals) or record.get("suppressed") != 0):
+                    raise RuntimeError("completed partial field is not reproducible")
+                results.append(record)
+                print(json.dumps({"target": target, "ber": specification["ber"],
+                                  "field": index, "status": "VERIFIED_RESUME_NO_INFERENCE"}), flush=True)
+                continue
             with adapter.injected(field, zero_mask) as accounting:
                 faulted = _risk(evaluate(cohort))
             if accounting["proposed"] != accounting["applied"] or accounting["suppressed"] != 0:
                 raise RuntimeError("unprotected field accounting changed")
             record = {"ber": specification["ber"], "expected_proposed": specification["expected_proposed"],
                       "field_index": index, "seed": seed, "field_sha256": field_sha,
+                      "execution_source_sha256": sha256_file(Path(__file__)),
                       "ordinals_u64le_sha256": sha256_file(data_path),
                       "proposed": accounting["proposed"], "applied": accounting["applied"],
                       "suppressed": accounting["suppressed"], "risk": faulted,
                       "elapsed_seconds": time.monotonic() - t0}
-            _write(output_dir / f"ber_{arm}_field_{index}.json", record)
+            _write(result_path, record)
             results.append(record)
             print(json.dumps({"target": target, "ber": specification["ber"], "field": index,
                               "applied": record["applied"], "mean_nll": faulted["mean_nll_nats"],
@@ -149,6 +183,7 @@ def run(target: str, manifest_path: Path, output_dir: Path) -> dict:
                "status": "FINALIZED_ENGINEERING", "target": target,
                "plan_sha256": plan["plan_sha256"], "clean_risk": clean,
                "fields": len(results), "elapsed_seconds": time.monotonic() - started,
+               "completion_source_sha256": sha256_file(Path(__file__)),
                "completed_utc": datetime.now(timezone.utc).isoformat(),
                "scientific_files_sha256": checksums}
     summary["payload_sha256"] = digest_object(summary)
