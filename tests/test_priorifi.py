@@ -3,8 +3,12 @@
 import pytest
 
 from netsurf.identities import BitIdentity
-from netsurf.priorifi import measured_bit_allocation, probe_schedule, significance_tiers
+from netsurf.priorifi import (
+    ProbeRecord, candidate_tiers, cost_capped_local_allocation,
+    measured_bit_allocation, probe_schedule, significance_tiers,
+)
 from netsurf.priorifi_numpy_reference import run
+from netsurf.priorifi_mlperf_engineering import run as run_bounded_mlperf
 
 
 def test_tiers_cover_complete_six_bit_words_once():
@@ -46,6 +50,29 @@ def test_population_validation_and_nonfinite_feedback():
         probe_schedule(((bit,),), lambda _: float("nan"), last_k=1)
 
 
+def test_candidate_tiers_and_cost_capped_global_budget():
+    words = (("w", 0), ("w", 1), ("w", 2))
+    eligible = tuple(BitIdentity("w", word, bit) for word in range(3) for bit in range(2))
+    pool = (BitIdentity("w", 0, 1), BitIdentity("w", 2, 0), BitIdentity("w", 1, 1))
+    tiers = candidate_tiers(eligible, pool, words)
+    assert tiers == ((pool[0], pool[2]), (pool[1],))
+    prior = (pool[0], pool[2], BitIdentity("w", 2, 1),
+             BitIdentity("w", 0, 0), BitIdentity("w", 1, 0), pool[1])
+    baseline = frozenset(prior[:3])
+    observations = (ProbeRecord(pool[0], 0, 0, 0.0),
+                    ProbeRecord(pool[2], 0, 1, 1.0),
+                    ProbeRecord(pool[1], 1, 2, 3.0))
+    result = cost_capped_local_allocation(prior, baseline, observations)
+    assert result == frozenset((pool[2], pool[1], BitIdentity("w", 2, 1)))
+    assert len(result) == len(baseline)
+    assert result - set(pool) == baseline - set(pool)
+    assert cost_capped_local_allocation(prior, baseline,
+        tuple(ProbeRecord(row.identity, row.tier, row.sequence, 0.0) for row in observations)) == baseline
+    assert cost_capped_local_allocation(prior, baseline, ()) == baseline
+    with pytest.raises(ValueError, match="prefix"):
+        cost_capped_local_allocation(prior, frozenset((prior[0], prior[3], prior[4])), observations)
+
+
 def test_exact_numpy_engineering_smoke_is_deterministic_and_paired():
     left = run(trials=3)
     right = run(trials=3)
@@ -72,3 +99,12 @@ def test_exact_numpy_engineering_smoke_is_deterministic_and_paired():
     left.pop("runtime_seconds")
     right.pop("runtime_seconds")
     assert left == right
+
+
+def test_mlperf_pilot_rejects_unbounded_or_empty_candidate_design_before_asset_loading():
+    with pytest.raises(ValueError, match="engineering bounds"):
+        run_bounded_mlperf(sign_per_status=0)
+    with pytest.raises(ValueError, match="engineering bounds"):
+        run_bounded_mlperf(max_probes=513, sign_per_status=256, lower_per_tier=64)
+    with pytest.raises(ValueError, match="engineering bounds"):
+        run_bounded_mlperf(trials=17)

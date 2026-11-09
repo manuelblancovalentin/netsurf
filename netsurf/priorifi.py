@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from statistics import mean, median
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Sequence
 import math
 
 from .identities import BitIdentity
@@ -128,3 +128,74 @@ def measured_bit_allocation(records: Iterable[ProbeRecord], budget: int) -> tupl
     return tuple(record.identity for record in sorted(
         records, key=lambda record: (-max(0.0, record.observed_metric), record.sequence)
     )[:budget])
+
+
+def candidate_tiers(
+    eligible: Sequence[BitIdentity],
+    candidate_pool: Sequence[BitIdentity],
+    ranked_words: Sequence[tuple[str, int]],
+) -> tuple[tuple[BitIdentity, ...], ...]:
+    """Source-style tier queues restricted to a prespecified candidate pool.
+
+    Unlike ``significance_tiers``, each candidate word may contribute only
+    selected positions. The pool is a declared *subset* of the full eligible
+    population, never implicitly the whole-network bit universe.
+    """
+
+    population, candidates, words = tuple(eligible), tuple(candidate_pool), tuple(ranked_words)
+    if len(population) != len(set(population)) or len(candidates) != len(set(candidates)):
+        raise ValueError("duplicate eligible or candidate bit")
+    if len(words) != len(set(words)):
+        raise ValueError("duplicate ranked word")
+    if not set(candidates) <= set(population):
+        raise ValueError("candidate pool contains an ineligible bit")
+    eligible_words = {(bit.parameter, bit.flat_index) for bit in population}
+    if set(words) != eligible_words:
+        raise ValueError("ranked words do not cover the eligible population")
+    positions = {bit.bit_index for bit in population}
+    if positions != set(range(max(positions) + 1)):
+        raise ValueError("eligible population has incomplete significance tiers")
+    selected = set(candidates)
+    return tuple(
+        tuple(BitIdentity(word[0], word[1], bit_index) for word in words
+              if BitIdentity(word[0], word[1], bit_index) in selected)
+        for bit_index in sorted(positions, reverse=True)
+    )
+
+
+def cost_capped_local_allocation(
+    prior_order: Sequence[BitIdentity],
+    protected: Iterable[BitIdentity],
+    records: Iterable[ProbeRecord],
+) -> frozenset[BitIdentity]:
+    """NetSuRF adaptation: measured-bit swaps over a frozen baseline mask.
+
+    Only probed bits may change protection status. The number of protected
+    probed bits is fixed to its prior value, so whole-network cardinality and
+    all unprobed statuses remain unchanged. Equal feedback retains prior order;
+    the probe *sequence* affects which bits are measured, not tie-breaking.
+    This rule is NOT part of the published PrioriFI algorithm.
+    """
+
+    order, baseline, observed = tuple(prior_order), frozenset(protected), tuple(records)
+    if len(order) != len(set(order)) or not baseline <= set(order):
+        raise ValueError("invalid baseline ordering or protection mask")
+    if len({row.identity for row in observed}) != len(observed):
+        raise ValueError("duplicate measured bit")
+    if not {row.identity for row in observed} <= set(order):
+        raise ValueError("measured bit is not eligible")
+    if any(not math.isfinite(row.observed_metric) for row in observed):
+        raise ValueError("nonfinite measured feedback")
+    rank = {bit: index for index, bit in enumerate(order)}
+    # The prior order must actually describe the frozen baseline at this
+    # budget. Otherwise tied observations could silently change its policy.
+    if baseline != frozenset(order[:len(baseline)]):
+        raise ValueError("baseline mask is not a prefix of prior_order")
+    probed = {row.identity for row in observed}
+    local_budget = len(probed & baseline)
+    selected = sorted(observed, key=lambda row: (-max(0.0, row.observed_metric),
+                                                       rank[row.identity]))[:local_budget]
+    result = (baseline - probed) | {row.identity for row in selected}
+    if len(result) != len(baseline) or (result - probed) != (baseline - probed):
+        raise RuntimeError("cost-capped allocation violated the fixed-budget contract")
+    return frozenset(result)
