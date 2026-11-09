@@ -10,6 +10,8 @@ import torch
 
 from netsurf.w8a8_assets import KONA_ROOT
 from netsurf.w8a8_dense_ber_pilot import injected_packed_unprotected, packed_field
+from netsurf.w8a8_dense_protection import Protection, injected_packed, boundary_protections
+from netsurf.w8a8_faults import MSBMask
 
 
 def main() -> None:
@@ -36,6 +38,25 @@ def main() -> None:
                 tensor.view(torch.uint8).numpy() for tensor in original.values()]), mask)
             assert np.array_equal(actual, expected)
         assert all(torch.equal(modules[name].qweight, original[name]) for name in modules)
+        proposals = np.memmap(path, dtype=np.uint8, mode="r")
+        for budget in (1, 4, 5, 8, 16, 24, 31):
+            ranking = MSBMask(32, budget)
+            protection = Protection("msb", 32, budget, ranking.digest)
+            with injected_packed(adapter, proposals, field, protection) as counts:
+                expected = np.bitwise_xor(np.concatenate([
+                    tensor.view(torch.uint8).numpy() for tensor in original.values()]), mask)
+                for bit in range(32):
+                    if ranking.contains(bit):
+                        expected[bit//8] ^= np.uint8(mask[bit//8] & (1 << (bit % 8)))
+                actual = np.concatenate([module.qweight.view(torch.uint8).numpy()
+                                         for module in modules.values()])
+                assert np.array_equal(actual, expected)
+                assert counts["proposed"] == counts["applied"] + counts["suppressed"]
+            assert all(torch.equal(modules[name].qweight, original[name]) for name in modules)
+        for protection in boundary_protections(32).values():
+            with injected_packed(adapter, proposals, field, protection) as counts:
+                assert counts["applied"] == (0 if protection.kind == "full" else field["proposed"])
+            assert all(torch.equal(modules[name].qweight, original[name]) for name in modules)
         try:
             with injected_packed_unprotected(adapter, path, field):
                 raise ArithmeticError("intentional bounded failure")
