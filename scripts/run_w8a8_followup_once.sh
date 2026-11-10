@@ -15,24 +15,36 @@ cd "$repo"
 test -x "$inference"
 test -x "$analysis"
 test -f "$ready"
+mkdir -p workspace/runs
+state="$repo/workspace/runs/${kind}_followup.state"
+stage() { printf '%s|%s\n' "$(date -u +%FT%TZ)" "$1" > "$state"; echo "$1"; }
+failed() { code=$?; stage "FAILED exit=$code; inspect preserved run and log"; exit "$code"; }
+trap failed ERR
 if test -e "$root/FINALIZED"; then
-    echo "$kind already finalized at $root"
+    stage "COMPLETED: already finalized at $root"
     exit 0
 fi
 if test "$kind" = qwen; then
     if test ! -f "$root/plan.json"; then
+        stage "FREEZING Qwen crossover fields and sealed masks"
         "$inference" -m netsurf.w8a8_followup freeze-qwen "$ready" "$root"
     fi
+    stage "EVALUATING Qwen paired fields at 5% and 7.5% BER"
     "$inference" -m netsurf.w8a8_followup run-qwen "$ready" "$root"
+    stage "VERIFYING Qwen fields and aggregating saved measurements"
     "$analysis" -m netsurf.w8a8_followup finalize-qwen "$root"
 else
     if test ! -f "$root/plan.json"; then
+        stage "FREEZING Pythia clean-conformance probe"
         "$inference" -m netsurf.w8a8_followup freeze-pythia "$ready" "$root" --processes 4 --repeats 2
     fi
+    stage "PROBING Pythia clean outputs in four independent processes"
     printf '0\n1\n2\n3\n' | xargs -P 4 -I '{}' sh -c '
         if test ! -f "$1/worker_$(printf "%02d" "$2").json"; then
             "$3" -m netsurf.w8a8_followup probe-pythia "$4" "$1" "$2"
         fi
     ' sh "$root" '{}' "$inference" "$ready"
+    stage "COMPARING exact per-token clean outputs"
     "$analysis" -m netsurf.w8a8_followup finalize-pythia "$root"
 fi
+stage "COMPLETED: finalized $kind follow-up"
