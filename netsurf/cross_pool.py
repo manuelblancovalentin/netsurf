@@ -21,6 +21,8 @@ from .manifests import digest_object, sha256_file
 from .result_bundle import _write_bytes, _write_json
 
 VERSION = "1.0.0"
+HIGH_BER_VERSION = "1.1.0"
+HIGH_BER_LEVELS = frozenset((0.05, 0.075))
 PROVENANCE = "independent_s5_status_stratified_uniform_without_replacement/v1"
 
 
@@ -107,7 +109,7 @@ def freeze_campaign(configuration, output):
     source = Path(configuration).resolve()
     request = tomllib.loads(source.read_text())
     _strict(request, {"schema_version", "name", "purpose", "benchmark_template", "design", "samples", "statistics"}, "campaign")
-    if request["schema_version"] != VERSION or request["purpose"] not in {"engineering", "confirmation"}:
+    if request["schema_version"] not in {VERSION, HIGH_BER_VERSION} or request["purpose"] not in {"engineering", "confirmation"}:
         raise ValueError("unsupported campaign schema/purpose")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", request["name"]):
         raise ValueError("campaign name must be filesystem-safe")
@@ -121,8 +123,9 @@ def freeze_campaign(configuration, output):
         _integer(design[key], 1)
     if design["final_fields"] < 2 or samples["selection_offset"] + samples["selection_count"] > 1024:
         raise ValueError("need >=2 final fields and valid model-selection window")
-    if stats["confidence"] != .95 or design["logical_ber"] != .01:
-        raise ValueError("v1 prespecifies 95% confidence, CE minimization and BER 0.01")
+    allowed_ber = ({.01} if request["schema_version"] == VERSION else HIGH_BER_LEVELS)
+    if stats["confidence"] != .95 or design["logical_ber"] not in allowed_ber:
+        raise ValueError("cross-pool schema prespecifies 95% confidence and a supported BER")
     _integer(stats["bootstrap_seed"]); _integer(stats["bootstrap_replicates"], 100)
     n = len(design["pool_seeds"])
     if n < 2 or len(design["selection_seed_bases"]) != n or len(design["final_seeds"]) != n:
@@ -187,7 +190,7 @@ def freeze_campaign(configuration, output):
     base["scientific_protocol"] = "cross-pool-frozen-protection/v7"
     base["samples"].update(model_selection_offset=samples["selection_offset"], model_selection_count=samples["selection_count"],
                            evaluation_offset=samples["final_offset"], evaluation_count=samples["final_count"])
-    base["backgrounds"]["probabilities"] = [.01]
+    base["backgrounds"]["probabilities"] = [design["logical_ber"]]
     base["execution"]["confidence"] = .95
     base["restricted_oracle"].update(budget=2, calibration_background_count=design["selection_fields_per_seed"])
     base["paired_swap_evaluation"].update(enabled=False, background_count=design["final_fields"])
@@ -202,7 +205,7 @@ def freeze_campaign(configuration, output):
         doc["paired_swap_evaluation"]["seed"] = design["final_seeds"][i]
         doc["output"]["root"] = ""
         pool["selection_document"] = doc
-    record = {"schema_version": VERSION, "protocol": "cross-pool-frozen-protection/v1", "name": request["name"],
+    record = {"schema_version": request["schema_version"], "protocol": "cross-pool-frozen-protection/v1", "name": request["name"],
               "purpose": request["purpose"], "design": design, "samples": samples, "statistics": stats,
               "checkpoint_sha256": KWS_SHA, "asset_lock_sha256": sha256_file(lock.path),
               "universe_sha256": digest_object([b.key() for b in universe]),
@@ -213,7 +216,8 @@ def freeze_campaign(configuration, output):
               "sampling_design": PROVENANCE, "pools": pools, "pool_overlap": overlap,
               "exposure_inventory": audit, "exposure_audit": exposure,
               "operation_counts": operation_counts(design["candidate_count"], design["selection_fields_per_seed"] * design["selection_replicates"], samples["selection_count"], design["final_fields"], samples["final_count"], n),
-              "statistical_plan": {"primary": "restricted_selected_vs_original_s5", "secondary": ["restricted_selected_vs_exact_isolated", "exact_isolated_vs_original_s5"],
+              "statistical_plan": {"primary": ("restricted_selected_vs_exact_isolated" if request["schema_version"] == HIGH_BER_VERSION else "restricted_selected_vs_original_s5"),
+                  "secondary": (["restricted_selected_vs_original_s5", "exact_isolated_vs_original_s5"] if request["schema_version"] == HIGH_BER_VERSION else ["restricted_selected_vs_exact_isolated", "exact_isolated_vs_original_s5"]),
                   "principal_unit": "probability-sampled candidate pool; inputs shared; fields independent within pool",
                   "primary_ci": "Student-t on equally weighted pool means conditional on shared fixed inputs and selection data",
                   "secondary_multiplicity": "Holm across two cross-pool tests; Bonferroni 97.5% secondary CIs",
@@ -255,7 +259,7 @@ def load_campaign(path, expected=None):
         if Path(relative).is_absolute() or ".." in Path(relative).parts or sha256_file(path.parent / relative) != checksum:
             raise ValueError("campaign inventory checksum mismatch")
     record = _read(path)
-    if record.get("schema_version") != VERSION or record.get("protocol") != "cross-pool-frozen-protection/v1":
+    if record.get("schema_version") not in {VERSION, HIGH_BER_VERSION} or record.get("protocol") != "cross-pool-frozen-protection/v1":
         raise ValueError("unsupported campaign schema/protocol")
     return record
 
