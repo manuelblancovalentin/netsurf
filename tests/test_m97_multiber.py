@@ -1,4 +1,5 @@
 """Deterministic scientific and lifecycle checks for the joint BER extension."""
+import csv
 import copy
 import itertools
 from pathlib import Path
@@ -15,6 +16,19 @@ from netsurf.multiber_campaign import (PILOT_BER_GRID, _check_seed_family, _seed
 from netsurf.restricted_subcube import (bernoulli_state_mass, conditional_marginal_from_table,
                                         fixed_budget_masks, integrate_response_table,
                                         subcube_states)
+
+
+def test_high_ber_paired_csv_preserves_large_fault_identity_and_reader_limit(tmp_path):
+    from netsurf.multiber_analysis import _read_paired_csv
+    path = tmp_path / "paired.csv"
+    exact_identities = "bit:" + "0123456789abcdef" * 13_000
+    with path.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["field", "fault_identities"])
+        writer.writeheader()
+        writer.writerow({"field": 0, "fault_identities": exact_identities})
+    prior = csv.field_size_limit()
+    assert _read_paired_csv(path) == [{"field": "0", "fault_identities": exact_identities}]
+    assert csv.field_size_limit() == prior
 
 
 def _table(k, risk):

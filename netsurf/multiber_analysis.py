@@ -38,6 +38,22 @@ def _test(values, confidence=.95):
             "pool_effects": values.tolist()}
 
 
+def _read_paired_csv(path):
+    """Read hashed fault-identity records without Python's 128-KiB CSV limit.
+
+    High-BER rows can contain hundreds of thousands of exact fault identities.
+    Keep a bounded 8-MiB field limit rather than accepting unbounded input, and
+    restore the process-wide CSV setting after this verified-bundle read.
+    """
+    prior = csv.field_size_limit()
+    try:
+        csv.field_size_limit(max(prior, 8 * 1024 * 1024))
+        with Path(path).open(newline="") as handle:
+            return list(csv.DictReader(handle))
+    finally:
+        csv.field_size_limit(prior)
+
+
 def _member(arm, pool):
     root = Path(arm["manifest"]).parent
     pid = pool["pool_id"]
@@ -47,10 +63,8 @@ def _member(arm, pool):
     if len(selection) != 1 or not selection[0]["global_protection_cardinality_preserved"]:
         raise ValueError("selection mask budget differs")
     chosen = selection[0]
-    with (Path(f["bundle"]) / "measurements/paired_swap_fields.csv").open() as handle:
-        fields = list(csv.DictReader(handle))
-    with (Path(f["bundle"]) / "measurements/paired_swap_steps.csv").open() as handle:
-        steps = list(csv.DictReader(handle))
+    fields = _read_paired_csv(Path(f["bundle"]) / "measurements/paired_swap_fields.csv")
+    steps = _read_paired_csv(Path(f["bundle"]) / "measurements/paired_swap_steps.csv")
     for step in steps:
         for side in ("removed", "added"):
             proposed = int(step[f"{side}_proposed_events"])
