@@ -10,7 +10,7 @@ from .conditional_config import PAIRED_SWAP_COMPARISONS
 from .cross_pool import _read, _receipt, verified_receipt
 from .cross_pool_analysis import cross_pool_statistics
 from .manifests import digest_object, sha256_file
-from .multiber_campaign import VERSION, load_joint
+from .multiber_campaign import PILOT_PROTOCOL, VERSION, load_joint
 from .replication_statistics import summarize_replication
 from .result_bundle import _write_bytes, _write_json
 from .statistics import summarize
@@ -109,6 +109,7 @@ def _member(arm, pool):
 
 def aggregate_joint(path, output):
     parent = load_joint(path)
+    pilot = parent["protocol"] == PILOT_PROTOCOL
     arrays, evidence, all_ids, all_seeds = [], [], None, set()
     for arm in parent["arms"]:
         child = _read(arm["manifest"])
@@ -141,7 +142,7 @@ def aggregate_joint(path, output):
         within.append({"logical_ber": arm["logical_ber"], "statistics": stats})
     pool_means = cube.mean(axis=(2, 3))  # B x P x C: shared pool ordering
     primary = []
-    if len(parent["ber_grid"]) == 3 and cube.shape[1] >= 2:
+    if not pilot and len(parent["ber_grid"]) == 3 and cube.shape[1] >= 2:
         for b in (0, 1):
             row = {"comparison": "selected_vs_exact_isolated_change",
                    "lower_ber": parent["ber_grid"][b], "anchor_ber": .01,
@@ -154,8 +155,12 @@ def aggregate_joint(path, output):
         for b, probability in enumerate(parent["ber_grid"]):
             for c, comparison in enumerate(PAIRED_SWAP_COMPARISONS):
                 secondary.append({"logical_ber": probability, "comparison": comparison,
-                                  **_test(pool_means[b, :, c], confidence=1-.05/9)})
-        _holm(secondary)
+                                  **_test(pool_means[b, :, c], confidence=.95 if pilot else 1-.05/9)})
+        if not pilot:
+            _holm(secondary)
+        else:
+            for row in secondary:
+                row["exploratory_only"] = True
     decisions = []
     for pool_index, source_pool in enumerate(parent["source_m96"]["candidate_pools"]):
         masks = [row["pools"][pool_index]["selection"]["selected_mask_indices"] for row in evidence]
@@ -163,7 +168,7 @@ def aggregate_joint(path, output):
                           "distinct_selected_masks": len({tuple(m) for m in masks}),
                           "changes_between_adjacent_ber": [a != b for a, b in zip(masks, masks[1:])]})
     transfer = []
-    if len(evidence) == 3:
+    if not pilot and len(evidence) == 3:
         for b in (0, 1):
             for pool_index, source_pool in enumerate(parent["source_m96"]["candidate_pools"]):
                 low = evidence[b]["pools"][pool_index]["selection"]
@@ -176,27 +181,35 @@ def aggregate_joint(path, output):
     payload = {"schema_version": VERSION, "joint_campaign_sha256": sha256_file(path),
                "sample_identities": all_ids, "ber_grid": parent["ber_grid"], "evidence": evidence,
                "within_ber": within, "primary_change_family": primary,
-               "secondary_nine_comparison_family": secondary, "decision_changes": decisions,
+               **({"exploratory_within_ber_comparisons": secondary} if pilot else {"secondary_nine_comparison_family": secondary}),
+               "decision_changes": decisions,
                "optional_selection_data_transfer_diagnostic": transfer,
-               "limitations": "Transfer diagnostic uses model-selection response tables; held-out transfer requires separately frozen fourth-policy final evaluations. Pool-t inference has 12 sampled pools, shared clips and independent fault fields; heavy tails and selection uncertainty remain. No whole-network optimum or physical SEU rate is inferred."}
+               "limitations": ("Previously exposed inputs and reduced field counts make this an exploratory engineering pilot. Selection and final fault fields are independent within this pilot, but no confirmatory effectiveness claim follows. Twelve sampled pools, shared clips, heavy tails and selection uncertainty remain. No whole-network optimum or physical SEU rate is inferred." if pilot else "Transfer diagnostic uses model-selection response tables; held-out transfer requires separately frozen fourth-policy final evaluations. Pool-t inference has 12 sampled pools, shared clips and independent fault fields; heavy tails and selection uncertainty remain. No whole-network optimum or physical SEU rate is inferred.")}
     destination = Path(output).resolve()
     destination.mkdir(parents=True, exist_ok=False)
     _write_json(destination / "scientific_payload.json", payload)
-    lines = ["# M9.7 joint KWS BER campaign", "", f"Frozen campaign SHA-256: `{sha256_file(path)}`", "",
+    lines = ["# KWS higher-BER exploratory pilot" if pilot else "# M9.7 joint KWS BER campaign", "", f"Frozen campaign SHA-256: `{sha256_file(path)}`", "",
              "Negative cross-entropy contrast favors the first named policy. Pools are the cross-pool units; fields are stochastic replicates and clips are shared across all arms.", "",
-             "BER 0.01 is a same-window anchor with a historically known M9.6 outcome, not an untouched discovery hypothesis.", "",
-             "## Prespecified primary BER-change family", "",
-             "| Lower BER | Mean change | Pool CI | Raw p | Holm p | Favorable/adverse pools |", "|---:|---:|---|---:|---:|---:|"]
+             ("All inputs were previously exposed. This pilot has no confirmatory hypothesis or untouched evaluation cohort." if pilot else "BER 0.01 is a same-window anchor with a historically known M9.6 outcome, not an untouched discovery hypothesis."), ""]
+    if pilot:
+        lines += ["## Exploratory study", "", "No BER endpoint or policy contrast is treated as confirmatory. Descriptive intervals are not multiplicity-adjusted."]
+    else:
+        lines += ["## Prespecified primary BER-change family", "",
+                  "| Lower BER | Mean change | Pool CI | Raw p | Holm p | Favorable/adverse pools |", "|---:|---:|---|---:|---:|---:|"]
     for row in primary:
         e = row["estimate"]
         lines.append(f"| {row['lower_ber']} | {e['mean']:.9g} | {e['confidence_interval']} | {row['p_value_two_sided']} | {row['holm_p_value']} | {row['favorable_pools']}/{row['adverse_pools']} |")
-    lines += ["", "## Within-BER policy comparisons (secondary nine-test Holm family)", "",
-              "| BER | Contrast | Mean CE | Pool CI | Holm p | Favorable/adverse pools |", "|---:|---|---:|---|---:|---:|"]
+    lines += ["", "## Descriptive within-BER comparisons (exploratory)" if pilot else "## Within-BER policy comparisons (secondary nine-test Holm family)", "",
+              "| BER | Contrast | Mean CE | Pool CI | Favorable/adverse pools |" if pilot else "| BER | Contrast | Mean CE | Pool CI | Holm p | Favorable/adverse pools |",
+              "|---:|---|---:|---|---:|" if pilot else "|---:|---|---:|---|---:|---:|"]
     for row in secondary:
         e = row["estimate"]
-        lines.append(f"| {row['logical_ber']} | {row['comparison']} | {e['mean']:.9g} | {e['confidence_interval']} | {row['holm_p_value']} | {row['favorable_pools']}/{row['adverse_pools']} |")
+        if pilot:
+            lines.append(f"| {row['logical_ber']} | {row['comparison']} | {e['mean']:.9g} | {e['confidence_interval']} | {row['favorable_pools']}/{row['adverse_pools']} |")
+        else:
+            lines.append(f"| {row['logical_ber']} | {row['comparison']} | {e['mean']:.9g} | {e['confidence_interval']} | {row['holm_p_value']} | {row['favorable_pools']}/{row['adverse_pools']} |")
     lines += ["", "All 15 local masks retain the 22,016-bit global budget. Selection stability, signed isolated damage, additive prediction error, bounded regret, field-tail sensitivity, and verified event/schedule records are in scientific_payload.json.",
-              "", "The optional BER-0.01 mask transfer is calculated only on lower-BER model-selection tables. It is descriptive and excluded from confirmatory tests. Held-out transfer remains unresolved.",
+              "", ("No cross-BER transfer or confirmatory significance test is specified for this pilot." if pilot else "The optional BER-0.01 mask transfer is calculated only on lower-BER model-selection tables. It is descriptive and excluded from confirmatory tests. Held-out transfer remains unresolved."),
               "", payload["limitations"], "", f"Scientific payload SHA-256: `{digest_object(payload)}`"]
     _write_bytes(destination / "report.md", ("\n".join(lines) + "\n").encode())
     _write_json(destination / "checksums.json", {"schema_version": VERSION,
