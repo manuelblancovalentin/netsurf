@@ -53,3 +53,35 @@ Bundle `paper1_runI_resnet8_kernels_biases_v1` in the Run A worktree (commit `d3
 - Numerical jump ranks by the actual change of the stored value, protects the upper bias bits first, and comes close to the kernel-only results.
 - The result depends on how "MSB-first" is defined for words of different widths; a rule ranking absolute bit index (bit 31 of INT32 before bit 7 of INT8) would protect the bias bits. FORTUNE is defined for weights only.
 - Windows and fields differ from the kernel-only comparison rows; the differences are far larger than that variation, but no paired contrast was computed.
+
+## Run L2: Run L repeated on ResNet-8 (8 fault draws, TFLite reference executable)
+
+Design: `RUN_J_K_L2_FROZEN_PLANS_2026-11-11.md`. Analysis: `workflows/analyze_correction_resnet8.py`, output `workspace/runs/paper1_runL2_correction_resnet8_v1_analysis.json`. Clean accuracy 87.4%.
+
+| Scheme | Extra storage | Highest p within 5 points | Accuracy at 3e-3 | at 1e-2 |
+|---|---|---|---|---|
+| No protection | 0% | 1e-4 | 39.7 | 14.5 |
+| Row checksum correction | ~1% | 3e-4 | 45.7 | 16.4 |
+| SEC-DED over 64 bits | 12.5% | 1e-3 | 81.0 | 31.3 |
+| TMR, ranked mask of 6.25% of bits | 12.5% | 3e-3 | 83.0 | 66.0 |
+| SEC-DED over 32 bits | 21.9% | 3e-3 | 83.2 | 45.6 |
+| TMR, all sign bits (FORTUNE-style) | 25% | 1e-3 | 69.1 | 42.3 |
+| TMR, ranked mask of 12.5% of bits | 25% | 3e-3 | 84.5 | 75.7 |
+| SEC-DED over 16 bits | 37.5% | 3e-3 | 86.1 | 53.2 |
+| TMR, ranked mask of 18.75% of bits | 37.5% | 3e-3 | 86.1 | 80.1 |
+| TMR, ranked mask of 25% of bits | 50% | 1e-2 | 86.5 | 83.3 |
+| SEC-DED over 8 bits | 62.5% | 3e-3 | 85.9 | 73.8 |
+
+Paired differences, ranked TMR minus the alternative of equal (or larger) storage, accuracy points with 95% intervals over 8 draws:
+
+| Pair | p = 1e-3 | 3e-3 | 1e-2 | 3e-2 |
+|---|---|---|---|---|
+| 6.25% ranked TMR vs SEC-DED-64 (12.5% each) | -1.4 [-2.1, -0.8] | +2.0 [-1.9, +6.0] | +34.7 [+25.7, +43.8] | +10.7 [+5.6, +15.8] |
+| 12.5% ranked TMR vs SEC-DED-32 (25% vs 21.9%) | -0.8 [-1.5, 0.0] | +1.4 [-1.1, +3.8] | +30.1 [+21.0, +39.2] | +18.6 [+10.7, +26.5] |
+| 12.5% ranked TMR vs sign-bit TMR (25% each) | +2.8 [+0.2, +5.3] | +15.4 [+7.1, +23.6] | +33.4 [+24.1, +42.7] | +12.0 [+3.7, +20.3] |
+| 18.75% ranked TMR vs SEC-DED-16 (37.5% each) | -0.7 [-1.4, 0.0] | -0.1 [-1.7, +1.6] | +26.9 [+15.9, +38.0] | +26.9 [+17.9, +36.0] |
+| 25% ranked TMR vs SEC-DED-8 (50% vs 62.5%) | -0.7 [-1.2, -0.2] | +0.6 [-2.0, +3.2] | +9.5 [+3.8, +15.2] | +26.4 [+15.3, +37.4] |
+
+- Same pattern as DistilBERT, now with intervals: the codes are better by about one point up to 1e-3, the two are equivalent near 3e-3, and ranked triplication is better by 10 to 35 points from 1e-2 on.
+- Against triplicating all sign bits at the same storage, ranked triplication is better at every fault rate from 1e-3 on.
+- By the five-point criterion the ranked mask extends the tolerated rate by a factor of three over the code only at 12.5% and 50% storage; at 25% and 37.5% both stop at 3e-3.
