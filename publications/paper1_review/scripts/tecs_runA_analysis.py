@@ -141,6 +141,7 @@ def main() -> None:
     ap.add_argument("--stride", type=int, default=1000)
     ap.add_argument("--eval-count", type=int, default=1000)
     ap.add_argument("--no-controls", action="store_true")
+    ap.add_argument("--min-rep", type=int, default=1, help="first replication counted as new data (Run K: 0, no window is untouched)")
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=False)
     runs = {args.only: args.run_root or RUNS[args.only]} if args.only else dict(RUNS)
@@ -152,7 +153,7 @@ def main() -> None:
     for model, run_root in runs.items():
         data, prov = load(model, run_root, args.stride, args.eval_count)
         provenance[model] = prov
-        reps = sorted(data); fresh = [r for r in reps if r >= 1]
+        reps = sorted(data); fresh = [r for r in reps if r >= args.min_rep]
         bers = sorted(data[reps[0]]); covs = sorted({k[1] for k in next(iter(data[reps[0]][bers[0]].values())) if 0 < k[1] < 1})
         clean = {}
         for rep in reps:
