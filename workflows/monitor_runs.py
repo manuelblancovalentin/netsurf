@@ -31,8 +31,8 @@ A_RUNS = [("Run A  ResNet-8", "runA_resnet8", "paper1_runA_resnet8_confirm_v1"),
           ("Run A  DS-CNN", "runA_kws", "paper1_runA_kws_confirm_v1")]
 B_RUNS = [("Run B  Pythia-160M", "runB_pythia", "pythia160m_int8"),
           ("Run B  Qwen3-0.6B", "runB_qwen", "qwen3_0_6b_int8")]
-LINE = re.compile(r"NetSuRF \| (?P<exp>[^|]+) \| (?P<stage>[^|]+) \| (?P<done>\d+)/(?P<total>\d+)\s+[\d.]+% .*?"
-                  r"elapsed (?P<elapsed>[^|]+) \| ETA (?P<eta>[^|\n]+)")
+LINE = re.compile(r"NetSuRF[^|\n]*\| (?P<exp>[^|\n]+) \| (?P<stage>[^|\n]+) \| (?P<done>\d+)/(?P<total>\d+)\s+[\d.]+%"
+                  r"[^\n]*?elapsed (?P<elapsed>[^|\n]+) \|[^\n]*?ETA (?P<eta>[^|\n]+)")
 
 
 def tmux_alive(session: str) -> bool:
