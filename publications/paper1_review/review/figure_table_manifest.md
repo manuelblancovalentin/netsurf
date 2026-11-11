@@ -12,7 +12,8 @@ Generator for Figures 2, 3, 5 and 6: `scripts/build_tecs_figures.py`; Figure 4: 
 | Fig. 4 `tecs_confirmation_runA` | Confirmation run on new windows: accuracy lost at 12.5% for the seven rankings; within-tier control at 6.25% and 18.75% (storage-order, FKeras and random fills); replication-level 95% intervals | two finalized Run A bundles via `scripts/build_tecs_runA_figure.py` |
 | Fig. 5 `tecs_fkeras_partial_tiers` | FKeras against MSB-first, global and absolute gradient at 6.25% and 18.75% on the three TFLite models (main grid) | three TFLite `trials.csv` |
 | Fig. 6 `tecs_protection_vs_unprotected_125` | Paired protected-minus-unprotected task metric at 12.5% for three transformers | three W8A8 `trials.csv` |
-| Fig. 7 `compact_kws_pools` (appendix) | Unchanged 32-pool distribution | `review/compact_figure_provenance.json` |
+| Fig. 7 `tecs_correction_mechanisms` | ResNet-8: TMR of ranked bits against SEC-DED codes, ABFT checksum correction and sign-bit TMR at equal extra storage; 95% intervals over eight fault draws | `data/tecs_runL2/` via `scripts/build_tecs_correction_figure.py` |
+| Fig. 8 `compact_kws_pools` (appendix) | Unchanged 32-pool distribution | `review/compact_figure_provenance.json` |
 | Table 1 | Ranking definitions | Sec. 4 text |
 | Table 2 | Models, eligible bits, expected faults, cohorts, clean quality | `data/model_table.csv`, `data/benchmark_inventory.json` |
 | Table 3 | Highest useful BER per ranking (main grid) | `data/tecs_audit/conditions_with_quality.csv` |

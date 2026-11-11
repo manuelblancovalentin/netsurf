@@ -1,0 +1,134 @@
+{
+ "schema": "paper1-runL2-correction-mechanisms-resnet8/1.0",
+ "status": "EXPLORATORY",
+ "ber": 0.03,
+ "draw": 4,
+ "clean_accuracy": 0.874,
+ "window": [
+  1000,
+  1999
+ ],
+ "rows": [
+  {
+   "condition": "unprotected",
+   "ber": 0.03,
+   "draw": 4,
+   "storage_cost": 0.0,
+   "accuracy": 0.102,
+   "cross_entropy": 23.570567070980346,
+   "faulty_bits_after_correction": 18544,
+   "raw_faulty_bits": 18544,
+   "seconds": 10.252847499214113
+  },
+  {
+   "condition": "secded_64",
+   "ber": 0.03,
+   "draw": 4,
+   "storage_cost": 0.125,
+   "accuracy": 0.108,
+   "cross_entropy": 23.525454061844766,
+   "faulty_bits_after_correction": 16415,
+   "raw_faulty_bits": 18544,
+   "seconds": 10.173922069370747
+  },
+  {
+   "condition": "secded_32",
+   "ber": 0.03,
+   "draw": 4,
+   "storage_cost": 0.21875,
+   "accuracy": 0.101,
+   "cross_entropy": 21.180510920237246,
+   "faulty_bits_after_correction": 12788,
+   "raw_faulty_bits": 18544,
+   "seconds": 9.329873339738697
+  },
+  {
+   "condition": "secded_16",
+   "ber": 0.03,
+   "draw": 4,
+   "storage_cost": 0.375,
+   "accuracy": 0.095,
+   "cross_entropy": 22.37098511622228,
+   "faulty_bits_after_correction": 8777,
+   "raw_faulty_bits": 18544,
+   "seconds": 10.603961659129709
+  },
+  {
+   "condition": "secded_8",
+   "ber": 0.03,
+   "draw": 4,
+   "storage_cost": 0.625,
+   "accuracy": 0.178,
+   "cross_entropy": 17.473494826123364,
+   "faulty_bits_after_correction": 5677,
+   "raw_faulty_bits": 18544,
+   "seconds": 9.574707712046802
+  },
+  {
+   "condition": "row_checksum",
+   "ber": 0.03,
+   "draw": 4,
+   "storage_cost": 0.01,
+   "accuracy": 0.102,
+   "cross_entropy": 23.52228432591562,
+   "faulty_bits_after_correction": 18540,
+   "raw_faulty_bits": 18544,
+   "seconds": 10.516335541382432
+  },
+  {
+   "condition": "tmr_abs_6.25",
+   "ber": 0.03,
+   "draw": 4,
+   "storage_cost": 0.125,
+   "accuracy": 0.269,
+   "cross_entropy": 15.561600858241459,
+   "faulty_bits_after_correction": 17481,
+   "raw_faulty_bits": 18544,
+   "seconds": 11.850230301264673
+  },
+  {
+   "condition": "tmr_abs_12.5",
+   "ber": 0.03,
+   "draw": 4,
+   "storage_cost": 0.25,
+   "accuracy": 0.387,
+   "cross_entropy": 10.461857649075395,
+   "faulty_bits_after_correction": 16449,
+   "raw_faulty_bits": 18544,
+   "seconds": 10.625651886221021
+  },
+  {
+   "condition": "tmr_abs_18.75",
+   "ber": 0.03,
+   "draw": 4,
+   "storage_cost": 0.375,
+   "accuracy": 0.477,
+   "cross_entropy": 8.344117450357393,
+   "faulty_bits_after_correction": 15403,
+   "raw_faulty_bits": 18544,
+   "seconds": 10.759762146975845
+  },
+  {
+   "condition": "tmr_abs_25",
+   "ber": 0.03,
+   "draw": 4,
+   "storage_cost": 0.5,
+   "accuracy": 0.467,
+   "cross_entropy": 7.055120032794029,
+   "faulty_bits_after_correction": 14335,
+   "raw_faulty_bits": 18544,
+   "seconds": 10.400028466712683
+  },
+  {
+   "condition": "tmr_msb",
+   "ber": 0.03,
+   "draw": 4,
+   "storage_cost": 0.25,
+   "accuracy": 0.167,
+   "cross_entropy": 16.525464882184757,
+   "faulty_bits_after_correction": 16478,
+   "raw_faulty_bits": 18544,
+   "seconds": 9.979510915931314
+  }
+ ]
+}
