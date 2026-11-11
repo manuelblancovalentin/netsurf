@@ -54,7 +54,8 @@ def extract(out: Path) -> None:
 def setup():
     sys.path.insert(0, str(ENGINE))
     import tensorflow as tf
-    tf.config.threading.set_intra_op_parallelism_threads(4)
+    import os
+    tf.config.threading.set_intra_op_parallelism_threads(int(os.environ.get("NETSURF_TF_THREADS", "4")))
     from netsurf.adapters.mlperf_tiny import MlperfTinyImageClassificationAdapter
     from netsurf.mlperf_companion import MlperfResnet8DifferentiableCompanion
     adapter = MlperfTinyImageClassificationAdapter(CHECKPOINT, DATASET, asset_lock=LOCK, split="test", injectable_parameters=("kernels",))
