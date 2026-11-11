@@ -49,3 +49,15 @@ Citation checks were read-only; no literature code was executed and no protected
 | `birnbaum1969importance` (new) | Not inspected. Title, editor, publisher and pages taken from secondary citations. | Confirm before submission. |
 | `stutz2021biterror` (new) | MLSys proceedings abstract read. | Cited only for the existence of BER-based robustness training on quantized weights. |
 | `nazari2024fortune`, `colucci2024eisfinn` | Not re-read; descriptions rely on the earlier audit above. | Bibliographic records re-confirmed only. |
+
+## Added 11 November 2026 (exposure and related mechanisms)
+
+| Key | Checked against | Status |
+|---|---|---|
+| `li2017understanding` | Full text (NVIDIA Research PDF), title page, Table 8, Sec. 4.7 and 5.2.1 | Read. Numbers quoted from Table 8. |
+| `deutsch2024delayavf` | Title page of the public preprint (par.nsf.gov) | Title and authors read; venue (MICRO 2024) from a search result. |
+| `mukherjee2003avf` | Search results citing the MICRO-36 paper | Not read; cited for the definition only. |
+| `cummings2023econd` | Slides (text and the plot on slide 14) | Read. Conference slides, not peer reviewed. |
+| `diguglielmo2021reconfigurable` | arXiv listing (title, authors, journal reference) | Listing read; the statement about weight registers is from a search summary and needs the co-author's confirmation. |
+| `hllhc2017tdr` | Search results (report number, editors, DOI, luminosity targets) | Not read; cited for 3000 fb^-1 and 5e34 only. |
+| `alyamani2001abft` | PDF supplied by the researcher, pages 1-3 | Read. |
