@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Read-only live monitor for Paper 1 Run A (TFLite confirmation) and Run B (W8A8 cap replay).
+"""Read-only live monitor for the Paper 1 runs started on 11 November 2026:
+Run A2 (larger DS-CNN confirmation), Run D (ResNet-8 retraining) and Run F (fault-rate-aware masks).
+Run A and Run B have finished and are no longer listed.
 
 Usage:
     python monitor_runs.py            # live view, refreshes every 30 s, Ctrl-C to leave
@@ -27,10 +29,11 @@ from rich.text import Text
 W = Path("/projects/netsurf/manuelbv/workspace/implementation-worktrees")
 RUN_A = W / "paper1-runA-tflite-confirm"
 RUN_B = W / "paper1-tecs-revision-v1/workspace/runs/w8a8_cap_replay_v1"
-A_RUNS = [("Run A  ResNet-8", "runA_resnet8", "paper1_runA_resnet8_confirm_v1"),
-          ("Run A  DS-CNN", "runA_kws", "paper1_runA_kws_confirm_v1")]
-B_RUNS = [("Run B  Pythia-160M", "runB_pythia", "pythia160m_int8"),
-          ("Run B  Qwen3-0.6B", "runB_qwen", "qwen3_0_6b_int8")]
+A_RUNS = [("Run A2 DS-CNN x12", "runA2_kws", "paper1_runA2_kws_confirm12_v1")]
+B_RUNS = []
+PAPER = W / "paper1-tecs-revision-v1"
+RUN_D = PAPER / "workspace/runs/paper1_runD_resnet8_retrain_v1"
+RUN_F = PAPER / "workspace/runs/paper1_runF_fault_aware_masks_v1"
 LINE = re.compile(r"NetSuRF[^|\n]*\| (?P<exp>[^|\n]+) \| (?P<stage>[^|\n]+) \| (?P<done>\d+)/(?P<total>\d+)\s+[\d.]+%"
                   r"[^\n]*?elapsed (?P<elapsed>[^|\n]+) \|[^\n]*?ETA (?P<eta>[^|\n]+)")
 
@@ -120,8 +123,49 @@ def run_b(label: str, session: str, target: str) -> dict:
     return row
 
 
+def run_d() -> dict:
+    logs = sorted(Path(str(RUN_D) + "_logs").glob("seed_*.log"))
+    epochs = 0; started = None; problem = ""
+    for log in logs:
+        text = tail(log, 400_000)
+        epochs += len(re.findall(r"^\d+/\d+ - ", text, flags=re.M)) if log.stat().st_size < 400_000 else             max([int(m) for m in re.findall(r"Epoch (\d+)/500", text)] or [0])
+        if re.search(r"Traceback", text):
+            problem = f"{log.name}: error in log"
+    launch = Path(str(RUN_D) + "_logs") / "launch.sh"
+    started = launch.stat().st_mtime if launch.is_file() else None
+    done_seeds = len(list(RUN_D.glob("seed_*/manifest.json")))
+    total = 500 * max(1, len(logs))
+    row = dict(label="Run D  ResNet-8 retrain", alive=tmux_alive("runD_resnet8"), finalized=done_seeds == 5 and len(logs) == 5,
+               done=min(epochs, total), total=total, detail=f"{done_seeds}/5 seeds finished and converted; unit = epochs",
+               eta="?", elapsed="?", problem=problem)
+    if started and epochs:
+        el = time.time() - started; row["elapsed"] = fmt(el); row["eta"] = fmt(el / epochs * (total - epochs))
+    if row["finalized"]:
+        row.update(done=total, eta="done")
+    return row
+
+
+def run_f() -> dict:
+    builds = len(list(RUN_F.glob("build/*/manifest.json")))
+    files = list(RUN_F.glob("eval/arm_*/field_*/*.json"))
+    row = dict(label="Run F  fault-aware masks", alive=subprocess.run(["pgrep", "-f", "fault_aware_masks.py"], capture_output=True).returncode == 0,
+               finalized=len(files) >= 1152, done=len(files), total=1152, detail=f"{builds}/6 mask builds finished; unit = evaluations",
+               eta="?", elapsed="?", problem="")
+    if files:
+        first = min(f.stat().st_mtime for f in files); last = max(f.stat().st_mtime for f in files)
+        row["elapsed"] = fmt(time.time() - first)
+        if last > first and len(files) > 1:
+            row["eta"] = fmt((1152 - len(files)) / ((len(files) - 1) / (last - first)))
+    logs = Path(str(RUN_F) + "_logs")
+    if logs.is_dir() and any("Traceback" in tail(q, 5000) for q in logs.glob("*.log")):
+        row["problem"] = "error in a Run F log"
+    if row["finalized"]:
+        row["eta"] = "done"
+    return row
+
+
 def render() -> Group:
-    rows = [run_a(*r) for r in A_RUNS] + [run_b(*r) for r in B_RUNS]
+    rows = [run_a(*r) for r in A_RUNS] + [run_b(*r) for r in B_RUNS] + [run_d(), run_f()]
     table = Table(expand=True, show_lines=False, pad_edge=False)
     table.add_column("Run", no_wrap=True)
     table.add_column("Progress", ratio=3, min_width=18)
@@ -149,7 +193,7 @@ def render() -> Group:
     except Exception:
         host = ""
     done_all = all(r["finalized"] for r in rows)
-    footer = "[bold green]All four runs are complete. Tell Claude to analyze them.[/bold green]" if done_all else \
+    footer = "[bold green]All runs are complete. Tell Claude to analyze them.[/bold green]" if done_all else \
         "A run that shows NOT RUNNING without 'complete' stopped early: check its log."
     return Group(Panel(table, title=f"Paper 1 overnight runs   {datetime.now():%Y-%m-%d %H:%M:%S}", subtitle=host),
                  Text.from_markup("\n".join(notes)), Text.from_markup(footer))
