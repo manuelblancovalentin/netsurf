@@ -6,9 +6,9 @@ Start with `NetSuRF_internal_review.pdf` in the delivery archive. The source ent
 
 ## Current revision
 
-The compact third delivery is 13 pages in the unchanged ACM manuscript/review format, down from 24. The conclusion is on page 10; references occupy the rest of page 10 and part of 11, followed by appendices through page 13. This is not an IEEE two-column page count. No fonts or margins were reduced to achieve the compression.
+The fourth delivery is 14 pages in the unchanged ACM manuscript/review format. It expands the preceding 13-page compact draft with explanations of ranking versus mask selection, paired uncertainty and decision value; it does not restore the earlier 24-page development narrative. This is an editorial target, not an IEEE two-column page count or a verified TECS limit. Fonts and margins are unchanged.
 
-Four main figures show the workflow, six-model BER curves, protection-budget curves, and the complete 32-pool conditional-selection distribution. Three numbered equations remain in the main text; derivations and numerical controls are in the appendix. The delta matrix and all qPolarGrad discussion are absent from the manuscript. Previous artwork and audits remain in the review archive for provenance only.
+Four main figures show the workflow, six-model BER curves, protection-budget curves, and the complete 32-pool conditional-selection distribution. FKeras and MSB-first have separate legend entries: at 12.5% coverage their curves overlap exactly on the three TFLite models, while partial-tier allocations can differ. Three numbered equations remain in the main text; derivations and numerical controls are in the appendix. The delta matrix and all qPolarGrad discussion are absent from the manuscript. Previous artwork and audits remain in the review archive for provenance only.
 
 The draft follows the engineering sequence: frozen network → exact stored-bit perturbations → ranking → fixed-budget masks → paired fault injection → task-level reliability. It does not report implemented hardware correction or radiation qualification. The four-author list remains provisional pending researcher confirmation of authorship, affiliations and corresponding author.
 
@@ -25,7 +25,7 @@ The six-page complete budget-grid supplement remains available. No numerical cur
 
 ## Review materials
 
-`review/compact_revision_notes.md` maps the requested edits to changes. `review/claim_to_evidence.md` and `review/figure_table_manifest.md` describe the current draft. `review/compact_figure_provenance.json` binds the new rendering script, exact inputs, filters and outputs. Earlier source/figure audits remain available but do not dictate current manuscript contents.
+`review/compact_revision_notes.md` records the third delivery's compression. `review/fourth_revision_notes.md` records the present clarifications and candidate-audit coverage. `review/claim_to_evidence.md` and `review/figure_table_manifest.md` describe the current draft. `review/compact_figure_provenance.json` binds the rendering script, exact inputs, filters and outputs. Earlier source/figure audits remain available but do not dictate current manuscript contents.
 
 Related work includes FORTUNE, FKeras, PrioriFI, EISFINN, progressive bit search, DeepHammer, FlipLLM, genuine RL protection allocation, selective hardening, and the published FCCM predecessor. Attack discovery and expected-risk allocation are distinguished without dismissing learned protection. The public selective-ECC release is identified as a companion dataset, not independently verified peer-reviewed publication.
 

@@ -37,6 +37,8 @@ For risk range width $M$ and $n=|C\setminus Q|\ge1$, the additive remainder sati
 Indeed, the statewise error is zero for zero or one candidate fault, and at most $sM$ for $s\ge2$ faults. Averaging gives the binomial expression above. With no unprotected candidates the error is zero. AUC risk permits $M=1$; other tasks require a valid bounded-loss range. The bound can be too loose to certify a useful mask and does not bound clean-isolated error caused by the faulty outside network. Uniform approximation error $\varepsilon$ would imply at most $2\varepsilon$ excess risk over the same feasible masks, but no useful whole-network certificate is established here. The underlying Boolean and conditioning identities are standard~\cite{odonnell2014analysis}.
 
 \section{Supplementary Comparisons}\label{app:evidence}
+The ResNet-8 FKeras candidate correlation is 0.287, with 95\% stratified candidate-bootstrap interval $[0.206,0.370]$. It orders bits by significance and then absolute Hessian projection, preserving score ties. Correlating the raw projection magnitude alone gives 0.274, interval $[0.189,0.356]$; that diagnostic is not the tier-first allocation rule. These intervals condition on the saved calibration and damage evaluations, not on independently trained networks or new calibration sets.
+
 The full-grid supplement retains all measured budgets and method cells, paired contrasts, input identities and source provenance. Table~\ref{tab:attribution} summarizes exact conditional diagnostics across 56 pool/BER conditions. KWS pool identities recur across BERs; pairwise mask-order comparisons are dependent, not independent trials. Every saved across-pool held-out conditional-minus-isolated interval includes zero.
 
 \begin{table}[h]

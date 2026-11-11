@@ -26,6 +26,8 @@ Classification uses accuracy and cross-entropy, in natural-log units (nats). TFL
 
 Contrasts are paired by proposed field and retain their original Holm comparison families. Confidence intervals quantify fault randomness conditional on the fixed model, inputs and masks; they do not replicate training or input sampling. Transformer contrasts use paired bootstrap intervals. The additional Qwen crossover study uses 24 new fields at each of 5\% and 7.5\% BER; its intervals are exploratory.
 
+Pairing asks how much two allocations differ under the same proposed corruption, rather than comparing two unrelated trial averages. A wide distribution of fault outcomes can coexist with a precise paired difference if the methods respond similarly to easy and difficult fields. Conversely, overlapping mean intervals alone establish neither equivalence nor changing method preference. We therefore use the paired contrasts to support reversals and the full curves to show their operating context.
+
 The isolated-damage study uses 320 common stratified candidate bits per TFLite model; its correlations are sample-limited. The conditional KWS test uses 32 independently sampled six-bit pools within a 12.5\% absolute-gradient mask, preserving two protected bits per pool. At BER 5\%, each pool uses eight selection fields and 32 independent final master fields on 384 clips. Its primary contrast is conditional versus exact-isolated selection; two secondary contrasts use Holm correction. Pool-level uncertainty is distinct from field-level uncertainty.
 
 All reported measurements come from finalized, checksum-linked artifacts. Model/cohort identities, masks, schedules, detailed numerical contracts and full grids accompany the paper.

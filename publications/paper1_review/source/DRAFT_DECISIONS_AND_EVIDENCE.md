@@ -2,7 +2,9 @@
 
 This file supersedes the October 29 planning notes contained in the supplied project. The original ZIP remains unchanged and is hash-identified in the delivery manifest.
 
-Title: NetSuRF: Bit-Accurate Reliability Analysis and Budgeted Protection of Quantized Neural Networks.
+Title: Is There a Universal Bit Ranking? Evaluating Fault Protection in Quantized Neural Networks.
+
+NetSuRF is named only as the software implementing the evaluation, not as an extra ranking or a proposed universally superior optimizer. The current editorial target is approximately 14 pages including references and appendices in the supplied ACM review format; it is not a claim about a verified ACM page cap or equivalence to IEEE two-column pages.
 
 Scope: software execution of exact stored INT8 faults and ideal logical protection, with cost in eligible protected bits and measured computation. No hardware, radiation-calibrated reliability, universal optimizer, or first-discovery-of-interactions claim.
 

@@ -103,6 +103,7 @@ def validate():
         "figures/reliability_all_budgets_supplement.pdf",
         "review/compact_revision_notes.md", "review/compact_venue_literature.md",
         "review/compact_figure_provenance.json",
+        "review/fourth_revision_notes.md", "data/fkeras_candidate_audit_v1.json",
     ]
     for name in required:
         assert (ROOT / name).is_file(), name
@@ -121,10 +122,24 @@ def validate():
         receipts[receipt["path"]] = receipt
     for path, receipt in receipts.items():
         assert digest(ROOT / path) == receipt["sha256"], path
+    candidate_audit = json.loads((ROOT / "data/fkeras_candidate_audit_v1.json").read_text())
+    candidate_content = candidate_audit["content"]
+    encoded = json.dumps(candidate_content, sort_keys=True, separators=(",", ":"),
+                         allow_nan=False).encode()
+    assert hashlib.sha256(encoded).hexdigest() == candidate_audit["finalization"]["content_sha256"]
+    assert candidate_content["status"] == "FINALIZED"
+    candidate_models = {m["model"]: m for m in candidate_content["models"]}
+    assert candidate_models["resnet8"]["status"] == "validated"
+    assert all(candidate_models[m]["results"] is None for m in ("kws", "toycar"))
+    assert all(m["candidate_count"] == 320 for m in candidate_models.values())
+    for receipt in candidate_content["implementation_files"]:
+        assert digest(Path(receipt["path"])) == receipt["sha256"], receipt["path"]
     return {"cited_keys": sorted(cited), "bibliography_records": len(keys),
             "condition_rows": len(rows), "mathematics": math_checks(),
             "unchanged_original_image_hashes": len(reused["files"]),
             "compact_figure_receipts_verified": len(receipts),
+            "fkeras_candidate_audit_content_sha256": candidate_audit["finalization"]["content_sha256"],
+            "fkeras_candidate_audit": "ResNet-8 verified; KWS/ToyCar calibration-input join unresolved",
             "latex": "compiled; no undefined references or overfull boxes",
             "expected_class_warning": "ACM reference block omitted for internal review"}
 

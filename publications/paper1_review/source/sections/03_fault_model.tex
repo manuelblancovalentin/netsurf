@@ -1,9 +1,9 @@
-\section{NetSuRF Design Flow and Fault Model}\label{sec:fault}
-NetSuRF freezes a trained model, its numerical execution and its task data; constructs protection masks from calibration data; then compares those masks under common random faults (Fig.~\ref{fig:workflow}). All clean and faulted outcomes use the authoritative quantized executable, not the differentiable model used to obtain ranking scores.
+\section{Evaluation Workflow and Fault Model}\label{sec:fault}
+The evaluation freezes a trained model, its numerical execution and its task data; constructs protection masks from calibration data; then compares those masks under common random faults (Fig.~\ref{fig:workflow}). All clean and faulted outcomes use the authoritative quantized executable, not the differentiable model used to obtain ranking scores. NetSuRF is the software implementation of this workflow, not an additional ranking method in the comparison.
 
 \begin{figure}[t]
 \centering\input{figures/workflow}
-\caption{NetSuRF connects a frozen quantized model to reliability-versus-BER and protection-budget measurements. Masks are fixed before paired evaluation. Protection cost counts bits; physical correction circuits are outside the study.}
+\caption{Evaluation workflow from a frozen quantized model to reliability-versus-BER and protection-budget measurements. Masks are fixed before paired evaluation. Protection cost counts bits; physical correction circuits are outside the study.}
 \Description{Frozen model and bit identities lead to calibration-based rankings, fixed protection masks, paired exact faults and task-level reliability measurements.}
 \label{fig:workflow}
 \end{figure}

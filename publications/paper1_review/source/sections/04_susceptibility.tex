@@ -19,7 +19,11 @@ FKeras & Significance first; $|H'_i|$ within tier & Continuous loss Hessian\\\bo
 \Description{Seven ranking methods differ in their scores, aggregation and use of bit-significance tiers.}
 \end{table}
 
-For FKeras~\cite{weng2024fkeras}, the published projection is $H'=\sum_{k=1}^{r}\lambda_k(v_k^\top\theta)v_k$, where $\theta$ contains decoded weights and $(\lambda_k,v_k)$ are Hessian eigenpairs. Strict significance ordering makes its masks identical to MSB-first at 12.5\% and 25\% INT8 coverage; partial tiers distinguish the methods.
+For FKeras~\cite{weng2024fkeras}, the published projection is $H'=\sum_{k=1}^{r}\lambda_k(v_k^\top\theta)v_k$, where $\theta$ contains decoded weights and $(\lambda_k,v_k)$ are Hessian eigenpairs. This can produce a different ordering from plain MSB-first within each significance tier; it does not override the priority of a more significant bit position.
+
+The distinction between an ordering and its selected mask matters. With eight bits per word, 12.5\% coverage protects exactly one complete tier: every sign bit. Both significance-first policies therefore select the same set, irrespective of their ordering within that tier. At 25\%, both select the top two tiers. At 6.25\%, however, only half the sign bits fit; at 18.75\%, all sign bits and half the next tier fit. The within-tier sensitivity can then change which weights are protected. We retain distinct method identities, but identical masks under paired fields are the same protection decision, not independent evidence.
+
+The gradient aggregations differ for another reason. Opposite signed first-order effects can cancel before the global score takes an absolute value. Absolute-gradient ranking instead retains both predicted harmful and beneficial magnitudes, whereas positive-gradient ranking retains only predicted harm. Neither operation is an exact finite-fault calculation, and the resulting orders need not coincide even when they use the same calibration inputs.
 
 TFLite gradient companions use straight-through requantization, whereas the Hessian companion is continuous and omits activation rounding. Neither differentiates the exact integer program. All measured protection outcomes still use exact quantized inference. ToyCar's derivative objective is reconstruction MSE, but its authoritative protection risk is complete-file $1-\mathrm{AUC}$; surrogate improvement need not improve that task. Solver controls and correspondence limits are given in Appendix~\ref{app:implementation}.
 

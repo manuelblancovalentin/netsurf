@@ -6,6 +6,8 @@ The internal draft is complete using finalized evidence; none of the work below 
 
 The supported empirical claim is condition-dependent effectiveness of the measured allocations on frozen checkpoints and cohorts. A universal claim about every static method, a general conditional-optimizer advantage, or causal attribution of observed crossovers to multi-bit interactions remains unsupported. Additional fault fields alone do not fix missing input/checkpoint replication or incomplete baselines.
 
+The fourth manuscript revision adds a verified offline ResNet-8 FKeras candidate correlation, not new inference. KWS/ToyCar candidate correlations remain unavailable because their older calibration-input identity cannot be joined conclusively to the later saved Hessian scores. Recovering the original input-bound provenance, or authorizing a separately frozen matched audit, is needed to fill those cells. Their current protection-grid results are separate, valid evidence; these missing correlations do not call for rerunning those grids. See `data/fkeras_candidate_audit_v1.json` and `review/fourth_revision_notes.md`.
+
 ## Priorities and decision gates
 
 | Priority | Scientific need | What a prospective study should freeze | What would change the conclusion; what would not | Cost/readiness |

@@ -1,11 +1,11 @@
 {
-  "schema": "paper1-compact-figure-provenance/1.0",
+  "schema": "paper1-compact-figure-provenance/1.1",
   "scope": "Offline display-only redesign of existing verified manuscript evidence; no inference, ranking, mask, schedule, scientific-source or numerical-provenance modification.",
   "paths_relative_to": "publications/paper1_review",
   "generator": {
     "path": "scripts/build_compact_figures.py",
-    "sha256": "ca77055f2e29cf76c17f762108fb0c6b4556673e1af388d47e4a6b24b28f83c3",
-    "bytes": 15106,
+    "sha256": "bf4ddcd4eaa0d6e531b9189ee55ef001fad9d376b9e42e6cc9a3ab0258cd9490",
+    "bytes": 16857,
     "interpreter": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python"
   },
   "inputs": {
@@ -67,7 +67,7 @@
           "full"
         ],
         "bers": "All measured BERs for each source study; no interpolation across absent cells.",
-        "display_alias": "FKeras omitted as duplicate of MSB at this complete tier on resnet8/kws/toycar only; FKeras unavailable on the three transformer grids."
+        "display_overlap": "Separate MSB-first and FKeras (published) legend entries. Published FKeras is drawn as a purple dashed curve directly over the identical, wider black MSB curve on resnet8/kws/toycar. No coordinate offsets or synthetic transformer series. Transformer FKeras remains unavailable."
       },
       "y_derivation": {
         "mean": "mean - clean",
@@ -105,6 +105,26 @@
         "distilbert": 24,
         "pythia": 24,
         "qwen": 24
+      },
+      "overlap_verification": {
+        "comparison": "Exact equality of parsed saved source values, with no numerical tolerance",
+        "fields": [
+          "ber",
+          "coverage",
+          "mean",
+          "low",
+          "high",
+          "clean"
+        ],
+        "matched_conditions": {
+          "resnet8": 8,
+          "kws": 8,
+          "toycar": 5
+        },
+        "total_matched_conditions": 21,
+        "maximum_absolute_difference": 0,
+        "uncertainty_display": "Identical MSB/FKeras interval is shaded once, not double shaded.",
+        "independence": "Separate method labels do not make identical masks or outcomes independent evidence."
       }
     },
     {
@@ -235,16 +255,16 @@
   ],
   "outputs": {
     "figures/compact_reliability_ber_125.pdf": {
-      "sha256": "5a003f0be62da88aac34d9d8bc83df7c38837e901c3e3a4db74780425b4a152f",
-      "bytes": 43901
+      "sha256": "5ee6f1f964f62884e0b75afc3142df993360cba09ff854e0925f1696c8b1d581",
+      "bytes": 47786
     },
     "figures/compact_reliability_ber_125.png": {
-      "sha256": "64c1d9c7b50db512d8d35f983d06511766892261eb5ddee566532068e873492c",
-      "bytes": 345006
+      "sha256": "22296f69d447ab0b9cabe1cba48cd141023f3cfcbebdecbd80ab9b38a86e590b",
+      "bytes": 345942
     },
     "figures/compact_reliability_ber_125.svg": {
-      "sha256": "55832229cdf1c13f0d06713b07d1e549a1290d81e7970d9f087cda2dd7284693",
-      "bytes": 144068
+      "sha256": "a96b6ddf08427ecd6b702987ddf62503a1e5edc2de3cabd8cda6a9ae9412595e",
+      "bytes": 144794
     },
     "figures/compact_reliability_budget_001.pdf": {
       "sha256": "932a02b1bcaf8ddb2c251d4d97d06029c5daea3f1d697a2674b7493adbf9b798",
@@ -299,5 +319,16 @@
     "All transformer finite per-unit NLL is capped at 30 nats; nonfinite failures receive the same penalty.",
     "The compact receipt does not rehash large omitted original scientific payloads; prior numerical verification scope remains documented in data/figure_provenance.json.",
     "Output hashes bind the delivered assets. Rebuilding PDF/SVG may change metadata/identifiers without changing numeric plotting data."
-  ]
+  ],
+  "display_revision": {
+    "purpose": "Clarify distinct method identities while honestly displaying exact complete-tier coincidence.",
+    "changed_assets": [
+      "scripts/build_compact_figures.py",
+      "figures/compact_reliability_ber_125.pdf",
+      "figures/compact_reliability_ber_125.png",
+      "figures/compact_reliability_ber_125.svg"
+    ],
+    "unchanged_evidence": "All six data-input hashes and all nine non-BER compact output hashes matched their prior receipts before this update.",
+    "inference_requests": 0
+  }
 }

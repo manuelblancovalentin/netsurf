@@ -3,7 +3,7 @@
 Gradient scores associate more closely with positive isolated damage than significance alone on the sampled ResNet-8 and KWS bits (Table~\ref{tab:isolated}), but correlations remain moderate. ToyCar illustrates the importance of the objective: positive-gradient correlation is 0.637 for reconstruction-MSE damage, but 0.504 for AUC damage, close to absolute gradient's 0.501. Surrogate prediction quality is not a protection guarantee.
 
 \begin{table}[t]
-\caption{Spearman correlation with positive isolated damage on 320 shared stratified bits per model. ToyCar here uses the MSE surrogate, not task AUC. These are sample-design statistics.}\label{tab:isolated}
+\caption{Spearman correlation with positive isolated damage on 320 shared stratified bits per model. ToyCar here uses the MSE surrogate, not task AUC. These are sample-design statistics; dashes indicate unavailable matched scores, not zero correlation.}\label{tab:isolated}
 \centering\small
 \begin{tabular}{lrrr}\toprule
 Ranking & ResNet-8 & KWS & ToyCar MSE\\\midrule
@@ -12,10 +12,13 @@ MSB-first & 0.256 & 0.204 & 0.502\\
 Numerical jump & 0.070 & 0.175 & 0.439\\
 Global gradient & 0.364 & 0.258 & 0.498\\
 Absolute gradient & 0.376 & 0.288 & 0.546\\
-Positive gradient & 0.364 & 0.246 & 0.637\\\bottomrule
+Positive gradient & 0.364 & 0.246 & 0.637\\
+FKeras & 0.287 & --- & ---\\\bottomrule
 \end{tabular}
-\Description{Moderate and task-dependent correlations between sampled exact isolated damage and six scores.}
+\Description{Moderate and task-dependent correlations for six scores on three models, plus the verified tier-first FKeras ordering on ResNet-8.}
 \end{table}
+
+The ResNet-8 FKeras entry joins saved Hessian scores to the same candidates and calibration inputs, retaining its tier-first ordering. Corresponding input identity could not be established for the older KWS and ToyCar candidate audits; their entries remain unavailable despite separate protection measurements. Equality of two masks at a complete tier does not imply equal full rankings or equal correlations with isolated damage.
 
 Figures~\ref{fig:ber} and~\ref{fig:budget} show the task-level result. At BER 1\% and protection 12.5\%, ResNet-8 loss is 20.093 nats/image unprotected, 8.715 with MSB-first and 2.098 with absolute-gradient allocation. Pythia gives 22.019 nats/token unprotected, 12.706 with MSB-first and 7.883 with global gradient. Ranking choice therefore matters well beyond small networks.
 
@@ -23,7 +26,7 @@ ToyCar does not follow the same pattern: its risks at that condition are 0.261 u
 
 \begin{figure}[tbp]
 \centering\includegraphics[width=\linewidth]{compact_reliability_ber_125}
-\caption{Loss degradation versus BER at 12.5\% protection. Lower is better; bands are 95\% fault-field intervals and zero is clean/full protection. Panels use their own task units. Asinh denotes nonlinear vertical spacing with original-unit ticks. FKeras equals MSB at this complete tier on the three TFLite models only; it is unavailable for the transformers. Lines connect measured points.}\label{fig:ber}
+\caption{Loss degradation versus BER at 12.5\% protection. Lower is better; bands are 95\% fault-field intervals and zero is clean/full protection. FKeras and MSB are distinct methods: their curves overlap exactly in panels (a)--(c), where both protect every sign bit. FKeras is unmeasured in (d)--(f). Asinh denotes nonlinear vertical spacing with original-unit ticks. Lines connect measured points.}\label{fig:ber}
 \Description{Six compact panels comparing measured methods over BER, with unprotected and clean references.}
 \end{figure}
 
@@ -53,6 +56,8 @@ Qwen; absolute $-$ MSB & .075 & 12.5\% & $+1.637$ [$.605,2.661$] & ---\\\bottomr
 
 Qwen's follow-up reversal also appears in finite uncapped NLL: at BER 7.5\%, absolute gradient gives 23.149 versus 21.374 for MSB-first. However, 10.49\% and 7.07\% of finite token losses reach the 30-nat ceiling. The effect is not solely a capping artifact, but occurs under severe degradation. It does not identify a practical operating range or prove an interaction-driven transition.
 
+The strongest interpretation is a change in relative preference, not a universal winner or loser. For example, Pythia's reversal occurs within one checkpoint and input cohort: an allocation that is preferable at one budget is not preferable at another. Cross-model contrasts broaden the comparison but also change architecture, weights, data and task. They cannot identify which of those factors caused a difference. The complete grids retain favorable, unfavorable and nearly indistinguishable conditions rather than only the contrasts in Table~\ref{tab:paired}.
+
 \subsection{Monte Carlo-guided allocation}
 Conditional selection changes the exact-isolated mask in 27 of 32 KWS pools. Its held-out mean difference is nevertheless only $-8.24\times10^{-5}$ nats/clip, with across-pool interval $[-0.00169,0.00153]$ and two-sided $p$-value 0.918 (Fig.~\ref{fig:decisions}). Eleven pools favor conditional selection, five tie and sixteen favor isolation. Thus, the changed decisions do not establish improved expected protection.
 
@@ -63,6 +68,8 @@ Conditional selection changes the exact-isolated mask in 27 of 32 KWS pools. Its
 \end{figure}
 
 Both methods improve slightly over the original absolute-gradient mask: conditional selection by 0.00268 nats/clip, interval $[0.00058,0.00478]$, and isolation by 0.00248, interval $[0.00036,0.00459]$; both saved Holm-adjusted $p$ values are 0.0279. These separate paired estimates need not subtract exactly. The result supports a benefit from local reevaluation, not a unique benefit from conditioning. Exact interaction diagnostics in the appendix likewise show changed preferences without resolved conditional-over-isolated superiority.
+
+This separates information from decision value. Observing faulty backgrounds can change the preferred local exchange, yet a new choice is useful only if its gain persists on independent final fields. Here the mean advantage over isolation is small relative to its uncertainty and the additional construction effort. The test leaves open whether other candidate pools, more precise selection estimates or different operating conditions would yield a worthwhile benefit; it does not establish those improvements or justify deploying the more expensive selector by default.
 
 \subsection{Computational cost}
 Mean construction times for global gradient are 1.19/0.41/3.85 seconds on ResNet-8/KWS/ToyCar; rank-two Hessian scoring takes 5.58/1.43/11.42 seconds. Shared absolute/positive-gradient computation takes 16.99/7.47/208.43 seconds, excluding loading. Median wide-sweep evaluation times are 23.75, 11.56 and 32.55 seconds per DistilBERT, Pythia and Qwen request. Conditional selection requires $2^K$ evaluations per outside field. Its cost is therefore material even when the measured decision gain is small.

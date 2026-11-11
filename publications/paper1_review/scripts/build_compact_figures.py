@@ -88,22 +88,26 @@ def save(fig, stem):
     for extension in ["pdf", "svg", "png"]:
         options = {"dpi": 240} if extension == "png" else {}
         # Fixed canvas size: no large title/footer or variable tight bounding box.
-        fig.savefig(OUT / f"{stem}.{extension}", **options)
+        path = OUT / f"{stem}.{extension}"
+        fig.savefig(path, **options)
+        if extension == "svg":
+            # Matplotlib leaves spaces at the ends of SVG path-data lines.
+            svg = path.read_text(encoding="utf-8")
+            path.write_text("\n".join(line.rstrip(" \t") for line in svg.split("\n")),
+                            encoding="utf-8")
     plt.close(fig)
 
 
-def shared_legend(fig, complete_tier=False):
-    methods = [m for m in ORDER if not (complete_tier and m == "fkeras")]
+def shared_legend(fig):
+    methods = list(ORDER)
     handles = [Line2D([0], [0], color=COLORS[m], lw=.95, alpha=.88,
                       marker="o", ms=2, ls="--" if m in ["fkeras", "unprotected"] else "-")
                for m in methods]
     labels = [LABELS[m] for m in methods]
-    if complete_tier:
-        labels[methods.index("msb")] = "MSB / FKeras†"
     handles.append(Line2D([0], [0], color="#66717D", lw=.7, ls=":"))
     labels.append("Clean / full")
     fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(.515, .999),
-               ncol=4 if complete_tier else 3, frameon=False, fontsize=6.4,
+               ncol=3, frameon=False, fontsize=6.4,
                handlelength=1.5, handletextpad=.45, columnspacing=1.3,
                labelspacing=.35, borderaxespad=0)
 
@@ -122,27 +126,54 @@ def values(rows):
 
 
 RANGES = {}
+OVERLAP_VERIFICATION = {}
+
+
+def verify_complete_tier_overlap(model):
+    """Require literal source mean/CI equality; never move overlapping values."""
+    fkeras = sorted(source_series(model, "fkeras", coverage=.125), key=lambda r: r["ber"])
+    msb = sorted(source_series(model, "msb", coverage=.125), key=lambda r: r["ber"])
+    if model not in ["resnet8", "kws", "toycar"]:
+        assert not fkeras, f"Unexpected unvalidated transformer FKeras data: {model}"
+        return
+    assert len(fkeras) == len(msb) > 0
+    for left, right in zip(fkeras, msb):
+        for key in ["ber", "coverage", "mean", "low", "high", "clean"]:
+            assert left[key] == right[key], f"FKeras/MSB mismatch: {model}, {key}"
+    OVERLAP_VERIFICATION[model] = {
+        "coverage": .125, "matched_ber_conditions": len(msb),
+        "checked_fields": ["ber", "coverage", "mean", "low", "high", "clean"],
+        "comparison": "exact equality of parsed saved values; no tolerance or shift",
+    }
 
 
 def ber_grid():
     fig, axes = plt.subplots(2, 3, figsize=(6.2, 3.62))
     for index, model in enumerate(MODELS):
         ax = axes.flat[index]
+        verify_complete_tier_overlap(model)
         bounds = [0.]
         for method in ORDER:
-            # At this complete tier the saved FKeras masks/outcomes equal MSB.
-            if method == "fkeras":
-                continue
             rows = sorted(source_series(model, method, coverage=.125), key=lambda r: r["ber"])
             if not rows:
                 continue
             x = [r["ber"] for r in rows]
             mean, low, high = values(rows)
             bounds.extend(low.tolist() + high.tolist())
-            ax.fill_between(x, low, high, color=COLORS[method], alpha=.065, lw=0)
-            ax.plot(x, mean, color=COLORS[method], lw=.95, alpha=.87,
-                    marker="o", ms=1.8, markeredgewidth=0,
-                    ls="--" if method == "unprotected" else "-", zorder=3)
+            # The equal FKeras/MSB interval is shaded once, not darkened twice.
+            if method != "fkeras":
+                ax.fill_between(x, low, high, color=COLORS[method], alpha=.065, lw=0)
+            if method == "fkeras":
+                # Purple dashes lie exactly on the wider black MSB underlay.
+                # No data offset, synthetic transformer series, or extra band.
+                ax.plot(x, mean, color=COLORS[method], lw=1.05, alpha=1.,
+                        ls=(0, (4, 2.2)), zorder=4)
+            else:
+                underlay = method == "msb" and model in ["resnet8", "kws", "toycar"]
+                ax.plot(x, mean, color=COLORS[method], lw=1.75 if underlay else .95,
+                        alpha=1. if underlay else .87, marker="o", ms=1.8,
+                        markeredgewidth=0, ls="--" if method == "unprotected" else "-",
+                        zorder=3)
         ax.axhline(0, color="#66717D", ls=":", lw=.7, zorder=2)
         ax.set_xscale("log")
         ax.set_xlim(8e-6, .13)
@@ -167,9 +198,9 @@ def ber_grid():
         style(ax)
         RANGES[f"ber125/{model}"] = {"x": list(ax.get_xlim()), "y": list(ax.get_ylim()),
                                       "observed_bers": sorted({r["ber"] for r in source_series(model, "msb", .125)})}
-    shared_legend(fig, complete_tier=True)
+    shared_legend(fig)
     fig.supxlabel("Logical bit-error probability", y=.014, fontsize=7.6)
-    fig.subplots_adjust(left=.093, right=.985, top=.845, bottom=.132,
+    fig.subplots_adjust(left=.093, right=.985, top=.815, bottom=.132,
                         wspace=.46, hspace=.54)
     save(fig, "compact_reliability_ber_125")
 
@@ -311,8 +342,9 @@ if __name__ == "__main__":
                         [DATA / "reliability_conditions.csv", DATA / "wide_paired_comparisons.csv",
                          DATA / "qwen_crossover.json", DATA / "kws_pool_statistics.json"]},
         "plot_ranges": RANGES,
+        "complete_tier_overlap_verification": OVERLAP_VERIFICATION,
         "notes": ["No source data, earlier figure, or manuscript section changed.",
-                  "BER125 suppresses duplicate FKeras curve at complete significance tier; dagger applies to TFLite models only.",
+                  "BER125 separately labels FKeras and MSB, overlaying purple dashes on identical black TFLite curves after exact mean/CI equality checks; transformer FKeras remains absent.",
                   "All means and original intervals are unchanged; no density estimate or new uncertainty calculation.",
                   "KWS dots are displaced vertically for visibility, never horizontally in effect units."]
     }, indent=2))
