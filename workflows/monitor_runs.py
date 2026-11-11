@@ -124,7 +124,7 @@ def render() -> Group:
     rows = [run_a(*r) for r in A_RUNS] + [run_b(*r) for r in B_RUNS]
     table = Table(expand=True, show_lines=False, pad_edge=False)
     table.add_column("Run", no_wrap=True)
-    table.add_column("Progress", ratio=3)
+    table.add_column("Progress", ratio=3, min_width=18)
     table.add_column("%", justify="right", no_wrap=True)
     table.add_column("Done / total", justify="right", no_wrap=True)
     table.add_column("Elapsed", justify="right", no_wrap=True)
@@ -139,7 +139,7 @@ def render() -> Group:
             state = Text("running", style="cyan")
         else:
             state = Text("NOT RUNNING", style="bold red")
-        table.add_row(r["label"], ProgressBar(total=r["total"], completed=r["done"], width=None),
+        table.add_row(r["label"], ProgressBar(total=r["total"], completed=r["done"], width=None, complete_style="green", finished_style="bold green"),
                       f"{100 * frac:5.1f}", f'{r["done"]:,} / {r["total"]:,}', r["elapsed"], r["eta"], state)
         notes.append(f'[bold]{r["label"]}[/bold]: {r["detail"]}' + (f'  [red]{r["problem"]}[/red]' if r["problem"] else ""))
     try:
