@@ -1,0 +1,51 @@
+\section{Limits of Isolated Rankings and a Conditional Diagnostic}\label{sec:allocation}
+\subsection{Why isolated damage is not the protection value}
+For an unprotected candidate $b$, draw $G$ from the independent Bernoulli law over all other unprotected coordinates. Its conditional marginal vulnerability is
+\begin{equation}\label{eq:conditional}
+V_b(p,\protset)=\E_G\left[\risk(G\cup\{b\})-\risk(G)\right].
+\end{equation}
+Conditioning on whether bit $b$ flips gives the exact protection benefit
+\begin{equation}\label{eq:protection-benefit}
+J_p(\protset)-J_p(\protset\cup\{b\})=pV_b(p,\protset).
+\end{equation}
+The risk may be nonlinear and nonadditive; no smooth surrogate is needed for this identity. The isolated effect $I_b$ is its zero-background limit. Independent fault \emph{events} do not imply independent or additive task consequences.
+
+Under additive risk, equal BER and equal bit cost, choosing the $B$ largest isolated effects minimizes risk among masks of exactly $B$ bits. For an at-most-$B$ budget, only positive benefits need be selected. Once risk is nonadditive, the appropriate marginal can depend on BER and the already protected coordinates. This removes a general guarantee for a context-independent isolated ordering. It does not imply that every static ranking fails: a ranking may incorporate multi-fault information, and an optimal mask for one fixed condition is itself a fixed set.
+
+For example, consider the nonnegative analytical risk
+\begin{equation}\label{eq:three-bit-risk}
+\risk(z_1,z_2,z_3)=1.2z_1+z_2+0.1z_3+3z_2z_3.
+\end{equation}
+The isolated ordering protects bit one at budget one. Yet
+\begin{equation}\label{eq:crossing-risk}
+J_p(\{1\})=1.1p+3p^2,\qquad J_p(\{2\})=1.3p.
+\end{equation}
+The optimum switches at $p=1/15$; protecting bit three gives $2.2p$ and is never preferable. This exact example establishes the absence of a universal guarantee, without making an empirical claim about a particular network or a physical fault rate. The experiments must still determine whether comparable decision differences matter in practice.
+
+\subsection{Exact comparison within a bounded candidate set}
+To make that question tractable, choose a frozen pool $C$ of $K$ eligible bits containing both protected and unprotected coordinates. Let $\protset_{\rm out}$ be the portion of an existing global allocation outside $C$. Every compared mask has the form $\protset(Q)=\protset_{\rm out}\cup Q$, with $Q\subseteq C$ and fixed $|Q|$. The global budget is therefore unchanged.
+
+Draw each outside fault field $G$ only over the eligible coordinates outside $C\cup\protset_{\rm out}$. Evaluate all $2^K$ candidate states $A\subseteq C$, yielding $h_G(A)=\risk(G\cup A)$. For any candidate protection set $Q$, exact Bernoulli weighting gives
+\begin{equation}\label{eq:response-table}
+J_G(Q)=\sum_{A\subseteq C\setminus Q}p^{|A|}(1-p)^{|C\setminus Q|-|A|}h_G(A).
+\end{equation}
+The response table supports every equal-budget candidate mask without further inference and retains every candidate interaction order. Only the expectation over outside fields remains Monte Carlo. We select a mask on model-selection data and fields, then freeze it for independent final evaluation. The resulting optimum is restricted to that candidate pool and to the estimated selection risk; it is neither an exact population optimum nor a whole-network optimum.
+
+The three comparators are the original absolute-gradient allocation, exact isolated selection within the same pool and global budget, and conditional selection using Eq.~\eqref{eq:response-table}. For the isolated comparator, candidates are evaluated without outside faults on the selection cohort. Thus the comparison asks whether observing faulty backgrounds improves the decision beyond exact clean isolated measurements, rather than merely improving a gradient approximation.
+
+\subsection{Paired held-out comparison and interaction attribution}
+Final evaluation can avoid rare natural hits on a small set of exchanged bits. If $a\in\protset$, $b\notin\protset$ and $\protset'=(\protset\setminus\{a\})\cup\{b\}$, then
+\begin{equation}\label{eq:swap}
+J_p(\protset')-J_p(\protset)
+=p\E_G\left[\risk(G\cup\{a\})-\risk(G\cup\{b\})\right],
+\end{equation}
+where the common background excludes both exchanged bits and the coordinates protected under both masks. A deterministic sequence of legal swaps connects masks with several differences. Contributions are summed within each independent master field before computing uncertainty. Swap steps are not independent trials. This is paired Monte Carlo estimation; it is not Markov-chain sampling over protection masks.
+
+The same selection response tables also separate three sources of a decision difference. With $d_b^0=I_b$ and $d_b^G=h_G(\{b\})-h_G(\varnothing)$,
+\begin{align}\label{eq:decomposition}
+J_G(Q)={}&\risk(\varnothing)+p\sum_{b\in C\setminus Q}d_b^0
++\left[h_G(\varnothing)-\risk(\varnothing)\right]\nonumber\\
+&+p\sum_{b\in C\setminus Q}(d_b^G-d_b^0)
++\left[J_G(Q)-h_G(\varnothing)-p\sum_{b\in C\setminus Q}d_b^G\right].
+\end{align}
+These are the clean additive prediction, the common background shift, the change in single-candidate responses caused by outside faults, and the remaining within-candidate interaction contribution. The background shift cancels between masks. The decomposition is exact for the recorded table, including complete-cohort AUC; it is not a causal decomposition of network architecture. Final paired-swap records alone do not identify all of these components on the final cohort.

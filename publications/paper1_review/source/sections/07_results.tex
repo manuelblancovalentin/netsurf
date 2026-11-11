@@ -1,0 +1,85 @@
+\section{Results}\label{sec:results}
+\subsection{How accurately do inexpensive scores predict isolated damage?}
+Table~\ref{tab:isolated} compares scores with exact isolated-bit measurements on the common 320-bit stratified samples. Gradient information improves the observed association over significance alone on ResNet-8 and KWS, but correlations remain moderate. For absolute-gradient ranking, the sample-design bootstrap intervals are $[0.291,0.459]$ on ResNet-8 and $[0.199,0.375]$ on KWS. These are associations with measured positive damage, not guarantees that the highest-ranked whole-network bits have been identified.
+
+\begin{table}[t]
+\caption{Spearman correlation with positive exact isolated loss damage on 320 shared stratified bit identities per model. ToyCar's column uses reconstruction MSE, the ranking surrogate, not its authoritative AUC risk. Correlations are sample-limited and differences between columns are not cross-task effect sizes.}\label{tab:isolated}
+\centering\small
+\begin{tabular}{lrrr}\toprule
+Ranking & ResNet-8 & KWS & ToyCar MSE\\\midrule
+Random & $-0.054$ & 0.012 & 0.059\\
+MSB-first & 0.256 & 0.204 & 0.502\\
+Numerical jump & 0.070 & 0.175 & 0.439\\
+Global gradient & 0.364 & 0.258 & 0.498\\
+Absolute gradient & 0.376 & 0.288 & 0.546\\
+Positive gradient & 0.364 & 0.246 & 0.637\\\bottomrule
+\end{tabular}
+\Description{Moderate isolated-damage correlations on three sampled bit populations. The best observed association is task dependent.}
+\end{table}
+
+The ToyCar positive-gradient score has the largest observed correlation with positive MSE damage, 0.637, with interval $[0.562,0.710]$. Its correlation with positive AUC damage is instead 0.504, close to the absolute-gradient value of 0.501. The comparison exposes an objective mismatch: reconstruction error describes a signal-level perturbation, while anomaly detection depends on how errors reorder normal and anomalous files. Neither statistic establishes that one score provides superior deployed protection.
+
+\subsection{Reliability versus fault probability}
+Figure~\ref{fig:ber} presents the same engineering question across all six networks: how much task loss remains when 12.5\% of eligible bits are protected? A common visual layout makes the operating conditions comparable without treating the vertical units as interchangeable. The accompanying full-grid supplement contains every measured budget, including the partial tiers and unprotected/full-protection references. No missing cells are interpolated.
+
+\begin{figure}[!p]
+\centering\includegraphics[width=\linewidth]{reliability_ber_125}
+\caption{How does loss degrade with BER at 12.5\% protection? Each panel shows a frozen model and task cohort; lower is better. Curves are measured means, bands are 95\% fault-field intervals, and the zero line is clean/full protection. The unprotected curve appears within every panel. Nonlinear vertical spacing is explicitly marked; tick labels retain task-loss units. There are 32 fields per BER for the three TFLite models and 24 for the transformers. The ToyCar axis is AUC-risk change, not reconstruction MSE. FKeras is measured only on the three TFLite models and coincides with MSB-first at this complete-tier budget. Lines connect measured conditions as visual guides, not predictions between BERs.}\label{fig:ber}
+\Description{Six model panels show loss degradation versus logical bit-error probability. Gradient rankings preserve substantially more loss on several classification and language-model conditions, but behavior differs by task and high-BER regime.}
+\end{figure}
+
+On ResNet-8 at BER $10^{-2}$, unprotected cross-entropy is 20.093 nats/image. MSB-first reduces it to 8.715, global gradient to 3.643 and absolute gradient to 2.098. Clean loss is 0.588. At the same BER and budget on KWS, the corresponding losses are 6.714 unprotected, 1.108 MSB-first, 1.086 global gradient and 0.755 absolute gradient, against a clean loss of 0.379. Ranking choice therefore changes retained task quality materially under these fault conditions. This observation does not by itself identify a multi-bit interaction mechanism.
+
+The larger models are evaluated on the full declared eligible INT8 weight populations, not the earlier 96- or 1,024-bit restricted pilots. The broad BER grid reaches regimes with substantial degradation. At $p=10^{-2}$ and 12.5\% coverage, DistilBERT's unprotected NLL is 0.876 nats/example; numerical jump, global gradient and absolute gradient yield 0.378, 0.368 and 0.356, respectively. The latter two are slightly below the clean cohort loss of 0.375. Such a finite-cohort reduction is possible and is not evidence that corruption generally improves the trained model. Pythia's unprotected loss is 22.019 nats/token, compared with 12.706 for MSB-first and 7.883 for global gradient. Qwen's corresponding losses are 17.760, 7.943 and 3.689 for unprotected, MSB-first and absolute gradient. These results extend the evaluation beyond small networks while remaining conditional on short, fixed corpus segments and the documented capped-loss contract.
+
+ToyCar behaves differently. At $p=10^{-2}$ its unprotected risk is 0.261. At 12.5\% coverage the risks are 0.269 for random, 0.337 for MSB-first, 0.290 for global gradient and 0.308 for absolute gradient; clean risk is 0.131. More protection need not improve an arbitrary nonmonotone task risk in every measured condition. The unprotected risk itself rises from 0.170 at $10^{-5}$ to 0.500 at $10^{-3}$ and then falls to 0.261 at $10^{-2}$. This is a property of file-score ordering on this cohort, not a radiation-reliability law. We retain the nonmonotonic observations rather than choosing a loss proxy that gives smoother curves.
+
+\subsection{Protection budget changes the comparison}
+Figure~\ref{fig:budget} holds BER at $10^{-2}$ and varies protected-bit fraction. The curves show both substantial benefits and task-specific failures. ResNet-8 absolute-gradient loss decreases from 4.318 at 6.25\% coverage to 0.826 at 25\%; its MSB-first counterpart decreases from 9.459 to 1.801. For ToyCar, MSB-first risk increases from 0.312 to 0.483 over the same budgets, whereas global-gradient risk changes from 0.283 to 0.314. The uncertainty refers to repeated fault fields; it does not establish that every additional protected bit is harmful.
+
+\clearpage
+\begin{figure}[!ht]
+\centering\includegraphics[width=\linewidth]{reliability_budget_001}
+\caption{What does additional protection buy at logical BER $10^{-2}$? The four interior budgets are exact fractions of each model's declared eligible bit universe. Horizontal references retain the unprotected and clean/full-protection levels. Error bars describe fault-field mean uncertainty, not the distribution of individual outcomes. ToyCar uses $1-\mathrm{AUC}$; the other panels use classification or token loss. The absolute protected-bit counts and expected remaining faults differ greatly across models. These curves do not compare hardware costs or physical reliability.}\label{fig:budget}
+\Description{Six matched budget panels show that increasing protected fraction has model- and method-dependent effects. Pythia's global-gradient and MSB curves cross between the measured 12.5 and 25 percent budgets.}
+\end{figure}
+
+Pythia supplies a particularly direct reversal. At 12.5\% coverage, global-gradient minus MSB-first NLL is $-4.823$ nats/token, with paired interval $[-5.395,-4.343]$. At 25\% coverage it is $+0.771$, with interval $[0.553,1.025]$. Both comparisons retain the original Holm-adjusted $p=0.016$ from the saved family. Thus global gradient is preferable in one measured budget and MSB-first in the other, for the same checkpoint, BER and final cohort. This is stronger evidence of condition-dependent relative effectiveness than simply observing overlapping marginal error bars. It still does not establish that every conceivable static method must fail.
+
+\subsection{What does the published FKeras baseline add?}
+Complete significance tiers produce identical FKeras and MSB masks at 12.5\% and 25\%; the exact injected outcomes coincide as well. Those labels are not independent experimental alternatives. At partial tiers, the Hessian projection changes the allocation and can either improve or worsen the result. At $p=10^{-2}$ and 6.25\% coverage, FKeras minus MSB-first loss is $-1.678$ nats/clip on KWS but $+3.035$ nats/image on ResNet-8 (Table~\ref{tab:paired}). This contrast concerns the documented rank-two continuous-companion adaptation, not all possible Hessian methods or all FKeras settings.
+
+\begin{table}[t]
+\caption{Paired effects at selected explanatory conditions. Negative loss differences favor the first named method. Rows preserve their source comparison families; they are not pooled or used to construct a new significance family after inspection. Qwen follow-up intervals are exploratory and unadjusted.}\label{tab:paired}
+\centering\small
+\begin{tabular}{p{0.29\linewidth}rrp{0.25\linewidth}r}\toprule
+Model; contrast & BER & Budget & Mean difference [95\% CI] & Holm $p$\\\midrule
+KWS; FKeras $-$ MSB & 0.01 & 6.25\% & $-1.678$ [$-2.425,-0.930$] & 0.0112\\
+ResNet-8; FKeras $-$ MSB & 0.01 & 6.25\% & $+3.035$ [$1.835,4.234$] & 0.0112\\
+Pythia; global $-$ MSB & 0.01 & 12.5\% & $-4.823$ [$-5.395,-4.343$] & 0.0160\\
+Pythia; global $-$ MSB & 0.01 & 25\% & $+0.771$ [$0.553,1.025$] & 0.0160\\
+Qwen; absolute $-$ MSB & 0.05 & 12.5\% & $-9.297$ [$-10.021,-8.567$] & ---\\
+Qwen; absolute $-$ MSB & 0.075 & 12.5\% & $+1.637$ [$0.605,2.661$] & ---\\\bottomrule
+\end{tabular}
+\Description{Paired task-loss contrasts demonstrate opposite observed method preferences across architectures, budgets and fault rates. Units are nats per example, clip or token as appropriate.}
+\end{table}
+
+The additional computation must also be explicit. On the three TFLite calibration cohorts, mean score-construction times were 1.19, 0.41 and 3.85 seconds for global gradient, and 5.58, 1.43 and 11.42 seconds for rank-two FKeras, in ResNet-8, KWS and ToyCar order. Shared per-example computation for absolute and positive gradients took 16.99, 7.47 and 208.43 seconds. These are measured construction receipts on the study host, excluding model loading and exports, not portable speed ratios; the last two methods share work rather than each incurring the full stated time. The matched grids consumed approximately 14.07, 6.31 and 3.24 hours of coordinator elapsed time, with coordinator peak resident memory of 7.16, 2.41 and 18.19 GiB. These memory receipts are not verified simultaneous sums across workers. Repeated authoritative evaluation dominates the measured cost.
+
+For the wide transformer sweeps, median faulted-request service times were 23.75 seconds for DistilBERT, 11.56 for Pythia and 32.55 for Qwen. Summed service over 4,800 requests per model was 30.88, 15.68 and 49.35 hours. These concurrent-request totals are not elapsed wall time. The finalized wide-run records do not provide a comparable total score-construction or peak-memory receipt, so no corresponding number is inferred.
+
+\subsection{A high-BER reversal and the limits of capped loss}
+The Qwen follow-up in Fig.~\ref{fig:decisions} tests the crossover more closely using independent fault fields and already frozen masks. Absolute-gradient minus MSB-first loss changes from $-9.297$ at BER 0.05 to $+1.637$ at 0.075. The finite uncapped means show the same direction: at 0.075, 23.149 nats/token for absolute gradient versus 21.374 for MSB-first. However, the fractions of finite token losses reaching the 30-nat ceiling are 10.49\% and 7.07\%, respectively. The reversal is not created solely by nonfinite penalties or the cap, but it occurs in a severely degraded regime. It does not establish a useful operating point or an interaction-driven phase transition. Pythia's highest-BER observations need similar censoring caution because a separate finite-cap-frequency record is unavailable.
+
+\begin{figure}[!htbp]
+\centering\includegraphics[width=\linewidth]{paired_reversals_and_kws}
+\caption{Which decisions change, and is the improvement resolved? Left: paired Pythia global-gradient minus MSB loss at $p=0.01$ reverses with budget. Center: exploratory Qwen absolute-gradient minus MSB loss reverses with BER at 12.5\% coverage. Right: every independently sampled KWS pool's conditional-selected minus exact-isolated held-out effect at $p=0.05$, with the across-pool mean and 95\% interval. Negative values favor the first method. The panels use their own task units and independent experimental designs; they are not pooled. Showing all 32 pool effects exposes heterogeneity concealed by the mean.}\label{fig:decisions}
+\Description{Two paired method reversals accompany a distribution of conditional versus isolated selection effects across 32 keyword-spotting candidate pools; the latter mean interval crosses zero.}
+\end{figure}
+
+\subsection{Do conditional decisions improve on exact isolated selection?}
+The new 32-pool KWS study gives an important negative result. Conditional selection chooses a different mask from exact isolated selection in 27 pools. On independent final fields, however, its primary mean effect is only $-8.24\times10^{-5}$ nats/clip, with across-pool interval $[-0.00169,0.00153]$ and $p=0.918$. Eleven pool effects favor conditional selection, five are zero, and sixteen favor isolated selection. The data therefore establish changed decisions, but do not resolve improved expected protection relative to the stronger comparator.
+
+Both methods improve on the original absolute-gradient mask in the secondary comparisons: conditional selection by 0.00268 nats/clip, interval $[0.00058,0.00478]$, and exact isolated selection by 0.00248, interval $[0.00036,0.00459]$, with saved Holm-adjusted $p=0.0279$ for each. These are separately estimated paired-swap contrasts, so their finite Monte Carlo estimates need not subtract exactly to the primary estimate. The small gains are compatible with correcting a local static approximation; they do not demonstrate a unique benefit from conditioning.
+
+Earlier exact response-table experiments cover 56 pool/BER conditions across KWS, ResNet-8 and ToyCar. Replacing clean isolated effects with outside-background-conditioned single-candidate effects accounts for much more of their selection-order changes than retaining the remaining within-pool interactions. The appendix records the complete counts and unresolved held-out comparisons. This means that the faulty rest of the network can change which local intervention looks useful. It does not establish that two particular numerical jumps cancel, that architecture size causes the effect, or that conditional selection is generally worth its exponential construction cost.

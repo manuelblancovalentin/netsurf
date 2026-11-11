@@ -1,0 +1,40 @@
+% Vector artwork: an exact affine INT8 example. Bit 7 is the sign bit.
+\begingroup%
+\definecolor{bitink}{HTML}{17324D}%
+\definecolor{bitteal}{HTML}{167D8D}%
+\definecolor{bitred}{HTML}{B34E45}%
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small]
+\draw[draw=bitink!25,fill=bitink!3,rounded corners=3pt] (-2.4,-1.57) rectangle (2.4,1.56);
+\draw[draw=bitred!40,fill=bitred!4,rounded corners=3pt] (2.8,-1.57) rectangle (7.6,1.56);
+\draw[draw=bitteal!40,fill=bitteal!4,rounded corners=3pt] (8.0,-1.57) rectangle (12.8,1.56);
+\node[font=\sffamily\bfseries,text=bitink] at (0,1.15) {Original stored word};
+\node[font=\sffamily\bfseries,text=bitred] at (5.2,1.15) {Flip the sign bit ($b=7$)};
+\node[font=\sffamily\bfseries,text=bitteal] at (10.4,1.15) {Flip bit $b=2$};
+\foreach \x/\digit in {0/0,1/0,2/0,3/0,4/0,5/1,6/0,7/1}{
+  \draw[draw=bitink!25,fill=white] (-1.60+\x*0.40,0.25) rectangle (-1.20+\x*0.40,0.78);
+  \node[font=\ttfamily\bfseries,text=bitink] at (-1.40+\x*0.40,0.515) {\digit};
+}
+\foreach \x/\digit in {0/1,1/0,2/0,3/0,4/0,5/1,6/0,7/1}{
+  \draw[draw=bitink!25,fill=white] (3.60+\x*0.40,0.25) rectangle (4.00+\x*0.40,0.78);
+  \node[font=\ttfamily\bfseries,text=bitink] at (3.80+\x*0.40,0.515) {\digit};
+}
+\draw[draw=bitred,line width=1pt,fill=bitred!14] (3.60,0.25) rectangle (4.00,0.78);
+\node[font=\ttfamily\bfseries,text=bitred] at (3.80,0.515) {1};
+\foreach \x/\digit in {0/0,1/0,2/0,3/0,4/0,5/0,6/0,7/1}{
+  \draw[draw=bitink!25,fill=white] (8.80+\x*0.40,0.25) rectangle (9.20+\x*0.40,0.78);
+  \node[font=\ttfamily\bfseries,text=bitink] at (9.00+\x*0.40,0.515) {\digit};
+}
+\draw[draw=bitteal,line width=1pt,fill=bitteal!14] (10.80,0.25) rectangle (11.20,0.78);
+\node[font=\ttfamily\bfseries,text=bitteal] at (11.00,0.515) {0};
+\node[align=center,text=bitink] at (0,-0.39) {$q=5$\\[3pt]$w=0.3125$};
+\node[align=center,text=bitink] at (5.2,-0.39) {$q'=5\mathbin{\mathrm{XOR}}128=-123$\\[3pt]$w'=-7.6875$};
+\node[align=center,text=bitink] at (10.4,-0.39) {$q'=5\mathbin{\mathrm{XOR}}4=1$\\[3pt]$w'=0.0625$};
+\node[text=bitink,font=\sffamily\footnotesize] at (0,-1.15) {$w=s(q-z)$,\quad $s=1/16$,\quad $z=0$};
+\node[text=bitred,font=\sffamily\bfseries] at (5.2,-1.15) {$\Delta w=-8$};
+\node[text=bitteal,font=\sffamily\bfseries] at (10.4,-1.15) {$\Delta w=-0.25$};
+\node[text=bitink,align=center,font=\sffamily\footnotesize] at (5.2,-2.05)
+  {The zero point cancels in $\Delta w=s(q'-q)$.\quad The jump is exact; its task-level damage depends on the network and inputs.};
+\end{tikzpicture}%
+}%
+\endgroup%

@@ -1,0 +1,55 @@
+\section{Susceptibility Estimation and Budgeted Allocation}\label{sec:susceptibility}
+\subsection{A common score-to-mask interface}\label{sec:estimators}
+A susceptibility estimator assigns a score to an eligible bit; an ordering policy turns the scores and structural criteria into a sequence. The budget selects the first $B$ distinct identities. Canonical tensor, word and bit order resolves deterministic ties. Random order uses a recorded construction seed distinct from the fault-field seed. Scores and masks are fixed before final evaluation and reused across BERs within a study.
+
+Let $\theta_i$ denote the decoded parameter containing bit $b$, and let $\Delta_b$ be its exact jump from Eq.~\eqref{eq:xor-delta}. For a differentiable calibration loss $\ell_x$, define $g_i(x)=\partial\ell_x/\partial\theta_i$ and $z_b(x)=g_i(x)\Delta_b$. Table~\ref{tab:methods} lists the static methods. In particular, the global-gradient score is the \emph{magnitude of the mean} first-order effect; it is not the mean magnitude. The positive-gradient score keeps positive per-example effects before aggregation. All three are approximation scores, not exact predictions of the risk under a simultaneous fault field.
+
+\begin{table}[t]
+\caption{Static allocation methods. Larger scores receive priority unless a primary significance tier is specified. Calibration means refer to the method's declared surrogate loss.}\label{tab:methods}
+\centering\small
+\begin{tabularx}{\linewidth}{l l X}\toprule
+Method & Score or ordering & Information used\\\midrule
+Random & Seeded permutation & Eligible identities only\\
+MSB-first & $j$ descending, then canonical identity & Stored bit position\\
+Numerical jump & $|\Delta_b|$ & Exact encoded transition and scale\\
+Global gradient & $|\E_x z_b(x)|$ & Mean calibration gradient\\
+Absolute gradient & $\E_x|z_b(x)|$ & Per-example calibration gradients\\
+Positive gradient & $\E_x\max(0,z_b(x))$ & Per-example calibration gradients\\
+FKeras & Significance first; $|H'_i|$ within tier & Continuous loss-Hessian eigenpairs\\\bottomrule
+\end{tabularx}
+\Description{Seven methods and their distinct score and ordering definitions.}
+\end{table}
+
+These definitions obey
+\begin{equation}\label{eq:gradient-identity}
+\E\max(0,z_b)=\tfrac12\bigl(\E|z_b|+\E z_b\bigr),\qquad
+|\E z_b|\leq\E|z_b|.
+\end{equation}
+Thus differences among the three scores reflect aggregation and sign as well as sensitivity magnitude. A negative exact fault effect is possible on a finite cohort and is retained. Removing such observations would change the estimand.
+
+\subsection{Companion models and exact inference}
+The differentiable model supplies ranking derivatives, while the frozen quantized executable supplies all measured clean and faulted outcomes. For the TFLite benchmarks, companion variables map one-to-one to decoded stored kernels; requantization uses a documented straight-through derivative. Tensor identities, shapes, flat indices and scales are checked against the faultable population. The forward comparison is a conformance diagnostic, not a claim that the surrogate differentiates the discrete integer program.
+
+This distinction has practical consequences. A finite sign-bit jump can cross activation gates or quantization thresholds even when a local derivative is small. Per-example aggregation avoids cancellation of first-order signs, but does not restore omitted nonlinear responses. A better score-to-isolated-damage correlation is therefore useful evidence about a surrogate, not sufficient evidence that its full protection mask minimizes $J_p$.
+
+For ToyCar, the differentiable objective is reconstruction MSE. The authoritative task risk is $1-\mathrm{ROC\text{-}AUC}$ over complete files. Gradients of MSE can be computed efficiently, but their objective differs from preserving the ordering of normal and anomalous file scores. We keep that difference visible throughout the evaluation rather than relabeling MSE as anomaly-detection quality.
+
+\subsection{Published-form FKeras and complete-tier equivalence}
+FKeras uses leading eigenpairs of a continuous weight-loss Hessian~\cite{weng2024fkeras}. We preserve its published projection
+\begin{equation}\label{eq:fkeras}
+H'=\sum_{i=1}^{k}\lambda_i(v_i^\top\theta)v_i
+\end{equation}
+and use the magnitude of each parameter component to order words within successive bit-significance tiers. The paper comparison contains this single definition. The public repository's different effective accumulation is documented in the implementation audit but is not a second experimental baseline.
+
+The adaptation uses float64 decoded-weight companions without activation rounding or clipping, classification cross-entropy or ToyCar reconstruction MSE, and two signed largest-magnitude eigenpairs. Calibration cohorts match the other gradient methods. The deterministic symmetric Lanczos solver has tolerance $10^{-5}$ and residual, symmetry and orthogonality checks; negative eigenvalues are retained. Each recorded solve used 25 Hessian-vector products, with maximum normalized residual below $6.1\times10^{-16}$. This validates the chosen rank-two continuous calculation, not the full Hessian spectrum or a Taylor approximation to an integer XOR transition. The continuous forward approximation can differ materially: the ResNet-8 preflight agreed on 61 of 64 calibration classes, while cross-entropy changed from 0.918 for exact inference to 0.626 for the continuous model. Its maximum probability discrepancy was 0.332. The faulted outcomes still come from the authoritative quantized backend. The three smaller networks pass the computational and numerical gate for this declared adaptation; the transformer grids do not contain a validated FKeras allocation, and that missing coverage is reported explicitly.
+
+Strict tier-first ordering has a useful exact control. At 12.5\% protection of homogeneous INT8 storage, every sign bit is protected. At 25\%, every sign bit and every bit-six coordinate is protected. FKeras and corrected MSB-first must therefore produce the same masks at these two budgets, regardless of within-tier sensitivity. We verify the stored sets and their fault outcomes. The informative within-tier comparisons occur at 6.25\% and 18.75\%; identical complete-tier masks are not independent policies or independent replications.
+
+\subsection{Empirical isolation and historical alternatives}
+Exact isolated susceptibility is
+\begin{equation}\label{eq:isolated}
+I_b=\risk(\{b\})-\risk(\varnothing).
+\end{equation}
+It can be measured without a differentiable model, but exhaustive evaluation scales with the entire bit population. We use sampled single-bit studies to examine prediction quality and exact isolation within bounded candidate pools as a strong allocation comparator. These uses have different sampling scope: a stratified candidate study does not establish whole-population top-$k$ accuracy without accounting for its design.
+
+Historical qPolarGrad is retained in the software as a separately identified legacy estimator. Its recovered expression is $|P_b\,\partial L/\partial\theta_i|$, with activation-source behavior recorded in the legacy contract; the expression printed in the earlier manuscript included an additional perturbation factor. Neither expression is silently substituted for the other. Its historical results are not carried into the present INT8 comparisons. Similarly, PrioriFI's feedback-guided fault discovery does not become a fixed-budget allocation merely by sorting its injection queue. A validated conversion, construction-cost accounting, and independent effectiveness evaluation are needed before such an allocation can join the measured comparison.

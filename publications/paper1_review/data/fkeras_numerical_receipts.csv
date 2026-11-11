@@ -1,0 +1,13 @@
+model,replication,implementation,eigenpairs,hvp_calls,maximum_normalized_residual,orthogonality_error,solver,ordering,eigenvalues
+resnet8,replication_0,mlperf-resnet8-continuous-float64/v1,2,25,5.91709875154612e-16,1.1229205348844402e-15,scipy-arpack-symmetric-lanczos/v1,largest_magnitude_signed,"[721958.9060415837, 423825.6337366966]"
+resnet8,replication_1,mlperf-resnet8-continuous-float64/v1,2,25,6.074793097181771e-16,7.418029303585306e-16,scipy-arpack-symmetric-lanczos/v1,largest_magnitude_signed,"[721958.9060415842, 423825.63373669673]"
+resnet8,replication_2,mlperf-resnet8-continuous-float64/v1,2,25,5.44637528053988e-16,1.2384967818017117e-15,scipy-arpack-symmetric-lanczos/v1,largest_magnitude_signed,"[721958.9060415837, 423825.6337366967]"
+resnet8,replication_3,mlperf-resnet8-continuous-float64/v1,2,25,4.832638107463974e-16,3.6896146385590154e-16,scipy-arpack-symmetric-lanczos/v1,largest_magnitude_signed,"[721958.906041584, 423825.63373669697]"
+kws,replication_0,mlperf-kws-continuous-float64/v1,2,25,3.8826271915949516e-16,1.6418886649577358e-16,scipy-arpack-symmetric-lanczos/v1,largest_magnitude_signed,"[207.49338954201434, 164.67647410677176]"
+kws,replication_1,mlperf-kws-continuous-float64/v1,2,25,3.7844683821975294e-16,7.774854568617293e-16,scipy-arpack-symmetric-lanczos/v1,largest_magnitude_signed,"[207.49338954201428, 164.67647410677182]"
+kws,replication_2,mlperf-kws-continuous-float64/v1,2,25,3.944502828331532e-16,4.481048024851805e-16,scipy-arpack-symmetric-lanczos/v1,largest_magnitude_signed,"[207.4933895420143, 164.67647410677174]"
+kws,replication_3,mlperf-kws-continuous-float64/v1,2,25,4.889137346348193e-16,4.677240129798491e-16,scipy-arpack-symmetric-lanczos/v1,largest_magnitude_signed,"[207.49338954201428, 164.67647410677188]"
+toycar,replication_0,mlperf-toycar-continuous-float64/v1,2,25,5.062123533136831e-16,7.772866173747223e-16,scipy-arpack-symmetric-lanczos/v1,largest_magnitude_signed,"[16715558.47215279, 13361359.387135396]"
+toycar,replication_1,mlperf-toycar-continuous-float64/v1,2,25,3.2290383090512153e-16,7.90341683246373e-16,scipy-arpack-symmetric-lanczos/v1,largest_magnitude_signed,"[16715558.472152792, 13361359.38713541]"
+toycar,replication_2,mlperf-toycar-continuous-float64/v1,2,25,3.3721395072712193e-16,1.3573638211621003e-15,scipy-arpack-symmetric-lanczos/v1,largest_magnitude_signed,"[16715558.472152786, 13361359.387135413]"
+toycar,replication_3,mlperf-toycar-continuous-float64/v1,2,25,2.974708146277571e-16,1.1227331837033854e-15,scipy-arpack-symmetric-lanczos/v1,largest_magnitude_signed,"[16715558.472152794, 13361359.387135401]"

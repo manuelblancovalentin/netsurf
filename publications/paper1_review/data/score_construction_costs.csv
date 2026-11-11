@@ -1,0 +1,22 @@
+model,estimator,replications,mean_seconds,min_seconds,max_seconds,note
+resnet8,fkeras_paper,4,5.580267142504454,5.24718276085332,5.931032144930214,source timing excludes unrelated inference/export
+resnet8,random_reference,4,0.0,0.0,0.0,source timing excludes unrelated inference/export
+resnet8,s2_msb_first,4,0.0,0.0,0.0,source timing excludes unrelated inference/export
+resnet8,s3_numerical_jump,4,0.8554519703611732,0.8345020031556487,0.881293635815382,source timing excludes unrelated inference/export
+resnet8,s4_gradient_delta,4,1.1856130553642288,1.1599240638315678,1.2142226290889084,source timing excludes unrelated inference/export
+resnet8,s5_per_example_absolute,4,16.986218008911237,16.848760902881622,17.29342151572928,shared Jacobian cost; do not add absolute and positive timings
+resnet8,s6_per_example_positive,4,16.986218008911237,16.848760902881622,17.29342151572928,shared Jacobian cost; do not add absolute and positive timings
+kws,fkeras_paper,4,1.4324402797501534,1.3878346267156303,1.4709288086742163,source timing excludes unrelated inference/export
+kws,random_reference,4,0.0,0.0,0.0,source timing excludes unrelated inference/export
+kws,s2_msb_first,4,0.0,0.0,0.0,source timing excludes unrelated inference/export
+kws,s3_numerical_jump,4,0.2327955326763913,0.2220119098201394,0.24177337996661663,source timing excludes unrelated inference/export
+kws,s4_gradient_delta,4,0.4115818156860769,0.39772014133632183,0.43159922026097775,source timing excludes unrelated inference/export
+kws,s5_per_example_absolute,4,7.467378861270845,6.994117526803166,8.491103720851243,shared Jacobian cost; do not add absolute and positive timings
+kws,s6_per_example_positive,4,7.467378861270845,6.994117526803166,8.491103720851243,shared Jacobian cost; do not add absolute and positive timings
+toycar,fkeras_paper,4,11.421236790134571,10.987084496300668,11.80413071019575,source timing excludes unrelated inference/export
+toycar,random_reference,4,0.0,0.0,0.0,source timing excludes unrelated inference/export
+toycar,s2_msb_first,4,0.0,0.0,0.0,source timing excludes unrelated inference/export
+toycar,s3_numerical_jump,4,3.0548679765779525,2.9655013028532267,3.191775782033801,source timing excludes unrelated inference/export
+toycar,s4_gradient_delta,4,3.8477264711400494,3.777817982248962,3.8947593881748617,source timing excludes unrelated inference/export
+toycar,s5_per_example_absolute,4,208.42581467248965,203.30979022802785,212.67106715915725,shared Jacobian cost; do not add absolute and positive timings
+toycar,s6_per_example_positive,4,208.42581467248965,203.30979022802785,212.67106715915725,shared Jacobian cost; do not add absolute and positive timings

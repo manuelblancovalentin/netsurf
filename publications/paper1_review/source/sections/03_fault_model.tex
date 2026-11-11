@@ -1,0 +1,48 @@
+\section{NetSuRF Design Flow and Exact Fault Model}\label{sec:fault}
+\subsection{From a frozen model to a protection assessment}
+The flow consists of three stages, shown in Fig.~\ref{fig:workflow}. First, a benchmark adapter establishes the model bytes, quantization metadata, authoritative inference backend, and task data. Second, a susceptibility analysis assigns scores to eligible bits and an ordering policy constructs protection masks for the requested budgets. Third, the evaluator applies shared random fault fields to those masks and measures the resulting task loss and quality. These stages are independently recorded so that a change in a ranking cannot silently change the network, fault population, or evaluation cohort.
+
+\begin{figure}[t]
+\centering\input{figures/workflow}
+\caption{What does NetSuRF evaluate? The software flow connects a frozen encoded model to a measured protection decision. Ranking uses calibration data; all masks are fixed before the paired final fault fields are evaluated. Protection resources are counted as eligible bits. Physical correction circuits are outside this flow.}
+\Description{A workflow from checkpoint and cohort identities, through bit enumeration and ranking, to sealed masks, common fault fields, authoritative inference and loss versus BER and budget.}
+\label{fig:workflow}
+\end{figure}
+
+The same model can support several analyses without sharing their scientific meaning. An exact isolated-bit measurement evaluates one specified XOR perturbation. A gradient score comes from a differentiable companion and estimates a loss response. A protection mask selects coordinates. The fault generator samples events, and the evaluator computes the task result after suppression. Keeping these objects distinct prevents, for example, a successful surrogate-gradient calculation from being reported as a validated integer inference result.
+
+\subsection{Exact stored-bit perturbations}
+Let $\bits=\{1,\ldots,N\}$ contain the eligible bits in the declared kernel or quantized-weight tensors. Each bit has a tensor identity, a row-major word index, a bit position $j\in\{0,\ldots,7\}$, and the applicable quantization metadata. Bit zero is the least significant bit; bit seven is the two's-complement sign bit. Allocated zero-valued words remain eligible. The present experiments exclude biases, scales, zero points, graph metadata, activations, and control state from the fault population.
+
+For a stored signed code $q$, affine scale $s$ and zero point $z$, the decoded value is $w=s(q-z)$. If $a_j$ is the current value of bit $j$, a single flip produces the exact numerical jump
+\begin{equation}\label{eq:xor-delta}
+\Delta w_j=\begin{cases}s(1-2a_j)2^j,&0\leq j<7,\\-s(1-2a_7)2^7,&j=7.\end{cases}
+\end{equation}
+The zero point cancels in this difference, while a per-channel scale remains specific to the selected word. Figure~\ref{fig:encoding} illustrates the sign convention. The delta representation is useful for ranking, but the actual experiment mutates the stored integer code by XOR. Multiple distinct flips within one word compose through the corresponding XOR mask, including simultaneous sign and magnitude-bit changes. Their effects on the network output need not add linearly.
+
+\begin{figure}[t]
+\centering\input{figures/encoded_xor}
+\caption{What changes when a stored bit flips? For the illustrative INT8 code $q=5$, $s=1/16$ and $z=0$, flipping the sign bit changes the decoded weight by $-8$, whereas flipping bit two changes it by $-1/4$. Both transitions are exact. The task effect still depends on where the weight is used and on the input and other faults.}
+\Description{The INT8 pattern 00000101 becomes 10000101 under a sign-bit XOR, or 00000001 under a bit-two XOR, with the decoded values and jumps labeled.}
+\label{fig:encoding}
+\end{figure}
+
+For the three MLPerf Tiny models, mutation occurs in private copies of the TFLite constant buffers and inference uses TensorFlow Lite 2.14.1 \code{BUILTIN\_REF}. For the three transformer models, mutation targets the frozen INT8 weight buffers used by the validated CPU integer-matmul execution path. These are distinct numerical backends. Neither is replaced by float-shadow fault injection, and support for a model name alone does not establish equivalence between them.
+
+\subsection{Fault fields, lifetime, and protection resources}
+A proposed fault field is a set $Z$ obtained by independently flipping each eligible coordinate with probability $p$. The faulted state persists across the entire evaluation cohort in that trial. For a protected set $\protset$, the applied field is $A=Z\setminus\protset$. The same $Z$ is used for every compared mask, including the unprotected and fully protected controls. After evaluation, the adapter restores the original model state. Every record checks
+\begin{equation}\label{eq:accounting}
+|Z|=|Z\setminus\protset|+|Z\cap\protset|.
+\end{equation}
+The three terms count proposed, applied, and suppressed flips. Repeated policy evaluations of a field are paired observations, not additional independent fault realizations.
+
+Protection cost is $B=|\protset|$ or $c=B/N$. Budgets are exact cardinalities, with the configured integer rounding convention recorded when needed. For homogeneous INT8 storage, the budgets used here are exact fractions of the population. A fault field has expected proposed count $Np$ and expected applied count $(N-B)p$. At a fixed BER, a larger model therefore experiences more simultaneous faults. Equal BER is a useful per-coordinate comparison; it does not equalize total corruption, inference sensitivity, or physical exposure.
+
+The parameter $p$ is a logical per-trial probability. The model does not specify particle flux, an upset cross section, scrubbing intervals, cell placement, or correlated radiation-induced events. Ideal suppression defines which proposed events reach inference; it makes no claim about the overhead or residual error behavior of ECC, TMR, or another physical mechanism.
+
+\subsection{Task risk and the decision being measured}
+For a fixed checkpoint, backend and cohort $\mathcal D$, let $\risk(A)$ be the task loss after applying fault set $A$. Expected risk at BER $p$ is
+\begin{equation}\label{eq:expected-risk}
+J_p(\protset)=\E_{Z\sim\mathrm{Bernoulli}(p)^N}\bigl[\risk(Z\setminus\protset)\bigr].
+\end{equation}
+A budgeted allocation seeks a set of cardinality $B$ with low $J_p$. The experiment estimates this quantity for the frozen masks it actually evaluates; it does not find a whole-network optimum. We also retain application quality: classification accuracy, complete-file ROC-AUC, or token-level language-model statistics. Their units and aggregation rules are specified in Section~\ref{sec:experiments}.

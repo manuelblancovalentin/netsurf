@@ -1,0 +1,57 @@
+\appendix
+\section{Probability Identities and Approximation Limits}\label{app:proofs}
+\subsection{Protection benefit and equal-budget swaps}
+Let $G$ exclude an unprotected bit $b$. Independence gives
+\[
+J_p(\protset)=(1-p)\E R(G)+p\E R(G\cup\{b\}),\qquad
+J_p(\protset\cup\{b\})=\E R(G).
+\]
+Subtracting proves Eq.~\eqref{eq:protection-benefit}. For the swap in Eq.~\eqref{eq:swap}, the old mask leaves $b$ exposed and the new mask leaves $a$ exposed. Both share the same Bernoulli background and no-fault term; subtracting yields the stated result. These are elementary conditioning identities. They do not require additive loss, differentiability or a neural network. They also do not identify naturally absent faults with interventions under arbitrary correlated or fixed-count laws.
+
+For additive risk $R(A)=R(\varnothing)+\sum_{b\in A}I_b$, linearity gives $J_p(\protset)=R(\varnothing)+p\sum_{b\notin\protset}I_b$. Equal-cost, equal-probability exact-budget optimization therefore selects the largest $I_b$. The nonadditive counterexample in Sec.~\ref{sec:allocation} is nonnegative on all eight states and changes the optimal budget-one mask at $p=1/15$. It proves failure of a general guarantee, not failure for every network.
+
+\subsection{Exact candidate interactions and a useful caution about bounds}
+For a fixed outside field, the Boolean response has the unique multilinear expansion~\cite{odonnell2014analysis}
+\[
+h_G(A)=\sum_{T\subseteq A}\mu_G(T),\qquad
+\mu_G(T)=\sum_{U\subseteq T}(-1)^{|T|-|U|}h_G(U).
+\]
+Thus $J_G(Q)=\sum_{T\subseteq C\setminus Q}p^{|T|}\mu_G(T)$, and the order-one truncation is precisely the outside-conditioned additive part of Eq.~\eqref{eq:decomposition}. Signed coefficients can cancel. A sum of absolute coefficient magnitudes is a bound or diagnostic, not the signed protection benefit. Boolean multilinear expansions and their expectation identities are established mathematics, not new foundations introduced by NetSuRF.
+
+Suppose $h_G(A)\in[a,a+M]$ and $n=|C\setminus Q|$. The order-one prediction for a state with $s\ge2$ candidate faults is $\sum_{b\in A}h_G(\{b\})-(s-1)h_G(\varnothing)$. Its deviation from $h_G(A)$ is at most $sM$, while it is exact at $s=0,1$. For $S\sim\mathrm{Binomial}(n,p)$,
+\begin{equation}\label{eq:bound}
+\left|J_G(Q)-h_G(\varnothing)-p\sum_{b\in C\setminus Q}d_b^G\right|
+\le M\E[S\mathbf1_{S\ge2}]
+=Mnp\left[1-(1-p)^{n-1}\right].
+\end{equation}
+This gives $O(n(n-1)p^2)$ behavior at fixed small $n$ and low $p$. AUC risk has $M=1$; a valid bounded-loss range is needed for other tasks. The bound may be far too loose to certify an allocation because observed decision gaps can be much smaller. It bounds residual \emph{within-candidate} interactions after conditioning on the outside field; it says nothing comparable about the error of clean isolated scores caused by a large faulty background. Uniform risk approximation error $\varepsilon$ would imply at most $2\varepsilon$ excess risk for its minimizer over the same feasible set, but the present empirical studies do not establish a useful whole-network $\varepsilon$.
+
+\section{Additional Evidence and Reproducibility Boundaries}\label{app:evidence}
+The companion figure supplement supplies all four measured interior budgets for all six models. Machine-readable condition means, paired contrasts, cohort identities, source manifests, score-construction receipts and figure scripts are distributed separately. Each table or panel is traced to a finalized scientific payload; checksums and development identifiers are kept out of the reader-facing plots.
+
+The earlier conditional attribution study includes a 12-pool KWS study at BER 0.01, a separate 12-pool KWS sweep at 0.001, 0.003 and 0.01, four ResNet-8 pools at 0.01, and four ToyCar pools at 0.001. Pool identities are reused across BER where specified and must not be counted as independent samples of architecture. Table~\ref{tab:attribution} compares strict mask-order reversals against the full response-table selection objective. Counts are dependent pairwise order comparisons, not independent statistical trials. All six saved across-pool held-out selected-minus-isolated intervals include zero.
+
+\begin{table}[h]
+\caption{Selection-order reversals relative to the exact response table. Conditioning individual candidate effects on outside faults removes most recorded reversals in these bounded designs. These counts do not establish held-out superiority.}\label{tab:attribution}
+\centering\small
+\begin{tabular}{llrr}\toprule
+Model & BER & Clean additive & Outside-conditioned additive\\\midrule
+KWS, initial pools & 0.01 & 396 & 8\\
+KWS, multi-BER pools & 0.001 & 328 & 0\\
+KWS, multi-BER pools & 0.003 & 305 & 0\\
+KWS, multi-BER pools & 0.01 & 376 & 4\\
+ResNet-8 & 0.01 & 201 & 1\\
+ToyCar & 0.001 & 196 & 0\\\bottomrule
+\end{tabular}
+\Description{Full selection-order attribution for six historical model and BER groups, preserving negative and unresolved held-out findings.}
+\end{table}
+
+Additional bounded scaling studies on KWS and ResNet-8 examined candidate sizes 6, 12, 32 and 64 at three expected-fault levels, with four pools per condition. Exact selection was feasible only at the smaller sizes. At sizes 6 and 12, the outside-conditioned additive choice had zero recorded selection regret against the restricted exact choice in all 24 conditions per model. This is finite-table agreement, not a theorem about larger pools. All 54 simultaneous equal-pool intervals per model included zero; several differences were identically zero, which does not establish population equivalence. These measurements do not support a scalable optimizer-superiority claim. They help identify where expensive exact enumeration currently adds little observed decision value.
+
+\subsection{Historical estimators and precision-specific studies}
+Separate focused follow-ups strengthen two partial-tier comparisons without being pooled into the main grid. On ResNet-8 at $p=0.01$ and 6.25\% coverage, 320 paired fields give FKeras minus MSB cross-entropy $+2.241$ nats/image, interval $[1.890,2.593]$, in the same direction as the main study. On ToyCar at $p=0.01$ and 18.75\% coverage, 384 paired fields give FKeras minus absolute-gradient AUC risk $+0.1106$, interval $[0.0920,0.1292]$. Both retain their saved Holm-adjusted $p=0.0012$. These follow-ups improve fault-field precision conditional on their existing cohorts and masks, not generalization to new trained models.
+
+The historical qPolarGrad code is preserved under its recovered definition. The extra factor in the old printed expression is documented rather than silently repaired. Its prior hardware-flow results are not reintroduced as matched evidence for the present checkpoints. Earlier FP32/BF16 studies, including the 96-bit language-model pilots and 1,024-bit DistilBERT classifier subset, remain separate restricted-universe evidence. They are not pooled with full-eligible INT8 curves or counted as independent architecture confirmations. Their representation effects and selection geometry require their own claims and controls.
+
+\subsection{Remaining generalization requirements}
+The main curves use one frozen checkpoint per model. Multiple fault fields quantify conditional fault randomness; they do not replace new checkpoints, independently sampled evaluation cohorts or repeated ranking construction. Published FKeras is missing from the transformer grids, and no matched PrioriFI-derived effectiveness grid is included. A stronger allocation claim requires a prespecified comparison against these feasible baselines, separate mask-construction and final-evaluation information, and uncertainty over the intended deployment populations. Those are prospective requirements, not unreported results.

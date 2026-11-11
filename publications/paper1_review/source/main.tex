@@ -1,0 +1,28 @@
+\documentclass[manuscript,screen,review]{acmart}
+\acmJournal{TECS}
+\setcopyright{none}
+\settopmatter{printacmref=false}
+\input{include/preamble}
+\input{include/metadata}
+\begin{document}
+\begin{abstract}
+Selective protection of neural-network parameters raises a practical question: which stored bits should receive a limited protection budget, and how well does that choice hold as the fault rate changes? We present NetSuRF, a software design flow that connects exact encoded-bit perturbations, susceptibility estimation, fixed-budget allocation, and paired fault-injection evaluation. The flow preserves the frozen checkpoint, numerical backend, task metric, and eligible storage population, and reports reliability as a function of logical bit-error probability and protected-bit count. We evaluate six INT8 networks spanning image classification, keyword spotting, anomaly detection, sentiment classification, and language modeling. Structural and gradient rankings are compared throughout; a validated adaptation of the published FKeras Hessian projection is included for the three smaller networks. The measured results show consequential changes in relative protection quality. At 1\% logical BER on Pythia, global-gradient allocation has lower mean token loss than MSB-first at 12.5\% coverage, but higher loss at 25\% coverage. A separate Qwen diagnostic exhibits a BER-dependent reversal. We relate these observations to the distinction between isolated damage and conditional protection value, without attributing every reversal to interactions. Exact selection within bounded candidate sets changes many KWS protection decisions, yet a 32-pool held-out comparison does not resolve an advantage over exact isolated selection. NetSuRF therefore supports operating-condition-specific protection assessment rather than prescribing a universally superior ranking. All protection measurements use ideal logical event suppression; hardware overhead and radiation-calibrated reliability are outside the evaluation.
+\end{abstract}
+\maketitle
+\input{sections/01_introduction}
+\input{sections/02_related_work}
+\input{sections/03_fault_model}
+\input{sections/04_susceptibility}
+\input{sections/05_protection_allocation}
+\input{sections/06_experimental_setup}
+\input{sections/07_results}
+\clearpage
+\input{sections/08_discussion}
+\input{sections/09_conclusion}
+\begin{acks}
+AI-assisted tools supported software development, evidence organization, figure preparation, and drafting. The scientific claims in this manuscript are linked to the archived measurements and derivations identified in the accompanying evidence manifest. Responsibility for the submitted work rests with the authors.
+\end{acks}
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+\input{sections/10_mathematical_appendix}
+\end{document}
