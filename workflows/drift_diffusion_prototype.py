@@ -18,6 +18,10 @@ Variants per (mask, BER):
     full        drift and diffusion, --draws Gaussian draws
     diffusion   diffusion only (drift set to zero), --diffusion-draws draws
 (drift only is already in workspace/prototypes/meanfield_drift_v1.)
+Added after v1 showed the Gaussian is too optimistic when sign bits are exposed (--variants):
+    hybrid      the two highest bits (6 and the sign bit) as real independent flips, Gaussian for bits 0-5
+    exact       all eight bits as real independent flips, i.e. a true fault field drawn here; this checks
+                that the float path used by the prototype reproduces the measured Monte Carlo means
 The same eps is used for every mask (seed depends on BER and draw only), mirroring the paired fault fields.
 
 Read-only inputs: the frozen DistilBERT W8A8 snapshot, the sealed masks, the frozen 512-sentence final
@@ -66,6 +70,8 @@ def main() -> None:
     ap.add_argument("--draws", type=int, default=3)
     ap.add_argument("--diffusion-draws", type=int, default=1)
     ap.add_argument("--seed", type=int, default=20261111)
+    ap.add_argument("--variants", nargs="+", default=["full", "diffusion"], choices=["full", "diffusion", "hybrid", "exact"])
+    ap.add_argument("--policies", nargs="+", default=None, help="keep only these, written as name@coverage")
     args = ap.parse_args()
     target = args.out / f"shard_{args.shard:02d}.json"
     assert args.out.is_dir() and not target.exists(), target
@@ -83,7 +89,11 @@ def main() -> None:
     for frac in args.budgets:
         budget = int(round(frac * plan["eligible_bits"]))
         policies += [(name, budget, frac) for name in METHODS]
+    if args.policies:
+        policies = [pol for pol in policies if f"{pol[0]}@{pol[2]}" in set(args.policies)]
+        assert len(policies) == len(set(args.policies)), "unknown policy requested"
     mine = [pol for i, pol in enumerate(policies) if i % args.shards == args.shard]
+    need_bits = bool({"hybrid", "exact"} & set(args.variants))
 
     def run(delta):
         for qm, d in zip(qmods, delta):
@@ -97,21 +107,40 @@ def main() -> None:
     rows = []
     for name, budget, frac in mine:
         protected = mf.mask_bits(name, budget, n_codes)
-        d_t, s_t = [], []
+        d_t, s_t, dl_t, sl_t, j_t = [], [], [], [], []
         for mod in modules:
-            d, v = unprotected_moments(mod["jumps"], protected[mod["start"]: mod["start"] + mod["n"]])
+            prot = protected[mod["start"]: mod["start"] + mod["n"]]
+            d, v = unprotected_moments(mod["jumps"], prot)
             d_t.append(torch.from_numpy(d.astype(np.float32).reshape(mod["shape"])))
             s_t.append(torch.from_numpy(np.sqrt(v.astype(np.float64)).astype(np.float32).reshape(mod["shape"])))
+            if need_bits:
+                low = prot.copy(); low[:, 6:] = True                    # treat bits 6-7 as absent: moments of bits 0-5
+                dl, vl = unprotected_moments(mod["jumps"], low)
+                dl_t.append(torch.from_numpy(dl.astype(np.float32).reshape(mod["shape"])))
+                sl_t.append(torch.from_numpy(np.sqrt(vl.astype(np.float64)).astype(np.float32).reshape(mod["shape"])))
+                j_t.append(torch.from_numpy(np.where(prot, 0, mod["jumps"]).astype(np.int16)))   # (codes, 8) unprotected jumps
         del protected
         for ber_index, p in enumerate(args.bers):
             sd = float(np.sqrt(p * (1.0 - p)))
-            for variant, count in (("full", args.draws), ("diffusion", args.diffusion_draws)):
-                for draw in range(count):
+            counts = {"full": args.draws, "diffusion": args.diffusion_draws, "hybrid": args.draws, "exact": args.draws}
+            for variant in args.variants:
+                for draw in range(counts[variant]):
                     gen = torch.Generator().manual_seed(args.seed + 1000 * int(round(1e7 * p)) + draw)
                     delta = []
-                    for d, s in zip(d_t, s_t):                         # fixed module order: same eps for every mask
-                        eps = torch.randn(d.shape, generator=gen, dtype=torch.float32)
-                        delta.append((p * d if variant == "full" else 0.0) + sd * s * eps)
+                    for k, (d, s) in enumerate(zip(d_t, s_t)):         # fixed module order: same draws for every mask
+                        if variant in ("full", "diffusion"):
+                            eps = torch.randn(d.shape, generator=gen, dtype=torch.float32)
+                            delta.append((p * d if variant == "full" else 0.0) + sd * s * eps)
+                            continue
+                        real = torch.zeros(d.numel(), dtype=torch.float32)
+                        for bit in (range(8) if variant == "exact" else (6, 7)):   # real coin-toss flips of these bits
+                            hit = torch.rand(d.numel(), generator=gen) < p
+                            real += hit.float() * j_t[k][:, bit].float()
+                        real = real.reshape(d.shape)
+                        if variant == "hybrid":
+                            eps = torch.randn(d.shape, generator=gen, dtype=torch.float32)
+                            real = real + p * dl_t[k] + sd * sl_t[k] * eps
+                        delta.append(real)
                     metrics, seconds = run(delta)
                     del delta
                     row = dict(policy=name, coverage=frac, budget_bits=budget, ber=p, variant=variant, draw=draw,
