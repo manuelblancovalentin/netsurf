@@ -9,8 +9,8 @@ objective = "Estimate paired error-rate and loss regret of the per-example absol
 [benchmark]
 adapter = "mlperf_tiny_kws_int8_v1"
 id = "mlperf_tiny_kws_dscnn_int8_v1"
-checkpoint = "/ml/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4/benchmark/training/keyword_spotting/trained_models/kws_ref_model.tflite"
-dataset = "/ml/datasets/speech_commands/0.0.3"
+checkpoint = "/data/models/models--mlcommons--tiny/blobs/aeea436800704fce17b17292e4412630ad856e9d777c044c64ef748a880bd0ae"
+dataset = "/data/datasets/speech_commands/0.0.3"
 asset_lock = "/projects/kona-assets/manuelbv/locks/mlperf-tiny/kws.lock.json"
 inference_backend = "tensorflow_lite_builtin_ref_v1"
 split = "test"
