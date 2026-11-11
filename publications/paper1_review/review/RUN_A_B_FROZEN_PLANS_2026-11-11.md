@@ -39,6 +39,17 @@ Monitor (read-only):
 - **Decision rule.** If the upper 95% bound of absolute-gradient error-rate regret stays below 1 percentage point in every decision-useful cell, the default claim is confirmed for these two checkpoints over calibration draws and input windows. Otherwise the cells where it fails are reported.
 - **Outputs.** `workspace/runs/paper1_runA_<model>_confirm_v1/<run id>/` in the Run A worktree, finalized by the engine. tmux sessions `runA_resnet8`, `runA_kws`.
 
+### Timing smokes and launch
+
+Both smokes used only the previously exposed window 0 to 999, one replication, two fields, one BER and two budgets (36 evaluations each), and are engineering checks, not results.
+
+- DS-CNN: 6.6 minutes, about 10 s per evaluation. The randomized within-tier mask covers about 6% of every tensor at 6.25% (storage-order MSB-first covers seven tensors fully and two not at all) and is identical to MSB-first at 12.5%, as intended.
+- ResNet-8: 13.4 minutes, about 21 s per evaluation with Run B already loading the machine. Same mask check passed.
+- Projected wall time: about 8.6 hours for each model (4 and 10 workers, one thread each).
+- Configuration SHA-256: ResNet-8 `94b03af7941b4da78945fafa2e8af40367c690d2294a999585f170940fc4b4d0`; DS-CNN `e2ce597e4bdf37884924106c21783e5f00023aec7d734814f2136ddb1a16e21f`.
+- Launched 11 November 2026: `runB_pythia` and `runB_qwen` at 00:38 CST, `runA_kws` at 00:49, `runA_resnet8` at 00:55. Machine load about 70 of 80 cores with all four running; 385 GiB of memory free.
+- Early Run B estimates from the monitor: Pythia about 4.5 hours, Qwen about 9 hours.
+
 ### Differences from the decision memo's sketch
 
 | Memo sketch | As launched | Reason |
