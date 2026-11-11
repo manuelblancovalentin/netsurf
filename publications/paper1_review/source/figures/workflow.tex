@@ -92,8 +92,8 @@
 \draw[group] (4.90,.72) rectangle (8.70,2.91);
 \node[label,text=flowbrown] at (6.80,2.60) {Calibrate scores; order bits};
 \node[detail] at (6.80,2.12) {Significance $\cdot$ jump $\cdot$ gradients};
-\node[detail] at (6.80,1.73) {Published FKeras where verified};
-\node[label,text=flowred] at (6.80,1.13) {Choose budget; seal mask};
+\node[detail] at (6.80,1.73) {Published-form FKeras (TFLite)};
+\node[label,text=flowred] at (6.80,1.13) {Choose budget; freeze mask};
 \draw[edge] (5.765,3.32)--(5.765,2.91);
 \draw[edge] (7.85,2.91)--(7.85,3.14);
 \draw[transfer] (4.10,1.73)--(4.90,1.73);
@@ -107,7 +107,7 @@
 \draw[edge] (11.40,3.80)--(11.40,3.58);
 \draw[draw=flowbrown!75,fill=white,rounded corners=2pt,line width=.65pt]
   (9.74,2.56) rectangle (13.06,3.56);
-\node[label] at (11.40,3.25) {Authoritative inference};
+\node[label] at (11.40,3.25) {Quantized inference};
 \node[detail] at (11.40,2.83) {Held-out inputs; restore};
 % Document motif for task measurements.
 \draw[draw=flowolive,fill=white,line width=.55pt]
@@ -128,7 +128,7 @@
 
 \node[align=center,font=\sffamily\fontsize{7.6}{9.5}\selectfont,text=flowbrown]
   at (6.80,-.45)
-  {Ideal logical suppression $\cdot$ Paired saved fields $\cdot$ Exact restoration $\cdot$ Immutable results};
+  {Ideal logical suppression $\cdot$ Paired saved fields $\cdot$ Exact restoration $\cdot$ Archived results};
 \end{tikzpicture}%
 }%
 \endgroup%

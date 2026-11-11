@@ -1,0 +1,56 @@
+{
+ "outputs": {
+  "conditions_with_quality.csv": "b3592a753af1e34241d9fdb71587668b69274cdf3df0b9fa2299eacb1109271c",
+  "event_accounting.csv": "81116255b9a90325e5f4721b1ce28bff3ae1362988676a002dcd21d4b6563885",
+  "pairwise_contrasts.csv": "128ee9da93d9c7483204c5dc37c4120210b602b057194e137192d2cb69305a40",
+  "per_cell_regret.csv": "0def7024163d6bbe22141602a801dd240b09945f1f8a315a84ff19a7ac319862",
+  "protection_vs_unprotected.csv": "ef998124f2664d5adf22e05e87add5191aa75e9266d12e07acfd4da84b8f3f04",
+  "summary.json": "21738509f381a3da8b30b0ce47e2ddbc38cc34c98f090161e0f49d8e1b566195"
+ },
+ "schema": "paper1-tecs-grid-audit/2.0",
+ "seed": 20261110,
+ "signflip_draws": 20000,
+ "sources": {
+  "distilbert": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/distilbert_sst2_int8/derived/trials.csv",
+   "sha256": "92a266c71b72017271bc9b7b2d6e7302de8f8f25831afce5d3c3c9ea77fe3ce8"
+  },
+  "kws": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/runs/kws_partial_tier_fkeras_matched_v1/20261104T042124.586895Z-b0284b42/measurements/trials.csv",
+   "sha256": "4edbba09a4a6bbbb30add3ae581e89e5f201355fedf571df9e33fb90c3820d5c"
+  },
+  "pythia": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/pythia-wide-confirm/workspace/runs/pythia_w8a8_high_ber_clean_gated_v2/derived/trials.csv",
+   "sha256": "0f506afac2efe3adf6ffb0e742335c440e4c820059354d0b0e6fac7f9a919cd6"
+  },
+  "qwen": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/qwen3_0_6b_int8/derived/trials.csv",
+   "sha256": "720623f574e75392d403f32f902ee8703d48b687fe3b456f3239379e6a68852e"
+  },
+  "resnet8": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/measurements/trials.csv",
+   "sha256": "ccc7636167d0651beb25115880044d322afee089d536a92d0735c7e79250e74c"
+  },
+  "toycar": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/measurements/trials.csv",
+   "sha256": "397a593be6762610f1ac3367f6baf41f58fda9b97fa4e26d59f77b86cbb34597"
+  }
+ },
+ "thresholds": {
+  "loose": {
+   "acc": 0.1,
+   "auc": 0.1,
+   "nll": 1.0
+  },
+  "primary": {
+   "acc": 0.05,
+   "auc": 0.05,
+   "nll": 0.5
+  },
+  "tight": {
+   "acc": 0.01,
+   "auc": 0.01,
+   "nll": 0.1
+  }
+ }
+}

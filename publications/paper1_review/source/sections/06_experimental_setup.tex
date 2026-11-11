@@ -1,33 +1,38 @@
 \section{Experimental Methodology}\label{sec:experiments}
-\subsection{Benchmarks and operating grid}
-Table~\ref{tab:models} defines the six frozen executable studies. The MLPerf Tiny models use official artifacts and preprocessing~\cite{banbury2021mlperf,mlcommons2026tiny}: CIFAR-10 image classification, Speech Commands keyword spotting~\cite{warden2018speechcommands}, and ToyADMOS anomaly detection~\cite{koizumi2019toyadmos}. DistilBERT/SST-2~\cite{sanh2019distilbert,socher2013sentiment}, Pythia-160M~\cite{biderman2023pythia}, and Qwen3-0.6B~\cite{yang2025qwen3} use validated W8A8 executables, with the language models evaluated on WikiText-2~\cite{merity2017pointer}. W8A8 denotes INT8 weight storage and activation computation; only the declared weight buffers are faultable.
+\subsection{Models and operating grid}
+Table~\ref{tab:models} lists the six frozen studies. The three MLPerf Tiny models are the reference INT8 TFLite files with their reference preprocessing~\cite{banbury2021mlperf,mlcommons2026tiny}: ResNet-8 on CIFAR-10, DS-CNN on Speech Commands~\cite{warden2018speechcommands}, and the ToyCar autoencoder on ToyADMOS~\cite{koizumi2019toyadmos}. They run on the TensorFlow Lite 2.14.1 reference kernels. DistilBERT on SST-2~\cite{sanh2019distilbert,socher2013sentiment}, Pythia-160M~\cite{biderman2023pythia} and Qwen3-0.6B~\cite{yang2025qwen3} are W8A8 executables derived from the public checkpoints: weights of linear layers are stored as per-channel symmetric INT8 codes, activations are quantized per token at run time, and products accumulate exactly in INT32. The language models are scored on WikiText-2~\cite{merity2017pointer}. Checkpoint identities, quantization rules and reference quality on the full evaluation sets are given in Appendix~\ref{app:implementation}.
 
 \begin{table}[t]
-\caption{Frozen models and evaluation cohorts. Fields are independent fault realizations per BER. Loss units differ by task; language-model perplexity (PPL) refers only to the listed short cohort.}\label{tab:models}
+\caption{Frozen models, eligible populations and evaluation cohorts. $Np$ is the expected number of proposed faults per field at the lowest BER. Clean quality is measured on the listed cohort.}\label{tab:models}
 \centering\small
-\begin{tabularx}{\linewidth}{l r l r X}\toprule
-Model & Eligible bits & Cohort & Fields & Clean loss / quality\\\midrule
-ResNet-8 & 618,880 & 1,000 images & 32 & 0.58830 CE / 88.0\% acc.\\
-DS-CNN & 176,128 & 1,000 clips & 32 & 0.37939 CE / 90.1\% acc.\\
-ToyCar & 2,113,536 & 64 files & 32 & 0.13086 risk / 0.86914 AUC\\
-DistilBERT & 344,469,504 & 512 examples & 24 & 0.37473 NLL / 91.41\% acc.\\
-Pythia-160M & 988,545,024 & 4,096 tokens & 24 & 3.52956 NLL / 34.109 PPL\\
-Qwen3-0.6B & 4,767,875,072 & 4,096 tokens & 24 & 2.82863 NLL / 16.922 PPL\\\bottomrule
-\end{tabularx}
-\Description{Six models, eligible storage populations, fixed input cohorts, fields per BER and clean metrics.}
+\begin{tabular}{l r r l r l}\toprule
+Model & Eligible bits $N$ & $Np$ at $10^{-5}$ & Cohort & Fields/BER & Clean quality\\\midrule
+ResNet-8 & 618,880 & 6.2 & 1,000 images & 32 & 88.0\% accuracy\\
+DS-CNN & 176,128 & 1.8 & 1,000 clips & 32 & 90.1\% accuracy\\
+ToyCar & 2,113,536 & 21 & 64 files & 32 & 0.869 file AUC\\
+DistilBERT & 344,469,504 & 3,445 & 512 sentences & 24 & 91.4\% accuracy\\
+Pythia-160M & 988,545,024 & 9,885 & 4,096 tokens & 24 & 3.530 nats/token\\
+Qwen3-0.6B & 4,767,875,072 & 47,679 & 4,096 tokens & 24 & 2.829 nats/token\\\bottomrule
+\end{tabular}
+\Description{Six models with eligible bit counts, expected fault counts, cohorts, fields per BER and clean task quality.}
 \end{table}
 
-All studies evaluate 6.25\%, 12.5\%, 18.75\%, and 25\% protection plus zero/full controls. BERs are $10^{-5},10^{-4},3\!\times\!10^{-4},10^{-3},3\!\times\!10^{-3},10^{-2},3\!\times\!10^{-2},10^{-1}$; ToyCar uses the subset $10^{-5},10^{-4},10^{-3},3\!\times\!10^{-3},10^{-2}$. Every grid includes the six structural/gradient methods in Table~\ref{tab:methods}; FKeras is measured on the three TFLite models only. No matched PrioriFI-derived allocation is available.
+Every study evaluates 6.25\%, 12.5\%, 18.75\% and 25\% protection, together with unprotected and fully protected controls. BERs are $10^{-5}$, $10^{-4}$, $3\!\times\!10^{-4}$, $10^{-3}$, $3\!\times\!10^{-3}$, $10^{-2}$, $3\!\times\!10^{-2}$ and $10^{-1}$; ToyCar omits $3\!\times\!10^{-4}$, $3\!\times\!10^{-2}$ and $10^{-1}$. A (BER, budget) pair is called a \emph{cell}; there are 32 cells per model and 20 for ToyCar. All six non-Hessian rankings are measured in every cell; FKeras is measured on the three TFLite models only. In total the grids contain 1,254 method-cell conditions and 35,136 saved policy-field outcomes.
 
-Ranking uses 64 calibration inputs for ResNet-8, KWS and DistilBERT, 16 normal training files for ToyCar, and 8,184 validation targets for each language model. Final inputs are separate within each study, but several cohorts have prior exploratory exposure; they are not untouched confirmation samples. Each model has one checkpoint. TFLite random allocation uses four mask seeds per budget; other methods, and all transformer methods, use one frozen mask per budget.
+Rankings use 64 calibration inputs for ResNet-8, DS-CNN and DistilBERT, 16 normal training files for ToyCar, and 8,184 validation targets for each language model. The DistilBERT calibration sentences come from its fine-tuning split, where its loss is already below 0.03 nats. Evaluation inputs are disjoint from calibration inputs, but several cohorts were used in earlier exploratory runs and are not untouched confirmation samples.
 
-\subsection{Metrics and uncertainty}
-Classification uses accuracy and cross-entropy, in natural-log units (nats). TFLite probabilities are floored at $10^{-12}$. Transformer NLL is capped at 30 nats per example/token, also the penalty for a failed or nonfinite unit. ToyCar evaluates every window under the same fault state, aggregates one score per complete file, and computes ROC-AUC with half credit for ties. Its task risk is $1-\mathrm{AUC}$, not reconstruction MSE.
+\subsection{Task metrics}
+Each model is judged by its task metric.
+\begin{itemize}
+\item \emph{Classifiers.} Accuracy on the cohort. Cross-entropy is also recorded, but for the TFLite models it is computed from the 8-bit integer softmax output, $-\ln\max\{(o+128)/256,10^{-12}\}$ for output code $o$ of the true class, without renormalization. A per-example loss is therefore at most 5.5 nats or exactly 27.6 nats, and the mean is dominated by the count of zero-probability outputs. We use accuracy for all classifier conclusions.
+\item \emph{ToyCar.} Every window is evaluated under the same fault state, one score is formed per complete file, and ROC-AUC is computed over the 64 files with half credit for ties. Reconstruction error is only the surrogate used for gradients.
+\item \emph{Language models.} Mean token negative log-likelihood (NLL). Each token's NLL is capped at 30 nats, which is also the penalty for a nonfinite output. No nonfinite output occurred in any of the 9,984 saved language-model outcomes. The fraction of finite token losses that reach the cap was not recorded in the main grids.
+\end{itemize}
 
-Contrasts are paired by proposed field and retain their original Holm comparison families. Confidence intervals quantify fault randomness conditional on the fixed model, inputs and masks; they do not replicate training or input sampling. Transformer contrasts use paired bootstrap intervals. The additional Qwen crossover study uses 24 new fields at each of 5\% and 7.5\% BER; its intervals are exploratory.
+\subsection{Usefulness criterion}
+Comparisons between masks only matter where at least one of them leaves a usable model. We therefore fixed the following criterion before computing any regret, although after the fault data had been collected and two slices of the grid had been plotted. A method is \emph{useful} in a cell if its mean accuracy or file AUC is within 0.05 of the clean value, or, for a language model, if its mean NLL is within 0.5 nats per token of clean (a perplexity ratio of at most 1.65). A cell is \emph{decision-useful} if at least one measured ranking is useful there. Margins of 0.01/0.1 and 0.10/1.0 are used as sensitivity checks.
 
-Pairing asks how much two allocations differ under the same proposed corruption, rather than comparing two unrelated trial averages. A wide distribution of fault outcomes can coexist with a precise paired difference if the methods respond similarly to easy and difficult fields. Conversely, overlapping mean intervals alone establish neither equivalence nor changing method preference. We therefore use the paired contrasts to support reversals and the full curves to show their operating context.
+\subsection{Statistics and scope of inference}
+The independent unit is the fault field. All contrasts between masks are paired on the field, and intervals are two-sided 95\% Student-$t$ intervals on the paired differences. Tests are paired sign-flip tests with 20,000 random sign assignments, so no $p$-value can be smaller than $5\times10^{-5}$. Holm correction is applied within each model over all contrasts between the absolute-gradient mask and every other mask on the whole grid, 120 to 192 contrasts per model. Statements about pairs of other rankings use the larger family of all pairwise contrasts within the model. We call a difference \emph{resolved} when its Holm-adjusted $p$ is below 0.05. Identical masks are excluded from the count. The \emph{regret} of a ranking in a cell is its paired mean risk minus that of the best measured ranking in the same cell; because the best ranking is chosen on the same fields, the regret of every other ranking is biased slightly upward.
 
-The isolated-damage study uses 320 common stratified candidate bits per TFLite model; its correlations are sample-limited. The conditional KWS test uses 32 independently sampled six-bit pools within a 12.5\% absolute-gradient mask, preserving two protected bits per pool. At BER 5\%, each pool uses eight selection fields and 32 independent final master fields on 384 clips. Its primary contrast is conditional versus exact-isolated selection; two secondary contrasts use Holm correction. Pool-level uncertainty is distinct from field-level uncertainty.
-
-All reported measurements come from finalized, checksum-linked artifacts. Model/cohort identities, masks, schedules, detailed numerical contracts and full grids accompany the paper.
+All intervals describe fault randomness only. They condition on one trained checkpoint per model, one evaluation cohort, and one constructed mask per deterministic ranking and budget (four masks for the TFLite random baseline). They say nothing about other checkpoints, other calibration draws or fresh inputs, and model families are never pooled.

@@ -1,30 +1,24 @@
-\section{Susceptibility Estimation and Allocation}\label{sec:susceptibility}\label{sec:estimators}
-Each method orders eligible bits; protecting the first $B$ gives an exact-budget mask. Ties follow canonical tensor, word and bit identities. Random ranking uses a recorded seed distinct from fault generation. Masks are frozen before final evaluation and reused across BERs.
-
-For bit $b$ in parameter $\theta_i$, let $\Delta_b$ be the exact weight jump from its XOR transition. If $g_i(x)$ is the calibration-loss gradient for input $x$, its first-order effect is $e_b(x)=g_i(x)\Delta_b$. Table~\ref{tab:methods} distinguishes the magnitude of the mean effect from the mean magnitude and mean positive effect; these aggregations need not produce the same ordering.
+\section{Rankings and Masks}\label{sec:susceptibility}\label{sec:estimators}
+Each ranking orders the eligible bits, and protecting the first $B$ gives an exact-budget mask. Table~\ref{tab:methods} lists the seven rankings. For bit $b$ of weight $\theta_i$, let $\Delta_b$ be the exact weight jump of its XOR transition and $g_i(x)$ the calibration-loss gradient for input $x$. The first-order effect of the flip is $e_b(x)=g_i(x)\Delta_b$.
 
 \begin{table}[t]
-\caption{Static ranking definitions. Larger scores rank first; $\E_x$ averages calibration inputs and $j$ is bit position.}\label{tab:methods}
+\caption{Static rankings. Larger scores rank first; $\E_x$ averages calibration inputs and $j$ is the bit position. Remaining ties follow the stored tensor, word and bit order.}\label{tab:methods}
 \centering\small
 \begin{tabularx}{\linewidth}{l l X}\toprule
-Method & Score or ordering & Information used\\\midrule
-Random & Seeded permutation & Eligible identities\\
-MSB-first & Descending $j$ & Stored significance\\
-Numerical jump & $|\Delta_b|$ & Encoded transition and scale\\
-Global gradient & $|\E_x e_b(x)|$ & Mean loss gradient\\
-Absolute gradient & $\E_x|e_b(x)|$ & Per-input gradients\\
-Positive gradient & $\E_x\max(0,e_b(x))$ & Positive first-order effects\\
-FKeras & Significance first; $|H'_i|$ within tier & Continuous loss Hessian\\\bottomrule
+Ranking & Score or ordering & Needs\\\midrule
+Random & Seeded permutation & Nothing\\
+MSB-first & Descending $j$ & Bit positions\\
+Numerical jump & $|\Delta_b|$ & Stored codes and scales\\
+Global gradient & $|\E_x e_b(x)|$ & Labelled calibration set, one mean gradient\\
+Absolute gradient & $\E_x|e_b(x)|$ & Labelled calibration set, per-example gradients\\
+Positive gradient & $\E_x\max(0,e_b(x))$ & Same as absolute gradient\\
+FKeras & Descending $j$, then $|H'_i|$ & Calibration set, two Hessian eigenpairs\\\bottomrule
 \end{tabularx}
-\Description{Seven ranking methods differ in their scores, aggregation and use of bit-significance tiers.}
+\Description{Seven ranking methods differ in their scores, aggregation and required information.}
 \end{table}
 
-For FKeras~\cite{weng2024fkeras}, the published projection is $H'=\sum_{k=1}^{r}\lambda_k(v_k^\top\theta)v_k$, where $\theta$ contains decoded weights and $(\lambda_k,v_k)$ are Hessian eigenpairs. This can produce a different ordering from plain MSB-first within each significance tier; it does not override the priority of a more significant bit position.
+The three gradient rankings aggregate the same per-example effects differently. The global score lets opposite-signed effects cancel before taking a magnitude. The absolute score keeps the magnitude of every per-example effect, whether the flip is predicted to raise or lower the loss. The positive score keeps only predicted harm, and so ranks a flip by its direction as well as its size. All three share the factor $|\Delta_b|$ and none is an exact finite-fault calculation.
 
-The distinction between an ordering and its selected mask matters. With eight bits per word, 12.5\% coverage protects exactly one complete tier: every sign bit. Both significance-first policies therefore select the same set, irrespective of their ordering within that tier. At 25\%, both select the top two tiers. At 6.25\%, however, only half the sign bits fit; at 18.75\%, all sign bits and half the next tier fit. The within-tier sensitivity can then change which weights are protected. We retain distinct method identities, but identical masks under paired fields are the same protection decision, not independent evidence.
+For FKeras~\cite{weng2024fkeras} we use the published projection $H'=\sum_{k=1}^{r}\lambda_k(v_k^\top\theta)v_k$ with $r=2$ signed largest-magnitude eigenpairs of a continuous loss Hessian, and order bits by significance tier and then by $|H'_i|$. The gradient companions use straight-through requantization and the Hessian companion omits activation rounding; neither differentiates the integer program (Appendix~\ref{app:implementation}).
 
-The gradient aggregations differ for another reason. Opposite signed first-order effects can cancel before the global score takes an absolute value. Absolute-gradient ranking instead retains both predicted harmful and beneficial magnitudes, whereas positive-gradient ranking retains only predicted harm. Neither operation is an exact finite-fault calculation, and the resulting orders need not coincide even when they use the same calibration inputs.
-
-TFLite gradient companions use straight-through requantization, whereas the Hessian companion is continuous and omits activation rounding. Neither differentiates the exact integer program. All measured protection outcomes still use exact quantized inference. ToyCar's derivative objective is reconstruction MSE, but its authoritative protection risk is complete-file $1-\mathrm{AUC}$; surrogate improvement need not improve that task. Solver controls and correspondence limits are given in Appendix~\ref{app:implementation}.
-
-Exact isolated damage, $I_b=\risk(\{b\})-\risk(\varnothing)$, measures loss after one flip minus clean loss. It supplies a strong comparator on bounded bit samples, but exhaustive evaluation grows with the population. Negative damage is retained: faults can improve loss on a fixed cohort.
+\paragraph{Rankings versus masks.} Two different rankings can select the same mask. With eight bits per word, 12.5\% coverage is exactly one tier, so MSB-first and FKeras both protect every sign bit, and at 25\% both protect the top two tiers. We keep the two names but count identical masks as one protection decision. At 6.25\% and 18.75\% a tier is only half protected, and the within-tier order decides which half. For FKeras that order is the Hessian score. For MSB-first it is the stored tensor order, which is arbitrary: at 6.25\% the ResNet-8 MSB-first mask protects every sign bit in eight tensors and none in the largest tensor, which holds 48\% of all eligible bits. Partial-tier contrasts between FKeras and MSB-first therefore compare a Hessian score with a storage order, and we do not interpret them as evidence for or against Hessian information.

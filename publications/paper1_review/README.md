@@ -1,3 +1,13 @@
+# TECS revision of the software-reliability paper
+
+**Which Stored Bits Are Worth Protecting? A Paired Evaluation of Static Bit Rankings for INT8 Neural Networks**
+
+This is the fifth delivery, prepared on branch `paper1-tecs-revision-v1` from commit `fdba0d0`. Start with `review/TECS_DECISION_MEMO_2026-11-11.md` (what the offline audit found and which runs are proposed), then `review/tecs_revision_notes.md` (what changed and the remaining submission risks), then the PDF. `review/claim_to_evidence.md` and the first section of `review/figure_table_manifest.md` describe the current manuscript. `data/tecs_audit/` holds the recomputed full-grid tables; `data/tecs_revision_provenance.json` binds inputs, scripts, derived data and figures by SHA-256.
+
+No model inference was run for this revision and no production run was launched. The earlier README text follows for history.
+
+---
+
 # Compact software-reliability internal draft
 
 **Is There a Universal Bit Ranking? Evaluating Fault Protection in Quantized Neural Networks**

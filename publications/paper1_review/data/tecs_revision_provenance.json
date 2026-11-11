@@ -1,0 +1,122 @@
+{
+ "audit_parameters": {
+  "seed": 20261110,
+  "signflip_draws": 20000,
+  "thresholds": {
+   "loose": {
+    "acc": 0.1,
+    "auc": 0.1,
+    "nll": 1.0
+   },
+   "primary": {
+    "acc": 0.05,
+    "auc": 0.05,
+    "nll": 0.5
+   },
+   "tight": {
+    "acc": 0.01,
+    "auc": 0.01,
+    "nll": 0.1
+   }
+  }
+ },
+ "derived_data": {
+  "conditions_with_quality.csv": "b3592a753af1e34241d9fdb71587668b69274cdf3df0b9fa2299eacb1109271c",
+  "distilbert_residual_drift.json": "4efda50f6c210e0efeb92b33274657f248121a584af682dfbf27f3b625800f63",
+  "event_accounting.csv": "81116255b9a90325e5f4721b1ce28bff3ae1362988676a002dcd21d4b6563885",
+  "grid_audit_provenance.json": "8402eec6f91fad63f18dcc9ffc16049f995b3b83b06815740c01187eac659d1c",
+  "kws_conditional_audit.json": "62830fc47ab987e7717f1968d31e684ee56901bd3808db6f57ff409ef43d0ccc",
+  "pairwise_contrasts.csv": "128ee9da93d9c7483204c5dc37c4120210b602b057194e137192d2cb69305a40",
+  "per_cell_regret.csv": "0def7024163d6bbe22141602a801dd240b09945f1f8a315a84ff19a7ac319862",
+  "protection_vs_unprotected.csv": "ef998124f2664d5adf22e05e87add5191aa75e9266d12e07acfd4da84b8f3f04",
+  "summary.json": "21738509f381a3da8b30b0ce47e2ddbc38cc34c98f090161e0f49d8e1b566195"
+ },
+ "experiments_executed": 0,
+ "figures": {
+  "tecs_grid_regret_map.pdf": "405db3f512054d244be821cf47544c8d927a0ca377026a38a3aeefabe51892f3",
+  "tecs_grid_regret_map.png": "432827436d7cd06df3d73f2343d42a87c7f5752dca1dfe96faa0bdeab40ce844",
+  "tecs_protection_vs_unprotected_125.pdf": "4429534a843035d4fbd9164d7614d9125f86f6723ca1953cff057e0d51bb7b9f",
+  "tecs_protection_vs_unprotected_125.png": "5fd55dd438680ab178e0958c2adc6510bdce95aa25a107dd8881f6375293e9ff",
+  "tecs_task_quality_ber_125.pdf": "773b36c5d82415c15cd5222572002338bb2ea4c4caff33d64f0d33840500d74f",
+  "tecs_task_quality_ber_125.png": "c25988a78d755a257ba83d6afad14d5e263ee26e51b48e20df0168a7bcb5c5e3"
+ },
+ "limits": [
+  "One checkpoint, one evaluation cohort and one constructed mask per deterministic ranking and budget.",
+  "Usefulness criterion fixed before regret was computed but after the data existed.",
+  "Main-grid language-model cap frequency was never recorded.",
+  "Residual-drift check covers DistilBERT only."
+ ],
+ "note": "Offline re-analysis of finalized studies. Source bundles were read, never written.",
+ "other_sources": {
+  "asset_readiness_manifest": {
+   "path": "/projects/kona-assets/manuelbv/NETSURF_ASSET_READINESS.json",
+   "sha256": "7128399521cef0d3e08f5d70bcb4f5b360fe2c85406c8ea8ac495e85be77b1b0"
+  },
+  "distilbert_moments_manifest": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_w8a8_reliability_v2_run1/selection/moments/manifest.json",
+   "sha256": "bf742cd96b363b55cafd3ba944a5b1a22a65788f5b548e286d64dad1285d7e44"
+  },
+  "distilbert_quantization_manifest": {
+   "path": "/data/models/local--kona-assets--distilbert-sst2-int8/snapshots/1f07e0012b060f3658fa139839dab054478c5121/quantization_manifest.json",
+   "sha256": "50e98e6f20b927b6d96307b1b2da4daabd1ec9818807d62ec2c7f90a6fec0a72"
+  },
+  "kws_cross_pool_payload": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/kws-transition-validation/workspace/runs/kws_transition_independent_pools_p05_derived_recovery_v1/scientific_payload.json",
+   "sha256": "e9e777f1deebe439d50540cd944b59bd535ccb4ec9e583ec479cec8b74f4b27f"
+  },
+  "kws_mask_composition": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/runs/kws_partial_tier_fkeras_matched_v1/20261104T042124.586895Z-b0284b42/measurements/mask_composition.csv",
+   "sha256": "602d4caf3ece63eaee1e31745072c7345fbe5d0db9269488ccbf4a5238846cc4"
+  },
+  "resnet8_mask_composition": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/measurements/mask_composition.csv",
+   "sha256": "1be3f247c58635adbb6c1cc379da304adf5b5101f979bc74170f5ae63e834647"
+  },
+  "tflite_adapter_source": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/netsurf/adapters/mlperf_tiny.py",
+   "sha256": "e443b937a15cfded572bc0bc7056f62a0c0e086e52db8961e90f563c0d73439a"
+  },
+  "toycar_mask_composition": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/measurements/mask_composition.csv",
+   "sha256": "19ed54c48c611176b1ce5d4539b10d9029493a5c243640ea68fe1d9aac007a4f"
+  },
+  "w8a8_rank_source": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/netsurf/w8a8_rank.py",
+   "sha256": "18f3a15b7b8fb3849fed6c0a61d2a91df6fabf6ecad45bf3bd9f98718cf8f0e2"
+  }
+ },
+ "schema": "paper1-tecs-revision-provenance/1.0",
+ "scripts": {
+  "build_tecs_figures.py": "89ee2e6ba87eb5816a22754595bebd634fc538146afe234e3e028456a6aaeca1",
+  "build_tecs_provenance.py": "82d1304c3304dd6926f1214b7c14e2a26b94d72a338b17099c0a9da5f813677f",
+  "tecs_grid_audit.py": "02c17570e082337e02c81a7e21c09a39e6dc461bd1797aebd900bfb62e849a03",
+  "tecs_kws_conditional_audit.py": "3fe379c3dcac7e65bb438e79fcff3fa16bcaff49e38560a31c0ae852b7150e9f",
+  "tecs_residual_drift_check.py": "8cad48f293e0db085066276ca44b601e5873f3217078e042153080994e933c3f"
+ },
+ "source_trials": {
+  "distilbert": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/distilbert_sst2_int8/derived/trials.csv",
+   "sha256": "92a266c71b72017271bc9b7b2d6e7302de8f8f25831afce5d3c3c9ea77fe3ce8"
+  },
+  "kws": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/runs/kws_partial_tier_fkeras_matched_v1/20261104T042124.586895Z-b0284b42/measurements/trials.csv",
+   "sha256": "4edbba09a4a6bbbb30add3ae581e89e5f201355fedf571df9e33fb90c3820d5c"
+  },
+  "pythia": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/pythia-wide-confirm/workspace/runs/pythia_w8a8_high_ber_clean_gated_v2/derived/trials.csv",
+   "sha256": "0f506afac2efe3adf6ffb0e742335c440e4c820059354d0b0e6fac7f9a919cd6"
+  },
+  "qwen": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/qwen3_0_6b_int8/derived/trials.csv",
+   "sha256": "720623f574e75392d403f32f902ee8703d48b687fe3b456f3239379e6a68852e"
+  },
+  "resnet8": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/measurements/trials.csv",
+   "sha256": "ccc7636167d0651beb25115880044d322afee089d536a92d0735c7e79250e74c"
+  },
+  "toycar": {
+   "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/measurements/trials.csv",
+   "sha256": "397a593be6762610f1ac3367f6baf41f58fda9b97fa4e26d59f77b86cbb34597"
+  }
+ }
+}

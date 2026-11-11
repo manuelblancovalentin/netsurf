@@ -1,16 +1,18 @@
-\section{When Isolated Damage Is Insufficient}\label{sec:allocation}
-Protecting a bit prevents its effect in a possibly faulty network, not necessarily in the clean network used to measure $I_b$. For an unprotected bit $b$, let $G$ contain Bernoulli faults on the other unprotected bits. Its conditional vulnerability is the average added loss $V_b(p,\protset)=\E_G[\risk(G\cup\{b\})-\risk(G)]$, where the union means adding that one flip. Independence gives
-\begin{equation}\label{eq:protection-benefit}
-J_p(\protset)-J_p(\protset\cup\{b\})=pV_b(p,\protset).
-\end{equation}
-The left side is the expected loss reduction from protecting $b$. Isolated damage equals this marginal response only in special cases, such as additive risk or a fault-free background. Independent events do not imply additive consequences.
+\section{Why Single-Fault Damage Is Not Protection Value}\label{sec:allocation}
+This section states what can and cannot be expected of a static ranking. Its content is standard reliability theory applied to bit protection.
 
-A three-bit example makes the distinction concrete. With $z_i=1$ denoting a flip, consider
+The isolated damage of bit $b$, $I_b=\risk(\{b\})-\risk(\varnothing)$, is the risk after one flip minus the clean risk. Protecting a bit, however, removes its effect in a network that may already be faulty. For an unprotected bit $b$, let $G$ be the random set of faults on the other unprotected bits, and define the conditional vulnerability $V_b(p,\protset)=\E_G[\risk(G\cup\{b\})-\risk(G)]$. Because bit $b$ faults independently of $G$,
+\begin{equation}\label{eq:protection-benefit}
+J_p(\protset)-J_p(\protset\cup\{b\})=p\,V_b(p,\protset).
+\end{equation}
+The left side is the expected risk reduction from protecting $b$. This is the improvement potential of reliability theory, the product of the failure probability and Birnbaum's importance~\cite{birnbaum1969importance,rausand2004system}. $V_b$ equals $I_b$ when the risk is additive over faults or when no other fault is present, and in general depends on both $p$ and the current mask.
+
+Two small examples show the consequences. With $z_i=1$ denoting a flip, let
 \begin{equation}\label{eq:three-bit-risk}
 \risk(z_1,z_2,z_3)=1.2z_1+z_2+0.1z_3+3z_2z_3.
 \end{equation}
-Isolated damage ranks bit one first. Protecting it leaves expected loss $1.1p+3p^2$, whereas protecting bit two leaves $1.3p$. The preferred bit switches at $p=1/15$. This establishes no general guarantee for an isolated ordering, not inevitable failure of static rankings: the optimal final mask for a fixed condition can itself be static.
+Isolated damage ranks bit one first. Protecting it leaves expected risk $1.1p+3p^2$, whereas protecting bit two leaves $1.3p$, so the better single bit to protect switches at $p=1/15$. No order of these bits that ignores $p$ is best at every $p$.
 
-To test whether the distinction matters in networks, we hold an existing global allocation fixed except for a frozen pool of $K$ candidate bits. Every exchange preserves the total budget. For each sampled outside fault field, we evaluate all $2^K$ candidate states and exactly weight their responses under Bernoulli faults. This retains every candidate interaction order; only the outside expectation uses Monte Carlo. Mask selection uses separate data and fields from final comparison.
+A ranking also forces masks to be nested across budgets, and optimal masks need not be. For $\risk=z_1+1.05z_2+1.05z_3+z_1z_2+z_1z_3$ at $p=0.1$, the best single protected bit is bit one (expected risk $0.210$ against $0.215$), but the best protected pair is bits two and three ($0.100$ against $0.105$).
 
-The comparators are the original absolute-gradient mask, exact isolated selection within the same pool, and conditional selection. This tests the value of faulty-background information against more than a gradient approximation. It is neither Markov-chain sampling nor whole-network optimization. Paired-swap evaluation and response-table details are in Appendix~\ref{app:proofs}; changed decisions alone do not establish held-out benefit.
+These examples prove only that no guarantee exists. They do not say that a static ranking performs badly in a real network, nor how large the loss from using one is. A fixed mask can be optimal for a fixed condition, and a static score may itself be built from multi-fault measurements. How much is lost in practice is an empirical question, which the remaining sections address by measuring task quality on the full BER-by-budget grid.

@@ -1,5 +1,7 @@
 # Empirical evidence handoff
 
+> TECS revision note (11 November 2026): the source studies described below are unchanged. The revised manuscript no longer treats the "manuscript-critical findings" listed here as its headline results; see `review/TECS_DECISION_MEMO_2026-11-11.md` and `review/claim_to_evidence.md` for the full-grid re-analysis in task metrics.
+
 All tables/figures in this directory are derived from finalized source measurements. Every plotted condition mean was reconstructed from saved policy-field observations; no inference was run. Hash receipts record the exact data used. Large original mask/event/score payloads are linked by their source manifests rather than all rehashed in this manuscript build.
 
 ## Main current comparisons

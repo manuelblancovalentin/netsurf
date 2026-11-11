@@ -72,6 +72,23 @@ def math_checks():
             actual.append(total)
         expected = [1.1 * p + 3 * p * p, 1.3 * p, 2.2 * p]
         assert max(abs(a - b) for a, b in zip(actual, expected)) < 1e-12
+    # Non-nested optimum printed in the TECS revision: best single bit {1}, best pair {2,3}.
+    def nested(s):
+        return s[0] + 1.05 * s[1] + 1.05 * s[2] + s[0] * s[1] + s[0] * s[2]
+    def expected(fn, protected, p):
+        free = [i for i in range(3) if i not in protected]
+        total = 0.
+        for state in itertools.product((0, 1), repeat=len(free)):
+            s = [0, 0, 0]
+            for i, v in zip(free, state):
+                s[i] = v
+            total += p ** sum(state) * (1 - p) ** (len(free) - sum(state)) * fn(s)
+        return total
+    singles = [expected(nested, {b}, .1) for b in range(3)]
+    pairs = {c: expected(nested, set(c), .1) for c in itertools.combinations(range(3), 2)}
+    assert abs(singles[0] - .210) < 1e-12 and abs(singles[1] - .215) < 1e-12 and singles[0] < min(singles[1:])
+    assert abs(pairs[(1, 2)] - .100) < 1e-12 and abs(pairs[(0, 1)] - .105) < 1e-12
+    assert min(pairs, key=pairs.get) == (1, 2)
     # Every Boolean-valued response on a 3-bit cube verifies the range bound.
     for values in itertools.product((0., 1.), repeat=8):
         for p in (.01, .1, .5):
@@ -104,6 +121,13 @@ def validate():
         "review/compact_revision_notes.md", "review/compact_venue_literature.md",
         "review/compact_figure_provenance.json",
         "review/fourth_revision_notes.md", "data/fkeras_candidate_audit_v1.json",
+        "review/TECS_DECISION_MEMO_2026-11-11.md", "review/tecs_revision_notes.md",
+        "data/tecs_revision_provenance.json", "data/tecs_audit/summary.json",
+        "data/tecs_audit/per_cell_regret.csv", "data/tecs_audit/pairwise_contrasts.csv",
+        "data/tecs_audit/conditions_with_quality.csv", "data/tecs_audit/kws_conditional_audit.json",
+        "data/tecs_audit/distilbert_residual_drift.json",
+        "figures/tecs_task_quality_ber_125.pdf", "figures/tecs_grid_regret_map.pdf",
+        "figures/tecs_protection_vs_unprotected_125.pdf",
     ]
     for name in required:
         assert (ROOT / name).is_file(), name
@@ -134,7 +158,13 @@ def validate():
     assert all(m["candidate_count"] == 320 for m in candidate_models.values())
     for receipt in candidate_content["implementation_files"]:
         assert digest(Path(receipt["path"])) == receipt["sha256"], receipt["path"]
+    tecs = json.loads((ROOT / "data/tecs_revision_provenance.json").read_text())
+    for group, folder in (("derived_data", "data/tecs_audit"), ("figures", "figures"), ("scripts", "scripts")):
+        for name, expected_hash in tecs[group].items():
+            assert digest(ROOT / folder / name) == expected_hash, f"{folder}/{name} changed after provenance"
+    assert tecs["experiments_executed"] == 0
     return {"cited_keys": sorted(cited), "bibliography_records": len(keys),
+            "tecs_revision_receipts_verified": sum(len(tecs[g]) for g in ("derived_data", "figures", "scripts")),
             "condition_rows": len(rows), "mathematics": math_checks(),
             "unchanged_original_image_hashes": len(reused["files"]),
             "compact_figure_receipts_verified": len(receipts),

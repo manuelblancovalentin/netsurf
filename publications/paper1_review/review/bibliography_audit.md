@@ -37,3 +37,15 @@ Do not cite the rejected TCAD manuscript as published work. It is the historical
 - Selective-ECC source snapshot: https://zenodo.org/records/23054820/files/code__eccmarl-2ea13f9.tar.gz?download=1 ; SHA-256 `82eed19a02e3242afc908ac249e549778cc0174b9b87ddfc1bfe5f4e72f7e000`.
 
 Citation checks were read-only; no literature code was executed and no protected model/data artifacts were changed.
+
+## TECS revision additions (11 November 2026)
+
+| Citation | Verification in this revision | Note |
+|---|---|---|
+| `weng2024fkeras` | Author PDF re-read in full: Eq. 3 projection, MSB-to-LSB tier ordering, statement that tier-first ordering "is not ideal", four-ranking comparison against single-bit oracles, 960-flip multi-bit protection experiment on ECON-T. | The passage ranks by "higher score"; it does not state an absolute value. The repository contract uses the magnitude; keep that stated as the NetSuRF adaptation. |
+| `weng2026priorifi` | ASPLOS author PDF read: single-bit model, 15% intra-parameter and 80% inter-parameter monotonicity violations, Hessian-initialised campaign ordering. | Fault-injection ordering, not a protection allocator. |
+| `alobaidi2026selectiveecc` | Zenodo record page read: 13 allocators including QMIX and search baselines, matched cost, held-out injection, layer-interaction diagnostics. | Publication status of the manuscript not stated on the record. |
+| `rausand2004system` (new) | Chapter 5 of the author's lecture version read: Birnbaum's measure as a partial derivative; improvement potential equals Birnbaum's measure times the component failure probability. | Book metadata (2nd ed., Wiley, 2004) from that source. |
+| `birnbaum1969importance` (new) | Not inspected. Title, editor, publisher and pages taken from secondary citations. | Confirm before submission. |
+| `stutz2021biterror` (new) | MLSys proceedings abstract read. | Cited only for the existence of BER-based robustness training on quantized weights. |
+| `nazari2024fortune`, `colucci2024eisfinn` | Not re-read; descriptions rely on the earlier audit above. | Bibliographic records re-confirmed only. |

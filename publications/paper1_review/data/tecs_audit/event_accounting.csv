@@ -1,0 +1,7 @@
+model,policy_field_rows,proposed_ne_applied_plus_suppressed,protected_applied_exceeds_unprotected_or_field_mismatch
+resnet8,7680,0,0
+kws,7680,0,0
+toycar,4800,0,0
+distilbert,4992,0,0
+pythia,4992,0,0
+qwen,4992,0,0

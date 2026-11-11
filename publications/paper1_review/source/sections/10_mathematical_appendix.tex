@@ -1,59 +1,76 @@
 \appendix
-\section{Execution and Surrogate Details}\label{app:implementation}
-The three MLPerf Tiny models use TensorFlow Lite 2.14.1 \code{BUILTIN\_REF} with XOR mutations in private constant buffers. The transformers use their frozen INT8 weight buffers and validated CPU integer-matmul path. Biases and quantization metadata remain fixed. Every trial restores the clean state. These are distinct numerical contracts, not interchangeable implementations of a model name.
+\section{Execution, Identity and Surrogate Details}\label{app:implementation}
+\subsection{Models, backends and eligible tensors}
+Table~\ref{tab:identity} identifies the executed artifacts. The MLPerf Tiny models are the reference INT8 TFLite flatbuffers, executed with TensorFlow Lite 2.14.1 reference kernels; faults are XOR mutations of the INT8 kernel buffers in a private copy of the flatbuffer. The transformers are W8A8 executables derived from the public checkpoints. Every linear-layer weight matrix is stored as INT8 codes with one float32 scale per output channel, $s_i=\max_j|w_{ij}|/127$, rounding half to even, and codes in $[-127,127]$; the code $-128$ can arise only through a fault. Activations are quantized per token at run time, products accumulate exactly in INT32, and all other operations are float32. These are not integer-only networks. Every trial restores the clean state.
 
+\begin{table}[h]
+\caption{Executed artifacts. Hashes are SHA-256 prefixes of the model file or snapshot. ``Full-set'' is clean quality of the INT8 executable and its floating-point source on the complete evaluation split, which is larger than the cohort used under faults.}\label{tab:identity}
+\centering\small
+\begin{tabularx}{\linewidth}{l l X X}\toprule
+Model & Source artifact & Eligible INT8 tensors & Full-set reference\\\midrule
+ResNet-8 & MLPerf Tiny IC, \code{3c002613} & 10 kernels & cohort only\\
+DS-CNN & MLPerf Tiny KWS, \code{aeea4368} & 10 kernels & cohort only\\
+ToyCar & MLPerf Tiny AD, \code{87cf2419} & 10 kernels & cohort only\\
+DistilBERT & SST-2 fine-tuned, rev. \code{714eb0fa}; \code{1f07e001} & 38 linear weights & 90.8\% vs 91.1\% (872 sentences)\\
+Pythia-160M & rev. \code{b56d9bee}; \code{1264fe12} & 49 linear weights incl. output embedding & PPL 26.3 vs 25.4 (288,729 tokens)\\
+Qwen3-0.6B & Base, rev. \code{da87bfb6}; \code{ea3fe5f6} & 197 linear weights incl. output head & PPL 12.5 vs 12.1 (299,077 tokens)\\\bottomrule
+\end{tabularx}
+\Description{Source artifacts, eligible tensors and full-set clean references for six models.}
+\end{table}
+
+Not faulted in any model: biases (INT32 in TFLite), quantization scales and zero points, and activations. Additionally not faulted in the transformers: input embedding tables, normalization parameters and the 42,242 to 496,000 per-channel scales. In the Qwen source model the output head is tied to the input embedding; the executable stores a separate quantized copy of the head, so a fault in the head does not alter the input embedding. The language-model cohorts are 4,096 scored tokens with clean perplexity 34.1 (Pythia) and 16.9 (Qwen), higher than the full-set values above.
+
+\subsection{Exact jump and losses}
 For affine decoding $w=s(q-z)$ and current stored bit value $a_j$, the exact INT8 jump is
 \begin{equation}\label{eq:xor-delta}
 \Delta w_j=\begin{cases}s(1-2a_j)2^j,&j<7,\\-s(1-2a_7)2^7,&j=7.\end{cases}
 \end{equation}
-The zero point cancels; each word retains its applicable scale. Distinct-bit jumps add within a word, not generally at the task output.
+The zero point cancels and each word keeps its own scale. TFLite cross-entropy is the mean of $-\ln\max\{(o+128)/256,10^{-12}\}$ over the cohort, with $o$ the INT8 output code of the true class. Transformer NLL is $\min\{\max(0,\mathrm{NLL}),30\}$ per sentence or token, with 30 assigned to nonfinite outputs.
 
-Gradient variables map to the decoded eligible kernels. The continuous float64 Hessian uses classification cross-entropy or ToyCar window MSE, with two signed largest-magnitude eigenpairs; negative eigenvalues are retained. The deterministic Lanczos tolerance is $10^{-5}$, with residual, symmetry and orthogonality checks. Recorded production solves used 25 Hessian-vector products and normalized residuals below $6.1\times10^{-16}$. These certify the chosen truncated continuous calculation, not an integer-program Hessian or its accuracy for large bit jumps. On 64 ResNet preflight inputs, continuous/reference class agreement was 61/64, but CE was 0.626 versus 0.918 nats and maximum probability disagreement was 0.332. The surrogate limitation is therefore material, despite successful numerical convergence.
+\subsection{Gradient and Hessian companions}
+Gradient scores use a differentiable companion with straight-through requantization (TFLite) or the decoded weights with fixed float32 scales (transformers). The positive-part score is computed exactly from two saved moments, $\E_x\max(0,g)=\tfrac12(\E_x|g|+\E_x g)$ and $\E_x\max(0,-g)=\tfrac12(\E_x|g|-\E_x g)$, applied according to the sign of $\Delta_b$. The FKeras Hessian is that of a continuous float64 companion without activation rounding, using cross-entropy or ToyCar window MSE, two signed largest-magnitude eigenpairs, a Lanczos tolerance of $10^{-5}$ and 25 Hessian-vector products; normalized residuals are below $6.1\times10^{-16}$. These numbers certify the truncated continuous calculation, not a Hessian of the integer program. On 64 ResNet-8 inputs the continuous companion and the integer model agree on 61 predicted classes, with cross-entropy 0.626 against 0.918 nats.
 
-\section{Conditional Evaluation and Its Limits}\label{app:proofs}
+\subsection{Tests in the source studies}
+The finalized studies saved their own paired contrasts using sign-flip tests with $10^4$ random assignments and Holm families of 112 contrasts (TFLite, per BER and metric) and 160 contrasts (transformers, per model). Their smallest attainable adjusted $p$-values are therefore 0.0112 and 0.016. The analysis in this paper recomputes all contrasts from the saved field outcomes as described in Section~\ref{sec:experiments}.
+
+\section{Conditional Evaluation}\label{app:proofs}
 \subsection{Protection benefit and paired swaps}
-Conditioning on whether unprotected bit $b$ flips gives $J_p(\protset)=(1-p)\E\risk(G)+p\E\risk(G\cup\{b\})$. Protecting it leaves $\E\risk(G)$, proving Eq.~\eqref{eq:protection-benefit}. Under additive risk, this reduces to selecting the largest isolated effects for an exact equal-cost budget. Nonadditive risk need not preserve that ordering.
-
-For a swap that exposes protected bit $a$ and protects unprotected bit $b$, denote the new mask by $\protset'$. Using a common background $G$ that excludes both bits and all commonly protected coordinates gives
+Conditioning on whether unprotected bit $b$ flips gives $J_p(\protset)=(1-p)\E\risk(G)+p\E\risk(G\cup\{b\})$. Protecting it leaves $\E\risk(G)$, which proves Eq.~\eqref{eq:protection-benefit}. Under additive risk the best exact-budget mask protects the bits with the largest isolated effects; nonadditive risk need not preserve that order. For a swap that exposes protected bit $a$ and protects unprotected bit $b$, giving mask $\protset'$, a common background $G$ that excludes both bits and all protected coordinates gives
 \begin{equation}\label{eq:swap}
-J_p(\protset')-J_p(\protset)=p\E_G[\risk(G\cup\{a\})-\risk(G\cup\{b\})].
+J_p(\protset')-J_p(\protset)=p\,\E_G[\risk(G\cup\{a\})-\risk(G\cup\{b\})].
 \end{equation}
-A legal swap sequence connects masks with several differences. Contributions are summed within each independent master field before computing uncertainty; steps are not independent trials. Separate Monte Carlo paths need not give exactly transitive finite estimates. These identities apply to scalar complete-cohort AUC risk as well as mean loss, but not to arbitrary correlated or fixed-count fault laws without changing the conditioning.
+Both identities hold for any scalar risk, including complete-cohort AUC, under independent faults; they do not hold for correlated or fixed-count fault laws.
 
-\subsection{Exact response tables and interaction separation}
-Let $C$ be the candidate pool, $Q$ its protected subset, and $\protset_{\rm out}$ the unchanged protection outside it. Outside faults $G$ occur only on coordinates outside $C\cup\protset_{\rm out}$. Define $h_G(A)=\risk(G\cup A)$ for candidate faults $A\subseteq C$. The exact conditional risk is
+\subsection{The 32-pool DS-CNN study}
+Each pool $C$ contains six bits, two protected and four unprotected in the 12.5\% absolute-gradient mask, drawn uniformly within those two strata. All other protected bits stay fixed. For each of eight selection fields on the bits outside the pool, the model is evaluated in all $2^6$ fault states of the pool, giving the exact conditional risk of each of the 15 two-bit masks $Q$,
 \begin{equation}\label{eq:response-table}
-J_G(Q)=\sum_{A\subseteq C\setminus Q}p^{|A|}(1-p)^{|C\setminus Q|-|A|}h_G(A).
+J_G(Q)=\sum_{A\subseteq C\setminus Q}p^{|A|}(1-p)^{|C\setminus Q|-|A|}\,\risk(G\cup A).
 \end{equation}
-Here $C\setminus Q$ means unprotected candidates. Every mask uses the same table and fixed $|Q|$; averaging outside fields supplies its selection-risk estimate. The optimum is restricted to this pool and sample.
+Conditional selection takes the mask with the lowest mean $J_G$; isolated selection protects the two bits with the largest clean isolated damage. The three masks (original, isolated, conditional) are then compared on 32 new fields and 384 clips using Eq.~\eqref{eq:swap}. The pool is the unit of inference.
 
-The clean additive prediction uses isolated effects $I_b$. The outside-conditioned additive prediction instead uses $d_b^G=h_G(\{b\})-h_G(\varnothing)$. Their difference measures how outside faults change individual candidate responses. The remainder between the latter prediction and $J_G(Q)$ retains interactions among candidates. The common background loss cancels between masks. This exact separation on selection tables is not a causal attribution of held-out benefit or architecture.
+\begin{figure}[h]
+\centering\includegraphics[width=.85\linewidth]{compact_kws_pools}
+\caption{Held-out conditional-minus-isolated loss in the 32 DS-CNN pools at $p=5\times10^{-2}$, with the mean and its 95\% pool-level interval. Negative favours conditional selection. The background loss is about 7 nats per clip.}\label{fig:decisions}
+\Description{Thirty-two pool effects scattered around zero with an unresolved mean.}
+\end{figure}
 
-For risk range width $M$ and $n=|C\setminus Q|\ge1$, the additive remainder satisfies
-\begin{equation}\label{eq:bound}
-\left|J_G(Q)-h_G(\varnothing)-p\sum_{b\in C\setminus Q}d_b^G\right|
-\le Mnp[1-(1-p)^{n-1}].
-\end{equation}
-Indeed, the statewise error is zero for zero or one candidate fault, and at most $sM$ for $s\ge2$ faults. Averaging gives the binomial expression above. With no unprotected candidates the error is zero. AUC risk permits $M=1$; other tasks require a valid bounded-loss range. The bound can be too loose to certify a useful mask and does not bound clean-isolated error caused by the faulty outside network. Uniform approximation error $\varepsilon$ would imply at most $2\varepsilon$ excess risk over the same feasible masks, but no useful whole-network certificate is established here. The underlying Boolean and conditioning identities are standard~\cite{odonnell2014analysis}.
+The held-out means are $-0.00268$ nats per clip for conditional against original (interval $-0.00478$ to $-0.00058$), $-0.00248$ for isolated against original ($-0.00459$ to $-0.00036$) and $-0.00008$ for conditional against isolated ($-0.00169$ to $0.00153$; Fig.~\ref{fig:decisions}). The three do not add up exactly because each contrast is estimated along its own swap path with its own analytically integrated coordinates; the estimands are transitive, the finite estimates are not, and 15 of the 32 pools are exactly transitive. On the selection tables, the range of risk over the 15 masks has a median of 0.013 and a maximum of 0.086 nats per clip, and the selected mask leads its runner-up by a median of 0.0009. The in-sample advantage of the conditional mask over the isolated one is 0.0053, against 0.00008 held out. Candidate bits are spread over all positions, with 46 sign bits and 17 least-significant bits among the 192. Earlier counts of how often an additive prediction misorders masks on the selection tables are not reported, because the conditioned predictor and its target share the same sampled fields.
 
-\section{Supplementary Comparisons}\label{app:evidence}
-The ResNet-8 FKeras candidate correlation is 0.287, with 95\% stratified candidate-bootstrap interval $[0.206,0.370]$. It orders bits by significance and then absolute Hessian projection, preserving score ties. Correlating the raw projection magnitude alone gives 0.274, interval $[0.189,0.356]$; that diagnostic is not the tier-first allocation rule. These intervals condition on the saved calibration and damage evaluations, not on independently trained networks or new calibration sets.
-
-The full-grid supplement retains all measured budgets and method cells, paired contrasts, input identities and source provenance. Table~\ref{tab:attribution} summarizes exact conditional diagnostics across 56 pool/BER conditions. KWS pool identities recur across BERs; pairwise mask-order comparisons are dependent, not independent trials. Every saved across-pool held-out conditional-minus-isolated interval includes zero.
-
+\section{Supplementary Measurements}\label{app:evidence}
 \begin{table}[h]
-\caption{Mask-order reversals against exact response-table risk. Accounting for outside faults removes most reversals; the counts alone establish no held-out gain.}\label{tab:attribution}
+\caption{Spearman correlation with positive isolated damage on 320 stratified candidate bits per model, with 95\% within-stratum bootstrap intervals. These are sample-design statistics, not whole-network correlations. ToyCar AUC values are descriptive. FKeras entries for DS-CNN and ToyCar were not computed because the calibration inputs of the saved candidate audit and of the Hessian scores could not be matched.}\label{tab:isolated}
 \centering\small
-\begin{tabular}{llrr}\toprule
-Model & BER & Clean additive & Outside-conditioned\\\midrule
-KWS, first pool sample & 0.01 & 396 & 8\\
-KWS, second pool sample & 0.001 & 328 & 0\\
-KWS, second pool sample & 0.003 & 305 & 0\\
-KWS, second pool sample & 0.01 & 376 & 4\\
-ResNet-8 & 0.01 & 201 & 1\\
-ToyCar & 0.001 & 196 & 0\\\bottomrule
+\begin{tabular}{l l l l r}\toprule
+Ranking & ResNet-8 & DS-CNN & ToyCar (MSE) & ToyCar (AUC)\\\midrule
+Random & $-0.05$ [$-0.15$, 0.04] & 0.01 [$-0.08$, 0.10] & 0.06 [$-0.04$, 0.15] & 0.03\\
+MSB-first & 0.26 [0.17, 0.34] & 0.20 [0.11, 0.28] & 0.50 [0.43, 0.57] & 0.32\\
+Numerical jump & 0.07 [$-0.02$, 0.16] & 0.17 [0.08, 0.26] & 0.44 [0.36, 0.51] & 0.23\\
+Global gradient & 0.36 [0.29, 0.45] & 0.26 [0.16, 0.35] & 0.50 [0.41, 0.58] & 0.49\\
+Absolute gradient & 0.38 [0.29, 0.46] & 0.29 [0.20, 0.38] & 0.55 [0.46, 0.63] & 0.50\\
+Positive gradient & 0.36 [0.28, 0.45] & 0.25 [0.16, 0.33] & 0.64 [0.56, 0.71] & 0.50\\
+FKeras & 0.29 [0.21, 0.37] & --- & --- & ---\\\bottomrule
 \end{tabular}
-\Description{Six model/BER conditions compare clean and outside-conditioned additive mask orders with the exact conditional response.}
+\Description{Rank correlations of seven scores with measured isolated damage on three models.}
 \end{table}
 
-Separate focused comparisons, not pooled into the grids, strengthen two partial-tier results. ResNet-8 at $p=0.01$, 6.25\% coverage and 320 fields gives FKeras minus MSB CE $+2.241$ nats/image, interval $[1.890,2.593]$. ToyCar at $p=0.01$, 18.75\% coverage and 384 fields gives FKeras minus absolute-gradient AUC risk $+0.1106$, interval $[0.0920,0.1292]$. Both retain Holm-adjusted $p=0.0012$. These improve precision over faults on existing cohorts, not generalization across trained models.
+\paragraph{Comparisons outside the useful region.} For completeness we record two comparisons that the previous version of this work emphasized and that lie where no ranking keeps the model useful. On Pythia at $p=10^{-2}$, global gradient minus MSB-first is $-4.82$ nats per token at 12.5\% protection and $+0.77$ at 25\%. In a separate exploratory run on Qwen with 24 new fields per BER, absolute gradient minus MSB-first at 12.5\% is $-9.30$ nats per token at $p=5\times10^{-2}$ (interval $-10.02$ to $-8.57$) and $+1.64$ at $7.5\times10^{-2}$ ($0.61$ to $2.66$); at the latter BER 10.5\% and 7.1\% of finite token losses reach the cap for the two masks and the mean losses exceed 21 nats per token. Two focused runs with more fields give, on ResNet-8 at $p=10^{-2}$ and 6.25\%, FKeras minus MSB-first cross-entropy of $+2.24$ nats per image (320 fields, interval $1.89$ to $2.59$), and on ToyCar at $p=10^{-2}$ and 18.75\%, FKeras minus absolute-gradient risk of $+0.111$ (384 fields, $0.092$ to $0.129$). None of these bears on the conclusions of the paper.
