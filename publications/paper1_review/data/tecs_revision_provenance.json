@@ -1,4 +1,7 @@
 {
+ "analytic_assets": {
+  "source/figures/workflow.tex": "86a831522cc492e626998fcc5c5e6439b81d0080a580fd2c62ce8c6a04fc258d"
+ },
  "audit_parameters": {
   "seed": 20261110,
   "signflip_draws": 20000,
@@ -88,7 +91,7 @@
  "schema": "paper1-tecs-revision-provenance/1.0",
  "scripts": {
   "build_tecs_figures.py": "89ee2e6ba87eb5816a22754595bebd634fc538146afe234e3e028456a6aaeca1",
-  "build_tecs_provenance.py": "82d1304c3304dd6926f1214b7c14e2a26b94d72a338b17099c0a9da5f813677f",
+  "build_tecs_provenance.py": "5f34c3b8108fe96a50e3424b42a54c0ba53e4ccf7110a1c53b291f87242adb26",
   "tecs_grid_audit.py": "02c17570e082337e02c81a7e21c09a39e6dc461bd1797aebd900bfb62e849a03",
   "tecs_kws_conditional_audit.py": "3fe379c3dcac7e65bb438e79fcff3fa16bcaff49e38560a31c0ae852b7150e9f",
   "tecs_residual_drift_check.py": "8cad48f293e0db085066276ca44b601e5873f3217078e042153080994e933c3f"

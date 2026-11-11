@@ -141,8 +141,14 @@ def validate():
     compact = json.loads((ROOT / "review/compact_figure_provenance.json").read_text())
     receipts = dict(compact["inputs"])
     receipts.update(compact["outputs"])
+    tecs_early = json.loads((ROOT / "data/tecs_revision_provenance.json").read_text())
     for name in ("generator", "analytic_asset"):
         receipt = compact[name]
+        # The fourth-delivery receipt for the workflow schematic is superseded: its labels were
+        # simplified in the TECS revision and the current file is bound in the TECS provenance.
+        if receipt["path"] in tecs_early.get("analytic_assets", {}):
+            assert digest(ROOT / receipt["path"]) == tecs_early["analytic_assets"][receipt["path"]], receipt["path"]
+            continue
         receipts[receipt["path"]] = receipt
     for path, receipt in receipts.items():
         assert digest(ROOT / path) == receipt["sha256"], path

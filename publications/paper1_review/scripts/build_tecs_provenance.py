@@ -33,6 +33,7 @@ doc = {
     "scripts": {p.name: sha(p) for p in sorted((ROOT / "scripts").glob("*tecs*.py"))},
     "derived_data": {p.name: sha(p) for p in sorted((ROOT / "data/tecs_audit").iterdir())},
     "figures": {p.name: sha(p) for p in sorted((ROOT / "figures").glob("tecs_*"))},
+    "analytic_assets": {"source/figures/workflow.tex": sha(ROOT / "source/figures/workflow.tex")},
     "audit_parameters": {"thresholds": ga.THRESH, "signflip_draws": ga.SIGNFLIP_DRAWS, "seed": ga.SEED},
     "limits": [
         "One checkpoint, one evaluation cohort and one constructed mask per deterministic ranking and budget.",
