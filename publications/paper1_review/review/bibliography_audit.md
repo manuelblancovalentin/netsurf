@@ -56,8 +56,9 @@ Citation checks were read-only; no literature code was executed and no protected
 |---|---|---|
 | `li2017understanding` | Full text (NVIDIA Research PDF), title page, Table 8, Sec. 4.7 and 5.2.1 | Read. Numbers quoted from Table 8. |
 | `deutsch2024delayavf` | Title page of the public preprint (par.nsf.gov) | Title and authors read; venue (MICRO 2024) from a search result. |
-| `mukherjee2003avf` | Search results citing the MICRO-36 paper | Not read; cited for the definition only. |
+| `mukherjee2003avf` | Full text supplied by the researcher: Mukherjee, Weaver, Emer, Reinhardt, Austin, "Measuring Architectural Vulnerability Factors", IEEE Micro 23(6):70-75, 2003 (pages 70-72 read) | Read. Entry changed from the MICRO-36 paper to this article. Definitions used: SDC rate = raw fault rate x AVF; AVF of a one-bit cell = fraction of time it holds ACE bits; ACE bits become ex-ACE after their last use. |
+| `biswas2005avf` | Full text supplied by the researcher (ISCA 2005, pages 1-2 read) | Read. Cited for periodic flushing and scrubbing reducing AVF. |
 | `cummings2023econd` | Slides (text and the plot on slide 14) | Read. Conference slides, not peer reviewed. |
-| `diguglielmo2021reconfigurable` | arXiv listing (title, authors, journal reference) | Listing read; the statement about weight registers is from a search summary and needs the co-author's confirmation. |
-| `hllhc2017tdr` | Search results (report number, editors, DOI, luminosity targets) | Not read; cited for 3000 fb^-1 and 5e34 only. |
+| `diguglielmo2021reconfigurable` | arXiv listing (title, authors, journal reference) | Listing read; the statement that weights are kept in triplicated, self-correcting registers was confirmed by the co-author (11 November 2026). |
+| `hllhc2017tdr` | Full report downloaded (CERN-2017-007-M, title page and Section 1, page 48 of the PDF) | Statement verified: "a peak luminosity of 5 x 10^34 cm-2 s-1 with levelling, allowing an integrated luminosity of 250 fb-1 per year with the goal of 3000 fb-1 in about a dozen years after the upgrade". Not read in full (over 400 pages). |
 | `alyamani2001abft` | PDF supplied by the researcher, pages 1-3 | Read. |
