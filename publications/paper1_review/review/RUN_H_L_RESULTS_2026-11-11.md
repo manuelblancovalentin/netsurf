@@ -33,3 +33,23 @@ Not used in the manuscript. DistilBERT W8A8, the study's frozen 512 sentences, c
 ## Not modelled, all of which matter for a hardware claim
 
 Logic area and power of voters, encoders and decoders; miscorrection of three or more errors (favours the codes); interleaving; scrubbing, which turns accumulated faults into faults per scrub interval and changes which p applies; a code combined with a mask. One model, one checkpoint, two draws.
+
+## Run I: ResNet-8 with INT32 biases in the fault population (engine run, finalized)
+
+Bundle `paper1_runI_resnet8_kernels_biases_v1` in the Run A worktree (commit `d368969`), all engine checks true. 629,952 eligible bits (77,360 INT8 kernel words, 346 INT32 bias words = 11,072 bits, 1.8%). Six 1000-image windows (0-5999, all used before), four fields per BER per window. Only data-free rankings. Accuracy, mean over 24 fields; clean 87.0%.
+
+| Ranking | 1e-4 | 3e-4 | 1e-3 | 3e-3 |
+|---|---|---|---|---|
+| No protection | 62.3 | 45.0 | 14.3 | 9.9 |
+| MSB-first (by position within the word), 12.5% | 62.9 | 47.5 | 15.2 | 9.9 |
+| Numerical jump, 12.5% | 85.1 | 81.9 | 71.3 | 48.3 |
+| MSB-first, 25% | 67.8 | 48.4 | 15.6 | 10.6 |
+| Numerical jump, 25% | 85.5 | 83.4 | 76.8 | 64.8 |
+| Kernels only, no protection (Run A, windows 1-9) | 84.8 | 82.7 | 70.9 | 42.5 |
+| Kernels only, MSB-first 12.5% (Run A) | 86.5 | 84.7 | 82.3 | 70.9 |
+
+- With biases exposed, the unprotected model loses 25 points at 1e-4, where the kernel-only model loses 2.
+- MSB-first as implemented ranks bits by position relative to the word, so it protects the sign bit of each bias but not bits 30 down to 8 of the INT32 word, whose flips move the bias by up to 2^30 quantization steps. It recovers almost nothing.
+- Numerical jump ranks by the actual change of the stored value, protects the upper bias bits first, and comes close to the kernel-only results.
+- The result depends on how "MSB-first" is defined for words of different widths; a rule ranking absolute bit index (bit 31 of INT32 before bit 7 of INT8) would protect the bias bits. FORTUNE is defined for weights only.
+- Windows and fields differ from the kernel-only comparison rows; the differences are far larger than that variation, but no paired contrast was computed.
