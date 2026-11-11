@@ -17,6 +17,9 @@ from the calibration images and from all test images).  Final evaluation on test
       each step samples a fault field, applies the faults scaled by (1 - protection) to the decoded weights of the
       differentiable companion, and moves the probabilities along the batch gradient of the loss (Adam, rate
       0.05) with the budget restored after every step; steps = clip(10/p, 500, 4000); the final mask is the top-B.
+  c2r Range-optimized relaxed mask ("relaxed, range"; added 11 November 2026 at the researcher's request before
+      any Run N outcome existed): as c2, but the fault rate of every step is drawn log-uniformly from
+      [3e-3, 3e-2], the range of the final evaluation; 4000 steps; one mask per budget, evaluated at every rate.
   c3  Group search ("group CEM"): 80 groups = 10 kernel tensors x 8 bit positions; the cross-entropy method over
       group inclusion probabilities (24 samples per iteration, 6 elites, smoothing 0.7, 8 iterations), each sample
       filling whole groups in sampled order and the last group partially in absolute-gradient order; objective as
@@ -124,9 +127,16 @@ def c1(cell: int) -> None:
     (dest / "manifest.json").write_text(json.dumps(dict(method="mc_search", target_ber=p, fraction=float(frac), budget=budget, trace=trace), indent=1))
 
 
-def c2(cell: int) -> None:
+RANGE = (3e-3, 3e-2)
+
+
+def c2(cell: int, rate_range=None) -> None:
     import tensorflow as tf
-    p, frac = fa.CELLS[cell]; dest = OUT / "c2" / f"p{p:g}_f{float(frac):g}"; dest.mkdir(parents=True, exist_ok=False)
+    if rate_range is None:
+        p, frac = fa.CELLS[cell]; dest = OUT / "c2" / f"p{p:g}_f{float(frac):g}"
+    else:
+        p, frac = None, fa.FRACTIONS[cell]; dest = OUT / "c2r" / f"f{float(frac):g}"
+    dest.mkdir(parents=True, exist_ok=False)
     ctx = context(); fixed = ctx["fixed"][frac]; budget = int(fixed.sum())
     comp = ctx["Companion"](ctx["storage"].reference_content)
     names, starts = ctx["names"], ctx["starts"]
@@ -134,7 +144,7 @@ def c2(cell: int) -> None:
     base = {n: comp.variables[n].numpy().astype(np.float64).reshape(-1) for n in names}
     theta = np.where(fixed, math.log(0.88 / 0.12), math.log(0.12 / 0.88)).astype(np.float64)
     m1 = np.zeros_like(theta); m2 = np.zeros_like(theta); b1, b2, lr, eps = 0.9, 0.999, 0.05, 1e-8
-    steps = int(min(4000, max(500, math.ceil(10 / p))))
+    steps = int(min(4000, max(500, math.ceil(10 / p)))) if p else 4000
 
     def project(th):
         lo, hi = -50.0, 50.0                                   # shift so that sum(sigmoid) == budget
@@ -146,11 +156,12 @@ def c2(cell: int) -> None:
                 lo = mid
         return th + (lo + hi) / 2
     theta = project(theta)
-    rng = np.random.default_rng(SEED + 20000 + 1000 * cell)
+    rng = np.random.default_rng(SEED + 20000 + 1000 * cell + (500 if rate_range else 0))
     started, trace = time.time(), []
     for t in range(1, steps + 1):
         pi = 1 / (1 + np.exp(-theta))
-        z = rng.random(theta.shape) < p
+        pt = p if p else float(10 ** rng.uniform(math.log10(rate_range[0]), math.log10(rate_range[1])))
+        z = rng.random(theta.shape) < pt
         dz = np.where(z, (1 - pi) * ctx["signed"], 0.0).sum(axis=1)               # per-weight decoded change
         for i, n in enumerate(names):
             comp.variables[n].assign((base[n] + dz[starts[i]: starts[i + 1]]).reshape(shapes[n]).astype(np.float32))
@@ -166,12 +177,15 @@ def c2(cell: int) -> None:
             trace.append(dict(step=t, changed_from_fixed=int(np.count_nonzero(mask & ~fixed)), seconds=round(time.time() - started)))
             print(json.dumps(trace[-1]), flush=True)
     mask = fa.top(theta, budget)
-    rng_v = np.random.default_rng(SEED + 100 * cell)
-    val = [rng_v.random(mask.shape) < p for _ in range(12)]
-    j, a = loss_on(ctx, mask, val); j0, a0 = loss_on(ctx, fixed, val)
+    validation = {}
+    for vp in ([p] if p else list(fa.TARGETS)):
+        rng_v = np.random.default_rng(SEED + 100 * fa.CELLS.index((vp, frac)))
+        val = [rng_v.random(mask.shape) < vp for _ in range(12)]
+        j, a = loss_on(ctx, mask, val); j0, a0 = loss_on(ctx, fixed, val)
+        validation[str(vp)] = dict(loss=j, accuracy=a, fixed_loss=j0, fixed_accuracy=a0)
     np.savez(dest / "mask.npz", mask=np.packbits(mask, axis=1, bitorder="little")[:, 0])
-    (dest / "manifest.json").write_text(json.dumps(dict(method="relaxed", target_ber=p, fraction=float(frac), budget=budget, steps=steps,
-                                                         validation=dict(loss=j, accuracy=a, fixed_loss=j0, fixed_accuracy=a0), trace=trace), indent=1))
+    (dest / "manifest.json").write_text(json.dumps(dict(method="relaxed" if p else "relaxed_range", target_ber=p, rate_range=rate_range,
+                                                         fraction=float(frac), budget=budget, steps=steps, validation=validation, trace=trace), indent=1))
 
 
 def c3(cell: int) -> None:
@@ -278,6 +292,10 @@ def load_masks(ctx):
             mf = OUT / method / f"p{p:g}_f{float(f):g}" / "mask.npz"
             if mf.is_file():
                 masks[({"c1": "mc_search", "c2": "relaxed", "c3": "group_cem"}[method], f, p)] = np.unpackbits(np.load(mf)["mask"][:, None], axis=1, bitorder="little").astype(bool)
+    for f in fa.FRACTIONS:
+        mf = OUT / "c2r" / f"f{float(f):g}" / "mask.npz"
+        if mf.is_file():
+            masks[("relaxed_range", f, None)] = np.unpackbits(np.load(mf)["mask"][:, None], axis=1, bitorder="little").astype(bool)
     c45f = OUT / "c45" / "masks.npz"
     if c45f.is_file():
         d = np.load(c45f)
@@ -334,11 +352,11 @@ def analyze() -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("stage", choices=["c1", "c2", "c3", "c45", "evaluate", "analyze"])
+    ap.add_argument("stage", choices=["c1", "c2", "c2r", "c3", "c45", "evaluate", "analyze"])
     ap.add_argument("--cell", type=int, default=0); ap.add_argument("--shard", type=int, default=0); ap.add_argument("--shards", type=int, default=1)
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
-    {"c1": lambda: c1(a.cell), "c2": lambda: c2(a.cell), "c3": lambda: c3(a.cell), "c45": c45,
+    {"c1": lambda: c1(a.cell), "c2": lambda: c2(a.cell), "c2r": lambda: c2(a.cell, RANGE), "c3": lambda: c3(a.cell), "c45": c45,
      "evaluate": lambda: evaluate(a.shard, a.shards), "analyze": analyze}[a.stage]()
 
 

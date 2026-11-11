@@ -14,6 +14,8 @@ Registry entry fields
     kind = "engine":  log (NetSuRF progress log), finalized_glob (path pattern of the FINALIZED marker)
     kind = "count":   globs (list of file patterns), total, done_log + done_text (optional completion line)
     kind = "epochs":  log_glob, unit_regex (one match per finished unit), total, done_glob, done_count
+    kind = "logsum":  log_glob, done_key (JSON field holding work done in the last JSON line of each log), total,
+                      done_glob + done_count (completion files)
 """
 from __future__ import annotations
 
@@ -104,6 +106,26 @@ def status(entry: dict) -> dict:
         elif units:
             row["eta"] = fmt((now - start) / units * (row["total"] - units))
         if any("Traceback" in tail(p, 5000) for p in logs):
+            row["problem"] = "error in a log"
+    elif kind == "logsum":
+        logs = glob.glob(entry["log_glob"]); units = 0
+        for log in logs:
+            for line in reversed(tail(log, 20_000).splitlines()):
+                if f'"{entry["done_key"]}"' in line:
+                    try:
+                        units += int(json.loads(line)[entry["done_key"]])
+                    except Exception:
+                        pass
+                    break
+        finished = glob.glob(entry["done_glob"])
+        if len(finished) >= int(entry["done_count"]):
+            row.update(complete=True, done=int(entry["total"]), total=int(entry["total"]), end=newest(finished))
+        else:
+            row.update(done=min(units + 0, int(entry["total"])), total=int(entry["total"]),
+                       detail=(entry.get("note", "") + f"  {len(finished)}/{entry['done_count']} finished").strip())
+            if units:
+                row["eta"] = fmt((now - start) / units * (int(entry["total"]) - units))
+        if any("Traceback" in tail(log, 5000) for log in logs):
             row["problem"] = "error in a log"
     row["running"] = (not row["complete"]) and alive(entry)
     row["elapsed"] = fmt((row["end"] if row["complete"] and row["end"] else now) - start)   # frozen once complete

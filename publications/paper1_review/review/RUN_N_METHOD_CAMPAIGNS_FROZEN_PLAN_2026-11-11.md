@@ -28,3 +28,7 @@ Thales and HarDNN define vulnerability measures for transient faults; the protec
 ## Resources
 
 C1, C2 and C3: 18 processes (two TensorFlow threads each), 30 to 80 minutes. Evaluation: about 30 masks x 48 evaluations, 12 processes. Output `workspace/runs/paper1_runN_method_campaigns_resnet8_v1/`.
+
+## Amendment, 11 November 2026, before any Run N outcome existed
+
+At the researcher's request, C2 gains a range-optimized variant ("relaxed, range"): the fault rate of every optimization step is drawn log-uniformly from [3e-3, 3e-2], the range of the final evaluation; 4000 steps; one mask per budget; evaluated at every rate in the same paired evaluation. It answers how much is lost by committing to a mask optimized for one fault rate, against one optimized for the range.

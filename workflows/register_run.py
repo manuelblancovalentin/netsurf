@@ -29,16 +29,18 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--id", required=True)
     ap.add_argument("--label", required=True)
-    ap.add_argument("--kind", required=True, choices=["engine", "count", "epochs"])
+    ap.add_argument("--kind", required=True, choices=["engine", "count", "epochs", "logsum"])
     ap.add_argument("--tmux"); ap.add_argument("--proc"); ap.add_argument("--note", default="")
     ap.add_argument("--started", type=float); ap.add_argument("--started-from")
     ap.add_argument("--log"); ap.add_argument("--finalized-glob")
     ap.add_argument("--globs", nargs="+"); ap.add_argument("--total", type=int)
     ap.add_argument("--done-log"); ap.add_argument("--done-text")
     ap.add_argument("--log-glob"); ap.add_argument("--unit-regex"); ap.add_argument("--done-glob"); ap.add_argument("--done-count", type=int)
+    ap.add_argument("--done-key")
     ap.add_argument("--replace", action="store_true")
     a = ap.parse_args()
-    need = {"engine": ("log", "finalized_glob"), "count": ("globs", "total"), "epochs": ("log_glob", "unit_regex", "total", "done_glob", "done_count")}[a.kind]
+    need = {"engine": ("log", "finalized_glob"), "count": ("globs", "total"), "epochs": ("log_glob", "unit_regex", "total", "done_glob", "done_count"),
+            "logsum": ("log_glob", "done_key", "total", "done_glob", "done_count")}[a.kind]
     missing = [n for n in need if getattr(a, n) in (None, [])]
     if missing:
         ap.error(f"kind {a.kind} needs: {', '.join('--' + m.replace('_', '-') for m in missing)}")
