@@ -36,12 +36,14 @@
  },
  "experiments_executed": 0,
  "figures": {
-  "tecs_grid_regret_map.pdf": "405db3f512054d244be821cf47544c8d927a0ca377026a38a3aeefabe51892f3",
+  "tecs_fkeras_partial_tiers.pdf": "dfd082353fd10b8bd06882898b2c716fa72bc47b2c5b3e079e8a4b81194915f7",
+  "tecs_fkeras_partial_tiers.png": "4ee580a74e3461770e5c48b46c471da7f07ec988a7811e1ea675238983b11e6d",
+  "tecs_grid_regret_map.pdf": "7cb1786d7b48d8cd295d34d860040066d76a7db803ab224d5fd24fee34618843",
   "tecs_grid_regret_map.png": "432827436d7cd06df3d73f2343d42a87c7f5752dca1dfe96faa0bdeab40ce844",
-  "tecs_protection_vs_unprotected_125.pdf": "4429534a843035d4fbd9164d7614d9125f86f6723ca1953cff057e0d51bb7b9f",
+  "tecs_protection_vs_unprotected_125.pdf": "3956fc7fe6a5900e6081d80f12af120db1297d8f35c96a4b18ef86f99f38ddc4",
   "tecs_protection_vs_unprotected_125.png": "5fd55dd438680ab178e0958c2adc6510bdce95aa25a107dd8881f6375293e9ff",
-  "tecs_task_quality_ber_125.pdf": "773b36c5d82415c15cd5222572002338bb2ea4c4caff33d64f0d33840500d74f",
-  "tecs_task_quality_ber_125.png": "c25988a78d755a257ba83d6afad14d5e263ee26e51b48e20df0168a7bcb5c5e3"
+  "tecs_task_quality_ber_125.pdf": "f80d84a2acba8a439eaa731ded4e85a05f6dadb2b330beee334999c2cccbb072",
+  "tecs_task_quality_ber_125.png": "b936e225aca78f791c877039c2f90f1646b736bb70ee78e6225bd75285d9959b"
  },
  "limits": [
   "One checkpoint, one evaluation cohort and one constructed mask per deterministic ranking and budget.",
@@ -90,7 +92,7 @@
  },
  "schema": "paper1-tecs-revision-provenance/1.0",
  "scripts": {
-  "build_tecs_figures.py": "89ee2e6ba87eb5816a22754595bebd634fc538146afe234e3e028456a6aaeca1",
+  "build_tecs_figures.py": "e5c266032a81e4e42b1fb1323e2c1be62d5ba0b4aca008353e984901e3b9ee13",
   "build_tecs_provenance.py": "5f34c3b8108fe96a50e3424b42a54c0ba53e4ccf7110a1c53b291f87242adb26",
   "tecs_grid_audit.py": "02c17570e082337e02c81a7e21c09a39e6dc461bd1797aebd900bfb62e849a03",
   "tecs_kws_conditional_audit.py": "3fe379c3dcac7e65bb438e79fcff3fa16bcaff49e38560a31c0ae852b7150e9f",

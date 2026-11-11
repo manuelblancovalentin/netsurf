@@ -38,9 +38,9 @@ STYLE = {  # method: (label, colour, marker, linestyle, zorder)
     "global_grad": ("Global gradient", "#1baf7a", "s", "-", 4),
     "abs_grad": ("Absolute gradient", "#2a78d6", "o", "-", 6),
     "pos_grad": ("Positive gradient", "#eb6834", "v", "-", 5),
-    "fkeras": ("FKeras", "#e87ba4", "P", (0, (1, 1)), 4),
+    "fkeras": ("FKeras", "#e87ba4", "o", (0, (2, 1.2)), 7),
 }
-ORDER = ["unprotected", "random", "msb", "jump", "global_grad", "abs_grad", "pos_grad"]
+ORDER = ["unprotected", "random", "msb", "fkeras", "jump", "global_grad", "abs_grad", "pos_grad"]
 TITLE = {"resnet8": "ResNet-8 / CIFAR-10", "kws": "DS-CNN / Speech Commands", "toycar": "ToyCar autoencoder",
          "distilbert": "DistilBERT / SST-2", "pythia": "Pythia-160M / WikiText-2", "qwen": "Qwen3-0.6B / WikiText-2"}
 MODELS = ["resnet8", "kws", "toycar", "distilbert", "pythia", "qwen"]
@@ -120,6 +120,12 @@ def fig_task_quality(out, coverage=0.125):
                     continue
                 m, lo, hi = tci([task_value(kind, r, clean_loss) for r in fr.values()])
                 xs.append(ber); ms.append(m); los.append(lo); his.append(hi)
+            if not xs:
+                continue
+            if meth == "fkeras":
+                ax.plot(xs, ms, color=col, ls=ls, lw=1.5, marker=mk, ms=4.6, mfc="none", mec=col, mew=1.0,
+                        zorder=z + 1, label=lab)
+                continue
             ax.fill_between(xs, los, his, color=col, alpha=0.13, lw=0, zorder=z)
             ax.plot(xs, ms, color=col, ls=ls, lw=1.25 if meth != "abs_grad" else 1.6, marker=mk, ms=3.2,
                     mfc=col, mec=SURFACE, mew=0.4, zorder=z + 1, label=lab)
@@ -135,11 +141,69 @@ def fig_task_quality(out, coverage=0.125):
         sec.set_xlabel("expected proposed faults $Np$", fontsize=5.8, labelpad=1.5, color=MUTED)
     for ax in axes[1]:
         ax.set_xlabel("Logical bit-error probability $p$")
+    for ax, model in zip(axes.ravel(), MODELS):
+        if ga.STUDIES[model]["kind"].startswith("w8a8"):
+            ax.text(0.03, 0.04 if ga.STUDIES[model]["kind"] == "w8a8_cls" else 0.96, "FKeras not measured",
+                    transform=ax.transAxes, fontsize=5.8, color=MUTED,
+                    va="bottom" if ga.STUDIES[model]["kind"] == "w8a8_cls" else "top")
     h, l = axes[0, 0].get_legend_handles_labels()
-    fig.legend(h, l, loc="upper center", ncol=7, frameon=False, bbox_to_anchor=(0.5, 1.045), handlelength=2.2,
-               columnspacing=1.1, handletextpad=0.4)
+    fig.legend(h, l, loc="upper center", ncol=8, frameon=False, bbox_to_anchor=(0.5, 1.045), handlelength=2.0,
+               columnspacing=0.9, handletextpad=0.35, fontsize=6.6)
     fig.tight_layout(w_pad=1.0, h_pad=1.1)
     save(fig, out, "tecs_task_quality_ber_125")
+
+
+def fig_fkeras_partial(out):
+    """FKeras at the two partial-tier budgets, where its mask differs from MSB-first."""
+    models = ["resnet8", "kws", "toycar"]
+    shown = ["unprotected", "msb", "fkeras", "global_grad", "abs_grad"]
+    fig, axes = plt.subplots(2, 3, figsize=(7.1, 3.9), sharex="col")
+    for row, coverage in enumerate((0.0625, 0.1875)):
+        for ax, model in zip(axes[row], models):
+            kind = ga.STUDIES[model]["kind"]; cells = index(model)
+            bers = sorted({k[0] for k in cells})
+            full = [r for r in ga.load(model) if r["method"] == "full"]
+            clean_q = float(np.nanmean([r["quality"] for r in full]))
+            scale = 100.0 if kind != "tflite_auc" else 1.0
+            thr = scale * (clean_q - MARGIN[kind])
+            ax.axhspan(thr, scale * 1.0, color="#eef3ea", zorder=0, lw=0)
+            ax.axhline(thr, color="#008300", lw=0.7, ls=(0, (2, 2)), zorder=1)
+            ax.axhline(scale * clean_q, color=MUTED, lw=0.5, ls=":", zorder=1)
+            for meth in shown:
+                lab, col, mk, ls, z = STYLE[meth]
+                xs, ms, los, his = [], [], [], []
+                for ber in bers:
+                    key = (ber, 0.0) if meth == "unprotected" else (ber, coverage)
+                    fr = cells[key].get(meth)
+                    if not fr:
+                        continue
+                    m, lo, hi = tci([task_value(kind, r, 0.0) for r in fr.values()])
+                    xs.append(ber); ms.append(m); los.append(lo); his.append(hi)
+                ax.fill_between(xs, los, his, color=col, alpha=0.13, lw=0, zorder=z)
+                if meth == "fkeras":
+                    ax.plot(xs, ms, color=col, ls="-", lw=1.5, marker=mk, ms=3.6, mfc=col, mec=SURFACE, mew=0.4,
+                            zorder=z + 1, label=lab)
+                else:
+                    ax.plot(xs, ms, color=col, ls=ls, lw=1.25, marker=mk, ms=3.2, mfc=col, mec=SURFACE, mew=0.4,
+                            zorder=z + 1, label=lab if meth != "msb" else "MSB-first (storage-order tie-break)")
+            ax.set_xscale("log")
+            if kind == "tflite_auc":
+                ax.set_ylim(0.35, 0.92); ax.axhline(0.5, color=MUTED, lw=0.5, ls=(0, (1, 3)))
+            else:
+                ax.set_ylim(0, 100)
+            ax.grid(True, which="major", color=GRID, lw=0.4); ax.set_axisbelow(True)
+            for sp in ("top", "right"):
+                ax.spines[sp].set_visible(False)
+            short = {"resnet8": "ResNet-8", "kws": "DS-CNN", "toycar": "ToyCar"}[model]
+            ax.set_title(f"{short}, {100 * coverage:g}% protected", loc="left", pad=3, fontsize=7.6)
+            ax.set_ylabel(r"File ROC-AUC  $\uparrow$" if kind == "tflite_auc" else r"Accuracy (%)  $\uparrow$")
+    for ax in axes[1]:
+        ax.set_xlabel("Logical bit-error probability $p$")
+    h, l = axes[0, 0].get_legend_handles_labels()
+    fig.tight_layout(w_pad=1.0, h_pad=0.9, rect=(0, 0, 1, 0.94))
+    fig.legend(h, l, loc="upper center", ncol=5, frameon=False, bbox_to_anchor=(0.5, 1.0), handlelength=2.0,
+               columnspacing=1.0, handletextpad=0.4, fontsize=6.8)
+    save(fig, out, "tecs_fkeras_partial_tiers")
 
 
 def read_csv(path):
@@ -232,6 +296,7 @@ def main():
     a = ap.parse_args()
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     fig_task_quality(out)
+    fig_fkeras_partial(out)
     fig_regret_map(out, Path(a.audit))
     fig_protection_vs_unprotected(out)
     print("wrote figures to", out)

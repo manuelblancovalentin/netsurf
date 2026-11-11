@@ -4,7 +4,7 @@ Figure~\ref{fig:ber} shows task quality against BER at 12.5\% protection. Three 
 
 \begin{figure}[tbp]
 \centering\includegraphics[width=\linewidth]{tecs_task_quality_ber_125}
-\caption{Task quality versus logical BER at 12.5\% protection, with the expected number of proposed faults on the top axis. Bands are 95\% intervals of the field mean. The shaded region is the usefulness margin; dotted lines mark clean quality and chance. At this budget FKeras selects the same mask as MSB-first and is not drawn separately. Language-model panels use a symmetric-log axis.}\label{fig:ber}
+\caption{Task quality versus logical BER at 12.5\% protection, with the expected number of proposed faults on the top axis. Bands are 95\% intervals of the field mean. The shaded region is the usefulness margin; dotted lines mark clean quality and chance. FKeras (open circles) was measured on the three TFLite models only; at this complete-tier budget it selects the same mask as MSB-first, so the two curves coincide exactly. Fig.~\ref{fig:fkeras} shows the budgets at which they differ. Language-model panels use a symmetric-log axis.}\label{fig:ber}
 \Description{Six panels of accuracy, AUC or NLL against bit-error probability for seven protection policies.}
 \end{figure}
 
@@ -69,14 +69,20 @@ On Pythia and Qwen the reversals are dominated by the positive-gradient ranking.
 
 Outside the decision-useful region reversals are more frequent, for example between global gradient and MSB-first on Pythia at $p=10^{-2}$, where the NLL increase is at least 1.7 nats per token under both. We do not interpret these: the models are no longer usable, the TFLite loss is dominated by its floor and the transformer loss by its cap.
 
-Partial-tier contrasts between FKeras and MSB-first are also left uninterpreted. At 6.25\% and $p=10^{-2}$ the FKeras mask has lower loss than MSB-first on DS-CNN and higher loss on ResNet-8. As Section~\ref{sec:susceptibility} explains, the MSB-first mask at a partial tier is determined by tensor storage order, so this sign change may reflect which tensors happen to be stored first. In decision-useful cells the two masks differ by at most 1.4 accuracy points at partial tiers. The difference favours the storage-order mask on ResNet-8, where it is resolved in one cell, and is unresolved on DS-CNN.
+\begin{figure}[tbp]
+\centering\includegraphics[width=\linewidth]{tecs_fkeras_partial_tiers}
+\caption{FKeras at the two partial-tier budgets, where its mask differs from MSB-first, on the three models for which it was measured. Bands are 95\% intervals of the field mean; the shaded region is the usefulness margin. MSB-first here resolves the half-protected tier by tensor storage order.}\label{fig:fkeras}
+\Description{Six panels comparing FKeras with MSB-first, global gradient and absolute gradient at 6.25 and 18.75 percent protection.}
+\end{figure}
+
+Partial-tier contrasts between FKeras and MSB-first (Fig.~\ref{fig:fkeras}) are also left uninterpreted. At 6.25\% and $p=10^{-2}$ the FKeras mask has lower loss than MSB-first on DS-CNN and higher loss on ResNet-8. As Section~\ref{sec:susceptibility} explains, the MSB-first mask at a partial tier is determined by tensor storage order, so this sign change may reflect which tensors happen to be stored first. In decision-useful cells the two masks differ by at most 1.4 accuracy points at partial tiers. The difference favours the storage-order mask on ResNet-8, where it is resolved in one cell, and is unresolved on DS-CNN.
 
 \subsection{Protection that is worse than none}
 Under ideal suppression a protected model receives a subset of the faults of the unprotected model. It is tempting to assume this can only help. Figure~\ref{fig:harm} shows that it need not. With the positive-gradient mask, DistilBERT has a higher error rate than the unprotected model in six cells (95\% paired interval above zero), by up to 6.0 points (interval 4.7 to 7.3, at $p=3\times10^{-2}$ and 6.25\%), and a higher loss in 17 of 32 cells. Pythia has a higher loss in eight cells, by up to 5.8 nats per token. Four of the DistilBERT accuracy cells are decision-useful: a designer who chose this ranking would have done worse than by protecting nothing, while the absolute-gradient mask keeps accuracy between 87\% and 90\% in the same cells.
 
 \begin{figure}[tbp]
 \centering\includegraphics[width=\linewidth]{tecs_protection_vs_unprotected_125}
-\caption{Paired difference between each protected model and the unprotected model on the same fault fields, at 12.5\% protection. Positive values mean protection made the task metric worse. Bands are 95\% paired intervals.}\label{fig:harm}
+\caption{Paired difference between each protected model and the unprotected model on the same fault fields, at 12.5\% protection. Positive values mean protection made the task metric worse. Bands are 95\% paired intervals. The figure shows the three transformers, for which no FKeras ranking was measured.}\label{fig:harm}
 \Description{Three panels showing that the positive-gradient mask becomes worse than no protection at intermediate bit-error probabilities.}
 \end{figure}
 
