@@ -22,8 +22,8 @@ The zero point cancels in this difference, while a per-channel scale remains spe
 
 \begin{figure}[t]
 \centering\input{figures/encoded_xor}
-\caption{What changes when a stored bit flips? For the illustrative INT8 code $q=5$, $s=1/16$ and $z=0$, flipping the sign bit changes the decoded weight by $-8$, whereas flipping bit two changes it by $-1/4$. Both transitions are exact. The task effect still depends on where the weight is used and on the input and other faults.}
-\Description{The INT8 pattern 00000101 becomes 10000101 under a sign-bit XOR, or 00000001 under a bit-two XOR, with the decoded values and jumps labeled.}
+\caption{What changes when a stored bit flips? Decoded weights, stored INT8 words, and their exact per-bit numerical jumps are linked by a delta matrix. All rows use the illustrative scale $s=1/16$ and zero point $z=0$; columns run from sign bit seven to bit zero. For code $q=5$, the sign-bit jump is $-8$ and the bit-two jump is $-1/4$. These are numerical perturbations, not task-damage predictions: the task effect depends on the network, input, and other faults.}
+\Description{Blue decoded weights lead to pink eight-bit two's-complement words and a green table of exact signed numerical jumps for each bit. Highlighted cells connect stored bit values to sign-dependent perturbations.}
 \label{fig:encoding}
 \end{figure}
 

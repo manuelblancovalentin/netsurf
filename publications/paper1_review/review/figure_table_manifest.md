@@ -25,4 +25,6 @@ The main grid contains 1,254 condition labels and 35,136 saved policy/field obse
 
 ## Visual conventions
 
+Figures 1 and 2 now adapt the visual structure of the original paper's supplied diagrams: its three-stage workflow and its blue weights / pink codes / green delta matrix. They are editable TikZ drawings with current software-only labels and exact INT8 arithmetic. The 24 source PNG identities and individual reuse decisions appear in legacy_figure_reuse.json and legacy_figure_reuse.md. No old numerical curve is imported; all measured figure assets below remain unchanged from the first delivery.
+
 Colors and names are consistent across the measured plots. Classification BER panels use a disclosed asinh vertical transformation so that near-zero beneficial changes and severe degradation remain visible; tick labels stay in original task units. ToyCar uses AUC-risk change. Language models use capped NLL change. Curves connect measured points only. Means, uncertainty bands, and paired intervals are distinct from empirical outcome distributions. The KWS scatter shows all 32 pool effects, with deterministic display jitter and a separate mean interval.

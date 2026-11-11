@@ -22,6 +22,10 @@ The preferred measured allocation changes with checkpoint/task, BER and budget. 
 
 The full-eligible INT8 studies are distinct from the earlier restricted FP32/BF16 pilots. ToyCar uses complete-file ROC-AUC; token and classification losses are never pooled with it. The transformer NLL cap and Qwen's finite-loss saturation diagnostic remain explicit. The obsolete Pythia high-BER run with clean-state mismatch is excluded in favor of the new clean-gated finalized run.
 
+## Original visual identity
+
+The second delivery restores the original three-stage framework layout and the blue/pink/green weights-to-bits-to-delta diagram as editable vector artwork. Their labels now match the software-only execution contract and an exact INT8 worked example. The old hardware figures and unverified numerical comparisons are not substituted for current measurements. All 24 supplied PNGs are inventoried and hash-bound in review/legacy_figure_reuse.json; review/legacy_figure_reuse.md explains each reuse or exclusion. The first delivery is unchanged.
+
 ## Bibliography
 
 FORTUNE is included as quantization plus redundant MSB protection and majority voting, not as a measured ideal-suppression baseline. FKeras and PrioriFI are described using their published objectives. EISFINN, Ranger, FT-CNN, selective TMR, the published FCCM predecessor and the public selective-ECC companion release are compared explicitly. The latter is labeled a dataset/source release, not a verified peer-reviewed manuscript. Model and dataset references are included. Unused inherited bibliography records are retained in source but do not appear in the rendered reference list; the review specifies which cited entries were verified.

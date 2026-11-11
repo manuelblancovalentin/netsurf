@@ -28,6 +28,34 @@ def digest(path):
 
 
 def math_checks():
+    # Exact arithmetic behind the adapted INT8 delta-matrix illustration.
+    def signed(code):
+        return code if code < 128 else code - 256
+    displayed = [
+        (5, "00000101", .3125, [-8, 4, 2, 1, .5, -.25, .125, -.0625]),
+        (-6, "11111010", -.375, [8, -4, -2, -1, -.5, .25, -.125, .0625]),
+        (15, "00001111", .9375, [-8, 4, 2, 1, -.5, -.25, -.125, -.0625]),
+        (-1, "11111111", -.0625, [8, -4, -2, -1, -.5, -.25, -.125, -.0625]),
+    ]
+    for q, word, weight, expected in displayed:
+        code = int(word, 2)
+        assert signed(code) == q and q / 16 == weight
+        actual = [(signed(code ^ (1 << bit)) - q) / 16 for bit in range(7, -1, -1)]
+        assert actual == expected
+    assert signed(5 ^ 0b10000100) == -127
+    assert (signed(5 ^ 0b10000100) - 5) / 16 == -8.25
+    for code in range(256):
+        jumps = []
+        for bit in range(8):
+            coefficient = -(1 << bit) if bit == 7 else 1 << bit
+            predicted = (1 - 2 * ((code >> bit) & 1)) * coefficient / 16
+            observed = (signed(code ^ (1 << bit)) - signed(code)) / 16
+            assert predicted == observed
+            jumps.append(predicted)
+        for a, b in itertools.combinations(range(8), 2):
+            observed = (signed(code ^ (1 << a) ^ (1 << b)) - signed(code)) / 16
+            assert observed == jumps[a] + jumps[b]
+    # Additivity here concerns decoded word values, not network task loss.
     # Exhaustive expectation of the printed 3-bit counterexample.
     def risk(s):
         return 1.2 * s[0] + s[1] + .1 * s[2] + 3 * s[1] * s[2]
@@ -51,7 +79,9 @@ def math_checks():
                         * values[s] for s in range(8))
             first = values[0] + p * sum(values[1 << i] - values[0] for i in range(3))
             assert abs(exact - first) <= 3 * p * (1 - (1 - p) ** 2) + 1e-12
-    return {"counterexample_probabilities": 6, "bound_vertex_checks": 768}
+    return {"counterexample_probabilities": 6, "bound_vertex_checks": 768,
+            "int8_displayed_matrix_rows": len(displayed),
+            "int8_single_flip_checks": 2048, "int8_distinct_two_flip_checks": 7168}
 
 
 def validate():
@@ -77,8 +107,13 @@ def validate():
     with (ROOT / "data/reliability_conditions.csv").open() as f:
         rows = list(csv.DictReader(f))
     assert len(rows) == 1254, len(rows)
+    reused = json.loads((ROOT / "review/legacy_figure_reuse.json").read_text())
+    assert len(reused["files"]) == 24
+    for item in reused["files"]:
+        assert digest(Path(item["path"])) == item["sha256"], item["name"]
     return {"cited_keys": sorted(cited), "bibliography_records": len(keys),
             "condition_rows": len(rows), "mathematics": math_checks(),
+            "unchanged_original_image_hashes": len(reused["files"]),
             "latex": "compiled; no undefined references or overfull boxes",
             "expected_class_warning": "ACM reference block omitted for internal review"}
 
