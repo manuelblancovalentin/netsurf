@@ -48,3 +48,21 @@ Off target, the 6.25% mask built for 0.1 is worse than the fixed mask by 1.24 po
 ## Scope
 
 One model, one trained checkpoint. Run F and part B use a cohort that earlier runs used. The gains at 12.5% are outside the manuscript's five-point usefulness band (82.1% against 91.4% clean); the 18.75% gain is inside it. No claim enters the manuscript without a second model and the researcher's decision.
+
+## Run M: the same rebuild on ResNet-8 (TFLite executable)
+
+Design in the header of `workflows/fault_aware_resnet8.py` (commit `72cdfc7`). Gate passed in all six cells: the fault-free score reproduced the engine's mask with zero differing bits. Test images 2000-2999 (Run A replication 2), clean accuracy in `evaluation.json`; 16 new fault fields per rate shared by all masks. Analysis: `workspace/runs/paper1_runM_fault_aware_resnet8_v1_analysis.json`.
+
+| Built for | Budget | Fixed | Rebuilt | Gain at target, points (95% interval) |
+|---|---|---|---|---|
+| 3e-3 | 12.5% | 83.0 | 83.2 | +0.18 (-0.24, +0.60) |
+| 1e-2 | 12.5% | 76.8 | 77.3 | +0.51 (-0.77, +1.79) |
+| 3e-2 | 12.5% | 54.1 | 57.7 | +3.66 (-0.90, +8.21) |
+| 3e-3 | 25% | 85.0 | 85.0 | +0.01 (-0.26, +0.28) |
+| 1e-2 | 25% | 83.7 | 83.4 | -0.28 (-0.58, +0.02) |
+| 3e-2 | 25% | 79.7 | 80.1 | +0.41 (-0.38, +1.19) |
+
+- No gain meets the rule (at least one point with an interval excluding zero). The largest, at 3e-2 and 12.5%, is +3.7 points with an interval from -0.9 to +8.2 over 16 fields.
+- The mask built for 3e-2 at 12.5% is slightly better at every rate tested (+0.9, +1.0, +3.7), the first only resolved.
+- The rebuild did not settle: the second round changed about as many bits as the first (6% to 16% of the budget).
+- Reading: on ResNet-8 the fault-free absolute gradient is already close to what the rebuild finds; the large DistilBERT gains are not general.
