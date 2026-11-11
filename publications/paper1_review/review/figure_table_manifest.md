@@ -19,9 +19,10 @@ Generator for Figures 2, 3, 5 and 6: `scripts/build_tecs_figures.py`; Figure 4: 
 | Table 3 | Highest useful BER per ranking (main grid) | `data/tecs_audit/conditions_with_quality.csv` |
 | Table 4 | Largest regret and resolved win/loss versus absolute gradient (main grid) | `data/tecs_audit/summary.json` |
 | Table 5 | Confirmation run (Run A): decision-useful cells, regret, upper bounds, resolved contrasts | `data/tecs_runA/summary.json`, `data/tecs_runA/absgrad_contrasts.csv` |
-| Table 6 | DistilBERT residual first-order effect per mask | `data/tecs_audit/distilbert_residual_drift.json` |
-| Table 7 (appendix) | Executed artifacts | readiness manifest, `data/benchmark_inventory.json` |
-| Table 8 (appendix) | Score-fidelity correlations with intervals | `data/empirical_validation.csv`, `data/toycar_auc_correlations.csv`, `data/fkeras_candidate_audit_v1.json` |
+| Table 6 | ResNet-8 checkpoints (pinned, pruned 50%, pruned 70%, under-trained): regrets, pre-set reading, tolerated BER | `data/tecs_runK/` |
+| Table 7 | DistilBERT residual first-order effect per mask | `data/tecs_audit/distilbert_residual_drift.json` |
+| Table 8 (appendix) | Executed artifacts | readiness manifest, `data/benchmark_inventory.json` |
+| Table 9 (appendix) | Score-fidelity correlations with intervals | `data/empirical_validation.csv`, `data/toycar_auc_correlations.csv`, `data/fkeras_candidate_audit_v1.json` |
 
 ## Previous draft (fourth delivery), retained for history
 

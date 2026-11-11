@@ -54,6 +54,24 @@
   "runB_tabulation_provenance.json": "7fdc0c8f66b9e46c52f9ea26a51ebf8001054e3dc9d015af77a9dc7d9e14d942",
   "summary.json": "adabd0b21485d43c57834728a6b9d6f4cabac6d2c70a9e94835707ba0dd0a002"
  },
+ "derived_data_runK": {
+  "pruned_s05/absgrad_contrasts.csv": "0dc96f4fc7f4c1f1dc3c7b306f17d53e028b32daeebbfa8d57207bcb2b2d5f1b",
+  "pruned_s05/fresh_cell_quality.csv": "c614a67826a5ac857a60ec03570cd5a4c663b9aa23fffc33097a96a9a55e1b57",
+  "pruned_s05/provenance.json": "82ad572bde0d1a47447ca221420a65333ba94689674b32501634b3c0dbfe6cc2",
+  "pruned_s05/replication0_cells.csv": "6c476c6dec91dd6653274d7dbe323250997d357753cf7b02c178ef457903195e",
+  "pruned_s05/summary.json": "939daf431a645de6e1056d662636d2eb50e150a7c44ea1fb43b2e61ff0b4a27c",
+  "pruned_s07/absgrad_contrasts.csv": "32c9d5aaa12cc9e59d9e9c186a81817ee33f943e2537a1992424e806b95a2293",
+  "pruned_s07/fresh_cell_quality.csv": "1cf136dbfc1c8f7add440799fa5d0721acd8eac4fd72b6c8a162ecb07cb4d44a",
+  "pruned_s07/provenance.json": "5830c2d10434ddae29d159647779de3db494c591cd3b0eae38dda57f14b8cc16",
+  "pruned_s07/replication0_cells.csv": "c777c9ee0e60ed498fcfbe71240ffa321f8252e10e9276bb4e99f194720fdba3",
+  "pruned_s07/summary.json": "ae2e4ccdab322068f2af0371ad0f169a0d9dc5af176aeba73783ee2c1920e92a",
+  "summary_vs_pinned.json": "55e820d19b0d3ddb479bae53bb6a6a40daad3c256708e1e9722db417494a9427",
+  "undertrained_e100/absgrad_contrasts.csv": "612e6212181faf89c084166614234b160aa600fa8d65c5d86a665fc12c7be8fc",
+  "undertrained_e100/fresh_cell_quality.csv": "ad648c703f346cf9945b5665d1f42d128c7035716089957337ef0c74c3a91980",
+  "undertrained_e100/provenance.json": "ee3cbf11ba8a7e6ce91c09f97c1c44a884039a1265522d8136b13b9409488ca0",
+  "undertrained_e100/replication0_cells.csv": "ecd41ffc4dd6ab9f48809c6fb27444b5a812f41c679d6f6144816a26e8056dce",
+  "undertrained_e100/summary.json": "4e4232e51b1098d3681a26cd517f13ddf8ca98c623ea9f42e280bbcc4c874f3f"
+ },
  "derived_data_runL2": {
   "analysis.json": "66e2160f3a76408fbe26e4654efbe31d6eeac827cf980948c0f6adeedf29fcc4",
   "ber_0_draw_0.json": "306161d365981734f93c6c4d2fbcb5463a8a56b972f156e383c6ba7cb51c3bed",
@@ -178,6 +196,54 @@
    "script": "workflows/correction_mechanisms_resnet8.py"
   },
   {
+   "checks": {
+    "matched_schedules": true,
+    "model_state_restored": true,
+    "partitions_disjoint": true,
+    "quantized_state_exact": true
+   },
+   "config_sha256": "d78c98fe4302e7ca124a9d64d4c89f14f186b35454c71b6ae03ab2054445f003",
+   "event_identity_violations": 0,
+   "run": "Run K resnet8 pruned_s05",
+   "run_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runK-retrained-engine/workspace/runs/paper1_runK_resnet8_pruned_s05_v2/20261111T214730.102729Z-f008b243",
+   "run_id": "20261111T214730.102729Z-f008b243",
+   "scientific_payload_sha256": "fd96df96c0c365ef7b3f0a7cd08ab135a8ced0cdc17a27868729c88ab50c9628",
+   "source_commit": "9b57733a435b51c2b43aa1ad7c9f3eea188e639a",
+   "trials_sha256": "0cc10487d0cd530a559fd91a6e9613bdec7f93a9ec956e52219735e32b9c0667"
+  },
+  {
+   "checks": {
+    "matched_schedules": true,
+    "model_state_restored": true,
+    "partitions_disjoint": true,
+    "quantized_state_exact": true
+   },
+   "config_sha256": "4d87a06c34d8943a0005c203ec9694d6adce3110926e5780e7f5f3eae5c89fbc",
+   "event_identity_violations": 0,
+   "run": "Run K resnet8 pruned_s07",
+   "run_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runK-retrained-engine/workspace/runs/paper1_runK_resnet8_pruned_s07_v2/20261111T214729.012616Z-b2305bbd",
+   "run_id": "20261111T214729.012616Z-b2305bbd",
+   "scientific_payload_sha256": "7244f9b1c84f2ab29b45594b6a28fc3cabcc287c065c6872ffa5a2039894e49e",
+   "source_commit": "9b57733a435b51c2b43aa1ad7c9f3eea188e639a",
+   "trials_sha256": "8a328b55b8c2d5006480e188fa37d71a56e46e72aa68cfb561f5a6af69efcb85"
+  },
+  {
+   "checks": {
+    "matched_schedules": true,
+    "model_state_restored": true,
+    "partitions_disjoint": true,
+    "quantized_state_exact": true
+   },
+   "config_sha256": "a6738688719acae28ddca83eddf377113c6bc57cdf1a4e0666396e61ede60774",
+   "event_identity_violations": 0,
+   "run": "Run K resnet8 undertrained_e100",
+   "run_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runK-retrained-engine/workspace/runs/paper1_runK_resnet8_undertrained_e100_v2/20261111T214903.131448Z-46ae7a16",
+   "run_id": "20261111T214903.131448Z-46ae7a16",
+   "scientific_payload_sha256": "82632263bb36df4426a8144b7dc030d0c3bb92ef382765b2ce10dae0290f6918",
+   "source_commit": "9b57733a435b51c2b43aa1ad7c9f3eea188e639a",
+   "trials_sha256": "8b80ffcdbd46f57c5134639a1b2aaadfdc64f96bc11a45830a0c09093d2441ea"
+  },
+  {
    "observation_listing_sha256": "98b075a2060362ee030de6e3c6ed086125c7404c327af34041d22ae5bb0ecdd4",
    "observations": 4800,
    "replay_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-tecs-revision-v1/workspace/runs/w8a8_cap_replay_v1/pythia160m_int8",
@@ -192,7 +258,7 @@
    "run": "Run B qwen"
   }
  ],
- "experiments_executed": 6,
+ "experiments_executed": 9,
  "figures": {
   "tecs_confirmation_runA.pdf": "f1125a8214093b4d7a4999de5ead6a54464efdf1fa6bef758cdc9c0ccd68a3eb",
   "tecs_confirmation_runA.png": "0c7fa3a7b99ccfe264c8e948c4e358fbe92d0b0e4e91f02381f5935a7d16b63c",
@@ -261,12 +327,12 @@
  "scripts": {
   "build_tecs_correction_figure.py": "d5ff602c3cdb5d84bce2bb6708d949a018154e697a06ec8b4efe6f7dc8421574",
   "build_tecs_figures.py": "e5c266032a81e4e42b1fb1323e2c1be62d5ba0b4aca008353e984901e3b9ee13",
-  "build_tecs_provenance.py": "7af0bf4ccdbf27b66e31f831b0f2930cd8dd29b096b42212f615b319c6bb268e",
+  "build_tecs_provenance.py": "2d156d514283bacad04f9847cc7fb9c38c809388ae6c53bf80e55de650b67215",
   "build_tecs_runA_figure.py": "afd219927392113ba5d12b6647b077e6238726747f99d12dab185f1a53a78833",
   "tecs_grid_audit.py": "02c17570e082337e02c81a7e21c09a39e6dc461bd1797aebd900bfb62e849a03",
   "tecs_kws_conditional_audit.py": "3fe379c3dcac7e65bb438e79fcff3fa16bcaff49e38560a31c0ae852b7150e9f",
   "tecs_residual_drift_check.py": "8cad48f293e0db085066276ca44b601e5873f3217078e042153080994e933c3f",
-  "tecs_runA_analysis.py": "1f2da5ce709c760d6e16ccf58ce780d43ce6cc5f079506b8f42c966a70dd6a83",
+  "tecs_runA_analysis.py": "65041af94baa684419319a794e2047e0702e9ca8644f60e591b7c5c12b452c01",
   "tecs_runB_tabulate.py": "fc6113b3275bee0e7ec76f78f436fb999333536666dab002ca68a97dcf1d33d4"
  },
  "source_trials": {

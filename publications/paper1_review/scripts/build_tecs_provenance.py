@@ -38,6 +38,11 @@ executed.append({"run": "Run A2 kws", "run_dir": r["run_dir"], "run_id": r["run_
                  "config_sha256": r["config_sha256"], "checks": r["checks"], "event_identity_violations": r["event_identity_violations"]})
 executed.append({"run": "Run L2 resnet8 correction mechanisms", "script": "workflows/correction_mechanisms_resnet8.py", "commit": "ea3cc98",
                  "outputs": "data/tecs_runL2 (64 write-once per-draw files)", "finalized_by_engine": False})
+for variant in ("pruned_s05", "pruned_s07", "undertrained_e100"):
+    r = json.loads((ROOT / "data/tecs_runK" / variant / "provenance.json").read_text())["resnet8"]
+    executed.append({"run": f"Run K resnet8 {variant}", "run_dir": r["run_dir"], "run_id": r["run_id"], "source_commit": r["source"]["commit"],
+                     "scientific_payload_sha256": r["scientific_payload_sha256"], "trials_sha256": r["trials_sha256"],
+                     "config_sha256": r["config_sha256"], "checks": r["checks"], "event_identity_violations": r["event_identity_violations"]})
 for model in ("pythia", "qwen"):
     r = run_b[model]
     executed.append({"run": f"Run B {model}", "replay_dir": r["replay_dir"], "replay_plan_sha256": r["replay_plan_sha256"],
@@ -54,6 +59,7 @@ doc = {
     "derived_data_runB": {p.name: sha(p) for p in sorted((ROOT / "data/tecs_runB").iterdir())},
     "derived_data_runA2": {p.name: sha(p) for p in sorted((ROOT / "data/tecs_runA2").iterdir())},
     "derived_data_runL2": {p.name: sha(p) for p in sorted((ROOT / "data/tecs_runL2").iterdir())},
+    "derived_data_runK": {str(p.relative_to(ROOT / "data/tecs_runK")): sha(p) for p in sorted((ROOT / "data/tecs_runK").rglob("*")) if p.is_file()},
     "workflow_scripts": {name: sha(REPO / "workflows" / name) for name in ("w8a8_cap_replay.py",)},
     "frozen_plans": {name: sha(ROOT / name) for name in ("review/RUN_A_B_FROZEN_PLANS_2026-11-11.md", "review/RUN_A2_D_F_FROZEN_PLANS_2026-11-11.md")},
     "source_trials": {m: {"path": str(s["path"]), "sha256": sha(s["path"])} for m, s in ga.STUDIES.items()},
