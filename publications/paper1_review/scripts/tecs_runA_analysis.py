@@ -344,6 +344,8 @@ def main() -> None:
         summary["models"][model] = info
 
     def write(name, rows):
+        if not rows:                      # a run without within-tier controls has no such table
+            return
         with open(args.out / name, "x", newline="") as f:
             w = csv.DictWriter(f, fieldnames=list(rows[0].keys())); w.writeheader(); w.writerows(rows)
 

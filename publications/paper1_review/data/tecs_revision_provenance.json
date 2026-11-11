@@ -42,6 +42,13 @@
   "summary.json": "df8c8ea095ce38c2cbcdb636d0fcc5ab2d3fbd3a524e1e7d1f4a78b94f4ad21f",
   "within_tier_contrasts.csv": "181674eb0d89674dded4d72b54d4fcf9bf5e60ffd8843ae726b3d1eeafba9802"
  },
+ "derived_data_runA2": {
+  "absgrad_contrasts.csv": "4bf21f02c98846a40b87d9cd4ccec89479eda6c564790c0010e79541358422a9",
+  "fresh_cell_quality.csv": "32fef07240e9fcdf011afb0835da8cd20ccc02ee3a44bdf2a3c1d9341c349125",
+  "replication0_cells.csv": "daf9cb951587ecd93a0870777d7414ae681191b9899f8fc7cf510034178d36fc",
+  "runA2_analysis_provenance.json": "ba285ff9b8aff22e984b8e8ff4f24a8c91fd02adf39527af4e3d12226e305325",
+  "summary.json": "4f853f866076b8eb7c7cfe6a4dc8647b94ff8f2c9195f421aebe0feb5a919af3"
+ },
  "derived_data_runB": {
   "cap_statistics.csv": "51215da08e73123cbf23707d7ae9dc066d2c19631871c627e1d8c9a75e6ef9c0",
   "runB_tabulation_provenance.json": "7fdc0c8f66b9e46c52f9ea26a51ebf8001054e3dc9d015af77a9dc7d9e14d942",
@@ -81,6 +88,22 @@
    "trials_sha256": "8b2dddcb1eadce9fb6ca54dcd59ff0fa8874d013ebf9b84a041da99f75640aa3"
   },
   {
+   "checks": {
+    "matched_schedules": true,
+    "model_state_restored": true,
+    "partitions_disjoint": true,
+    "quantized_state_exact": true
+   },
+   "config_sha256": "c3a839b8e816a7c11954361b6f09f7755a457c00f6f25e2958673c8c3ddddd73",
+   "event_identity_violations": 0,
+   "run": "Run A2 kws",
+   "run_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runA-tflite-confirm/workspace/runs/paper1_runA2_kws_confirm12_v1/20261111T163724.628443Z-dd9a9dab",
+   "run_id": "20261111T163724.628443Z-dd9a9dab",
+   "scientific_payload_sha256": "798026a02e517ec987f9352605b1aa335db17120994ef788da5bcb79401bd28c",
+   "source_commit": "c21b35470f76d44638fcd1107455e7b09d5c7754",
+   "trials_sha256": "575652a3c94ab57795ba8c7983a3259317b37d516c021695c0636106434992de"
+  },
+  {
    "observation_listing_sha256": "98b075a2060362ee030de6e3c6ed086125c7404c327af34041d22ae5bb0ecdd4",
    "observations": 4800,
    "replay_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-tecs-revision-v1/workspace/runs/w8a8_cap_replay_v1/pythia160m_int8",
@@ -95,7 +118,7 @@
    "run": "Run B qwen"
   }
  ],
- "experiments_executed": 4,
+ "experiments_executed": 5,
  "figures": {
   "tecs_confirmation_runA.pdf": "f1125a8214093b4d7a4999de5ead6a54464efdf1fa6bef758cdc9c0ccd68a3eb",
   "tecs_confirmation_runA.png": "0c7fa3a7b99ccfe264c8e948c4e358fbe92d0b0e4e91f02381f5935a7d16b63c",
@@ -109,6 +132,7 @@
   "tecs_task_quality_ber_125.png": "b936e225aca78f791c877039c2f90f1646b736bb70ee78e6225bd75285d9959b"
  },
  "frozen_plans": {
+  "review/RUN_A2_D_F_FROZEN_PLANS_2026-11-11.md": "b3e1fb4a7e529fd49efb734b173bf2245663bc736c76d5f72dbfd46776559455",
   "review/RUN_A_B_FROZEN_PLANS_2026-11-11.md": "9b4adad9efd3d3e07b42800c7fdd1eb4a3a487a6c83c069f1f7bae613843e692"
  },
  "limits": [
@@ -160,12 +184,12 @@
  "schema": "paper1-tecs-revision-provenance/1.1",
  "scripts": {
   "build_tecs_figures.py": "e5c266032a81e4e42b1fb1323e2c1be62d5ba0b4aca008353e984901e3b9ee13",
-  "build_tecs_provenance.py": "c65e0b8f78c991dc3e77e272f62de9dca6e23e7fc5a2dfecc64265af58cc0ea6",
+  "build_tecs_provenance.py": "3158542db87f9cd0d31380fc77777bed11ab52d6e8920c1fab2aa99ec9fdabb0",
   "build_tecs_runA_figure.py": "afd219927392113ba5d12b6647b077e6238726747f99d12dab185f1a53a78833",
   "tecs_grid_audit.py": "02c17570e082337e02c81a7e21c09a39e6dc461bd1797aebd900bfb62e849a03",
   "tecs_kws_conditional_audit.py": "3fe379c3dcac7e65bb438e79fcff3fa16bcaff49e38560a31c0ae852b7150e9f",
   "tecs_residual_drift_check.py": "8cad48f293e0db085066276ca44b601e5873f3217078e042153080994e933c3f",
-  "tecs_runA_analysis.py": "e614c856dc606a714685ffa1b72b75d6536340fd7908bc398593766c4ea9401c",
+  "tecs_runA_analysis.py": "1f2da5ce709c760d6e16ccf58ce780d43ce6cc5f079506b8f42c966a70dd6a83",
   "tecs_runB_tabulate.py": "fc6113b3275bee0e7ec76f78f436fb999333536666dab002ca68a97dcf1d33d4"
  },
  "source_trials": {

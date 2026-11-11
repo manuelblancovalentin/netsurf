@@ -24,16 +24,16 @@ Source commit of the previous draft: `fdba0d0f46593d1f3d129d4ac14b5d4266f69893`.
 ## What was not done
 
 - No independently trained checkpoint. No confirmation run for ToyCar or the transformers.
-- DS-CNN confirmation has three new replications and does not meet the decision rule.
+- The second DS-CNN confirmation (Run A2) meets the decision rule but reuses test inputs; no DS-CNN run on untouched inputs exists.
 - FKeras candidate correlations for DS-CNN and ToyCar remain uncomputed.
 - No comparison with search-based or learned allocators.
 - The positive-gradient mechanism check (Table 6) still covers DistilBERT only.
 
 ## Remaining submission risks
 
-1. One trained checkpoint per model. The default is confirmed over calibration draws and input windows on ResNet-8 only; a reviewer can fairly ask for DS-CNN with more replications and for the transformers.
+1. One trained checkpoint per model. The default is confirmed over calibration draws on ResNet-8 and DS-CNN (the latter on reused test inputs); a reviewer can fairly ask for other checkpoints and for the transformers. Five retrained ResNet-8 checkpoints are in preparation (Run D).
 2. Software-only scope with bit-count cost is thin for an embedded-systems venue. The irregularity of gradient masks is disclosed but unpriced.
 3. Novelty is in the measurement, not the theory. FKeras and PrioriFI already show that significance is an imperfect proxy; the companion *Learned or Ranked?* release compares allocators at matched cost on other models.
-4. The margin of the default over MSB-first is small on DS-CNN (not resolved on the new data), so the practical case rests mainly on ResNet-8 and the transformers.
+4. The margin of the default over MSB-first is modest on DS-CNN (at most 3.0 points, resolved in four cells of Run A2), so the practical case rests mainly on ResNet-8 and the transformers.
 5. The BER regime where masks matter is dense memory error, not rare upsets; the paper says so, and a reviewer may question the use case.
 6. The TECS page limit was not verified (the draft is 20 pages in the review format).

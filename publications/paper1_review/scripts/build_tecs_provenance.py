@@ -32,6 +32,10 @@ for model in ("resnet8", "kws"):
     executed.append({"run": f"Run A {model}", "run_dir": r["run_dir"], "run_id": r["run_id"], "source_commit": r["source"]["commit"],
                      "scientific_payload_sha256": r["scientific_payload_sha256"], "trials_sha256": r["trials_sha256"],
                      "config_sha256": r["config_sha256"], "checks": r["checks"], "event_identity_violations": r["event_identity_violations"]})
+r = json.loads((ROOT / "data/tecs_runA2/runA2_analysis_provenance.json").read_text())["kws"]
+executed.append({"run": "Run A2 kws", "run_dir": r["run_dir"], "run_id": r["run_id"], "source_commit": r["source"]["commit"],
+                 "scientific_payload_sha256": r["scientific_payload_sha256"], "trials_sha256": r["trials_sha256"],
+                 "config_sha256": r["config_sha256"], "checks": r["checks"], "event_identity_violations": r["event_identity_violations"]})
 for model in ("pythia", "qwen"):
     r = run_b[model]
     executed.append({"run": f"Run B {model}", "replay_dir": r["replay_dir"], "replay_plan_sha256": r["replay_plan_sha256"],
@@ -46,8 +50,9 @@ doc = {
             "Source bundles were read, never written.",
     "derived_data_runA": {p.name: sha(p) for p in sorted((ROOT / "data/tecs_runA").iterdir())},
     "derived_data_runB": {p.name: sha(p) for p in sorted((ROOT / "data/tecs_runB").iterdir())},
+    "derived_data_runA2": {p.name: sha(p) for p in sorted((ROOT / "data/tecs_runA2").iterdir())},
     "workflow_scripts": {name: sha(REPO / "workflows" / name) for name in ("w8a8_cap_replay.py",)},
-    "frozen_plans": {"review/RUN_A_B_FROZEN_PLANS_2026-11-11.md": sha(ROOT / "review/RUN_A_B_FROZEN_PLANS_2026-11-11.md")},
+    "frozen_plans": {name: sha(ROOT / name) for name in ("review/RUN_A_B_FROZEN_PLANS_2026-11-11.md", "review/RUN_A2_D_F_FROZEN_PLANS_2026-11-11.md")},
     "source_trials": {m: {"path": str(s["path"]), "sha256": sha(s["path"])} for m, s in ga.STUDIES.items()},
     "other_sources": {k: {"path": str(p), "sha256": sha(p)} for k, p in extra.items()},
     "scripts": {p.name: sha(p) for p in sorted((ROOT / "scripts").glob("*tecs*.py"))},

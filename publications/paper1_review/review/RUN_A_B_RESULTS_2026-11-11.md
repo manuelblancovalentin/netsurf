@@ -45,3 +45,22 @@ All 9,600 observations (4,800 per model) reproduced the finalized risk records, 
 - Nothing about other trained checkpoints.
 - No confirmation for ToyCar or the transformers.
 - Calibration draw and evaluation window vary jointly in Run A and cannot be separated.
+
+## Run A2: second, larger DS-CNN confirmation (added 11 November 2026)
+
+Design and rule: `RUN_A2_D_F_FROZEN_PLANS_2026-11-11.md`. Engine bundle finalized with all checks true. Analysis: `scripts/tecs_runA_analysis.py --only kws --stride 405 --eval-count 400 --no-controls`, output `workspace/paper1_tecs_revision/runA2_analysis_v2/`, tracked in `data/tecs_runA2/`.
+
+| | DS-CNN, Run A2 |
+|---|---|
+| New replications (fields per BER) | 11 (88) |
+| Decision-useful cells | 22 of 32 |
+| Largest regret of the absolute-gradient mask | 0.06 points |
+| Largest upper 95% bound, replication as unit | 0.20 points |
+| Cells with that bound below 1 point | 22 of 22 |
+| Largest upper 95% bound, fields pooled | 0.18 points |
+| Holm-resolved contrasts for / against absolute gradient | 48 / 0 |
+| **Decision rule** | **met** |
+
+- Other rankings' largest regrets: global gradient 4.3, MSB-first 3.0, FKeras 1.8, numerical jump 8.7, positive gradient 23.5, random 38.3 points. MSB-first and FKeras are resolved worse than the default in 4 and 3 cells.
+- Caveat: the test clips had been used by the main grid and Run A. Calibration draws, masks and fault fields are new.
+- The first analysis attempt (`runA2_analysis_v1`) crashed while writing an empty within-tier table, before any number was read. The script fix changes only that write.

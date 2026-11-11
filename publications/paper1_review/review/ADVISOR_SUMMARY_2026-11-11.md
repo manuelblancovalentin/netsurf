@@ -1,10 +1,10 @@
 # Paper 1: briefing for the advisor meeting (11 November 2026)
 
-Includes the results of the overnight runs. Draft: 21 pages, `delivery_v7_tecs_revision`.
+Includes the results of the overnight runs. Draft: 21 pages, `delivery_v8_tecs_revision`.
 
 ## In one breath
 
-The rejected TCAD paper sold a new metric and a hardware flow it could not back up. The new TECS draft is a careful software-only measurement: which stored bits are worth protecting at a fixed budget, on six frozen INT8 models, judged by task quality. Its main recommendation, the per-example absolute-gradient ranking as a default, was confirmed overnight on ResNet-8 with rebuilt masks on new data. On DS-CNN the estimates agree but the run was too small to confirm.
+The rejected TCAD paper sold a new metric and a hardware flow it could not back up. The new TECS draft is a careful software-only measurement: which stored bits are worth protecting at a fixed budget, on six frozen INT8 models, judged by task quality. Its main recommendation, the per-example absolute-gradient ranking as a default, was confirmed on ResNet-8 with rebuilt masks on new data. On DS-CNN a second, larger run confirmed it too, on test inputs used before.
 
 ## 1. What was wrong with the TCAD paper
 
@@ -34,8 +34,8 @@ The rejected TCAD paper sold a new metric and a hardware flow it could not back 
 **Run A, confirmation on new data (ResNet-8 and DS-CNN).** Everything except the trained checkpoint was redrawn: new calibration inputs, rebuilt masks, new test windows, new fault fields. The pass rule was fixed before the run: regret of the default below 1 point, with 95% confidence, in every useful cell.
 
 - **ResNet-8 passed.** Nine new windows. Largest regret 0.19 points, upper bound 0.64, 63 resolved wins and no loss.
-- **DS-CNN did not pass.** Three new windows. Largest regret 0.13 points and no loss, but three replications cannot bound the regret below 1 point. We write "consistent, not confirmed".
-- **DS-CNN margin is small.** On the new data MSB-first is not resolved worse than the default there.
+- **DS-CNN did not pass the first time, and passed the second.** With three windows the regret could not be bounded below 1 point. A second run with eleven replications bounds it below 0.2 points, with 48 resolved wins and no loss. Caveat: DS-CNN has only 4,890 test clips, so the second run reuses test inputs; its calibration draws, masks and fault fields are new.
+- **DS-CNN margin over MSB-first is modest.** MSB-first loses at most 3 points there.
 - **One headline number went down.** The earlier draft said the default tolerates 10 times the BER of MSB-first and 30 times that of no protection on ResNet-8. On the nine new windows it is 3 and 10. The original window sat just outside the 5-point margin at two grid points. The accuracy gaps held (13.1 points over MSB-first at BER 0.003, against 12.7 before).
 - **FKeras control.** Inside a half-protected bit tier, FKeras's Hessian order beats a random fill (by up to 16 points on ResNet-8). It is not better than plain storage order, and is worse by 4.0 and 2.5 points in two cells outside the useful region.
 
@@ -51,7 +51,7 @@ The rejected TCAD paper sold a new metric and a hardware flow it could not back 
 - That a universal ranking has been disproved empirically, or that absolute gradient is optimal.
 - That MC-guided or conditional selection helps: the one test we have was too small to tell either way.
 - Anything across trained checkpoints (one per model).
-- Confirmation on DS-CNN, ToyCar or the transformers.
+- Confirmation on ToyCar or the transformers; confirmation on untouched DS-CNN inputs.
 - Superiority over learned or search-based allocators (not measured).
 
 ## 6. Where a reviewer will push, and what would answer it
@@ -59,7 +59,6 @@ The rejected TCAD paper sold a new metric and a hardware flow it could not back 
 | Weakness | What would answer it |
 |---|---|
 | One trained checkpoint per model | Retrain three to five ResNet-8 and DS-CNN checkpoints and repeat Run A. Needs approval and compute. |
-| DS-CNN not confirmed | More replications with smaller windows (the test set has 4,890 clips). About one night. |
 | Transformers not repeated | A Run A for DistilBERT. Several nights of CPU. |
 | No hardware cost; gradient masks are irregular | A structured variant (per tier or per layer) or a metadata-cost proxy. New work. |
 | No learned or search-based allocator | Out of scope, stated as a limit. |

@@ -66,17 +66,17 @@ The statement is deliberately limited. It concerns the seven measured rankings, 
 The comparison above uses one mask per ranking and one evaluation window per model. For the two TFLite classifiers we repeated the complete grid with everything except the trained checkpoint redrawn. Each replication draws its own 64 calibration inputs, rebuilds all seven masks from them, and evaluates them on its own window of 1,000 test inputs under new fault fields. ResNet-8 has nine replications on test images that the main grid did not use, with four fields per BER each; DS-CNN has three, with eight fields each. Calibration draw and window change together, so their contributions cannot be separated. The design, the seeds and a decision rule were fixed before the run: the default is confirmed for a model if, with the replication as the unit, the upper 95\% bound of the absolute-gradient mask's error-rate difference to every other ranking is below one percentage point in every decision-useful cell of the new data.
 
 \begin{table}[t]
-\caption{Confirmation run: the absolute-gradient mask against the six other rankings in the decision-useful cells of the new data. Regret is the largest mean error-rate difference to another ranking. Bounds are upper 95\% limits of that difference, maximized over rankings and cells. Resolved contrasts use pooled fields with Holm correction.}\label{tab:confirm}
+\caption{Confirmation runs: the absolute-gradient mask against the six other rankings in the decision-useful cells of the new data. The second DS-CNN run uses 400-clip windows of test clips that earlier runs had used; its calibration draws, masks and fault fields are new. Regret is the largest mean error-rate difference to another ranking. Bounds are upper 95\% limits of that difference, maximized over rankings and cells. Resolved contrasts use pooled fields with Holm correction.}\label{tab:confirm}
 \centering\small
-\begin{tabular}{l r r}\toprule
- & ResNet-8 & DS-CNN\\\midrule
-New replications (fields per BER) & 9 (36) & 3 (24)\\
-Decision-useful cells & 20 & 22\\
-Largest regret (accuracy points) & 0.19 & 0.13\\
-Largest upper bound, replication as unit & 0.64 & 3.78\\
-Cells with that bound below one point & 20 & 14\\
-Largest upper bound, fields pooled & 0.49 & 0.54\\
-Contrasts resolved for / against absolute gradient & 63 / 0 & 24 / 0\\\bottomrule
+\begin{tabular}{l r r r}\toprule
+ & ResNet-8 & DS-CNN & DS-CNN, second run\\\midrule
+New replications (fields per BER) & 9 (36) & 3 (24) & 11 (88)\\
+Decision-useful cells & 20 & 22 & 22\\
+Largest regret (accuracy points) & 0.19 & 0.13 & 0.06\\
+Largest upper bound, replication as unit & 0.64 & 3.78 & 0.20\\
+Cells with that bound below one point & 20 & 14 & 22\\
+Largest upper bound, fields pooled & 0.49 & 0.54 & 0.18\\
+Contrasts resolved for / against absolute gradient & 63 / 0 & 24 / 0 & 48 / 0\\\bottomrule
 \end{tabular}
 \Description{Summary of the confirmation run for ResNet-8 and DS-CNN.}
 \end{table}
@@ -89,7 +89,9 @@ Contrasts resolved for / against absolute gradient & 63 / 0 & 24 / 0\\\bottomrul
 
 ResNet-8 meets the rule in all 20 decision-useful cells (Table~\ref{tab:confirm}, Fig.~\ref{fig:confirm}). No ranking is resolved better than the absolute-gradient mask, which is resolved better in 63 of 120 contrasts. The largest regrets of the other rankings on the new data are 6.9 points (global gradient), 13.1 (MSB-first and FKeras) and 36.9 (positive gradient). At $p=3\times10^{-3}$ and 12.5\% the gain over MSB-first is 13.1 points (replication-level interval 9.4 to 16.8), against 12.7 in the main grid.
 
-DS-CNN does not meet the rule. Its estimates agree with the main grid: the largest regret is 0.13 points, no contrast is resolved against the absolute-gradient mask, and with pooled fields every bound is below 0.6 points. But with three replications the Student-$t$ quantile is 4.3, and the replication-level bound exceeds one point in eight of 22 cells. Against the best other ranking alone, a reading we added after seeing this outcome, it exceeds one point in four cells (up to 2.4). We regard the DS-CNN result as consistent with the default but not confirmed. The new data also show that the default's margin on this model is small: MSB-first and FKeras are not resolved worse than the absolute gradient in any decision-useful cell, and their largest regrets are 2.5 and 2.1 points.
+DS-CNN does not meet the rule in this run. Its estimates agree with the main grid: the largest regret is 0.13 points, no contrast is resolved against the absolute-gradient mask, and with pooled fields every bound is below 0.6 points. But with three replications the Student-$t$ quantile is 4.3, and the replication-level bound exceeds one point in eight of 22 cells. Against the best other ranking alone, a reading we added after seeing this outcome, it exceeds one point in four cells (up to 2.4).
+
+We therefore ran a second DS-CNN confirmation with the same rule and more replications: twelve windows of 400 test clips, eight fault fields per BER each, with all masks rebuilt from each window's own calibration draw. The eleven replications with new calibration draws meet the rule in all 22 decision-useful cells (Table~\ref{tab:confirm}, last column). The largest regret is 0.06 points and the largest replication-level bound is 0.20. The absolute-gradient mask is resolved better in 48 of 132 contrasts and worse in none. MSB-first and FKeras, unresolved in the first run, are resolved worse in four and three cells and lose up to 3.0 and 1.8 points. One caveat applies. The DS-CNN test set has 4,890 clips, and the clips of this second run had been used by the main grid and by the first confirmation run. Its calibration draws, masks and fault fields are new, so it establishes stability over mask construction and faults, not over untouched inputs.
 
 The new windows correct one statement of Table~\ref{tab:useful}. On the nine new ResNet-8 windows at 12.5\%, the highest useful BER is $3\times10^{-4}$ unprotected, $10^{-3}$ with MSB-first and $3\times10^{-3}$ with the absolute gradient: factors of three and ten, not ten and thirty. In the original window the unprotected model at $3\times10^{-4}$ and MSB-first at $10^{-3}$ fell just outside the margin, losing 5.5 and 5.7 points against 4.3 and 4.6 on the new windows. A threshold statistic on a half-decade grid is sensitive to such shifts. The accuracy losses themselves are stable: at $p=3\times10^{-3}$ the absolute-gradient mask loses 3.0 points, MSB-first 16.1 and the unprotected model 44.5 on the new windows, against 5.0, 17.7 and 51.2 in the original one.
 
