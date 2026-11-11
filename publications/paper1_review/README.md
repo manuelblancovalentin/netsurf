@@ -1,52 +1,47 @@
-# NetSuRF — complete software-methodology internal draft
+# Compact software-reliability internal draft
 
-Start with the compiled NetSuRF_internal_review.pdf in the delivery archive. The source entry point is source/main.tex; the separate Overleaf ZIP is self-contained.
+**Is There a Universal Bit Ranking? Evaluating Fault Protection in Quantized Neural Networks**
 
-**Title:** NetSuRF: Bit-Accurate Reliability Analysis and Budgeted Protection of Quantized Neural Networks.
+Start with `NetSuRF_internal_review.pdf` in the delivery archive. The source entry point is `source/main.tex`; the separate Overleaf ZIP is self-contained. NetSuRF remains the software framework's name, not a claimed universally superior allocation method.
 
-The draft follows the original engineering sequence: frozen network → exact encoded perturbations → susceptibility ranking → protection budget → paired fault injection → task-level reliability. It uses the original manuscript's direct technical organization, but does not inherit its unsupported estimator, hardware or radiation claims. It restores the original four-author list provisionally; the researchers must confirm authorship, affiliation and corresponding author before submission.
+## Current revision
 
-## What is delivered
+The compact third delivery is 13 pages in the unchanged ACM manuscript/review format, down from 24. The conclusion is on page 10; references occupy the rest of page 10 and part of 11, followed by appendices through page 13. This is not an IEEE two-column page count. No fonts or margins were reduced to achieve the compression.
 
-- Complete ACM TECS internal-review source and compiled PDF, five main figures, five main/appendix tables and mathematical appendix.
-- Six-page full-budget figure supplement, plus vector PDF/SVG and PNG versions of the statistical figures.
-- Current evidence for ResNet-8, DS-CNN, ToyCar, DistilBERT, Pythia-160M and Qwen3-0.6B.
-- 1,254 measured conditions and 35,136 labeled policy-field observations. These are not 35,136 independent fault fields; the accounting and identical-mask controls are documented in EVIDENCE_HANDOFF.md.
-- Published-form FKeras on all three TFLite benchmarks. Missing transformer FKeras and matched PrioriFI-derived results remain explicit.
-- A visible negative primary result for conditional versus exact isolated selection on 32 independently sampled KWS pools.
-- Original-to-current contribution audit, claim-to-evidence matrix, figure/table provenance, hostile scientific review, venue/novelty assessment and prioritized optional-week ledger under review/.
+Four main figures show the workflow, six-model BER curves, protection-budget curves, and the complete 32-pool conditional-selection distribution. Three numbered equations remain in the main text; derivations and numerical controls are in the appendix. The delta matrix and all qPolarGrad discussion are absent from the manuscript. Previous artwork and audits remain in the review archive for provenance only.
 
-## Main conclusion and its boundary
+The draft follows the engineering sequence: frozen network → exact stored-bit perturbations → ranking → fixed-budget masks → paired fault injection → task-level reliability. It does not report implemented hardware correction or radiation qualification. The four-author list remains provisional pending researcher confirmation of authorship, affiliations and corresponding author.
 
-The preferred measured allocation changes with checkpoint/task, BER and budget. Exact isolated damage has no general guarantee of equaling conditional protection value. These results support checkpoint- and operating-condition-specific reliability assessment. They do not prove that all static methods fail, that interactions cause every observed reversal, or that the conditional selector is universally better.
+## Evidence and boundaries
 
-The full-eligible INT8 studies are distinct from the earlier restricted FP32/BF16 pilots. ToyCar uses complete-file ROC-AUC; token and classification losses are never pooled with it. The transformer NLL cap and Qwen's finite-loss saturation diagnostic remain explicit. The obsolete Pythia high-BER run with clean-state mismatch is excluded in favor of the new clean-gated finalized run.
+- Six current INT8 configurations: ResNet-8, DS-CNN, ToyCar, DistilBERT, Pythia-160M and Qwen3-0.6B.
+- 1,254 measured conditions and 35,136 labeled policy/field observations, not that many independent fields. Complete-tier duplicate masks and reused controls are documented in `EVIDENCE_HANDOFF.md`.
+- Published-form FKeras on three TFLite benchmarks, treated as one method among the structural and gradient comparators. Missing transformer FKeras and matched PrioriFI/RL allocation measurements remain limitations.
+- Paired reversals show that preferences between measured methods depend on operating conditions. They do not establish that every static ranking fails or identify the cause of each reversal.
+- The 32-pool KWS test changes allocations but does not resolve an advantage of conditional selection over exact isolated selection. Both improve slightly over the original gradient allocation in separate secondary comparisons.
+- ToyCar uses complete-file AUC risk. Classification CE and capped token NLL retain separate units and cohorts; the earlier restricted FP32/BF16 pilots are not pooled into these curves.
 
-## Original visual identity
+The six-page complete budget-grid supplement remains available. No numerical curve has been invented to fill a missing cell. Current compact figures use the same saved means and intervals as the preceding delivery, with reduced labels and lighter styling.
 
-The second delivery restores the original three-stage framework layout and the blue/pink/green weights-to-bits-to-delta diagram as editable vector artwork. Their labels now match the software-only execution contract and an exact INT8 worked example. The old hardware figures and unverified numerical comparisons are not substituted for current measurements. All 24 supplied PNGs are inventoried and hash-bound in review/legacy_figure_reuse.json; review/legacy_figure_reuse.md explains each reuse or exclusion. The first delivery is unchanged.
+## Review materials
 
-## Bibliography
+`review/compact_revision_notes.md` maps the requested edits to changes. `review/claim_to_evidence.md` and `review/figure_table_manifest.md` describe the current draft. `review/compact_figure_provenance.json` binds the new rendering script, exact inputs, filters and outputs. Earlier source/figure audits remain available but do not dictate current manuscript contents.
 
-FORTUNE is included as quantization plus redundant MSB protection and majority voting, not as a measured ideal-suppression baseline. FKeras and PrioriFI are described using their published objectives. EISFINN, Ranger, FT-CNN, selective TMR, the published FCCM predecessor and the public selective-ECC companion release are compared explicitly. The latter is labeled a dataset/source release, not a verified peer-reviewed manuscript. Model and dataset references are included. Unused inherited bibliography records are retained in source but do not appear in the rendered reference list; the review specifies which cited entries were verified.
+Related work includes FORTUNE, FKeras, PrioriFI, EISFINN, progressive bit search, DeepHammer, FlipLLM, genuine RL protection allocation, selective hardening, and the published FCCM predecessor. Attack discovery and expected-risk allocation are distinguished without dismissing learned protection. The public selective-ECC release is identified as a companion dataset, not independently verified peer-reviewed publication.
 
-The Zotero skill's read-only check found no active local service, so reference verification used original author/publisher records. Hugging Face paper metadata was used read-only for the model-reference cross-check. No reference manager configuration, model asset or environment was changed.
-
-## Reproduce without inference
-
-From this worktree:
+## Reproduce offline
 
 ~~~bash
 cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-complete-review-v1/publications/paper1_review/source
 latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex
 ~~~
 
-Figure scripts under scripts/ read saved artifacts; their canonical paths are recorded in the script and provenance JSONs. They cannot be replayed on a different host without those source artifacts. The delivery includes the compact derived data and publication figures; it does not redistribute all large model, fault-event and mask payloads. Their original manifests remain authoritative. Fresh verification of the inputs actually read is distinguished from provenance links to omitted bytes.
+`scripts/build_compact_figures.py` reads only the included saved derived data; it performs no model inference. Earlier source-audit scripts require the original artifacts at the recorded Kona paths. Large masks, checkpoints and trial payloads are linked by their manifests, not redistributed or claimed to be independently rehashed by every manuscript build.
 
-scripts/package_review.py checks citations, required outputs, manuscript placeholders, printed mathematics and source diff, then creates a new write-once delivery directory with Overleaf/full ZIPs and SHA-256 manifests. It never imports model or experiment code. It requires an unused output directory.
+`scripts/package_review.py` validates citations, outputs, printed mathematics and provenance, and creates a new write-once delivery with source/full ZIPs and SHA-256 manifests. It does not import experiment code. Previous deliveries remain unchanged.
 
-## Submission assessment
+## Venue and remaining risk
 
-TECS is a defensible but ambitious choice. The research contribution is an exact, reproducible evaluation methodology and quantified limits of transfer across operating conditions. Its novelty beyond the published FCCM flow and existing fault-analysis work remains the main reviewer risk. Journal of Systems Architecture is the closest alternative, not a guaranteed easier acceptance. The reviewer reports give concrete fixes rather than promising acceptance.
+TECS remains plausible but ambitious; the central risk is whether the controlled methodology and decision evidence contribute enough beyond prior ranking comparisons and the published FCCM flow. The compact format does not resolve that scientific question. See `review/compact_venue_literature.md` and the adversarial review. TCAD's verified current hard limit is 14 IEEE two-column pages, not nine; the current TECS page cap could not be independently verified. This package retains the supplied ACM format and does not choose a venue by silently changing typography.
 
-No scientific inference, new campaign, training, asset change, automatic merge or push was performed for this draft. Existing finalized evidence and the supplied manuscript ZIP/PDF remain unchanged.
+No inference, training, new campaign, asset change, automatic merge or push was performed. Original evidence and supplied source files are unchanged.

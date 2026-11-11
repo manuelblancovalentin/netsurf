@@ -101,6 +101,8 @@ def validate():
         "review/adversarial_scientific_review.md", "review/venue_and_novelty.md",
         "review/unresolved_experiment_ledger.md", "data/figure_provenance.json",
         "figures/reliability_all_budgets_supplement.pdf",
+        "review/compact_revision_notes.md", "review/compact_venue_literature.md",
+        "review/compact_figure_provenance.json",
     ]
     for name in required:
         assert (ROOT / name).is_file(), name
@@ -111,9 +113,18 @@ def validate():
     assert len(reused["files"]) == 24
     for item in reused["files"]:
         assert digest(Path(item["path"])) == item["sha256"], item["name"]
+    compact = json.loads((ROOT / "review/compact_figure_provenance.json").read_text())
+    receipts = dict(compact["inputs"])
+    receipts.update(compact["outputs"])
+    for name in ("generator", "analytic_asset"):
+        receipt = compact[name]
+        receipts[receipt["path"]] = receipt
+    for path, receipt in receipts.items():
+        assert digest(ROOT / path) == receipt["sha256"], path
     return {"cited_keys": sorted(cited), "bibliography_records": len(keys),
             "condition_rows": len(rows), "mathematics": math_checks(),
             "unchanged_original_image_hashes": len(reused["files"]),
+            "compact_figure_receipts_verified": len(receipts),
             "latex": "compiled; no undefined references or overfull boxes",
             "expected_class_warning": "ACM reference block omitted for internal review"}
 
