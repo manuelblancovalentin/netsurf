@@ -188,8 +188,44 @@ class MlperfTinyImageClassificationAdapter:
         ] = {}
         self._official_index_cache: np.ndarray | None = None
         self._differentiable_companion = None
+        self.retrained_checkpoint = False
+
+    def _load_retrained(self, expected_sha256: str) -> None:
+        """Load a retrained checkpoint of the same architecture (engine variant, not the pinned asset).
+
+        Enabled only by the environment variable NETSURF_RETRAINED_IC_SHA256, which must hold the
+        SHA-256 of the configured checkpoint file.  The pinned asset lock is still required: it
+        resolves the dataset, and the pinned model is loaded first so that the registered
+        byte-equivalence gate of the TFLite runtime runs before the retrained model replaces it.
+        No lock file is read for, or written about, the retrained model.
+        """
+        if self.asset_lock_path is None:
+            raise AssetLockError("a retrained checkpoint still requires the pinned asset lock")
+        self.asset_lock = load_verified_asset_lock(str(self.asset_lock_path))
+        dataset_root = Path(self.asset_lock.document["resolved"]["datasets"]["cifar10"]).resolve()
+        archive = self.asset_lock.file("cifar-10-python.tar.gz")
+        if self.dataset_path not in {dataset_root, archive} and dataset_root not in self.dataset_path.parents:
+            raise AssetLockError(f"dataset {self.dataset_path} is not resolved by {self.asset_lock_path}")
+        roles = tuple({"kernels": "kernel", "biases": "bias"}[value] for value in self.injectable_parameters)
+        pinned = TFLiteModelStorage.from_path(
+            self.asset_lock.file(_MODEL_RELATIVE_PATH), expected_sha256=MLPERF_TINY_IC_INT8_SHA256, eligible_roles=roles)
+        self.storage = pinned
+        self._set_model_content(pinned.reference_content)
+        conformance = self.reference_conformance()
+        if not conformance["exact_output_digest_match"]:
+            raise RuntimeError("configured TFLite runtime is not byte-equivalent to the registered backend")
+        self.storage = TFLiteModelStorage.from_path(self.checkpoint, expected_sha256=expected_sha256, eligible_roles=roles)
+        if self.storage.sha256 == MLPERF_TINY_IC_INT8_SHA256:
+            raise AssetLockError("the retrained-checkpoint path was given the pinned model")
+        self._set_model_content(self.storage.reference_content)
+        self.retrained_checkpoint = True
 
     def load(self) -> None:
+        import os
+        retrained = os.environ.get("NETSURF_RETRAINED_IC_SHA256")
+        if retrained:
+            self._load_retrained(retrained)
+            return
         if self.asset_lock_path is not None:
             self.asset_lock = load_verified_asset_lock(str(self.asset_lock_path))
             locked_model = self.asset_lock.file(_MODEL_RELATIVE_PATH)
@@ -629,7 +665,8 @@ class MlperfTinyImageClassificationAdapter:
 
     def representation_manifest(self) -> dict[str, object]:
         result = {
-            "identity": "mlperf_tiny_ic_resnet8_int8_v1",
+            "identity": "mlperf_tiny_ic_resnet8_int8_v1" + ("+retrained_checkpoint" if self.retrained_checkpoint else ""),
+            "retrained_checkpoint": bool(self.retrained_checkpoint),
             "suite_commit": MLPERF_TINY_COMMIT,
             "interpreter_backend": self._interpreter_backend,
             "runtime": dict(self._runtime_provenance),

@@ -19,6 +19,30 @@ from .tflite_storage import TFLiteModelStorage, TFLiteTensorDescriptor
 
 _KERNEL_TENSORS = (8, 9, 10, 11, 12, 13, 14, 15, 16, 7)
 _BIAS_TENSORS = (3, 4, 17, 5, 18, 19, 6, 20, 21, 1)
+# Activation wiring of the pinned graph: (input, output) of the nine CONV_2D operators in execution order,
+# then of the FULLY_CONNECTED operator.  A retrained checkpoint converted by the same converter has the same
+# wiring; only the numbering of its constant tensors may differ, and it is read from the operators.
+_CONV_WIRING = ((0, 22), (22, 23), (23, 24), (25, 26), (26, 27), (25, 28), (29, 30), (30, 31), (29, 32))
+_FC_WIRING = (35, 36)
+
+
+def resnet8_constant_tensor_map(model_content: bytes):
+    """Map each pinned kernel and bias tensor index to the index of the same operand in this model."""
+    import tensorflow as tf
+
+    interpreter = tf.lite.Interpreter(
+        model_content=model_content, experimental_delegates=[],
+        experimental_op_resolver_type=tf.lite.experimental.OpResolverType.BUILTIN_REF, num_threads=1)
+    interpreter.allocate_tensors()
+    ops = interpreter._get_ops_details()
+    convs = [op for op in ops if op["op_name"] == "CONV_2D"]
+    fcs = [op for op in ops if op["op_name"] == "FULLY_CONNECTED"]
+    wiring = tuple((int(op["inputs"][0]), int(op["outputs"][0])) for op in convs)
+    if len(fcs) != 1 or wiring != _CONV_WIRING or (int(fcs[0]["inputs"][0]), int(fcs[0]["outputs"][0])) != _FC_WIRING:
+        raise ValueError("TFLite graph does not match the pinned ResNet-8 operator wiring")
+    kernels = tuple(int(op["inputs"][1]) for op in convs) + (int(fcs[0]["inputs"][1]),)
+    biases = tuple(int(op["inputs"][2]) for op in convs) + (int(fcs[0]["inputs"][2]),)
+    return dict(zip(_KERNEL_TENSORS, kernels)), dict(zip(_BIAS_TENSORS, biases))
 _KERAS_LAYERS = (
     "conv2d", "conv2d_1", "conv2d_2", "conv2d_3", "conv2d_4",
     "conv2d_5", "conv2d_6", "conv2d_7", "conv2d_8", "dense",
@@ -104,14 +128,16 @@ class MlperfResnet8DifferentiableCompanion:
         )
         kernels = {value.tensor_index: value for value in self.storage.descriptors if value.role == "kernel"}
         biases = {value.tensor_index: value for value in self.storage.descriptors if value.role == "bias"}
-        if tuple(_KERNEL_TENSORS) != tuple(index for index in _KERNEL_TENSORS if index in kernels):
+        # Pinned index -> index in this model.  For the pinned checkpoint both maps are the identity.
+        self._kmap, self._bmap = resnet8_constant_tensor_map(model_content)
+        if any(index not in kernels for index in self._kmap.values()):
             raise ValueError("TFLite graph does not match the pinned ResNet-8 kernel topology")
-        if tuple(_BIAS_TENSORS) != tuple(index for index in _BIAS_TENSORS if index in biases):
+        if any(index not in biases for index in self._bmap.values()):
             raise ValueError("TFLite graph does not match the pinned ResNet-8 bias topology")
 
         encoded = self.storage.values()
-        self.kernel_descriptors = tuple(kernels[index] for index in _KERNEL_TENSORS)
-        self.bias_descriptors = tuple(biases[index] for index in _BIAS_TENSORS)
+        self.kernel_descriptors = tuple(kernels[self._kmap[index]] for index in _KERNEL_TENSORS)
+        self.bias_descriptors = tuple(biases[self._bmap[index]] for index in _BIAS_TENSORS)
         self.variables = {
             value.parameter: tf.Variable(
                 value.quantization.dequantize(encoded[value.parameter]).astype(self.numerical_dtype),
@@ -121,10 +147,10 @@ class MlperfResnet8DifferentiableCompanion:
             for value in self.kernel_descriptors
         }
         self.biases = {
-            value.tensor_index: tf.constant(
+            pinned: tf.constant(
                 value.quantization.dequantize(encoded[value.parameter]).astype(self.numerical_dtype)
             )
-            for value in self.bias_descriptors
+            for pinned, value in zip(_BIAS_TENSORS, self.bias_descriptors)
         }
 
         interpreter = tf.lite.Interpreter(
@@ -166,8 +192,10 @@ class MlperfResnet8DifferentiableCompanion:
         return values + tf.stop_gradient(quantized - values)
 
     def _kernel(self, tensor_index: int):
+        """Kernel variable for a pinned kernel index (translated to this model's numbering)."""
+        actual = self._kmap[tensor_index]
         descriptor = next(
-            value for value in self.kernel_descriptors if value.tensor_index == tensor_index
+            value for value in self.kernel_descriptors if value.tensor_index == actual
         )
         return self.variables[descriptor.parameter]
 
@@ -259,7 +287,7 @@ class MlperfResnet8DifferentiableCompanion:
             "implementation_version": self.implementation_version,
             "loss_version": self.loss_version,
             "parameter_source": "dequantized immutable TFLite INT8 kernel buffers",
-            "kernel_tensor_indices": list(_KERNEL_TENSORS),
+            "kernel_tensor_indices": [self._kmap[index] for index in _KERNEL_TENSORS],
             "bias_source": "dequantized immutable TFLite INT32 bias buffers; not fault eligible in M9",
             "straight_through_rule": "identity derivative through activation round and clip",
             "authoritative_inference": False,
@@ -336,7 +364,7 @@ class MlperfResnet8ContinuousCompanion(MlperfResnet8DifferentiableCompanion):
             "implementation_version": self.implementation_version,
             "loss_version": self.loss_version,
             "parameter_source": "exact affine decoded frozen INT8 kernel codes",
-            "kernel_tensor_indices": list(_KERNEL_TENSORS),
+            "kernel_tensor_indices": [self._kmap[index] for index in _KERNEL_TENSORS],
             "bias_source": "fixed decoded INT32 constants; neither differentiated nor fault eligible",
             "activation_quantization": "removed in this separate continuous extension",
             "dtype": "float64",
