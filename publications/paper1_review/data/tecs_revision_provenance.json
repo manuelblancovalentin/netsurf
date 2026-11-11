@@ -34,8 +34,71 @@
   "protection_vs_unprotected.csv": "ef998124f2664d5adf22e05e87add5191aa75e9266d12e07acfd4da84b8f3f04",
   "summary.json": "21738509f381a3da8b30b0ce47e2ddbc38cc34c98f090161e0f49d8e1b566195"
  },
- "experiments_executed": 0,
+ "derived_data_runA": {
+  "absgrad_contrasts.csv": "94953f17947b1967ac56080d826abce79175a6572f16696b191e392d4bcf57c1",
+  "fresh_cell_quality.csv": "f3918df8d5e4938ad157da23fc9b3fdf3feca4a31535c4014cf6267d294d4030",
+  "replication0_cells.csv": "06101abf6fc130f4784cd008168f3199cc4b84a72ca9c75f1e373d89ddce24c6",
+  "runA_analysis_provenance.json": "bce9d83d74fad5786cd1a6970d07da4565e7cbb0bf895a70153e85cfd0276ce1",
+  "summary.json": "df8c8ea095ce38c2cbcdb636d0fcc5ab2d3fbd3a524e1e7d1f4a78b94f4ad21f",
+  "within_tier_contrasts.csv": "181674eb0d89674dded4d72b54d4fcf9bf5e60ffd8843ae726b3d1eeafba9802"
+ },
+ "derived_data_runB": {
+  "cap_statistics.csv": "51215da08e73123cbf23707d7ae9dc066d2c19631871c627e1d8c9a75e6ef9c0",
+  "runB_tabulation_provenance.json": "7fdc0c8f66b9e46c52f9ea26a51ebf8001054e3dc9d015af77a9dc7d9e14d942",
+  "summary.json": "adabd0b21485d43c57834728a6b9d6f4cabac6d2c70a9e94835707ba0dd0a002"
+ },
+ "executed_runs": [
+  {
+   "checks": {
+    "matched_schedules": true,
+    "model_state_restored": true,
+    "partitions_disjoint": true,
+    "quantized_state_exact": true
+   },
+   "config_sha256": "94b03af7941b4da78945fafa2e8af40367c690d2294a999585f170940fc4b4d0",
+   "event_identity_violations": 0,
+   "run": "Run A resnet8",
+   "run_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runA-tflite-confirm/workspace/runs/paper1_runA_resnet8_confirm_v1/20261111T114703.504758Z-7c2a03b8",
+   "run_id": "20261111T114703.504758Z-7c2a03b8",
+   "scientific_payload_sha256": "e072000c6d3f2093c5c6e3da0cd985bb23fa3482db6c6bce6efc79fde12cbc32",
+   "source_commit": "1d11df2183ee0abbb7d91c5bc46332265b654de6",
+   "trials_sha256": "d0dd3468699a5e160b6047201594c293ec313cfae780605eddae6ee51204448e"
+  },
+  {
+   "checks": {
+    "matched_schedules": true,
+    "model_state_restored": true,
+    "partitions_disjoint": true,
+    "quantized_state_exact": true
+   },
+   "config_sha256": "e2ce597e4bdf37884924106c21783e5f00023aec7d734814f2136ddb1a16e21f",
+   "event_identity_violations": 0,
+   "run": "Run A kws",
+   "run_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runA-tflite-confirm/workspace/runs/paper1_runA_kws_confirm_v1/20261111T111029.511558Z-e7f357a6",
+   "run_id": "20261111T111029.511558Z-e7f357a6",
+   "scientific_payload_sha256": "b85f19fe17672e2e2cbf92278beda4b9995d5bd7d76041bbf29bc64e6474e4e3",
+   "source_commit": "1d11df2183ee0abbb7d91c5bc46332265b654de6",
+   "trials_sha256": "8b2dddcb1eadce9fb6ca54dcd59ff0fa8874d013ebf9b84a041da99f75640aa3"
+  },
+  {
+   "observation_listing_sha256": "98b075a2060362ee030de6e3c6ed086125c7404c327af34041d22ae5bb0ecdd4",
+   "observations": 4800,
+   "replay_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-tecs-revision-v1/workspace/runs/w8a8_cap_replay_v1/pythia160m_int8",
+   "replay_plan_sha256": "6cc9f560ecc0ab8e9b037a3055bcc9297370faf29bc5f63f3f424dd06dcb1f32",
+   "run": "Run B pythia"
+  },
+  {
+   "observation_listing_sha256": "c2b40b0d7359aad94e4a71586118474de078f5a84611a26bbb2a724b327c080f",
+   "observations": 4800,
+   "replay_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-tecs-revision-v1/workspace/runs/w8a8_cap_replay_v1/qwen3_0_6b_int8",
+   "replay_plan_sha256": "944ef0c3148e7319a7ebe0576ecf645aad289199492077dba4c56eea28264ca4",
+   "run": "Run B qwen"
+  }
+ ],
+ "experiments_executed": 4,
  "figures": {
+  "tecs_confirmation_runA.pdf": "f1125a8214093b4d7a4999de5ead6a54464efdf1fa6bef758cdc9c0ccd68a3eb",
+  "tecs_confirmation_runA.png": "0c7fa3a7b99ccfe264c8e948c4e358fbe92d0b0e4e91f02381f5935a7d16b63c",
   "tecs_fkeras_partial_tiers.pdf": "dfd082353fd10b8bd06882898b2c716fa72bc47b2c5b3e079e8a4b81194915f7",
   "tecs_fkeras_partial_tiers.png": "4ee580a74e3461770e5c48b46c471da7f07ec988a7811e1ea675238983b11e6d",
   "tecs_grid_regret_map.pdf": "7cb1786d7b48d8cd295d34d860040066d76a7db803ab224d5fd24fee34618843",
@@ -45,13 +108,17 @@
   "tecs_task_quality_ber_125.pdf": "f80d84a2acba8a439eaa731ded4e85a05f6dadb2b330beee334999c2cccbb072",
   "tecs_task_quality_ber_125.png": "b936e225aca78f791c877039c2f90f1646b736bb70ee78e6225bd75285d9959b"
  },
+ "frozen_plans": {
+  "review/RUN_A_B_FROZEN_PLANS_2026-11-11.md": "9b4adad9efd3d3e07b42800c7fdd1eb4a3a487a6c83c069f1f7bae613843e692"
+ },
  "limits": [
-  "One checkpoint, one evaluation cohort and one constructed mask per deterministic ranking and budget.",
-  "Usefulness criterion fixed before regret was computed but after the data existed.",
-  "Main-grid language-model cap frequency was never recorded.",
+  "One trained checkpoint per model. Outside Run A: one evaluation cohort and one constructed mask per deterministic ranking and budget.",
+  "Run A varies calibration draw, masks, evaluation window and fault fields jointly; DS-CNN has three new replications and does not meet the decision rule.",
+  "Usefulness criterion fixed before regret was computed but after the main-grid data existed.",
+  "Language-model cap frequency comes from a replay of the saved fields (Run B), not from the original runs.",
   "Residual-drift check covers DistilBERT only."
  ],
- "note": "Offline re-analysis of finalized studies. Source bundles were read, never written.",
+ "note": "Offline re-analysis of finalized studies, plus two approved runs of 11 November 2026: Run A (TFLite confirmation, two finalized engine bundles) and Run B (bitwise replay of the saved language-model fields with cap statistics). Source bundles were read, never written.",
  "other_sources": {
   "asset_readiness_manifest": {
    "path": "/projects/kona-assets/manuelbv/NETSURF_ASSET_READINESS.json",
@@ -90,13 +157,16 @@
    "sha256": "18f3a15b7b8fb3849fed6c0a61d2a91df6fabf6ecad45bf3bd9f98718cf8f0e2"
   }
  },
- "schema": "paper1-tecs-revision-provenance/1.0",
+ "schema": "paper1-tecs-revision-provenance/1.1",
  "scripts": {
   "build_tecs_figures.py": "e5c266032a81e4e42b1fb1323e2c1be62d5ba0b4aca008353e984901e3b9ee13",
-  "build_tecs_provenance.py": "5f34c3b8108fe96a50e3424b42a54c0ba53e4ccf7110a1c53b291f87242adb26",
+  "build_tecs_provenance.py": "c65e0b8f78c991dc3e77e272f62de9dca6e23e7fc5a2dfecc64265af58cc0ea6",
+  "build_tecs_runA_figure.py": "afd219927392113ba5d12b6647b077e6238726747f99d12dab185f1a53a78833",
   "tecs_grid_audit.py": "02c17570e082337e02c81a7e21c09a39e6dc461bd1797aebd900bfb62e849a03",
   "tecs_kws_conditional_audit.py": "3fe379c3dcac7e65bb438e79fcff3fa16bcaff49e38560a31c0ae852b7150e9f",
-  "tecs_residual_drift_check.py": "8cad48f293e0db085066276ca44b601e5873f3217078e042153080994e933c3f"
+  "tecs_residual_drift_check.py": "8cad48f293e0db085066276ca44b601e5873f3217078e042153080994e933c3f",
+  "tecs_runA_analysis.py": "c0514455ee0a7e82f67c4df800f3008f9262b4c65e53897d8538863a744cd7f1",
+  "tecs_runB_tabulate.py": "fc6113b3275bee0e7ec76f78f436fb999333536666dab002ca68a97dcf1d33d4"
  },
  "source_trials": {
   "distilbert": {
@@ -123,5 +193,8 @@
    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/measurements/trials.csv",
    "sha256": "397a593be6762610f1ac3367f6baf41f58fda9b97fa4e26d59f77b86cbb34597"
   }
+ },
+ "workflow_scripts": {
+  "w8a8_cap_replay.py": "e8d99252df332cd7dcfbca8b3a927f6e9e0abfe43db288ea6dba506f8be4cc42"
  }
 }

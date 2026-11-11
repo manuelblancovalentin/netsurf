@@ -15,18 +15,25 @@ Source commit of the previous draft: `fdba0d0f46593d1f3d129d4ac14b5d4266f69893`.
 - **Figures.** Three new figures (`tecs_task_quality_ber_125`, `tecs_grid_regret_map`, `tecs_protection_vs_unprotected_125`); the workflow figure keeps its structure with plainer labels; the KWS pool figure moves to the appendix.
 - **Bibliography.** Added Birnbaum (1969), Rausand and Hoyland (2004) and Stutz et al. (2021).
 
+## Update after the overnight runs (11 November 2026)
+
+- Run A (TFLite confirmation) and Run B (language-model cap replay) were approved, executed and analyzed. Frozen designs: `review/RUN_A_B_FROZEN_PLANS_2026-11-11.md`. Outcomes: `review/RUN_A_B_RESULTS_2026-11-11.md`. Tables: `data/tecs_runA/`, `data/tecs_runB/`.
+- Manuscript changes: new Section 7.3 and Table 5 (confirmation run); the tolerated-BER factors in the abstract, introduction, Section 7.1 and the discussion were lowered to what the new windows support; the FKeras partial-tier paragraph now reports the random within-tier control; a cap-replay paragraph was added to Section 7.4 and the positive-gradient harm on Pythia is now qualified by cap frequency; limits and conclusion were updated.
+- The exploratory mean-field drift prototype (`workflows/meanfield_drift_prototype.py`) is not used in the manuscript.
+
 ## What was not done
 
-- No new inference. No new production run was launched; two frozen plans are in `review/TECS_DECISION_MEMO_2026-11-11.md`.
-- Cap frequency for the main language-model grids remains unavailable.
+- No independently trained checkpoint. No confirmation run for ToyCar or the transformers.
+- DS-CNN confirmation has three new replications and does not meet the decision rule.
 - FKeras candidate correlations for DS-CNN and ToyCar remain uncomputed.
 - No comparison with search-based or learned allocators.
+- The positive-gradient mechanism check (Table 6) still covers DistilBERT only.
 
 ## Remaining submission risks
 
-1. The default claim rests on one mask per ranking, one checkpoint and previously exposed cohorts. A reviewer can fairly call it exploratory. Run A in the decision memo addresses masks and cohorts; checkpoints need retraining and separate approval.
+1. One trained checkpoint per model. The default is confirmed over calibration draws and input windows on ResNet-8 only; a reviewer can fairly ask for DS-CNN with more replications and for the transformers.
 2. Software-only scope with bit-count cost is thin for an embedded-systems venue. The irregularity of gradient masks is disclosed but unpriced.
 3. Novelty is in the measurement, not the theory. FKeras and PrioriFI already show that significance is an imperfect proxy; the companion *Learned or Ranked?* release compares allocators at matched cost on other models.
-4. The positive-gradient mechanism is verified on one model only.
+4. The margin of the default over MSB-first is small on DS-CNN (not resolved on the new data), so the practical case rests mainly on ResNet-8 and the transformers.
 5. The BER regime where masks matter is dense memory error, not rare upsets; the paper says so, and a reviewer may question the use case.
-6. The TECS page limit was not verified.
+6. The TECS page limit was not verified (the draft is 20 pages in the review format).

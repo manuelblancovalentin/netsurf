@@ -128,6 +128,9 @@ def validate():
         "data/tecs_audit/distilbert_residual_drift.json",
         "figures/tecs_task_quality_ber_125.pdf", "figures/tecs_grid_regret_map.pdf",
         "figures/tecs_protection_vs_unprotected_125.pdf",
+        "review/RUN_A_B_FROZEN_PLANS_2026-11-11.md", "review/RUN_A_B_RESULTS_2026-11-11.md",
+        "data/tecs_runA/summary.json", "data/tecs_runA/absgrad_contrasts.csv", "data/tecs_runA/within_tier_contrasts.csv",
+        "data/tecs_runA/fresh_cell_quality.csv", "data/tecs_runB/summary.json", "data/tecs_runB/cap_statistics.csv",
     ]
     for name in required:
         assert (ROOT / name).is_file(), name
@@ -165,12 +168,24 @@ def validate():
     for receipt in candidate_content["implementation_files"]:
         assert digest(Path(receipt["path"])) == receipt["sha256"], receipt["path"]
     tecs = json.loads((ROOT / "data/tecs_revision_provenance.json").read_text())
-    for group, folder in (("derived_data", "data/tecs_audit"), ("figures", "figures"), ("scripts", "scripts")):
+    groups = (("derived_data", "data/tecs_audit"), ("figures", "figures"), ("scripts", "scripts"),
+              ("derived_data_runA", "data/tecs_runA"), ("derived_data_runB", "data/tecs_runB"))
+    for group, folder in groups:
         for name, expected_hash in tecs[group].items():
             assert digest(ROOT / folder / name) == expected_hash, f"{folder}/{name} changed after provenance"
-    assert tecs["experiments_executed"] == 0
+    for rel, expected_hash in tecs["frozen_plans"].items():
+        assert digest(ROOT / rel) == expected_hash, f"{rel} changed after provenance"
+    assert tecs["experiments_executed"] == len(tecs["executed_runs"]) == 4
+    # The manuscript states the Run A outcome; bind it to the tracked analysis.
+    run_a = json.loads((ROOT / "data/tecs_runA/summary.json").read_text())["models"]
+    assert run_a["resnet8"]["decision_rule"]["primary/decision_useful_primary"]["confirmed_replication_level"] is True
+    assert run_a["kws"]["decision_rule"]["primary/decision_useful_primary"]["confirmed_replication_level"] is False
+    run_b = json.loads((ROOT / "data/tecs_runB/summary.json").read_text())["models"]
+    assert all(m["bitwise_mismatches"] == 0 and m["failed_units"] == 0 and m["observations"] == 4800 for m in run_b.values())
+    assert set(run_b) == {"pythia", "qwen"}
     return {"cited_keys": sorted(cited), "bibliography_records": len(keys),
-            "tecs_revision_receipts_verified": sum(len(tecs[g]) for g in ("derived_data", "figures", "scripts")),
+            "tecs_revision_receipts_verified": sum(len(tecs[g]) for g, _ in groups),
+            "experiments_executed": tecs["experiments_executed"],
             "condition_rows": len(rows), "mathematics": math_checks(),
             "unchanged_original_image_hashes": len(reused["files"]),
             "compact_figure_receipts_verified": len(receipts),
@@ -235,7 +250,7 @@ def main():
                   if p.is_file() and p.suffix in SUFFIXES and "source/main.pdf" != str(p.relative_to(ROOT))},
         "verification_scope": "Derived data and cited source verification receipts; "
                               "not an independent rehash of every omitted original scientific byte.",
-        "experiments_executed": 0,
+        "experiments_executed": checks["experiments_executed"],
     }
     (args.out / "delivery_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     complete = [(p, "NetSuRF_review/" + str(p.relative_to(ROOT)))

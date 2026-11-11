@@ -1,0 +1,198 @@
+{
+ "resnet8": {
+  "run_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runA-tflite-confirm/workspace/runs/paper1_runA_resnet8_confirm_v1/20261111T114703.504758Z-7c2a03b8",
+  "run_id": "20261111T114703.504758Z-7c2a03b8",
+  "source": {
+   "branch": "paper1-runA-tflite-confirm",
+   "commit": "1d11df2183ee0abbb7d91c5bc46332265b654de6",
+   "dirty": false,
+   "source_fingerprint_sha256": "318cfbbe9d3a160ca53e299f590074589e1fbd3d0e49f8a9d394afe5056dc572",
+   "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "scientific_payload_sha256": "e072000c6d3f2093c5c6e3da0cd985bb23fa3482db6c6bce6efc79fde12cbc32",
+  "trials_sha256": "d0dd3468699a5e160b6047201594c293ec313cfae780605eddae6ee51204448e",
+  "config_sha256": "94b03af7941b4da78945fafa2e8af40367c690d2294a999585f170940fc4b4d0",
+  "checks": {
+   "matched_schedules": true,
+   "model_state_restored": true,
+   "partitions_disjoint": true,
+   "quantized_state_exact": true
+  },
+  "windows": {
+   "0": {
+    "evaluation": [
+     0,
+     999
+    ],
+    "calibration": [
+     0,
+     63
+    ]
+   },
+   "1": {
+    "evaluation": [
+     1000,
+     1999
+    ],
+    "calibration": [
+     1000,
+     1063
+    ]
+   },
+   "2": {
+    "evaluation": [
+     2000,
+     2999
+    ],
+    "calibration": [
+     2000,
+     2063
+    ]
+   },
+   "3": {
+    "evaluation": [
+     3000,
+     3999
+    ],
+    "calibration": [
+     3000,
+     3063
+    ]
+   },
+   "4": {
+    "evaluation": [
+     4000,
+     4999
+    ],
+    "calibration": [
+     4000,
+     4063
+    ]
+   },
+   "5": {
+    "evaluation": [
+     5000,
+     5999
+    ],
+    "calibration": [
+     5000,
+     5063
+    ]
+   },
+   "6": {
+    "evaluation": [
+     6000,
+     6999
+    ],
+    "calibration": [
+     6000,
+     6063
+    ]
+   },
+   "7": {
+    "evaluation": [
+     7000,
+     7999
+    ],
+    "calibration": [
+     7000,
+     7063
+    ]
+   },
+   "8": {
+    "evaluation": [
+     8000,
+     8999
+    ],
+    "calibration": [
+     8000,
+     8063
+    ]
+   },
+   "9": {
+    "evaluation": [
+     9000,
+     9999
+    ],
+    "calibration": [
+     9000,
+     9063
+    ]
+   }
+  },
+  "event_identity_violations": 0
+ },
+ "kws": {
+  "run_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runA-tflite-confirm/workspace/runs/paper1_runA_kws_confirm_v1/20261111T111029.511558Z-e7f357a6",
+  "run_id": "20261111T111029.511558Z-e7f357a6",
+  "source": {
+   "branch": "paper1-runA-tflite-confirm",
+   "commit": "1d11df2183ee0abbb7d91c5bc46332265b654de6",
+   "dirty": false,
+   "source_fingerprint_sha256": "318cfbbe9d3a160ca53e299f590074589e1fbd3d0e49f8a9d394afe5056dc572",
+   "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "scientific_payload_sha256": "b85f19fe17672e2e2cbf92278beda4b9995d5bd7d76041bbf29bc64e6474e4e3",
+  "trials_sha256": "8b2dddcb1eadce9fb6ca54dcd59ff0fa8874d013ebf9b84a041da99f75640aa3",
+  "config_sha256": "e2ce597e4bdf37884924106c21783e5f00023aec7d734814f2136ddb1a16e21f",
+  "checks": {
+   "matched_schedules": true,
+   "model_state_restored": true,
+   "partitions_disjoint": true,
+   "quantized_state_exact": true
+  },
+  "windows": {
+   "0": {
+    "evaluation": [
+     0,
+     999
+    ],
+    "calibration": [
+     0,
+     63
+    ]
+   },
+   "1": {
+    "evaluation": [
+     1000,
+     1999
+    ],
+    "calibration": [
+     1000,
+     1063
+    ]
+   },
+   "2": {
+    "evaluation": [
+     2000,
+     2999
+    ],
+    "calibration": [
+     2000,
+     2063
+    ]
+   },
+   "3": {
+    "evaluation": [
+     3000,
+     3999
+    ],
+    "calibration": [
+     3000,
+     3063
+    ]
+   }
+  },
+  "event_identity_violations": 0
+ },
+ "script_sha256": "c0514455ee0a7e82f67c4df800f3008f9262b4c65e53897d8538863a744cd7f1",
+ "outputs": {
+  "absgrad_contrasts.csv": "94953f17947b1967ac56080d826abce79175a6572f16696b191e392d4bcf57c1",
+  "fresh_cell_quality.csv": "f3918df8d5e4938ad157da23fc9b3fdf3feca4a31535c4014cf6267d294d4030",
+  "replication0_cells.csv": "06101abf6fc130f4784cd008168f3199cc4b84a72ca9c75f1e373d89ddce24c6",
+  "summary.json": "df8c8ea095ce38c2cbcdb636d0fcc5ab2d3fbd3a524e1e7d1f4a78b94f4ad21f",
+  "within_tier_contrasts.csv": "181674eb0d89674dded4d72b54d4fcf9bf5e60ffd8843ae726b3d1eeafba9802"
+ }
+}

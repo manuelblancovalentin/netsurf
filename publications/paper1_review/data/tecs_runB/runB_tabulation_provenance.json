@@ -1,0 +1,19 @@
+{
+ "pythia": {
+  "replay_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-tecs-revision-v1/workspace/runs/w8a8_cap_replay_v1/pythia160m_int8",
+  "replay_plan_sha256": "6cc9f560ecc0ab8e9b037a3055bcc9297370faf29bc5f63f3f424dd06dcb1f32",
+  "observation_listing_sha256": "98b075a2060362ee030de6e3c6ed086125c7404c327af34041d22ae5bb0ecdd4",
+  "observations": 4800
+ },
+ "qwen": {
+  "replay_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-tecs-revision-v1/workspace/runs/w8a8_cap_replay_v1/qwen3_0_6b_int8",
+  "replay_plan_sha256": "944ef0c3148e7319a7ebe0576ecf645aad289199492077dba4c56eea28264ca4",
+  "observation_listing_sha256": "c2b40b0d7359aad94e4a71586118474de078f5a84611a26bbb2a724b327c080f",
+  "observations": 4800
+ },
+ "script_sha256": "fc6113b3275bee0e7ec76f78f436fb999333536666dab002ca68a97dcf1d33d4",
+ "outputs": {
+  "cap_statistics.csv": "51215da08e73123cbf23707d7ae9dc066d2c19631871c627e1d8c9a75e6ef9c0",
+  "summary.json": "adabd0b21485d43c57834728a6b9d6f4cabac6d2c70a9e94835707ba0dd0a002"
+ }
+}
