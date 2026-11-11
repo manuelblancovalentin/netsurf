@@ -20,14 +20,14 @@ Not used in the manuscript. DistilBERT W8A8, the study's frozen 512 sentences, c
 | Scheme | Extra storage | Highest p within 5 points | Accuracy at p = 0.01 | at 0.03 |
 |---|---|---|---|---|
 | No protection | 0% | 1e-3 | 59.1 | 55.7 |
-| Row checksum correction (one faulty weight per row) | ~1% | 1e-3 | 59.1 | 55.7 |
+| ABFT checksum correction (two checksum words per row of stored weights; repairs one faulty weight per row) | ~1% | 1e-3 | 59.1 | 55.7 |
 | SEC-DED over 64 / 32 / 16 / 8 data bits | 12.5 / 21.9 / 37.5 / 62.5% | 3e-3 / 3e-3 / 1e-2 / 1e-2 | 76.2 / 83.2 / 87.4 / 91.0 | 52.9 / 54.1 / 60.6 / 54.2 |
 | TMR on all sign bits (FORTUNE-style) | 25% | 3e-3 | 83.3 | 54.8 |
 | TMR on the absolute-gradient mask, 6.25 / 12.5 / 18.75 / 25% of bits | 12.5 / 25 / 37.5 / 50% | 1e-2 / 1e-2 / 1e-2 / 3e-2 | 90.6 / 91.1 / 90.1 / 91.2 | 70.3 / 81.8 / 85.3 / 86.5 |
 
 - At equal extra storage, triplicating the ranked mask tolerates about three times the fault rate of a SEC-DED code at 12.5% and 25% storage, and keeps 90-91% at p = 0.01 where the codes give 76-83%.
 - At 25% storage, ranked TMR keeps 91.1% at p = 0.01 against 83.3% for TMR on all sign bits.
-- The row checksum repairs 88% of faults at 1e-5 and almost none from 1e-3 on, because almost every row then holds two or more faulty weights.
+- ABFT checksum correction repairs 88% of faults at 1e-5 and almost none from 1e-3 on, because almost every row then holds two or more faulty weights.
 - Below 1e-3 every scheme is within a point of clean; the codes leave far fewer faulty bits there (SEC-DED-8 leaves 1.2% of raw faults at 1e-3, ranked TMR 87.5%), so for very rare faults the codes are the efficient choice.
 
 ## Not modelled, all of which matter for a hardware claim
@@ -61,7 +61,7 @@ Design: `RUN_J_K_L2_FROZEN_PLANS_2026-11-11.md`. Analysis: `workflows/analyze_co
 | Scheme | Extra storage | Highest p within 5 points | Accuracy at 3e-3 | at 1e-2 |
 |---|---|---|---|---|
 | No protection | 0% | 1e-4 | 39.7 | 14.5 |
-| Row checksum correction | ~1% | 3e-4 | 45.7 | 16.4 |
+| ABFT checksum correction | ~1% | 3e-4 | 45.7 | 16.4 |
 | SEC-DED over 64 bits | 12.5% | 1e-3 | 81.0 | 31.3 |
 | TMR, ranked mask of 6.25% of bits | 12.5% | 3e-3 | 83.0 | 66.0 |
 | SEC-DED over 32 bits | 21.9% | 3e-3 | 83.2 | 45.6 |

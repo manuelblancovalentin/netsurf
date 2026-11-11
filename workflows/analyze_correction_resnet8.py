@@ -70,7 +70,7 @@ for ax in (a1, a2):
     ax.grid(True, color="#e6e6e6", lw=0.5); ax.set_axisbelow(True)
     for sp in ("top", "right"):
         ax.spines[sp].set_visible(False)
-for c, label, col, ls, mk in (("unprotected", "No protection", "#c9c9c9", ":", "x"), ("row_checksum", "Row checksum correction (1%)", GREY, "-.", "s"),
+for c, label, col, ls, mk in (("unprotected", "No protection", "#c9c9c9", ":", "x"), ("row_checksum", "ABFT checksum correction, one error per row (~1%)", GREY, "-.", "s"),
                               ("secded_32", "SEC-DED over 32 bits (21.9%)", BLUE, "--", "D"), ("tmr_msb", "TMR on all sign bits, FORTUNE-style (25%)", DARK, "--", "^"),
                               ("tmr_abs_12.5", "TMR on absolute-gradient mask, 12.5% of bits (25%)", RED, "-", "o")):
     m = [100 * table[c][str(b)][0] for b in bers]; lo = [100 * table[c][str(b)][1] for b in bers]; hi = [100 * table[c][str(b)][2] for b in bers]

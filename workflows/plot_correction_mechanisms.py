@@ -34,7 +34,7 @@ for ax in (a, b):
     for sp in ("top", "right"):
         ax.spines[sp].set_visible(False)
 series = [("unprotected", "No protection", LIGHT, ":", "x"),
-          ("row_checksum", "Row checksum correction (1%)", GREY, "-.", "s"),
+          ("row_checksum", "ABFT checksum correction, one error per row (~1%)", GREY, "-.", "s"),
           ("secded_32", "SEC-DED code over 32 bits (21.9%)", BLUE, "--", "D"),
           ("tmr_msb", "TMR on all sign bits, FORTUNE-style (25%)", DARK, "--", "^"),
           ("tmr_abs_12.5", "TMR on absolute-gradient mask, 12.5% of bits (25%)", RED, "-", "o")]
@@ -49,7 +49,7 @@ for p, ls in ((0.01, "-"), (0.03, "--")):
     b.plot([100 * cost[c] for c in ecc], [mean(c, p) for c in ecc], color=BLUE, ls=ls, marker="D", ms=4, lw=1.6, label=f"SEC-DED codes, p = {p:g}")
     b.plot([100 * cost[c] for c in tmr], [mean(c, p) for c in tmr], color=RED, ls=ls, marker="o", ms=4.5, lw=2.2, label=f"TMR on ranked mask, p = {p:g}")
     b.plot([100 * cost["tmr_msb"]], [mean("tmr_msb", p)], color=DARK, marker="^", ms=7, ls="none", label=f"TMR on all sign bits, p = {p:g}")
-    b.plot([100 * cost["row_checksum"]], [mean("row_checksum", p)], color=GREY, marker="s", ms=6, ls="none", label=f"Row checksum, p = {p:g}")
+    b.plot([100 * cost["row_checksum"]], [mean("row_checksum", p)], color=GREY, marker="s", ms=6, ls="none", label=f"ABFT checksum correction, p = {p:g}")
 b.set_xlabel("Extra storage (% of weight bits)"); b.set_ylabel("Accuracy (%)"); b.set_ylim(45, 94)
 b.set_title("Accuracy per unit of extra storage", loc="left", fontweight="bold")
 b.legend(loc="upper center", bbox_to_anchor=(0.5, -0.17), frameon=False, fontsize=7.2, ncol=2)
