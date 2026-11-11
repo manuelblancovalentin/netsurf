@@ -165,7 +165,7 @@
   "tecs_grid_audit.py": "02c17570e082337e02c81a7e21c09a39e6dc461bd1797aebd900bfb62e849a03",
   "tecs_kws_conditional_audit.py": "3fe379c3dcac7e65bb438e79fcff3fa16bcaff49e38560a31c0ae852b7150e9f",
   "tecs_residual_drift_check.py": "8cad48f293e0db085066276ca44b601e5873f3217078e042153080994e933c3f",
-  "tecs_runA_analysis.py": "c0514455ee0a7e82f67c4df800f3008f9262b4c65e53897d8538863a744cd7f1",
+  "tecs_runA_analysis.py": "e614c856dc606a714685ffa1b72b75d6536340fd7908bc398593766c4ea9401c",
   "tecs_runB_tabulate.py": "fc6113b3275bee0e7ec76f78f436fb999333536666dab002ca68a97dcf1d33d4"
  },
  "source_trials": {

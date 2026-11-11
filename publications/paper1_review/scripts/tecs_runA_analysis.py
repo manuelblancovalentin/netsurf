@@ -95,8 +95,8 @@ def holm(p):
     return out
 
 
-def load(model: str):
-    root = RUNS[model]
+def load(model: str, root: Path | None = None, stride: int = 1000, eval_count: int = 1000):
+    root = root or RUNS[model]
     bundles = [d for d in root.iterdir() if (d / "FINALIZED").is_file()]
     assert len(bundles) == 1, bundles
     run = bundles[0]
@@ -107,7 +107,7 @@ def load(model: str):
     windows = {}
     for rep, roles in parts.items():
         i = int(rep.split("_")[1]); ev = roles["evaluation"]["indices"]; rk = roles["ranking"]["indices"]
-        assert ev == list(range(1000 * i, 1000 * i + 1000)) and rk == list(range(1000 * i, 1000 * i + 64))
+        assert ev == list(range(stride * i, stride * i + eval_count)) and rk == list(range(stride * i, stride * i + 64))
         windows[i] = dict(evaluation=[ev[0], ev[-1]], calibration=[rk[0], rk[-1]])
     # data[rep][ber][field][(method, coverage)] = (err, loss)
     data = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
@@ -135,14 +135,22 @@ def load(model: str):
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", type=Path, required=True)
+    # Options for runs with another layout (Run A2).  The defaults reproduce the Run A analysis unchanged.
+    ap.add_argument("--only", default=None, choices=list(RUNS))
+    ap.add_argument("--run-root", type=Path, default=None)
+    ap.add_argument("--stride", type=int, default=1000)
+    ap.add_argument("--eval-count", type=int, default=1000)
+    ap.add_argument("--no-controls", action="store_true")
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=False)
+    runs = {args.only: args.run_root or RUNS[args.only]} if args.only else dict(RUNS)
+    controls = [] if args.no_controls else CONTROLS
     rng = np.random.default_rng(SEED)
     summary = dict(schema="paper1-runA-analysis/1.1", bound=BOUND, draws=DRAWS, seed=SEED, models={})
     cell_rows, e1_rows, e2_rows, rep0_rows = [], [], [], []
     provenance = {}
-    for model in RUNS:
-        data, prov = load(model)
+    for model, run_root in runs.items():
+        data, prov = load(model, run_root, args.stride, args.eval_count)
         provenance[model] = prov
         reps = sorted(data); fresh = [r for r in reps if r >= 1]
         bers = sorted(data[reps[0]]); covs = sorted({k[1] for k in next(iter(data[reps[0]][bers[0]].values())) if 0 < k[1] < 1})
@@ -168,7 +176,7 @@ def main() -> None:
             for ber in bers:
                 # usefulness on fresh data
                 drop = {}
-                for m in RANKINGS + CONTROLS:
+                for m in RANKINGS + controls:
                     drop[m] = float(np.mean([(1 - clean[r]) * -1 + rep_mean(r, ber, (m, cov)) for r in fresh]))
                 drop_unp = float(np.mean([rep_mean(r, ber, ("unprotected", 0.0)) - (1 - clean[r]) for r in fresh]))
                 dec = {k: any(drop[m] <= v for m in RANKINGS) for k, v in MARGINS.items()}
@@ -183,7 +191,7 @@ def main() -> None:
                                           mean_loss=float(np.mean([rep_mean(r, ber, (m, cov), 1) for r in fresh])),
                                           decision_useful_primary=int(dec["primary"]), unprotected_accuracy_drop=drop_unp))
                 # estimand 1
-                for comp in [m for m in RANKINGS if m != "abs_grad"] + CONTROLS:
+                for comp in [m for m in RANKINGS if m != "abs_grad"] + controls:
                     for which, risk in ((0, "err"), (1, "loss")):
                         d_rep = [rep_mean(r, ber, ("abs_grad", cov), which) - rep_mean(r, ber, (comp, cov), which) for r in fresh]
                         d_fld = field_vals(fresh, ber, ("abs_grad", cov), which) - field_vals(fresh, ber, (comp, cov), which)
@@ -197,11 +205,11 @@ def main() -> None:
                                    decision_useful_loose=int(dec["loose"]))
                         e1_rows.append(row); e1_model.append(row)
                 # estimand 2
-                if cov in PARTIAL:
+                if controls and cov in PARTIAL:
                     for which, risk in ((0, "err"), (1, "loss")):
-                        ctl_rep = np.mean([[rep_mean(r, ber, (c, cov), which) for r in fresh] for c in CONTROLS], axis=0)
-                        ctl_fld = np.mean([field_vals(fresh, ber, (c, cov), which) for c in CONTROLS], axis=0)
-                        seed_means = [float(np.mean([rep_mean(r, ber, (c, cov), which) for r in fresh])) for c in CONTROLS]
+                        ctl_rep = np.mean([[rep_mean(r, ber, (c, cov), which) for r in fresh] for c in controls], axis=0)
+                        ctl_fld = np.mean([field_vals(fresh, ber, (c, cov), which) for c in controls], axis=0)
+                        seed_means = [float(np.mean([rep_mean(r, ber, (c, cov), which) for r in fresh])) for c in controls]
                         for name, a_rep, a_fld, b_rep, b_fld in (
                             ("fkeras_minus_random_tier", [rep_mean(r, ber, ("fkeras", cov), which) for r in fresh], field_vals(fresh, ber, ("fkeras", cov), which), ctl_rep, ctl_fld),
                             ("msb_storage_minus_random_tier", [rep_mean(r, ber, ("msb", cov), which) for r in fresh], field_vals(fresh, ber, ("msb", cov), which), ctl_rep, ctl_fld),
@@ -222,7 +230,7 @@ def main() -> None:
                                           loss=rep_mean(0, ber, (m, cov), 1)))
         # complete tiers: tier-first masks must coincide, so paired differences must be exactly zero
         tier_identity = max(abs(rep_mean(r, ber, ("msb", cov)) - rep_mean(r, ber, (c, cov)))
-                            for r in reps for ber in bers for cov in (0.125, 0.25) for c in CONTROLS + ["fkeras"])
+                            for r in reps for ber in bers for cov in (0.125, 0.25) for c in controls + ["fkeras"])
         info["complete_tier_max_abs_difference_msb_vs_tier_first_masks"] = float(tier_identity)
         # Holm, estimand 1 (primary competitor set, error rate, whole grid)
         fam = [r for r in e1_model if r["risk"] == "err" and r["competitor_set"] == "primary"]
@@ -322,6 +330,8 @@ def main() -> None:
         e2d = {}
         for name in ("fkeras_minus_random_tier", "msb_storage_minus_random_tier", "fkeras_minus_msb_storage"):
             sel = [r for r in mine if r["risk"] == "err" and r["contrast"] == name]
+            if not sel:
+                continue
             selu = [r for r in sel if r["decision_useful_primary"]]
             big = max(sel, key=lambda r: abs(r["mean_diff"]))
             e2d[name] = dict(cells=len(sel), holm_resolved_field=int(sum(r["p_holm_field"] < 0.05 for r in sel)),
