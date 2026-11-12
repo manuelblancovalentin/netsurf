@@ -338,13 +338,55 @@ def stage_curv(name: str, threads: int, probes: int = 64) -> None:
     print(json.dumps(res), flush=True)
 
 
+def stage_curv_exact(name: str, threads: int, per_group: int = 256) -> None:
+    """Amendment A2: exact Hessian diagonal on sampled weights against the Fisher diagonal."""
+    out = OUT / name / "p0e_exact"
+    out.mkdir(parents=True, exist_ok=False)
+    model = Model(name, threads)
+    tf = model.tf
+    xc, yc, _ = model.images("ranking", 64, 1000)
+    G = model.per_example(xc, yc)
+    fisher = (G * G).mean(0)
+    model.set_displacement(np.zeros(model.n))
+    variables = [model.comp.variables[n] for n in model.names]
+    rng = np.random.default_rng(20261112)
+    top = np.flatnonzero(fisher >= np.quantile(fisher, 0.9))
+    sample = np.concatenate([rng.choice(model.n, per_group, replace=False), rng.choice(top, per_group, replace=False)])
+    tensor_of = np.searchsorted(model.starts, sample, side="right") - 1
+    exact = np.zeros(sample.size)
+    for k, (w, t) in enumerate(zip(sample, tensor_of)):
+        parts = [tf.zeros(model.shapes[n], dtype=tf.float32) for n in model.names]
+        onehot = np.zeros(model.shapes[model.names[t]], dtype=np.float32).reshape(-1)
+        onehot[w - model.starts[t]] = 1.0
+        parts[t] = tf.constant(onehot.reshape(model.shapes[model.names[t]]))
+        with tf.GradientTape() as outer:
+            with tf.GradientTape() as inner:
+                loss = tf.reduce_mean(model.comp.losses(xc, yc))
+            grads = inner.gradient(loss, variables)
+            dot = tf.reduce_sum(grads[t] * parts[t])
+        hv = outer.gradient(dot, variables[t])
+        exact[k] = 0.0 if hv is None else float(hv.numpy().reshape(-1)[w - model.starts[t]])
+    from scipy import stats
+    f = fisher[sample]
+    res = dict(checkpoint=name, weights=int(sample.size), seed=20261112,
+               spearman_all=float(stats.spearmanr(exact, f).statistic),
+               spearman_uniform=float(stats.spearmanr(exact[:per_group], f[:per_group]).statistic),
+               spearman_top_decile=float(stats.spearmanr(exact[per_group:], f[per_group:]).statistic),
+               negative_share=float((exact < 0).mean()),
+               median_ratio_hessian_over_fisher=float(np.median(exact[f > 0] / f[f > 0])))
+    np.savez(out / "p0e_exact.npz", sample=sample, exact=exact, fisher=f)
+    (out / "p0e_exact.json").write_text(json.dumps(res, indent=1))
+    print(json.dumps(res), flush=True)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("stage", choices=["stats", "calib", "curv"])
+    ap.add_argument("stage", choices=["stats", "calib", "curv", "curv_exact"])
     ap.add_argument("--checkpoint", choices=sorted(CHECKPOINTS), required=True)
     ap.add_argument("--threads", type=int, default=4)
     a = ap.parse_args()
-    {"stats": stage_stats, "calib": stage_calib, "curv": stage_curv}[a.stage](a.checkpoint, a.threads)
+    {"stats": stage_stats, "calib": stage_calib, "curv": stage_curv,
+     "curv_exact": stage_curv_exact}[a.stage](a.checkpoint, a.threads)
 
 
 if __name__ == "__main__":
