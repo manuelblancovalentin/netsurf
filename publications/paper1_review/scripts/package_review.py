@@ -131,6 +131,7 @@ def validate():
         "review/RUN_A_B_FROZEN_PLANS_2026-11-11.md", "review/RUN_A_B_RESULTS_2026-11-11.md",
         "data/tecs_runA/summary.json", "data/tecs_runA/absgrad_contrasts.csv", "data/tecs_runA/within_tier_contrasts.csv",
         "data/tecs_runA/fresh_cell_quality.csv", "data/tecs_runB/summary.json", "data/tecs_runB/cap_statistics.csv", "data/tecs_runL2/analysis.json", "figures/tecs_correction_mechanisms.pdf", "data/tecs_runN/analysis.json", "figures/tecs_checkpoint_fragility.pdf",
+        "data/tecs_runQ/analysis.json", "data/tecs_runQ/summary.json", "review/RUN_Q_RESULTS_2026-11-12.md",
     ]
     for name in required:
         assert (ROOT / name).is_file(), name
@@ -171,13 +172,14 @@ def validate():
     groups = (("derived_data", "data/tecs_audit"), ("figures", "figures"), ("scripts", "scripts"),
               ("derived_data_runA", "data/tecs_runA"), ("derived_data_runB", "data/tecs_runB"),
               ("derived_data_runA2", "data/tecs_runA2"), ("derived_data_runL2", "data/tecs_runL2"),
-              ("derived_data_runK", "data/tecs_runK"), ("derived_data_runN", "data/tecs_runN"))
+              ("derived_data_runK", "data/tecs_runK"), ("derived_data_runN", "data/tecs_runN"),
+              ("derived_data_runQ", "data/tecs_runQ"))
     for group, folder in groups:
         for name, expected_hash in tecs[group].items():
             assert digest(ROOT / folder / name) == expected_hash, f"{folder}/{name} changed after provenance"
     for rel, expected_hash in tecs["frozen_plans"].items():
         assert digest(ROOT / rel) == expected_hash, f"{rel} changed after provenance"
-    assert tecs["experiments_executed"] == len(tecs["executed_runs"]) == 15
+    assert tecs["experiments_executed"] == len(tecs["executed_runs"]) == 16
     assert len(list((ROOT / "data/tecs_runL2").glob("ber_*_draw_*.json"))) == 64
     run_a2 = json.loads((ROOT / "data/tecs_runA2/summary.json").read_text())["models"]["kws"]
     assert run_a2["decision_rule"]["primary/decision_useful_primary"]["confirmed_replication_level"] is True
@@ -189,6 +191,10 @@ def validate():
     run_b = json.loads((ROOT / "data/tecs_runB/summary.json").read_text())["models"]
     assert all(m["bitwise_mismatches"] == 0 and m["failed_units"] == 0 and m["observations"] == 4800 for m in run_b.values())
     assert set(run_b) == {"pythia", "qwen"}
+    # The manuscript states the Run Q verdicts; bind them to the finalized snapshot.
+    run_q = json.loads((ROOT / "data/tecs_runQ/summary.json").read_text())
+    assert digest(ROOT / "data/tecs_runQ/analysis.json") == run_q["source_sha256"]
+    assert run_q["q1_default_holds"] is False and run_q["q2_calibration_size_matters"] is False
     return {"cited_keys": sorted(cited), "bibliography_records": len(keys),
             "tecs_revision_receipts_verified": sum(len(tecs[g]) for g, _ in groups),
             "experiments_executed": tecs["experiments_executed"],

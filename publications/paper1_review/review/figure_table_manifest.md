@@ -12,17 +12,18 @@
 | Fig. 5 `tecs_correction_mechanisms` | ResNet-8: TMR of ranked bits against SEC-DED codes, ABFT checksum correction and sign-bit TMR at equal extra storage | `data/tecs_runL2/` via `scripts/build_tecs_correction_figure.py` |
 | Fig. 6 `tecs_confirmation_runA` (App. C) | Repeated evaluation of the pinned classifiers: row 1 ResNet-8 (Run A, nine windows) and DS-CNN (Run A2, eleven windows); rows 2-3 partial tiers with random fills (ResNet-8 Run A; DS-CNN first run, three windows) | Run A and Run A2 bundles via `scripts/build_tecs_runA_figure.py` |
 | Fig. 7 `tecs_fkeras_partial_tiers` (App. C) | FKeras against MSB-first, global and absolute gradient at 6.25% and 18.75% (main grid) | three TFLite `trials.csv` |
-| Fig. 8 `compact_kws_pools` (App. E) | Unchanged 32-pool distribution | `review/compact_figure_provenance.json` |
-| Fig. 9 `tecs_grid_regret_map` (App. F) | Absolute-gradient regret over the whole grid as a fraction of the usefulness margin; best ranking per cell; non-decision-useful cells hatched | `data/tecs_audit/per_cell_regret.csv` |
+| Fig. 8 `compact_kws_pools` (App. F) | Unchanged 32-pool distribution | `review/compact_figure_provenance.json` |
+| Fig. 9 `tecs_grid_regret_map` (App. G) | Absolute-gradient regret over the whole grid as a fraction of the usefulness margin; best ranking per cell; non-decision-useful cells hatched | `data/tecs_audit/per_cell_regret.csv` |
 | Table 1 | Ranking definitions | Sec. 4 text |
 | Table 2 | Models, eligible bits, expected faults, cohorts, clean quality | `data/model_table.csv`, `data/benchmark_inventory.json` |
 | Table 3 | Highest useful BER per ranking (main grid) | `data/tecs_audit/conditions_with_quality.csv` |
 | Table 4 | Largest regret and resolved win/loss versus absolute gradient (main grid) | `data/tecs_audit/summary.json` |
 | Table 5 | Repeated evaluations: pinned ResNet-8 (Run A, windows 1-9), pinned DS-CNN (Run A2), under-trained, five retrained copies (ranges), pruned 50% and pruned 70% ResNet-8 (Run K): replications, clean accuracy, decision-useful cells, regrets, replication-level upper bounds, resolved contrasts, MSB-first and FKeras regrets, highest useful BER | `data/tecs_runA/summary.json`, `data/tecs_runA2/`, `data/tecs_runK/summary_vs_pinned.json`, `data/tecs_runK/<checkpoint>/` |
 | Table 6 (App. A) | Executed artifacts | readiness manifest, `data/benchmark_inventory.json` |
-| Table 7 (App. D) | DistilBERT residual first-order effect per mask | `data/tecs_audit/distilbert_residual_drift.json` |
-| Table 8 (App. F) | Score-fidelity correlations with intervals | `data/empirical_validation.csv`, `data/toycar_auc_correlations.csv`, `data/fkeras_candidate_audit_v1.json` |
-| Table 9 (App. G) | Search-based, relaxed and literature-derived masks against the absolute-gradient mask, pinned ResNet-8 (Run N) | `data/tecs_runN/analysis.json` (table generated from it) |
+| Table 7 (App. D) | Positive- minus absolute-gradient mask at 64, 512 and 1,024 calibration inputs, nine ResNet-8 checkpoints (Run Q) | `data/tecs_runQ/summary.json` (`order_by_ber_and_size`), generated from `data/tecs_runQ/analysis.json` |
+| Table 8 (App. E) | DistilBERT residual first-order effect per mask | `data/tecs_audit/distilbert_residual_drift.json` |
+| Table 9 (App. G) | Score-fidelity correlations with intervals | `data/empirical_validation.csv`, `data/toycar_auc_correlations.csv`, `data/fkeras_candidate_audit_v1.json` |
+| Table 10 (App. H) | Search-based, relaxed and literature-derived masks against the absolute-gradient mask, pinned ResNet-8 (Run N) | `data/tecs_runN/analysis.json` (table generated from it) |
 | Text, Sec. 7.4 | Stored-code statistics of the pinned, retrained (Run D), pruned and under-trained ResNet-8 checkpoints | `data/tecs_runK/stored_code_statistics.json` |
 
 ## Previous draft (fourth delivery), retained for history

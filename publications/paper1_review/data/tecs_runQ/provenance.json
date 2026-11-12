@@ -1,0 +1,32 @@
+{
+ "run": "Run Q calibration size of the gradient rankings (nine ResNet-8 checkpoints)",
+ "plan": "review/RUN_Q_CALIBRATION_SIZE_PLAN_2026-11-11.md (frozen; amendment Q-A1 in Section 7)",
+ "results_record": "review/RUN_Q_RESULTS_2026-11-12.md",
+ "runner": {
+  "script": "workflows/runQ_calibration.py",
+  "branch": "paper1-runP-mean-variance",
+  "commit": "c442d09",
+  "sha256": "7de191f7f9aae9283c41db2bc73b379e127365176138f01f2a10ebe22817cea2"
+ },
+ "analysis": {
+  "script": "workflows/runQ_analyze.py",
+  "branch": "paper1-runP-mean-variance",
+  "commit": "feb8db1",
+  "sha256": "03e903a6c9196831e3f72643de1281be477244f61e6130334907db01ae432d1e"
+ },
+ "output_dir": "workspace/runs/paper1_runQ_calibration_size_v1",
+ "analysis_snapshot": "workspace/runs/paper1_runQ_calibration_size_v1/analysis_final_2026-11-12.json",
+ "analysis_snapshot_sha256": "ee7818f3b3e5963c2485e0c680c96825628fce1319694665b1a39cf43cd9fcee",
+ "integrity": {
+  "jobs": 72,
+  "jobs_failed": 0,
+  "excluded": "retrained_seed7102 replication 4 (amendment Q-A1, before any outcome)",
+  "identity_gate_min_overlap": 0.9997673216132368,
+  "replay_checks": 648,
+  "replay_check_mismatches": 0,
+  "new_evaluations": 28512,
+  "abs512_equal_to_runP": true
+ },
+ "protocol": "nested calibration sets of training images [1000 r, 1000 r + n), n = 128, 256, 512, 1024 (n = 64 = the paper's masks); saved fault schedules and evaluation windows of each replication at BER 1e-3, 3e-3, 1e-2, 3e-2; budgets 6.25-25%",
+ "finalized_by_engine": false
+}

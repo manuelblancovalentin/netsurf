@@ -46,6 +46,10 @@ for variant in ("pruned_s05", "pruned_s07", "undertrained_e100") + tuple(f"retra
 r = json.loads((ROOT / "data/tecs_runN/provenance.json").read_text())
 executed.append({"run": r["run"], "script": r["script"], "commit": r["script_commit"], "outputs": "data/tecs_runN (analysis and 12 evaluation shards)",
                  "finalized_by_engine": False})
+r = json.loads((ROOT / "data/tecs_runQ/provenance.json").read_text())
+executed.append({"run": r["run"], "script": r["runner"]["script"], "commit": r["runner"]["commit"], "script_sha256": r["runner"]["sha256"],
+                 "analysis_script": r["analysis"]["script"], "analysis_commit": r["analysis"]["commit"], "analysis_snapshot_sha256": r["analysis_snapshot_sha256"],
+                 "outputs": "data/tecs_runQ (finalized analysis snapshot, summary, mask stability)", "checks": r["integrity"], "finalized_by_engine": False})
 for model in ("pythia", "qwen"):
     r = run_b[model]
     executed.append({"run": f"Run B {model}", "replay_dir": r["replay_dir"], "replay_plan_sha256": r["replay_plan_sha256"],
@@ -64,9 +68,11 @@ doc = {
     "derived_data_runL2": {p.name: sha(p) for p in sorted((ROOT / "data/tecs_runL2").iterdir())},
     "derived_data_runK": {str(p.relative_to(ROOT / "data/tecs_runK")): sha(p) for p in sorted((ROOT / "data/tecs_runK").rglob("*")) if p.is_file()},
     "derived_data_runN": {str(p.relative_to(ROOT / "data/tecs_runN")): sha(p) for p in sorted((ROOT / "data/tecs_runN").rglob("*")) if p.is_file()},
+    "derived_data_runQ": {p.name: sha(p) for p in sorted((ROOT / "data/tecs_runQ").iterdir())},
     "workflow_scripts": {name: sha(REPO / "workflows" / name) for name in ("w8a8_cap_replay.py",)},
     "frozen_plans": {name: sha(ROOT / name) for name in ("review/RUN_A_B_FROZEN_PLANS_2026-11-11.md", "review/RUN_A2_D_F_FROZEN_PLANS_2026-11-11.md",
-                                                       "review/RUN_J_K_L2_FROZEN_PLANS_2026-11-11.md", "review/RUN_N_METHOD_CAMPAIGNS_FROZEN_PLAN_2026-11-11.md")},
+                                                       "review/RUN_J_K_L2_FROZEN_PLANS_2026-11-11.md", "review/RUN_N_METHOD_CAMPAIGNS_FROZEN_PLAN_2026-11-11.md",
+                                                       "review/RUN_Q_CALIBRATION_SIZE_PLAN_2026-11-11.md")},
     "source_trials": {m: {"path": str(s["path"]), "sha256": sha(s["path"])} for m, s in ga.STUDIES.items()},
     "other_sources": {k: {"path": str(p), "sha256": sha(p)} for k, p in extra.items()},
     "scripts": {p.name: sha(p) for p in sorted((ROOT / "scripts").glob("*tecs*.py"))},
