@@ -17,6 +17,15 @@ Amendment R-A1 (12 November 2026, before any Run R outcome, at the researcher's 
 residual curve, marked with an asterisk as an approximation (Section 2), and it is now covered by rule R3a
 (Section 6). Nothing else changes.
 
+Amendment R-A2 (12 November 2026, before any Run R outcome, at the researcher's request):
+- Every symbol is defined in Section 2.0. Three letters that had two meanings were renamed: the assignment is now
+  $A$ (was $s$, which also named a scheme); the second bit of a pair is now $b'$ (was $c$, which also named a storage
+  cost); the code length is now $(n, d)$ (was $(n, k)$, with $k$ also the field index).
+- ABFT wrong repairs and checksum faults are modelled (Section 2.2), from an exploratory count on the pinned
+  ResNet-8 (`workflows/abft_pair_count_explore.py`, branch `paper1-runP-mean-variance`, commit a3ce54d). Stage 0
+  recomputes these counts under test; Stage 3a checks them by simulation.
+- No other design choice, number or rule changes.
+
 ## 1. Why
 
 What exists, all exploratory and post hoc (`BER_AWARE_RULE_EXPLORATORY_2026-11-12.md`):
@@ -39,121 +48,242 @@ Questions, in order:
 
 ## 2. Method
 
-**Setup.** Bit $b$ belongs to weight $w$ and moves it by $\Delta_b$ when flipped (known from the stored code). Each
-bit has a scheme $s(b)$ with a storage cost $c_s$ and a residual flip probability $\rho_s(p)$ after correction.
-Every stored bit, including copies and check bits, flips independently with probability $p$. Voters and decoders
-are ideal.
+### 2.0 Symbols
 
-| Scheme | $\rho_s(p)$ | Extra storage |
+**Model and data**
+
+| Symbol | Meaning |
+|---|---|
+| $x$ | One input of the network: a calibration image for ResNet-8. $\mathbb{E}_x$ is the average over the calibration images (512 or 1,024 training images), which stands in for the input distribution. |
+| $\theta$ | The clean weights of the model: the stored INT8 codes times their scales. |
+| $w$ | Index of one weight (one INT8 kernel entry). ResNet-8 has 77,360 of them. |
+| $L_x(\theta)$ | Cross-entropy loss of input $x$ with weights $\theta$. |
+| $L(\theta)$ | Average loss over the calibration images, $L(\theta) = \mathbb{E}_x[L_x(\theta)]$. |
+| $g_{x,w}$ | Gradient of $L_x$ with respect to weight $w$, at $\theta$. |
+| $\bar{g}_w$ | Mean gradient over the calibration images, $\bar{g}_w = \mathbb{E}_x[g_{x,w}]$. |
+| $\mathrm{se}_w$ | Standard error of $\bar{g}_w$ over the calibration images. |
+| $\tilde{g}_w$ | $\bar{g}_w$ after shrinkage toward zero (Section 2.3). |
+| $F_w$ | Curvature of the loss along weight $w$, estimated by the mean squared gradient, $F_w = \mathbb{E}_x[g_{x,w}^2]$. |
+
+**Bits and faults**
+
+| Symbol | Meaning |
+|---|---|
+| $p$ | Bit-error probability: the probability that any one stored bit, including copies and check bits, flips. A logical rate, not a physical upset rate. |
+| $b,\ b'$ | Indices of stored data bits; $b'$ is a second bit when a formula needs a pair. ResNet-8 has 618,880 data bits. |
+| $w(b)$ | The weight that bit $b$ belongs to. Each weight has 8 bits. |
+| $\Delta_b$ | Change of weight $w(b)$ when bit $b$ alone flips: $\pm 2^j$ times the weight's scale for bit position $j$, with the sign set by the stored bit (the sign bit gives $\mp 128$). Known from the stored code. |
+| $e_{x,b}$ | First-order loss change of input $x$ when bit $b$ flips, $e_{x,b} = g_{x,w(b)}\,\Delta_b$. |
+
+**Protection**
+
+| Symbol | Meaning |
+|---|---|
+| $s,\ s'$ | A protection scheme, such as none, 3 copies, 5 copies, SEC-DED or ABFT. $s'$ is the scheme a bit is moved to. |
+| $A$ | An assignment: the scheme given to every data bit. $A(b)$ is the scheme of bit $b$. Choosing $A$ is the problem. |
+| $\rho_s(p)$ | Residual flip probability of a data bit under scheme $s$: the probability that the bit is still wrong after voting or correction, when every stored bit flips with probability $p$. |
+| $r_b$ | Residual flip probability of bit $b$ under the assignment, $r_b = \rho_{A(b)}(p)$. |
+| $\mathrm{cost}_s$ | Extra storage bits per data bit under scheme $s$: 0 for none, 2 for 3 copies, 4 for 5 copies, $(n-d)/d$ for SEC-DED. |
+| $S$ | Storage budget: the total number of extra storage bits allowed. 12.5% means $S = 0.125 \times 618{,}880$. |
+| $n,\ d$ | SEC-DED code word: $n$ stored bits of which $d$ are data bits. |
+| $G$ | Number of weights in one output channel of a kernel (one ABFT group). |
+
+**Random fault field**
+
+| Symbol | Meaning |
+|---|---|
+| $\xi_b$ | 1 if bit $b$ ends up flipped after protection, 0 otherwise; $\xi_b \sim \mathrm{Bernoulli}(r_b)$, independent across bits for none and copies. |
+| $\mathbb{E}_\xi$ | Average over the random flips $\xi$ (over fault fields). |
+| $X_w$ | Total displacement of weight $w$ in one fault field, $X_w = \sum_{b:\,w(b)=w} \xi_b\,\Delta_b$. $X$ is the vector of all $X_w$. |
+| $\mu_w$ | Average displacement of weight $w$ over fault fields, $\mu_w = \mathbb{E}_\xi[X_w]$. |
+| $V_w$ | Variance of the displacement of weight $w$ over fault fields. |
+| $\mathrm{Cov}(\xi_b,\xi_{b'})$ | Covariance of the flips of two bits. Zero for none and copies; positive within a code word or an ABFT channel, whose failures come together. |
+
+**Objective and search**
+
+| Symbol | Meaning |
+|---|---|
+| $J(A;p)$ | Exact expected loss of the faulty model under assignment $A$ at rate $p$. |
+| $\hat{J}(A;p)$ | The mean-and-variance approximation of $J$ (Section 2.2). |
+| $K$ | Number of fault fields used by the MC correction. |
+| $k$ | Index of one of those fields, $k = 1,\dots,K$; $X_k$ is its displacement vector. |
+| $u_{b,k}$ | Uniform random number in $[0,1)$ drawn once for bit $b$ in field $k$; $\xi_{b,k} = \mathbb{1}[u_{b,k} < r_b]$. |
+| $\hat{C}$ | MC estimate of what $\hat{J}$ misses. |
+| $\hat{g}_w$ | Gradient used to score bits: at the average faulty weights $\theta+\mu$, or averaged over the $K$ faulted models. |
+| $v_b$ | Value of moving bit $b$ from scheme $s$ to $s'$: predicted drop of $\hat{J}$ per extra storage bit. |
+| $m$ | Number of bits swapped in one round of the search. |
+| $T$ | Temperature of the annealing arm: the size of a loss increase that is still accepted fairly often. |
+| $\Delta J$ | Change of the objective caused by one proposed swap. |
+
+**Analysis (Stages 1 and 2)**
+
+| Symbol | Meaning |
+|---|---|
+| $p^*$ | Predicted switch rate: the rate above which the positive-gradient mask has the higher predicted loss. |
+| $p^*_{\text{meas}}$ | Measured switch rate: where the measured accuracy difference crosses zero. |
+| $p_a,\ p_b$ | In Stage 2, the rate a mask is built for ($p_a$) and the rate it is tested at ($p_b$). |
+| $\mathrm{ckpt},\ \mathrm{rep},\ \mathrm{field}$ | Integers in the random seeds: checkpoint index in the order of Run Q (0 to 8), replication, and field number. |
+
+### 2.1 Protection schemes
+
+Voters and decoders are ideal unless stated.
+
+| Scheme | $\rho_s(p)$ | $\mathrm{cost}_s$ |
 |---|---|---|
 | None | $p$ | 0 |
 | Ideal suppression (the paper's masks) | $0$ | counted as 1 bit per bit, as in the paper |
-| 3 copies | $3p^2 - 2p^3$ | 2 bits per bit |
-| 5 copies | $10p^3 - 15p^4 + 6p^5$ | 4 bits per bit |
-| SEC-DED over $k$ data bits, $n$ total | $p\,[1 - (1-p)^{n-1}]$, double errors left as they are, miscorrection ignored | $(n-k)$ per $k$ bits, whole words |
-| ABFT, one faulty weight repaired per output channel of $G$ weights$^*$ | $p\,[1 - (1-p)^{8(G-1)}] \approx 8(G-1)\,p^2$ | two checksum words per channel |
+| 3 copies | $3p^2 - 2p^3$ | 2 |
+| 5 copies | $10p^3 - 15p^4 + 6p^5$ | 4 |
+| SEC-DED, code word of $n$ bits with $d$ data bits | $p\,[1 - (1-p)^{n-1}]$, double errors left as they are, miscorrection ignored | $(n-d)/d$, whole words |
+| ABFT, one faulty weight repaired per output channel of $G$ weights$^*$ | $p\,[1 - (1-p)^{8(G-1)}] \approx 8(G-1)\,p^2$, plus wrong repairs (Section 2.2) | two checksum words per channel |
+
+**Where the formulas come from.**
+- *Copies:* the vote is wrong when a majority of copies flip. For 3 copies that is 2 or 3 of them,
+  $3p^2(1-p) + p^3 = 3p^2 - 2p^3$; for 5 copies, 3 or more of 5.
+- *SEC-DED:* one error per code word is repaired, so a flipped data bit stays wrong when at least one of the other
+  $n-1$ stored bits of its word has also flipped.
+- *ABFT:* one faulty weight per channel is repaired, so a flipped bit stays wrong when at least one of the
+  $8(G-1)$ bits of the other weights of its channel has also flipped.
 
 $^*$ **The ABFT curve is an approximation.** It is exact for the model the paper simulates (Section 7,
 `workflows/correction_mechanisms_resnet8.py`): two checksum words per output channel of each kernel locate and
 repair one faulty weight; a channel with two or more faulty weights is left as it is; the checksum words never
-flip. A flipped bit then survives exactly when at least one of the other $8(G-1)$ bits of its channel has also
-flipped. A real ABFT differs in three ways, each of which makes it worse than the curve:
-1. **Wrong repairs.** With two faulty weights in one channel, the checksum ratio can point at a third, healthy
-   weight, which is then changed. For SEC-DED the equivalent needs three errors and is negligible; for ABFT it
-   occurs at the same order, $p^2$, as the main term, and how often depends on the stored weight values, not
-   only on $p$. No closed form is assumed for it.
-2. **Faulty checksums.** The checksum words are stored too and can flip, which creates false repairs. The curve
-   assumes they never flip, as the paper does.
-3. **Where it checks.** A real ABFT checks the computed outputs of a layer, not the stored weights. Applying it to
-   the stored weights, as the paper does, favours it.
+flip. A real ABFT differs in three ways, each of which makes it worse than the curve:
+1. **Wrong repairs.** With two faulty weights in one channel, the checksums can point at a third, healthy weight,
+   which is then changed. This occurs at the same order, $p^2$, as the main term. It is modelled in Section 2.2.
+2. **Faulty checksums.** The checksum words are stored too and can flip. Also modelled in Section 2.2.
+3. **Where it checks.** A real ABFT checks the computed outputs of a layer, not the stored weights. Then where a
+   fault seems to be depends on the input, so it can only be estimated by sampling inputs. Run R does not model
+   this; applying ABFT to the stored weights, as the paper does, favours it.
 
-Two further properties matter for the method. The curve differs per layer, because $G$ is the number of weights
-per output channel (from 16 to 576 in ResNet-8; the Stage 0 code lists them). And the residual flips of one channel
-fail together, so ABFT needs the same within-group variance term as the codes, with the channel as the group.
+The curve differs per layer, because $G$ does (from 16 to 576 weights in the pinned ResNet-8).
 
-**Objective.** For a storage budget $S$ and rate $p$, choose the assignment $s$ that minimizes
+### 2.2 Objective
+
+**Exact objective.** For a storage budget $S$ and rate $p$, choose the assignment $A$ that minimizes
 
 $$
-J(s;p) = \mathbb{E}_{x}\,\mathbb{E}_{\xi}\big[L_x(\theta + X)\big],
-\qquad X_w = \sum_{b \in w} \xi_b\,\Delta_b,
+J(A;p) = \mathbb{E}_{x}\,\mathbb{E}_{\xi}\big[L_x(\theta + X)\big],
+\qquad X_w = \sum_{b:\,w(b)=w} \xi_b\,\Delta_b,
 \qquad \xi_b \sim \mathrm{Bernoulli}(r_b),
-\qquad r_b = \rho_{s(b)}(p),
+\qquad r_b = \rho_{A(b)}(p),
 $$
 
 subject to
 
 $$
-\sum_b c_{s(b)} \le S .
+\sum_b \mathrm{cost}_{A(b)} \le S .
 $$
 
-**Analytical part.**
+In words: the average loss over calibration images and over random fault fields, where each bit flips with the
+residual probability of the scheme it was given.
+
+**Mean-and-variance approximation.**
 
 $$
-\mu_w = \sum_{b \in w} r_b\,\Delta_b,
+\mu_w = \sum_{b:\,w(b)=w} r_b\,\Delta_b,
 \qquad
-V_w = \sum_{b \in w} r_b\,(1-r_b)\,\Delta_b^2,
+V_w = \sum_{b:\,w(b)=w} r_b\,(1-r_b)\,\Delta_b^2,
 $$
 
 $$
-\hat{J}(s;p) = \big[L(\theta+\mu) - L(\theta)\big] + \tfrac12 \sum_w F_w\,V_w,
-\qquad
-F_w = \mathbb{E}_x\big[g_{x,w}^2\big],
+\hat{J}(A;p) = \big[L(\theta+\mu) - L(\theta)\big] + \tfrac12 \sum_w F_w\,V_w .
 $$
 
-where $g_{x,w}$ is the gradient of the loss of input $x$ with respect to weight $w$.
+The first term is the loss at the average faulty weights; the second is the spread of the weights around that
+average, weighted by curvature.
 
-For codes and ABFT, $V$ gains the within-group term (the group is the code word, or the output channel for ABFT)
+**Grouped failures (codes and ABFT).** Flips inside one code word or one ABFT channel are not independent, so the
+variance term gains
 
 $$
-\sum_{\substack{b \ne c \\ \text{same group}}} \mathrm{Cov}(\xi_b,\xi_c)\;\mathbb{E}_x\big[e_b\,e_c\big],
-\qquad e_b = g_{x,w(b)}\,\Delta_b .
+\sum_{\substack{b \ne b' \\ \text{same group}}} \mathrm{Cov}(\xi_b,\xi_{b'})\;\mathbb{E}_x\big[e_{x,b}\,e_{x,b'}\big],
 $$
 
-**MC correction.** With $K$ fault fields $X_1,\dots,X_K$,
+where the group is the code word or the output channel.
+
+**ABFT wrong repairs and checksum faults.** Decoder assumed: the two checksums are $C_1 = \sum_{i=1}^{G} q_i$ and
+$C_2 = \sum_{i=1}^{G} i\,q_i$ over the integer codes $q_i$ of a channel, stored as 32-bit words. With integer errors
+$\delta_i$ the decoder computes $\sigma_1 = \sum_i \delta_i$ and $\sigma_2 = \sum_i i\,\delta_i$ (minus any checksum
+error). If $\sigma_1 = 0$ it does nothing. If $\ell = \sigma_2/\sigma_1$ is an integer in $1,\dots,G$ it subtracts
+$\sigma_1$ from weight $\ell$. Otherwise it leaves the channel as it is.
+
+To order $p^2$, every pair of flips in one channel has probability about $p^2$, and its outcome is fixed by the
+stored codes. So the wrong-repair rate of a channel is $p^2$ times a count:
+
+$$
+\Pr[\text{wrong repair in a channel}] \approx p^2\,\big(N_{\text{ww}} + N_{\text{wc}}\big),
+$$
+
+- $N_{\text{ww}}$: the number of pairs of data bits in different weights of the channel whose syndrome points at a
+  healthy weight;
+- $N_{\text{wc}}$: the same for pairs of one data bit and one checksum bit.
+
+A wrong repair moves the pointed weight by $-\sigma_1$, so it adds $-p^2\sigma_1$ to that weight's $\mu_w$ and
+$p^2\sigma_1^2$ to its $V_w$. A single checksum flip on its own does nothing under this decoder ($\sigma_1 = 0$, or
+$\ell = 0$, which is out of range).
+
+Exploratory count on the pinned ResNet-8 (commit a3ce54d), as shares of the pairs of each kind:
+- pairs of data bits in different weights of one channel: 19.3% end in a wrong repair, 6.2% cancel in $\sigma_1$
+  and go undetected, and the rest are detected and left (15% for $G=16$ up to 19% for $G=576$);
+- pairs of one data bit and one checksum bit: 13.6% end in a wrong repair.
+
+These shares depend on the decoder rules above (index from 1, nothing when $\sigma_1 = 0$, 32-bit checksums). Other
+rules give other counts, by the same method.
+
+**MC correction.** With $K$ fault fields $X_1,\dots,X_K$:
 
 $$
 \hat{C} = \frac1K \sum_{k=1}^{K} \big[L(\theta + X_k) - L(\theta+\mu)\big] - \tfrac12 \sum_w F_w\,V_w .
 $$
 
 One uniform number $u_{b,k}$ per stored bit and field is drawn once, and $\xi_{b,k} = \mathbb{1}[u_{b,k} < r_b]$.
-The same numbers serve every candidate assignment and every rate.
+The same numbers serve every candidate assignment and every rate, so two candidates differ only through the bits
+whose scheme changed.
 
-**Value of changing bit $b$ from scheme $s$ to $s'$, per storage bit.**
+### 2.3 Search
+
+**Value of moving bit $b$ from scheme $s$ to $s'$, per extra storage bit.**
 
 $$
-v_b = \frac{(r_s - r_{s'})\,\Big[\hat{g}_w\,\Delta_b + \tfrac12\,(1 - r_s - r_{s'})\,F_w\,\Delta_b^2\Big]}{c_{s'} - c_s}
+v_b = \frac{(\rho_s - \rho_{s'})\,\Big[\hat{g}_{w(b)}\,\Delta_b + \tfrac12\,(1 - \rho_s - \rho_{s'})\,F_{w(b)}\,\Delta_b^2\Big]}{\mathrm{cost}_{s'} - \mathrm{cost}_s},
+\qquad \rho_s = \rho_s(p).
 $$
 
-$\hat{g}$ is the gradient at $\theta+\mu$, or the mean signed gradient over the $K$ faulted models,
-$\frac1K\sum_k \nabla L(\theta + X_k)$, when the MC correction is on.
+$\hat{g}_w$ is the gradient at $\theta+\mu$, or the mean signed gradient over the $K$ faulted models,
+$\frac1K\sum_k \nabla_w L(\theta + X_k)$, when the MC correction is on.
 
-**Calibration noise.** Each mean gradient $\bar{g}_w$ is shrunk by its standard error $\mathrm{se}_w$:
+**Calibration noise.**
 
 $$
 \tilde{g}_w = \bar{g}_w \cdot \max\!\Big(0,\; 1 - \frac{\mathrm{se}_w^2}{\bar{g}_w^2}\Big).
 $$
 
-**Search.**
+Where the sign of the mean gradient is not resolved, the signed term vanishes and the score falls back on
+magnitude.
+
+**Steps.**
 1. Start from the absolute-gradient assignment and from the ranking by $v_b$ at $\mu = 0$; keep the one with lower
    $\hat{J}$.
-2. Each round: compute $\mu$ and $\hat{g}$; score all changes by $v_b$; swap the $m$ best upgrades against the $m$
+2. Each round: compute $\mu$ and $\hat{g}$; score all moves by $v_b$; swap the $m$ best upgrades against the $m$
    cheapest downgrades with the budget kept exact; accept if the objective is lower, otherwise halve $m$. Stop when
    $m < 16$.
 3. Sweep $p$ from the lowest rate up, starting each rate from the previous rate's assignment.
 
 Units that are swapped: bits for copies, whole words for codes, whole channels for ABFT.
 
-**Annealing arm.** Blocks are sampled with probability proportional to $\exp(v_b / T)$; a worse block is accepted
-with probability $\exp(-\Delta J / T)$; $T$ starts at the size of the first rejected step and is multiplied by
-$0.9$ per round. It is an arm of Stage 2, not the default.
+**Annealing arm.** Blocks of moves are sampled with probability proportional to $\exp(v_b / T)$; a block that
+raises the objective by $\Delta J$ is accepted with probability $\exp(-\Delta J / T)$; $T$ starts at the size of the
+first rejected step and is multiplied by $0.9$ per round. It is an arm of Stage 2, not the default.
 
 ## 3. Stage 0: implementation and checks (no fault campaign)
 
 Work, in a new branch from `paper1-runP-mean-variance`:
-- Per-bit residual rates and storage costs in `netsurf/mean_variance.py`, the MC correction with shared uniform
-  numbers, shrinkage, the annealing arm, and the Stage 1 runner.
+- Per-bit residual rates and storage costs in `netsurf/mean_variance.py`, the grouped-failure term, the ABFT pair
+  counts, the MC correction with shared uniform numbers, shrinkage, the annealing arm, and the Stage 1 runner.
 - Deterministic tests:
   - every $\rho_s(p)$ against exhaustive enumeration of the copies or of a short code word;
+  - the ABFT pair counts against a brute-force decoder on small random channels;
   - the storage budget is preserved exactly by every move;
   - with ideal suppression and the correction off, the search returns Run P's `mv_single` mask bit for bit on one
     replication of the pinned checkpoint;
@@ -174,7 +304,7 @@ under ideal suppression.
 
 **Cohort.** The nine ResNet-8 checkpoints of Run Q with the same replications: pinned 1 to 9, the eight others 0 to
 7, and replication 4 of retrained seed 7102 excluded (amendment Q-A1). 72 jobs. Each replication evaluates its own
-window of 1,000 test images (offset $1000 \times$ replication), as in Runs K, P and Q. These images were used
+window of 1,000 test images (offset $1000 \times \mathrm{rep}$), as in Runs K, P and Q. These images were used
 before.
 
 **Masks.** `abs1024` and `pos1024` at 6.25%, 12.5%, 18.75% and 25%, read from the Run Q `masks.npz` files. Their
@@ -185,15 +315,16 @@ Twelve rates: $3\times10^{-4}$, $1\times10^{-3}$, $1.5\times10^{-3}$, $2\times10
 $3\times10^{-3}$, $4\times10^{-3}$, $5\times10^{-3}$, $7\times10^{-3}$, $1\times10^{-2}$, $1.5\times10^{-2}$,
 $3\times10^{-2}$.
 
-**Fields.** Eight per replication. Field $f$ of replication $r$ of checkpoint $c$ (index in the order of Run Q)
-draws one uniform number per bit from `numpy.random.default_rng([20261115, c, r, f])`; a bit is proposed at rate
-$p$ when its number is below $p$. Fields are therefore nested across rates and shared by both masks and all
-budgets. Each field is saved as its seed and the SHA-256 of the proposed flips at each rate.
+**Fields.** Eight per replication. Field $\mathrm{field}$ of replication $\mathrm{rep}$ of checkpoint
+$\mathrm{ckpt}$ draws one uniform number per bit from
+`numpy.random.default_rng([20261115, ckpt, rep, field])`; a bit is proposed at rate $p$ when its number is below
+$p$. Fields are therefore nested across rates and shared by both masks and all budgets. Each field is saved as its
+seed and the SHA-256 of the proposed flips at each rate.
 
 **Engine check.** Before any new evaluation, each job replays one saved Run Q schedule with `abs1024` at 12.5% and
 must reproduce the saved accuracy exactly, or it stops.
 
-**Predictions, fixed now.** $p^*(\text{checkpoint}, \text{budget})$ is read from
+**Predictions, fixed now.** $p^*(\mathrm{ckpt}, \text{budget})$ is read from
 `workspace/runs/paper1_runPQ_crossover_theory_v1_analysis/summary_maxp0.03.json` (sha256 `851cae16dd1b2520…`),
 calibration size 1,024. Definition: on the 17 grid rates up to $3\times10^{-2}$, the rate above which the positive
 mask has the higher predicted loss at every larger rate, by log-linear interpolation. Values at 12.5%:
@@ -214,7 +345,7 @@ pruned ones.
 - Cell: checkpoint $\times$ budget $\times$ rate. A cell is usable if the mean accuracy of `abs1024` or `pos1024` in
   it is within 0.05 of the clean accuracy of the same windows, measured in the job.
 - Difference: `pos1024` minus `abs1024`, paired on the field. Test: pooled-field sign-flip, 100,000 assignments,
-  seed 20261116. Holm correction over all usable cells. Resolved means adjusted $p_{\text{Holm}} < 0.05$. Student-t
+  seed 20261116. Holm correction over all usable cells. Resolved means Holm-adjusted p-value below 0.05. Student-t
   intervals over replications are reported alongside.
 - A cell is near the switch if its rate lies in $[p^*/1.25,\; 1.25\,p^*]$. Elsewhere the prediction is "positive
   ahead" for $p < p^*$ and "positive behind" for $p > p^*$.
@@ -253,9 +384,9 @@ pruned ones.
 
 **Grid.** The eight rates $10^{-4}$, $3\times10^{-4}$, $10^{-3}$, $2\times10^{-3}$, $3\times10^{-3}$,
 $5\times10^{-3}$, $10^{-2}$, $3\times10^{-2}$. Fresh nested fields, eight per replication, seeds
-`[20261117, c, r, f]`.
+`[20261117, ckpt, rep, field]`.
 - All nine checkpoints: masks tested at the rate they were built for.
-- Pinned and under-trained: every built-for rate tested at every rate ($8 \times 8$).
+- Pinned and under-trained: every built-for rate $p_a$ tested at every rate $p_b$ ($8 \times 8$).
 
 **Statistic.** In each usable cell, the gap of an arm is the mean accuracy of the best arm in that cell minus its
 own. The headline number of an arm is its largest gap over all usable cells of a checkpoint. Because the best arm is
@@ -278,17 +409,19 @@ everywhere", or any statement about other models.
 
 ## 6. Stage 3: real protection schemes (rules frozen, constants in the addendum)
 
-**3a. Residual curves, no network.** For 3 copies, 5 copies, SEC-DED over 8 and 64 data bits, and ABFT with channel
-sizes of the ResNet-8 layers: simulate $10^7$ protected bits (or as many words) per rate at the twelve Stage 1 rates
-and compare the measured residual error rate with $\rho_s(p)$. Rule R3a: every formula lies inside the 99% binomial
-interval of its simulation at every rate. For ABFT the simulation is the paper's model, with one curve per channel
-size $G$; the wrong repairs and faulty checksums of a real ABFT are outside R3a (see the asterisk in Section 2).
+**3a. Residual curves, no network.** For 3 copies, 5 copies, SEC-DED over 8 and 64 data bits, and ABFT with the
+channel sizes of the ResNet-8 layers: simulate $10^7$ protected bits (or as many words or channels) per rate at the
+twelve Stage 1 rates and compare the measured residual error rate with $\rho_s(p)$. For ABFT the simulation uses the
+decoder of Section 2.2, with one curve per channel size $G$, and also measures the wrong-repair rate and the share of
+wrong repairs caused by checksum flips. Rule R3a: every formula, and the ABFT wrong-repair rate
+$p^2(N_{\text{ww}} + N_{\text{wc}})$, lies inside the 99% binomial interval of its simulation at every rate where
+the expected count is at least 30. Checks on computed outputs, rather than stored weights, are outside R3a.
 
 **3b. Accuracy at equal extra storage,** 12.5% and 25%, with every copy and check bit flipping:
 - absolute-gradient ranking with 3 copies (the paper's Section 7 arm);
-- `rate_aware_mask` with $r_b = \rho_{s(b)}(p)$, 3 copies;
+- `rate_aware_mask` with $r_b = \rho_{A(b)}(p)$, 3 copies;
 - `rate_aware_mask` choosing none, 3 or 5 copies per bit;
-- SEC-DED over 8 and over 64 bits; ABFT.
+- SEC-DED over 8 and over 64 bits; ABFT as in the paper, and ABFT with wrong repairs and checksum flips.
 
 Pinned checkpoint first, test images 1000 to 1999 as in Section 7, sixteen fresh fields per rate; the nine
 checkpoints only if the pinned result justifies it.
@@ -308,7 +441,7 @@ already), then an estimate for Pythia-160M and Qwen3-0.6B.
 - Hardware cost: area, power, latency, voters, decoders, scrubbing. Storage bits only.
 - Physical fault rates. $p$ is a logical bit-error probability.
 - Correlated or multi-bit upsets, and faults in voters or decoders.
-- The gap between the ABFT curve and a real ABFT (wrong repairs, faulty checksums, checks on computed outputs).
+- ABFT that checks computed outputs, whose fault location depends on the input.
 - Whole-network optimality: the search is a descent from two starts.
 - Any model other than ResNet-8 before Stage 4.
 - "MC-guided selection is superior" unless R2c holds.
