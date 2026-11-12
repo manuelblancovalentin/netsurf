@@ -26,5 +26,5 @@ for name in NAMES:
                 print(f"{name}_rep{rep}_f{f} runR_stage1.py job --checkpoint {name} --rep {rep} --field {f} --threads 1")
 EOF
 export PY LOGS
-xargs -P "$P" -L 1 sh -c 'id=$0; shift; "$PY" "$@" > "$LOGS/$id.log" 2>&1 || echo "FAILED $id" >> "$LOGS/failed.txt"' < "$LOGS/jobs.txt"
+xargs -P "$P" -L 1 sh -c 'id=$0; "$PY" "$@" > "$LOGS/$id.log" 2>&1 || echo "FAILED $id" >> "$LOGS/failed.txt"' < "$LOGS/jobs.txt"
 echo "all jobs ended: $(date)"; test ! -s "$LOGS/failed.txt" && echo "no failures" || cat "$LOGS/failed.txt"
