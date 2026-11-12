@@ -70,6 +70,8 @@ def load(name):
             if pol == "full_protection":
                 continue
             name_, cov = pol.split("@")
+            if name_ not in ALIAS:  # random-fill partial-tier policies of the pinned bundle: not one of the seven
+                continue
             acc[(ber, float(cov))][ALIAS[name_]][(rep, r["schedule_sha256"])] = float(r["accuracy"])
     for rep in reps:
         with open(OUT / name / f"rep{rep}" / "replay.csv") as f:
@@ -82,6 +84,8 @@ def load(name):
 def useful_flags(name):
     flags = {}
     for r in csv.DictReader(open(CHECKPOINTS[name]["measured"])):
+        if r.get("model", "resnet8") != "resnet8":  # the pinned (Run A) table also holds the DS-CNN rows
+            continue
         flags[(float(f"{float(r['ber']):.3g}"), round(float(r["coverage"]), 6))] = (
             r["decision_useful_primary"] in ("1", "True"), float(r["mean_clean_accuracy"]))
     return flags
