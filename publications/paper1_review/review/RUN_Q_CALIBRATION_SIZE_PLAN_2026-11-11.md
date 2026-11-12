@@ -108,3 +108,38 @@ None of these is claimed.
 - Analysis script `workflows/runQ_analyze.py`, commit feb8db1, written after launch and before any outcome. It
   implements Section 3. It was dry-tested on the existing 64-image and Run P outcomes, with stand-in empty Run Q
   files in a scratch directory.
+
+## 7. Amendment Q-A1 (22:46 CST, before any Run Q outcome)
+
+The identity gate stopped the first attempt at 22:44, before any job ran. Its log is
+`orchestrator_attempt1_gate_failed.log`.
+
+**Finding.**
+- Eight checkpoints passed, with a minimum overlap of 0.99977.
+- Retrained seed 7102 failed, in one replication only (replication 4). Its rebuilt masks overlap the saved ones by:
+
+  | Ranking | Overlap |
+  |---|---|
+  | Absolute gradient | 0.9987–0.9992 |
+  | Positive gradient | 0.9983–0.9992 |
+  | Global gradient | 0.9966–0.9972 |
+
+  Replications 0–3 and 5–7 of the same checkpoint match.
+- The calibration indices (4000–4063) and the sample hash are the saved ones.
+- The bits that differ are not ties:
+  - absolute gradient: their scores lie up to 1.3% from the cutoff;
+  - global gradient: 0.71–1.33 times the cutoff, because it averages gradients that largely cancel.
+- So the saved masks of that replication were built from gradients that differ by about 1% from those the code
+  computes now. The cause is not known.
+
+**Amendment.** Replication 4 of retrained seed 7102 is excluded from Run Q. That leaves 72 jobs, and seed 7102 has 7
+replications. The gate is applied to every other replication, and the analysis rules are unchanged. Run Q was
+relaunched at 22:46.
+
+**Consequences outside Run Q.**
+- The paper's outcomes for that replication are exact replays of the masks as saved, so they stay valid as
+  measurements of those masks.
+- The masks themselves are slightly noisier estimates of the rankings.
+- In Run P, the abs512 − abs contrast for that replication includes this gradient difference in addition to
+  calibration size.
+- A follow-up check of how the Run K job for seed 7102 replication 4 computed its gradients is recorded as open.
