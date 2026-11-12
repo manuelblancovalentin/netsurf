@@ -480,3 +480,17 @@ already), then an estimate for Pythia-160M and Qwen3-0.6B.
 - From the method: the assignment files with hashes; the predicted loss curve of every candidate against $p$; the
   predicted switch rates; the built-for against tested-at table; a map of the share of bits under each scheme per
   layer and bit position.
+
+## Freeze note F1 (12 November 2026, 16:25 CST, before any Stage 1 field is drawn)
+
+Amendment R-A3 prerequisites are complete:
+- Masks: `workspace/runs/paper1_runR_masks_v1/` (72 replications, read-only), `runR_masks.py` at commit 059af83 of
+  branch `paper1-runR-rate-aware`. At the four old budgets every mask equals Run Q's bit for bit (no job failed its
+  check).
+- Predictions: `workspace/runs/paper1_runR_predictions_v1/predictions.json`, sha256
+  `bf38ffd6651bfa179352c18c8205d13465315e4f0019634642da6e0995f7a037`, read-only. Recomputing the four old budgets
+  reproduces the frozen values exactly (largest log ratio 0.0); the old budgets keep the frozen values by rule.
+- One pair lies at the grid end: under-trained at 50% ($p^* = 3\times10^{-2}$). It enters R1a and R1b only.
+- Predicted $p^*$ at 1% / 50%: pinned $4.9\times10^{-3}$ / $2.2\times10^{-2}$; under-trained $1.1\times10^{-2}$ / grid
+  end; pruned 70% $3.7\times10^{-3}$ / $8.4\times10^{-3}$; pruned 50% $5.4\times10^{-3}$ / $1.9\times10^{-2}$; retrained
+  seeds $1.6\times10^{-3}$ to $4.1\times10^{-3}$ / $1.8\times10^{-2}$ to $2.2\times10^{-2}$.
