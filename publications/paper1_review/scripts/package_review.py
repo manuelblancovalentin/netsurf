@@ -130,7 +130,7 @@ def validate():
         "figures/tecs_protection_vs_unprotected_125.pdf",
         "review/RUN_A_B_FROZEN_PLANS_2026-11-11.md", "review/RUN_A_B_RESULTS_2026-11-11.md",
         "data/tecs_runA/summary.json", "data/tecs_runA/absgrad_contrasts.csv", "data/tecs_runA/within_tier_contrasts.csv",
-        "data/tecs_runA/fresh_cell_quality.csv", "data/tecs_runB/summary.json", "data/tecs_runB/cap_statistics.csv", "data/tecs_runL2/analysis.json", "figures/tecs_correction_mechanisms.pdf",
+        "data/tecs_runA/fresh_cell_quality.csv", "data/tecs_runB/summary.json", "data/tecs_runB/cap_statistics.csv", "data/tecs_runL2/analysis.json", "figures/tecs_correction_mechanisms.pdf", "data/tecs_runN/analysis.json",
     ]
     for name in required:
         assert (ROOT / name).is_file(), name
@@ -171,13 +171,13 @@ def validate():
     groups = (("derived_data", "data/tecs_audit"), ("figures", "figures"), ("scripts", "scripts"),
               ("derived_data_runA", "data/tecs_runA"), ("derived_data_runB", "data/tecs_runB"),
               ("derived_data_runA2", "data/tecs_runA2"), ("derived_data_runL2", "data/tecs_runL2"),
-              ("derived_data_runK", "data/tecs_runK"))
+              ("derived_data_runK", "data/tecs_runK"), ("derived_data_runN", "data/tecs_runN"))
     for group, folder in groups:
         for name, expected_hash in tecs[group].items():
             assert digest(ROOT / folder / name) == expected_hash, f"{folder}/{name} changed after provenance"
     for rel, expected_hash in tecs["frozen_plans"].items():
         assert digest(ROOT / rel) == expected_hash, f"{rel} changed after provenance"
-    assert tecs["experiments_executed"] == len(tecs["executed_runs"]) == 9
+    assert tecs["experiments_executed"] == len(tecs["executed_runs"]) == 15
     assert len(list((ROOT / "data/tecs_runL2").glob("ber_*_draw_*.json"))) == 64
     run_a2 = json.loads((ROOT / "data/tecs_runA2/summary.json").read_text())["models"]["kws"]
     assert run_a2["decision_rule"]["primary/decision_useful_primary"]["confirmed_replication_level"] is True

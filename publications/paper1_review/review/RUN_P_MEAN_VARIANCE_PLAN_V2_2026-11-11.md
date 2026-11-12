@@ -64,6 +64,28 @@ Cost: one process per checkpoint, about 10-15 minutes each, CPU only. Outputs:
 - Checkpoints: primary under-trained, pruned 70%, pinned ResNet-8; secondary pruned 50%, DS-CNN, the five retrained
   seeds.
 
+## 4a. Launch record and amendment (11 November 2026, 19:15 CST, before any Phase 1 or 2 outcome)
+
+- Go-ahead: "Okay, so run P phases 1-2" (researcher, 11 November 2026).
+- Runner: `workflows/runP_phase12.py` on branch `paper1-runP-mean-variance`, commit 907e430; orchestrator
+  `workspace/launch/orchestrate_runP.sh` (tmux `runP`, 26 parallel jobs, 2 TensorFlow threads each); outputs
+  `workspace/runs/paper1_runP_phase12_v1/`; registered as `19_runP`.
+- Replay check before launch: the saved absolute-gradient mask at 12.5% replayed on four saved schedules per primary
+  checkpoint (BER 1e-5, 3e-4, 1e-2, 1e-1) reproduces the saved accuracy and cross-entropy exactly on all twelve;
+  every job repeats the check on all of its schedules before evaluating a new mask. One evaluation takes 6.2 s.
+- **Amendment A3.** DS-CNN is dropped from the secondary checkpoints: the Run P code supports the ResNet-8
+  companion only. Secondary checkpoints are pruned 50% and the five retrained seeds.
+- Because each job builds and replays in one go, the Phase 1 check (Section 4) is applied at analysis: a
+  checkpoint on which the median, over replications and budgets, of the held-out reduction of the range-W objective
+  relative to the 512-image absolute-gradient mask is not positive is reported but excluded from the primary
+  reading. Holm family of the primary contrast: range W against the paper's absolute-gradient mask in all 96 cells
+  of the three primary checkpoints, pooled-field sign-flip tests with 100,000 random assignments; the same family
+  is formed separately against the 512-image absolute gradient. Decision-useful cells are those of the measured
+  tables of the seven rankings (`fresh_cell_quality.csv`); cells that become useful only through a new arm are
+  reported separately.
+- Expected cost: primary about 2 hours (Phase 1 about 45 minutes per replication, then 272 replays per Run K
+  replication and 544 per pinned replication); secondary about 3 further hours.
+
 ## 5. What would not be claimed
 
 As in version 1. In addition: a passed gate shows that the objective ranks existing masks on held-out images; it

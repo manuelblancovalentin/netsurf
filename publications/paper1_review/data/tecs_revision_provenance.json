@@ -165,6 +165,22 @@
   "ber_7_draw_6.json": "673c9b05aa463ec81789869e10590f2696f82fd1a652b60b0ee37f3b651ecac2",
   "ber_7_draw_7.json": "5b91d2fca7bf084a88a20fbb020c41dd9849696d911c425bf6cccf4eb8b30cb9"
  },
+ "derived_data_runN": {
+  "analysis.json": "ef57dd167fcacdc68a2fcf9b3ef301d56a2d211a898432dd6f775094a5a9c88e",
+  "eval/shard_00.json": "cbd312169391ea4b59479db217ca86729efeb2cc906259f286798d1e32b840f2",
+  "eval/shard_01.json": "7d8704d57b975051d5c8eb8e49340f1d31af78f151b4222ea5e4ae46fa15997a",
+  "eval/shard_02.json": "87d172c7792506a7528921f49d44feb4a6cce820cc1865c33251456ccffc57f4",
+  "eval/shard_03.json": "8c4588ad7393f96ae86d5641bfeecf96af8e6a465b6ac10d6398ff1cd0a231c7",
+  "eval/shard_04.json": "3dbfaa0f13b3ff416d1802047e72b9a3bb31c8de8153c099cdfebedf6d588885",
+  "eval/shard_05.json": "6563b0b92b25d8c7a4e21daf8749c4a7c5cff4f03427926b2426eadaaea42832",
+  "eval/shard_06.json": "88c44778017f1df7777fb4e89456fbcf0441dce4990025c32e5408b0ea0cfb3d",
+  "eval/shard_07.json": "06c18014f168880b357d64abc2ff5599728d3d50002976a03cc22bc976eaf109",
+  "eval/shard_08.json": "0b12ba89e9eb99025503918c972bb4b5c370b307ceebffca70abef273039a773",
+  "eval/shard_09.json": "c7dcc9e56a26b79a193bbf6c5ce0b1068a5c04b1002da176de861ef51c64e295",
+  "eval/shard_10.json": "c73c470bc7ab9f7353b882781ddf14622f19468051ad45bd6a296e614a5f05a5",
+  "eval/shard_11.json": "ba30eeaff2ea6e32d2154eceea0fcc7ac6952d923fdd61b1426f94b9a89b4c51",
+  "provenance.json": "68a713c20e6fb228f174745562ee368c218020d58730c4f7c253c12414f5efe8"
+ },
  "executed_runs": [
   {
    "checks": {
@@ -270,6 +286,93 @@
    "trials_sha256": "8b80ffcdbd46f57c5134639a1b2aaadfdc64f96bc11a45830a0c09093d2441ea"
   },
   {
+   "checks": {
+    "matched_schedules": true,
+    "model_state_restored": true,
+    "partitions_disjoint": true,
+    "quantized_state_exact": true
+   },
+   "config_sha256": "b9b4b27272341ac91294961149f57fada28995eba25c8a7ce46568fa7a456658",
+   "event_identity_violations": 0,
+   "run": "Run K resnet8 retrained_seed7101",
+   "run_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runK-retrained-engine/workspace/runs/paper1_runK_resnet8_retrained_seed7101_v2/20261111T234608.946815Z-d33b696b",
+   "run_id": "20261111T234608.946815Z-d33b696b",
+   "scientific_payload_sha256": "4bdc02c391f3e88383a1d1092994671ce4f0db8c40bcde4f9c066808e979ba21",
+   "source_commit": "9b57733a435b51c2b43aa1ad7c9f3eea188e639a",
+   "trials_sha256": "53c067a8be2e2fea77b2b7d502c1a3d707ab76d818857b1c9d91c8285a327315"
+  },
+  {
+   "checks": {
+    "matched_schedules": true,
+    "model_state_restored": true,
+    "partitions_disjoint": true,
+    "quantized_state_exact": true
+   },
+   "config_sha256": "8b6b76ee47f83ad0c202dd2f73f3143bcbd915aeb2b35bc57e4169d888d8f14e",
+   "event_identity_violations": 0,
+   "run": "Run K resnet8 retrained_seed7102",
+   "run_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runK-retrained-engine/workspace/runs/paper1_runK_resnet8_retrained_seed7102_v2/20261112T000720.244800Z-6222eaf3",
+   "run_id": "20261112T000720.244800Z-6222eaf3",
+   "scientific_payload_sha256": "81704c16b1a63d64ed3dbf54f8368a9789a809fa12b7bd330e7ba6417f4b5452",
+   "source_commit": "9b57733a435b51c2b43aa1ad7c9f3eea188e639a",
+   "trials_sha256": "12d0f780a35574d7e62feb23dc855735ce86dc6080b894eccdf7689991fec328"
+  },
+  {
+   "checks": {
+    "matched_schedules": true,
+    "model_state_restored": true,
+    "partitions_disjoint": true,
+    "quantized_state_exact": true
+   },
+   "config_sha256": "56044547b7e59fcf3f47739700f647e98e72be5dce00168df6b9e770eefed5c0",
+   "event_identity_violations": 0,
+   "run": "Run K resnet8 retrained_seed7103",
+   "run_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runK-retrained-engine/workspace/runs/paper1_runK_resnet8_retrained_seed7103_v2/20261112T000523.629457Z-174052d6",
+   "run_id": "20261112T000523.629457Z-174052d6",
+   "scientific_payload_sha256": "962e407f1adfd1b9913a8c51254b4d6a0a6adcf0cf766ee98c746b977dbb1773",
+   "source_commit": "9b57733a435b51c2b43aa1ad7c9f3eea188e639a",
+   "trials_sha256": "72443bf1b145aaafd5c3a0a7f0f3d4a539903e0f0095db58461aa213e2c5c57d"
+  },
+  {
+   "checks": {
+    "matched_schedules": true,
+    "model_state_restored": true,
+    "partitions_disjoint": true,
+    "quantized_state_exact": true
+   },
+   "config_sha256": "d6a99c6d17a6e7073b8b6adf3312468983268df566698cb8781f99485765ec3f",
+   "event_identity_violations": 0,
+   "run": "Run K resnet8 retrained_seed7104",
+   "run_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runK-retrained-engine/workspace/runs/paper1_runK_resnet8_retrained_seed7104_v2/20261112T000232.395852Z-2e75ef3c",
+   "run_id": "20261112T000232.395852Z-2e75ef3c",
+   "scientific_payload_sha256": "36bb63d5cf8c640220289cd3be42b7386b2c5283a2e3badfcf0ded883ea97b0d",
+   "source_commit": "9b57733a435b51c2b43aa1ad7c9f3eea188e639a",
+   "trials_sha256": "c11f3c555d1cf4620e8617a444795b3b95b1c8205afbcee24925beee4612850b"
+  },
+  {
+   "checks": {
+    "matched_schedules": true,
+    "model_state_restored": true,
+    "partitions_disjoint": true,
+    "quantized_state_exact": true
+   },
+   "config_sha256": "bcb8b43b63169567ca91d33a2d7b368f2103f8b7a1d7b918dd2deadf3ef69817",
+   "event_identity_violations": 0,
+   "run": "Run K resnet8 retrained_seed7105",
+   "run_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runK-retrained-engine/workspace/runs/paper1_runK_resnet8_retrained_seed7105_v2/20261111T235956.668815Z-eb17bdbe",
+   "run_id": "20261111T235956.668815Z-eb17bdbe",
+   "scientific_payload_sha256": "617ac274c602d7a6946a5cb7c807921ec47cc238da2ce097496f6289326cc5b2",
+   "source_commit": "9b57733a435b51c2b43aa1ad7c9f3eea188e639a",
+   "trials_sha256": "b414e62ae967ba13a85f8d5ae800b3b71409bcbd68cf3257db04d36a89ebdf31"
+  },
+  {
+   "commit": "8b61a48",
+   "finalized_by_engine": false,
+   "outputs": "data/tecs_runN (analysis and 12 evaluation shards)",
+   "run": "Run N method campaigns (pinned ResNet-8)",
+   "script": "workflows/method_campaigns_resnet8.py"
+  },
+  {
    "observation_listing_sha256": "98b075a2060362ee030de6e3c6ed086125c7404c327af34041d22ae5bb0ecdd4",
    "observations": 4800,
    "replay_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-tecs-revision-v1/workspace/runs/w8a8_cap_replay_v1/pythia160m_int8",
@@ -284,7 +387,7 @@
    "run": "Run B qwen"
   }
  ],
- "experiments_executed": 9,
+ "experiments_executed": 15,
  "figures": {
   "tecs_confirmation_runA.pdf": "f1125a8214093b4d7a4999de5ead6a54464efdf1fa6bef758cdc9c0ccd68a3eb",
   "tecs_confirmation_runA.png": "0c7fa3a7b99ccfe264c8e948c4e358fbe92d0b0e4e91f02381f5935a7d16b63c",
@@ -301,7 +404,9 @@
  },
  "frozen_plans": {
   "review/RUN_A2_D_F_FROZEN_PLANS_2026-11-11.md": "b3e1fb4a7e529fd49efb734b173bf2245663bc736c76d5f72dbfd46776559455",
-  "review/RUN_A_B_FROZEN_PLANS_2026-11-11.md": "9b4adad9efd3d3e07b42800c7fdd1eb4a3a487a6c83c069f1f7bae613843e692"
+  "review/RUN_A_B_FROZEN_PLANS_2026-11-11.md": "9b4adad9efd3d3e07b42800c7fdd1eb4a3a487a6c83c069f1f7bae613843e692",
+  "review/RUN_J_K_L2_FROZEN_PLANS_2026-11-11.md": "7733169dc34415a767edf9079c24cc08ac708a609b3bd6dda041258b258b90f5",
+  "review/RUN_N_METHOD_CAMPAIGNS_FROZEN_PLAN_2026-11-11.md": "b56523475a87c4bc00b573c7fab36c64b53f3bd5eb4f87bbe7f1926441b98c1d"
  },
  "limits": [
   "One trained checkpoint per model. Outside Run A: one evaluation cohort and one constructed mask per deterministic ranking and budget.",
@@ -353,7 +458,7 @@
  "scripts": {
   "build_tecs_correction_figure.py": "d5ff602c3cdb5d84bce2bb6708d949a018154e697a06ec8b4efe6f7dc8421574",
   "build_tecs_figures.py": "e5c266032a81e4e42b1fb1323e2c1be62d5ba0b4aca008353e984901e3b9ee13",
-  "build_tecs_provenance.py": "2d156d514283bacad04f9847cc7fb9c38c809388ae6c53bf80e55de650b67215",
+  "build_tecs_provenance.py": "68dc007e220b63f397c96845aea0a101f1edf8a5b3e978eee4d599a546a1dc80",
   "build_tecs_runA_figure.py": "afd219927392113ba5d12b6647b077e6238726747f99d12dab185f1a53a78833",
   "tecs_grid_audit.py": "02c17570e082337e02c81a7e21c09a39e6dc461bd1797aebd900bfb62e849a03",
   "tecs_kws_conditional_audit.py": "3fe379c3dcac7e65bb438e79fcff3fa16bcaff49e38560a31c0ae852b7150e9f",

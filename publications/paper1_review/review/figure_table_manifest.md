@@ -22,6 +22,7 @@ Generator for Figures 2, 3, 4 and 7: `scripts/build_tecs_figures.py`; Figure 6: 
 | Table 6 (App. A) | Executed artifacts | readiness manifest, `data/benchmark_inventory.json` |
 | Table 7 (App. D) | DistilBERT residual first-order effect per mask | `data/tecs_audit/distilbert_residual_drift.json` |
 | Table 8 (App. F) | Score-fidelity correlations with intervals | `data/empirical_validation.csv`, `data/toycar_auc_correlations.csv`, `data/fkeras_candidate_audit_v1.json` |
+| Table 9 (App. G) | Search-based, relaxed and literature-derived masks against the absolute-gradient mask, pinned ResNet-8 (Run N) | `data/tecs_runN/analysis.json` (table generated from it) |
 | Text, Sec. 7.4 | Stored-code statistics of the pinned, retrained (Run D), pruned and under-trained ResNet-8 checkpoints | `data/tecs_runK/stored_code_statistics.json` |
 
 ## Previous draft (fourth delivery), retained for history
