@@ -344,5 +344,413 @@
     "pos_grad": 0.2635624999999999
    }
   }
+ },
+ "retrained_seed7101": {
+  "clean": 0.8725,
+  "replications": 8,
+  "useful_cells": 21,
+  "regret": {
+   "abs_grad": 0.002875000000000072,
+   "global_grad": 0.08949999999999991,
+   "pos_grad": 0.4515624999999999,
+   "msb": 0.2936875,
+   "fkeras": 0.10243749999999985,
+   "jump": 0.4967499999999999,
+   "random": 0.6676875
+  },
+  "breaks": [],
+  "wins_over": {
+   "global_grad": 5,
+   "pos_grad": 5,
+   "msb": 9,
+   "fkeras": 7,
+   "jump": 11,
+   "random": 13
+  },
+  "losses_to": {
+   "global_grad": 0,
+   "pos_grad": 0,
+   "msb": 0,
+   "fkeras": 0,
+   "jump": 0,
+   "random": 0
+  },
+  "best_ranking_counts": {
+   "msb": 1,
+   "abs_grad": 17,
+   "pos_grad": 2,
+   "global_grad": 1
+  },
+  "rule_max_rep_upper": 0.01696458190540319,
+  "rule_cells_ok": 18,
+  "vs_best_other_max_rep_upper": 0.01696458190540319,
+  "vs_best_other_cells_ok": 20,
+  "highest_useful_125": {
+   "unprotected": 0.0003,
+   "random": 0.0003,
+   "msb": 0.0003,
+   "fkeras": 0.0003,
+   "global_grad": 0.001,
+   "abs_grad": 0.003,
+   "pos_grad": 0.001
+  },
+  "highest_useful_25": {
+   "unprotected": 0.0003,
+   "random": 0.0003,
+   "msb": 0.003,
+   "fkeras": 0.003,
+   "global_grad": 0.003,
+   "abs_grad": 0.01,
+   "pos_grad": 0.003
+  },
+  "drop_125_at": {
+   "0.001": {
+    "unprotected": 0.1785625,
+    "msb": 0.066,
+    "abs_grad": 0.007937500000000007,
+    "global_grad": 0.02568750000000001,
+    "pos_grad": 0.014375000000000006
+   },
+   "0.003": {
+    "unprotected": 0.4268125,
+    "msb": 0.11212499999999999,
+    "abs_grad": 0.032375000000000015,
+    "global_grad": 0.07693749999999999,
+    "pos_grad": 0.0814375
+   },
+   "0.01": {
+    "unprotected": 0.724125,
+    "msb": 0.3871875,
+    "abs_grad": 0.09462499999999999,
+    "global_grad": 0.20618750000000002,
+    "pos_grad": 0.578125
+   }
+  }
+ },
+ "retrained_seed7102": {
+  "clean": 0.8662500000000001,
+  "replications": 8,
+  "useful_cells": 22,
+  "regret": {
+   "abs_grad": 0.0031250000000000444,
+   "global_grad": 0.10349999999999993,
+   "pos_grad": 0.42125,
+   "msb": 0.35650000000000004,
+   "fkeras": 0.14475000000000005,
+   "jump": 0.5686875,
+   "random": 0.66175
+  },
+  "breaks": [],
+  "wins_over": {
+   "global_grad": 6,
+   "pos_grad": 5,
+   "msb": 10,
+   "fkeras": 8,
+   "jump": 11,
+   "random": 13
+  },
+  "losses_to": {
+   "global_grad": 0,
+   "pos_grad": 0,
+   "msb": 0,
+   "fkeras": 0,
+   "jump": 0,
+   "random": 0
+  },
+  "best_ranking_counts": {
+   "random": 2,
+   "pos_grad": 9,
+   "abs_grad": 10,
+   "msb": 1
+  },
+  "rule_max_rep_upper": 0.019305435665913778,
+  "rule_cells_ok": 18,
+  "vs_best_other_max_rep_upper": 0.011275234465431683,
+  "vs_best_other_cells_ok": 21,
+  "highest_useful_125": {
+   "unprotected": 0.0003,
+   "random": 0.0003,
+   "msb": 0.0003,
+   "fkeras": 0.0003,
+   "global_grad": 0.001,
+   "abs_grad": 0.003,
+   "pos_grad": 0.001
+  },
+  "highest_useful_25": {
+   "unprotected": 0.0003,
+   "random": 0.0003,
+   "msb": 0.003,
+   "fkeras": 0.003,
+   "global_grad": 0.003,
+   "abs_grad": 0.01,
+   "pos_grad": 0.003
+  },
+  "drop_125_at": {
+   "0.001": {
+    "unprotected": 0.15275,
+    "msb": 0.058625,
+    "abs_grad": 0.008312500000000007,
+    "global_grad": 0.016812500000000015,
+    "pos_grad": 0.007562500000000007
+   },
+   "0.003": {
+    "unprotected": 0.39131249999999995,
+    "msb": 0.14887499999999998,
+    "abs_grad": 0.02081250000000001,
+    "global_grad": 0.051937500000000004,
+    "pos_grad": 0.09775
+   },
+   "0.01": {
+    "unprotected": 0.7240625,
+    "msb": 0.43062500000000004,
+    "abs_grad": 0.09868749999999998,
+    "global_grad": 0.2928124999999999,
+    "pos_grad": 0.5609375
+   }
+  }
+ },
+ "retrained_seed7103": {
+  "clean": 0.864,
+  "replications": 8,
+  "useful_cells": 21,
+  "regret": {
+   "abs_grad": 0.003374999999999906,
+   "global_grad": 0.08800000000000008,
+   "pos_grad": 0.4635,
+   "msb": 0.3430625,
+   "fkeras": 0.12937500000000002,
+   "jump": 0.5076875000000001,
+   "random": 0.6573125
+  },
+  "breaks": [],
+  "wins_over": {
+   "global_grad": 5,
+   "pos_grad": 5,
+   "msb": 6,
+   "fkeras": 5,
+   "jump": 12,
+   "random": 13
+  },
+  "losses_to": {
+   "global_grad": 0,
+   "pos_grad": 0,
+   "msb": 0,
+   "fkeras": 0,
+   "jump": 0,
+   "random": 0
+  },
+  "best_ranking_counts": {
+   "global_grad": 1,
+   "pos_grad": 12,
+   "abs_grad": 8
+  },
+  "rule_max_rep_upper": 0.015402820454391035,
+  "rule_cells_ok": 20,
+  "vs_best_other_max_rep_upper": 0.014597516057759545,
+  "vs_best_other_cells_ok": 20,
+  "highest_useful_125": {
+   "unprotected": 0.0001,
+   "random": 0.0003,
+   "msb": 0.001,
+   "fkeras": 0.001,
+   "global_grad": 0.001,
+   "abs_grad": 0.003,
+   "pos_grad": 0.001
+  },
+  "highest_useful_25": {
+   "unprotected": 0.0001,
+   "random": 0.0003,
+   "msb": 0.003,
+   "fkeras": 0.003,
+   "global_grad": 0.003,
+   "abs_grad": 0.01,
+   "pos_grad": 0.003
+  },
+  "drop_125_at": {
+   "0.001": {
+    "unprotected": 0.13756249999999998,
+    "msb": 0.030562499999999992,
+    "abs_grad": 0.01075000000000001,
+    "global_grad": 0.014937500000000013,
+    "pos_grad": 0.01137500000000001
+   },
+   "0.003": {
+    "unprotected": 0.414125,
+    "msb": 0.1404375,
+    "abs_grad": 0.025562500000000023,
+    "global_grad": 0.06043749999999999,
+    "pos_grad": 0.10656249999999999
+   },
+   "0.01": {
+    "unprotected": 0.6996875,
+    "msb": 0.44125,
+    "abs_grad": 0.10012499999999996,
+    "global_grad": 0.21281249999999996,
+    "pos_grad": 0.564375
+   }
+  }
+ },
+ "retrained_seed7104": {
+  "clean": 0.8632500000000001,
+  "replications": 8,
+  "useful_cells": 22,
+  "regret": {
+   "abs_grad": 0.0063750000000000195,
+   "global_grad": 0.058687500000000004,
+   "pos_grad": 0.4423750000000001,
+   "msb": 0.2992499999999999,
+   "fkeras": 0.1261875,
+   "jump": 0.5235000000000001,
+   "random": 0.6338124999999999
+  },
+  "breaks": [],
+  "wins_over": {
+   "global_grad": 4,
+   "pos_grad": 6,
+   "msb": 6,
+   "fkeras": 4,
+   "jump": 10,
+   "random": 10
+  },
+  "losses_to": {
+   "global_grad": 0,
+   "pos_grad": 1,
+   "msb": 0,
+   "fkeras": 0,
+   "jump": 0,
+   "random": 0
+  },
+  "best_ranking_counts": {
+   "global_grad": 4,
+   "pos_grad": 9,
+   "abs_grad": 7,
+   "random": 2
+  },
+  "rule_max_rep_upper": 0.013761145509406703,
+  "rule_cells_ok": 20,
+  "vs_best_other_max_rep_upper": 0.013761145509406703,
+  "vs_best_other_cells_ok": 20,
+  "highest_useful_125": {
+   "unprotected": 0.0003,
+   "random": 0.0003,
+   "msb": 0.001,
+   "fkeras": 0.001,
+   "global_grad": 0.001,
+   "abs_grad": 0.003,
+   "pos_grad": 0.001
+  },
+  "highest_useful_25": {
+   "unprotected": 0.0003,
+   "random": 0.0003,
+   "msb": 0.003,
+   "fkeras": 0.003,
+   "global_grad": 0.003,
+   "abs_grad": 0.01,
+   "pos_grad": 0.003
+  },
+  "drop_125_at": {
+   "0.001": {
+    "unprotected": 0.1620625,
+    "msb": 0.031500000000000014,
+    "abs_grad": 0.009750000000000009,
+    "global_grad": 0.016437500000000015,
+    "pos_grad": 0.005250000000000005
+   },
+   "0.003": {
+    "unprotected": 0.3761875,
+    "msb": 0.1285,
+    "abs_grad": 0.02175000000000002,
+    "global_grad": 0.0500625,
+    "pos_grad": 0.06568749999999998
+   },
+   "0.01": {
+    "unprotected": 0.7069375,
+    "msb": 0.3495625,
+    "abs_grad": 0.08749999999999997,
+    "global_grad": 0.18268749999999997,
+    "pos_grad": 0.558375
+   }
+  }
+ },
+ "retrained_seed7105": {
+  "clean": 0.867125,
+  "replications": 8,
+  "useful_cells": 21,
+  "regret": {
+   "abs_grad": 0.0034374999999999822,
+   "global_grad": 0.08487499999999992,
+   "pos_grad": 0.37343750000000003,
+   "msb": 0.37393750000000003,
+   "fkeras": 0.1448125,
+   "jump": 0.573125,
+   "random": 0.6961249999999999
+  },
+  "breaks": [],
+  "wins_over": {
+   "global_grad": 5,
+   "pos_grad": 5,
+   "msb": 10,
+   "fkeras": 5,
+   "jump": 10,
+   "random": 14
+  },
+  "losses_to": {
+   "global_grad": 0,
+   "pos_grad": 0,
+   "msb": 0,
+   "fkeras": 0,
+   "jump": 0,
+   "random": 0
+  },
+  "best_ranking_counts": {
+   "abs_grad": 12,
+   "pos_grad": 5,
+   "global_grad": 4
+  },
+  "rule_max_rep_upper": 0.009973975782141757,
+  "rule_cells_ok": 21,
+  "vs_best_other_max_rep_upper": 0.009671474230179455,
+  "vs_best_other_cells_ok": 21,
+  "highest_useful_125": {
+   "unprotected": 0.0003,
+   "random": 0.0003,
+   "msb": 0.0003,
+   "fkeras": 0.0003,
+   "global_grad": 0.001,
+   "abs_grad": 0.003,
+   "pos_grad": 0.001
+  },
+  "highest_useful_25": {
+   "unprotected": 0.0003,
+   "random": 0.0003,
+   "msb": 0.003,
+   "fkeras": 0.003,
+   "global_grad": 0.003,
+   "abs_grad": 0.01,
+   "pos_grad": 0.003
+  },
+  "drop_125_at": {
+   "0.001": {
+    "unprotected": 0.20049999999999998,
+    "msb": 0.051375000000000004,
+    "abs_grad": 0.007625000000000007,
+    "global_grad": 0.012312500000000011,
+    "pos_grad": 0.009312500000000008
+   },
+   "0.003": {
+    "unprotected": 0.377375,
+    "msb": 0.1194375,
+    "abs_grad": 0.026562500000000017,
+    "global_grad": 0.063875,
+    "pos_grad": 0.089
+   },
+   "0.01": {
+    "unprotected": 0.7361875,
+    "msb": 0.44381250000000005,
+    "abs_grad": 0.09281249999999998,
+    "global_grad": 0.25312499999999993,
+    "pos_grad": 0.48624999999999996
+   }
+  }
  }
 }

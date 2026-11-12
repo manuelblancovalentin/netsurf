@@ -198,7 +198,32 @@ prototype plus a backward pass; cost will be estimated from the pilot.
 Candidates (none may be "qPolarGrad"); descriptive term for the paper text: "mean-variance protection".
 See the conversation of 11 November 2026 for the shortlist.
 
-## 10. What would not be claimed
+## 10. Amendments
+
+**A1 (11 November 2026, 17:50 CST, before any Phase 0 computation).** Gate (ii) restricts the within-cell Spearman
+correlation to decision-useful cells with BER of at least 1e-3. Below that rate the seven masks differ by less than
+the field noise (all within about one accuracy point on every Run K checkpoint), so a rank correlation there
+measures noise and would make the gate depend on how many low-rate cells happen to be decision-useful. The measured
+accuracy loss in each cell is the mean over all replications and fields; the objective is evaluated per replication
+on that replication's calibration images and averaged over replications. P0b and P0c use 12.5% and 25% for the
+reversal test and all four budgets for the correlation. Gate (i) requires the predicted sign of (positive-gradient
+minus absolute-gradient accuracy) at the mean weights to match the measured sign in all four cells (two budgets x
+1e-3 and 1e-2). Predicted accuracies come from the differentiable companion at the mean weights and are compared
+as changes from the companion's own clean accuracy. P0d takes the larger of the two checkpoints' selected n; if the
+held-out reduction at n = 512 is not positive on a checkpoint, the report says the objective does not transfer to
+held-out images there, and n = 512 is used if Phase 2 is run at all. The researcher approved Phase 0 at 17:45 CST ("Yes, start
+Phase 0"); the name remains open and the code name is `mean_variance_mask`.
+
+**A2 (11 November 2026, about 18:25 CST, after the P0e Hutchinson output and before any P0a-P0d outcome was
+inspected).** The 64-probe Hutchinson estimate of P0e is dominated by off-diagonal noise (49.9% and 49.8% of the
+estimated diagonal entries are negative on the pinned and under-trained checkpoints; Spearman with the Fisher
+diagonal 0.018 and 0.016), so it cannot test the Fisher approximation. P0e is repeated with the exact diagonal
+`e_i^T H e_i` (one Hessian-vector product per weight) on 512 weights per checkpoint: 256 drawn uniformly and 256
+drawn uniformly from the top decile of the Fisher diagonal (seed 20261112), 64 calibration images of replication 1.
+Reported: Spearman correlation, share of negative entries, median ratio Hessian/Fisher. P0e remains reported, not
+a gate. The Hutchinson output is kept as recorded.
+
+## 11. What would not be claimed
 
 - Nothing about `legacy_qpolargrad`.
 - A positive ResNet-8 result says nothing about the transformers until Phase 3.

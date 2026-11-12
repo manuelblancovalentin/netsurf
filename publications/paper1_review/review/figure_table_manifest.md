@@ -18,7 +18,7 @@ Generator for Figures 2, 3, 4 and 7: `scripts/build_tecs_figures.py`; Figure 6: 
 | Table 2 | Models, eligible bits, expected faults, cohorts, clean quality | `data/model_table.csv`, `data/benchmark_inventory.json` |
 | Table 3 | Highest useful BER per ranking (main grid) | `data/tecs_audit/conditions_with_quality.csv` |
 | Table 4 | Largest regret and resolved win/loss versus absolute gradient (main grid) | `data/tecs_audit/summary.json` |
-| Table 5 | Repeated evaluations: pinned ResNet-8 (Run A, windows 1-9), pinned DS-CNN (Run A2), pruned 50%, pruned 70% and under-trained ResNet-8 (Run K): replications, clean accuracy, decision-useful cells, regrets, replication-level upper bounds, resolved contrasts, MSB-first and FKeras regrets, highest useful BER | `data/tecs_runA/summary.json`, `data/tecs_runA2/`, `data/tecs_runK/summary_vs_pinned.json`, `data/tecs_runK/<checkpoint>/` |
+| Table 5 | Repeated evaluations: pinned ResNet-8 (Run A, windows 1-9), pinned DS-CNN (Run A2), under-trained, five retrained copies (ranges), pruned 50% and pruned 70% ResNet-8 (Run K): replications, clean accuracy, decision-useful cells, regrets, replication-level upper bounds, resolved contrasts, MSB-first and FKeras regrets, highest useful BER | `data/tecs_runA/summary.json`, `data/tecs_runA2/`, `data/tecs_runK/summary_vs_pinned.json`, `data/tecs_runK/<checkpoint>/` |
 | Table 6 (App. A) | Executed artifacts | readiness manifest, `data/benchmark_inventory.json` |
 | Table 7 (App. D) | DistilBERT residual first-order effect per mask | `data/tecs_audit/distilbert_residual_drift.json` |
 | Table 8 (App. F) | Score-fidelity correlations with intervals | `data/empirical_validation.csv`, `data/toycar_auc_correlations.csv`, `data/fkeras_candidate_audit_v1.json` |

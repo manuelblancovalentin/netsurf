@@ -1,0 +1,113 @@
+{
+ "resnet8": {
+  "run_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runK-retrained-engine/workspace/runs/paper1_runK_resnet8_retrained_seed7104_v2/20261112T000232.395852Z-2e75ef3c",
+  "run_id": "20261112T000232.395852Z-2e75ef3c",
+  "source": {
+   "branch": "paper1-runK-retrained-engine",
+   "commit": "9b57733a435b51c2b43aa1ad7c9f3eea188e639a",
+   "dirty": false,
+   "source_fingerprint_sha256": "b4a6a8c3334471bc4dee033b28dcf2b29f560b09840dec28db796c97ccddeb48",
+   "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "scientific_payload_sha256": "36bb63d5cf8c640220289cd3be42b7386b2c5283a2e3badfcf0ded883ea97b0d",
+  "trials_sha256": "c11f3c555d1cf4620e8617a444795b3b95b1c8205afbcee24925beee4612850b",
+  "config_sha256": "d6a99c6d17a6e7073b8b6adf3312468983268df566698cb8781f99485765ec3f",
+  "checks": {
+   "matched_schedules": true,
+   "model_state_restored": true,
+   "partitions_disjoint": true,
+   "quantized_state_exact": true
+  },
+  "windows": {
+   "0": {
+    "evaluation": [
+     0,
+     999
+    ],
+    "calibration": [
+     0,
+     63
+    ]
+   },
+   "1": {
+    "evaluation": [
+     1000,
+     1999
+    ],
+    "calibration": [
+     1000,
+     1063
+    ]
+   },
+   "2": {
+    "evaluation": [
+     2000,
+     2999
+    ],
+    "calibration": [
+     2000,
+     2063
+    ]
+   },
+   "3": {
+    "evaluation": [
+     3000,
+     3999
+    ],
+    "calibration": [
+     3000,
+     3063
+    ]
+   },
+   "4": {
+    "evaluation": [
+     4000,
+     4999
+    ],
+    "calibration": [
+     4000,
+     4063
+    ]
+   },
+   "5": {
+    "evaluation": [
+     5000,
+     5999
+    ],
+    "calibration": [
+     5000,
+     5063
+    ]
+   },
+   "6": {
+    "evaluation": [
+     6000,
+     6999
+    ],
+    "calibration": [
+     6000,
+     6063
+    ]
+   },
+   "7": {
+    "evaluation": [
+     7000,
+     7999
+    ],
+    "calibration": [
+     7000,
+     7063
+    ]
+   }
+  },
+  "event_identity_violations": 0
+ },
+ "script_sha256": "65041af94baa684419319a794e2047e0702e9ca8644f60e591b7c5c12b452c01",
+ "outputs": {
+  "absgrad_contrasts.csv": "35e401f7bc1e36b845d848734218fa39d79522fd22e6a422bcb4ca52866adde8",
+  "fresh_cell_quality.csv": "9d023dcddcd8d3b0b2569bad32c2fe6ced58914afcdb4cc151d93b81bd64d240",
+  "replication0_cells.csv": "cb0f0f1458371678e1cc0d5681c96810d356f7744cf61f0ef769d4fd3d089e25",
+  "summary.json": "9b0e451322ce5cd22e394379d2914bfd2106f4179a229463ec0d437006e47d3a"
+ }
+}

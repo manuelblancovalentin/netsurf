@@ -24,7 +24,7 @@ Positive gradient & 10 / 30 & 30 / 30 & 10 / 30 & 3 / 3 & 10 / 30\\\bottomrule
 \Description{Highest useful bit-error probability for seven policies on five models at two budgets.}
 \end{table}
 
-Table~\ref{tab:useful} condenses the grid into the highest measured BER at which each ranking keeps the model useful. At 12.5\% protection the absolute-gradient mask extends the useful range over MSB-first by a factor of ten on ResNet-8 and three on DistilBERT, Pythia and Qwen, and over the unprotected model by three to thirty. The grid is spaced by half decades, so these factors are resolved only to that granularity, and they depend on the input window: on nine further ResNet-8 windows (Section~\ref{sec:default}) the factors over MSB-first and over no protection are three and ten, while the accuracy losses at $3\times10^{-3}$ (3.0, 16.1 and 44.5 points for absolute gradient, MSB-first and no protection) agree with those of the original window (5.0, 17.7 and 51.2). Of the 32 cells per model, 19 (ResNet-8), 22 (DS-CNN), 30 (DistilBERT), 17 (Pythia) and 21 (Qwen) are decision-useful, and in 11, 6, 14, 9 and 9 of them the unprotected model is not. ToyCar cannot inform the choice: once its autoencoder is heavily corrupted, file AUC reflects how the corrupted model orders files rather than preserved function, and its only decision-useful cells are the four at $p=10^{-5}$, where the unprotected model is itself useful (Appendix~\ref{app:evidence}).
+Table~\ref{tab:useful} condenses the grid into the highest measured BER at which each ranking keeps the model useful. At 12.5\% protection the absolute-gradient mask extends the useful range over MSB-first by a factor of ten on ResNet-8 and three on DistilBERT, Pythia and Qwen, and over the unprotected model by three to thirty. These factors are resolved only to the half-decade grid and depend on the input window: on nine further ResNet-8 windows (Section~\ref{sec:default}) they are three and ten, while the accuracy losses at $3\times10^{-3}$ for absolute gradient, MSB-first and no protection (3.0, 16.1 and 44.5 points) agree with the original window (5.0, 17.7 and 51.2). Of the 32 cells per model, 19 (ResNet-8), 22 (DS-CNN), 30 (DistilBERT), 17 (Pythia) and 21 (Qwen) are decision-useful, and in 11, 6, 14, 9 and 9 of them the unprotected model is not. ToyCar cannot inform the choice: once its autoencoder is heavily corrupted, file AUC reflects how the corrupted model orders files rather than preserved function, and its only decision-useful cells are the four at $p=10^{-5}$, where the unprotected model is itself useful (Appendix~\ref{app:evidence}).
 
 \subsection{A strong default, and how far it holds}\label{sec:default}
 Table~\ref{tab:regret} reports the largest regret of every ranking in the decision-useful cells of each model and its resolved wins and losses against the absolute-gradient mask; Figure~\ref{fig:map} shows the comparison over the complete grid.
@@ -55,27 +55,28 @@ Random & 43.5 & 15--0 & 36.1 & 10--0 & 38.5 & 19--0 & 4.66 & 17--0 & 13.5 & 19--
 On the three classifiers the absolute-gradient mask is a clear default. Its regret never exceeds 0.16 accuracy points in a decision-useful cell and no other ranking is resolved better in any such cell, while every other ranking is resolved worse in 2 to 19 cells and loses up to 12.7 points (MSB-first, ResNet-8) or 42.6 points (positive gradient, DistilBERT). Where another letter appears in an unhatched classifier cell of Fig.~\ref{fig:map}, the difference is below 0.2 points and not resolved. On the language models the default is close to the best but not always the best. On Pythia the global-gradient mask is resolved better in seven of 17 decision-useful cells, by at most 0.157 nats per token, and on Qwen the two are equivalent within 0.07. In both, the absolute-gradient mask stays within a third of the usefulness margin of the best ranking, with the tight and loose margins as well.
 
 \begin{table}[t]
-\caption{Repeated evaluations of the classifiers (Section~\ref{sec:repeated}). Each replication has its own calibration draw, masks, input window and fault fields. Regrets are the largest accuracy loss against the best of the seven rankings in a decision-useful cell. The upper bound is the 95\% limit of the absolute-gradient mask's accuracy regret against any other ranking, with the replication as the unit, maximized over cells. Resolved contrasts use pooled fields with Holm correction.}\label{tab:repeated}
-\centering\small
-\begin{tabular}{l r r r r r}\toprule
- & ResNet-8 & DS-CNN & Pruned 50\% & Pruned 70\% & Under-trained\\\midrule
-Replications (fields per BER) & 9 (36) & 11 (88) & 8 (16) & 8 (16) & 8 (16)\\
-Clean accuracy (\%) & 87.1 & 91.7 & 85.7 & 83.7 & 81.5\\
-Decision-useful cells & 20 & 22 & 20 & 18 & 25\\
-Absolute-gradient largest regret & 0.19 & 0.06 & 0.40 & 0.46 & 1.46\\
-Largest upper bound & 0.64 & 0.20 & 2.24 & 1.36 & 2.47\\
-Contrasts resolved for / against & 63 / 0 & 48 / 0 & 37 / 0 & 36 / 0 & 60 / 3\\
-Cells where a ranking is better by $\ge$1 point & 0 & 0 & 0 & 0 & 3\\
-MSB-first largest regret & 13.1 & 3.0 & 19.4 & 28.9 & 49.1\\
-FKeras largest regret & 13.1 & 1.8 & 19.4 & 8.8 & 24.9\\
-Highest useful BER at 12.5\% ($10^{-4}$), MSB-first / abs.\ grad. & 10 / 30 & 30 / 30 & 10 / 30 & 3 / 10 & 10 / 100\\\bottomrule
+\caption{Repeated evaluations of the classifiers (Section~\ref{sec:repeated}). Each replication has its own calibration draw, masks, input window and fault fields. Regrets are the largest accuracy loss, in points, against the best of the seven rankings in a decision-useful cell. The upper bound is the 95\% limit of the absolute-gradient mask's accuracy regret against any other ranking, with the replication as the unit, maximized over cells. Resolved contrasts use pooled fields with Holm correction. The retrained column gives the range over five copies of the reference recipe (resolved contrasts summed).}\label{tab:repeated}
+\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{l r r r r r r}\toprule
+ & \multicolumn{2}{c}{Pinned} & & Retrained & Pruned & Pruned \\
+ & ResNet-8 & DS-CNN & Under-trained & ($\times$5) & 50\% & 70\%\\\midrule
+Replications (fields per BER) & 9 (36) & 11 (88) & 8 (16) & 8 (16) each & 8 (16) & 8 (16)\\
+Clean accuracy (\%) & 87.1 & 91.7 & 81.5 & 86.3--87.3 & 85.7 & 83.7\\
+Decision-useful cells & 20 & 22 & 25 & 21--22 & 20 & 18\\
+Absolute-gradient largest regret & 0.19 & 0.06 & 1.46 & 0.29--0.64 & 0.40 & 0.46\\
+Largest upper bound & 0.64 & 0.20 & 2.47 & 1.00--1.93 & 2.24 & 1.36\\
+Contrasts resolved for / against & 63 / 0 & 48 / 0 & 60 / 3 & 238 / 1 & 37 / 0 & 36 / 0\\
+Cells where a ranking is better by $\ge$1 point & 0 & 0 & 3 & 0 & 0 & 0\\
+MSB-first largest regret & 13.1 & 3.0 & 49.1 & 29.4--37.4 & 19.4 & 28.9\\
+FKeras largest regret & 13.1 & 1.8 & 24.9 & 10.2--14.5 & 19.4 & 8.8\\
+Highest useful BER, 12.5\% ($10^{-4}$), MSB / abs. & 10 / 30 & 30 / 30 & 10 / 100 & 3--10 / 30 & 10 / 30 & 3 / 10\\\bottomrule
 \end{tabular}
-\Description{Regrets, bounds and resolved contrasts of repeated evaluations on ResNet-8, DS-CNN and three further ResNet-8 checkpoints.}
+\Description{Regrets, bounds and resolved contrasts of repeated evaluations on ResNet-8, DS-CNN, five retrained ResNet-8 copies and three further ResNet-8 checkpoints.}
 \end{table}
 
 These comparisons use one mask per ranking, one input window and one checkpoint per model. Table~\ref{tab:repeated} varies all three. On the pinned ResNet-8 and DS-CNN the default meets the rule fixed before the runs: with the replication as the unit, the upper bound on its regret against every other ranking stays below one point in every decision-useful cell (0.64 and 0.20 points), and no ranking is resolved better. On ResNet-8 at $p=3\times10^{-3}$ and 12.5\% its gain over MSB-first is 13.1 points (replication-level interval 9.4 to 16.8), against 12.7 in the main grid. On DS-CNN its margin over significance is modest: MSB-first and FKeras trail by at most 3.0 and 1.8 points. Appendix~\ref{app:repeated} shows the curves.
 
-On the pruned checkpoints the default also holds: no ranking is better by a point in any decision-useful cell and its largest regret is 0.40 and 0.46 points, although with eight replications the replication-level bounds reach 1.4 to 2.2 points. On the under-trained checkpoint it does not: in three cells another ranking is better by more than a point (Section~\ref{sec:reversals}). Significance-first protection falls further behind the more marginal the checkpoint. The largest regret of MSB-first grows from 13.1 points on the pinned checkpoint to 19.4, 28.9 and 49.1, and on the under-trained checkpoint the absolute-gradient mask tolerates ten times its BER at both 12.5\% and 25\% protection. These statements concern the seven measured rankings. They do not say that absolute gradient is optimal, and search-based or learned allocators were not measured.
+On five copies retrained from scratch with the reference recipe and on the pruned checkpoints the default also holds. No ranking is better by a point in any decision-useful cell; its largest regret is 0.29 to 0.64 points on the retrained copies and 0.40 and 0.46 on the pruned checkpoints; and one of 239 resolved contrasts on the retrained copies goes against it, by less than a point. With eight replications the replication-level bounds reach 1.0 to 2.2 points. On the under-trained checkpoint the default does not hold: in three cells another ranking is better by more than a point (Section~\ref{sec:reversals}). Significance-first protection, by contrast, is fragile across checkpoints of one architecture. The largest regret of MSB-first is 13.1 points on the pinned checkpoint but 29 to 37 on the retrained copies, 19 and 29 on the pruned checkpoints and 49 on the under-trained one. The pinned MLPerf checkpoint is therefore a favourable case for significance-first protection rather than a typical one. These statements concern the seven measured rankings only; they do not make absolute gradient optimal.
 
 \subsection{When the preferred ranking changes}\label{sec:reversals}
 The examples of Section~\ref{sec:allocation} show that the preferred ranking can depend on BER and budget. In the decision-useful region of our data this happens on the language models and on the under-trained ResNet-8. No pair of rankings shows resolved wins in both directions on the pinned or pruned ResNet-8, DS-CNN or ToyCar, and the single such pair on DistilBERT involves the random baseline.
