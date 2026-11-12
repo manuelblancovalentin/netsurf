@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Run R, Stage 1 (plan `RUN_R_RATE_AWARE_PLAN_2026-11-12.md`, Section 4): does the formula predict the switch?
 
-One job per (checkpoint, replication) of Run Q.  Masks `abs1024` and `pos1024` at the four budgets are read from the
-Run Q `masks.npz` and checked against the Run Q mask hashes.  Before any new evaluation the job replays one saved
+One job per (checkpoint, replication, field) (amendment R-A3).  Masks `abs1024` and `pos1024` at eight budgets are
+read from `paper1_runR_masks_v1` (rebuilt with Run Q's code, equal to Run Q's at the four old budgets) and checked
+against their recorded hashes.  Before any new evaluation the job replays one saved
 Run Q schedule with `abs1024` at 12.5% and must reproduce the saved accuracy exactly.  Then, for each of eight fields,
 one uniform number per stored kernel bit is drawn from `default_rng([20261115, ckpt, rep, field])` and a bit is
 proposed at rate p when its number is below p (fields nested across rates, shared by both masks and all budgets).
 
-  job --checkpoint C --rep R [--out DIR] [--rates ...] [--fields N]
+  job --checkpoint C --rep R --field F [--out DIR] [--rates ...]
 
-Output (write-once): <out>/<checkpoint>/rep<R>/{results.csv, fields.json, check.json, DONE}.
+Output (write-once): <out>/<checkpoint>/rep<R>/field<F>/{results.csv, field.json, check.json, DONE}.
 No asset lock is changed.  Interpreter: the TensorFlow 2.14.1 reference environment.
 """
 from __future__ import annotations
@@ -28,6 +29,13 @@ from runP_phase12 import Replayer, unpack
 from runQ_calibration import OUT as RUNQ
 from netsurf.mean_variance import mask_sha256
 
+MASKS = PAPER / "workspace/runs/paper1_runR_masks_v1"
+FRACTIONS = (0.01, 0.03125, 0.0625, 0.125, 0.1875, 0.25, 0.375, 0.5)
+
+
+def bkey(f):
+    return f"{f:.6f}"
+
 OUT = PAPER / "workspace/runs/paper1_runR_stage1_crossover_v1"
 RATES = (3e-4, 1e-3, 1.5e-3, 2e-3, 2.5e-3, 3e-3, 4e-3, 5e-3, 7e-3, 1e-2, 1.5e-2, 3e-2)
 FIELDS = 8
@@ -45,20 +53,22 @@ def flips_sha(fl):
     return hashlib.sha256(np.packbits(fl.reshape(-1), bitorder="little").tobytes()).hexdigest()
 
 
-def job(name, rep, threads, out_root, rates, fields):
+def job(name, rep, field_index, threads, out_root, rates):
     assert rep in reps_for(name), f"{name} rep{rep} is not in the Stage 1 cohort"
-    out = out_root / name / f"rep{rep}"
+    assert 0 <= field_index < FIELDS
+    out = out_root / name / f"rep{rep}" / f"field{field_index}"
     out.mkdir(parents=True, exist_ok=False)
     t0 = time.time()
     model = Model(name, threads)
-    packed = np.load(RUNQ / name / f"rep{rep}" / "masks.npz")
-    qhashes = json.loads((RUNQ / name / f"rep{rep}" / "masks.json").read_text())["hashes"]
+    packed = np.load(MASKS / name / f"rep{rep}" / "masks.npz")
+    info = json.loads((MASKS / name / f"rep{rep}" / "masks.json").read_text())["masks"]
+    budgets = [bkey(f) for f in FRACTIONS]
     masks = {}
     for a in ARMS:
-        for b in BUDGETS:
+        for b in budgets:
             mk = unpack(packed[f"{a}@{b}"], model.n)
-            if mask_sha256(mk) != qhashes[f"{a}@{b}"]:
-                raise SystemExit(f"mask {a}@{b} differs from Run Q")
+            if mask_sha256(mk) != info[f"{a}@{b}"]["sha256"] or info[f"{a}@{b}"].get("equals_run_q") is False:
+                raise SystemExit(f"mask {a}@{b} does not match its record")
             masks[(a, b)] = mk
     xe, ye, ie = model.images("evaluation", 1000, 1000 * rep)
     assert ie[0] == 1000 * rep and len(ie) == 1000
@@ -79,13 +89,13 @@ def job(name, rep, threads, out_root, rates, fields):
     clean_acc, clean_ce, _, _ = rp.evaluate(none, none, xe, ye)
     ck = NAMES.index(name)
     rows, field_log = [], []
-    for fi in range(fields):
+    for fi in (field_index,):
         u = np.random.default_rng([SEED, ck, rep, fi]).random((model.n, 8))
         log = dict(field=fi, seed=[SEED, ck, rep, fi], flips_sha256={})
         for p in rates:
             fl = u < p
             log["flips_sha256"][f"{p:g}"] = flips_sha(fl)
-            for b in BUDGETS:
+            for b in budgets:
                 for a in ARMS:
                     acc, ce, prop, app = rp.evaluate(fl, masks[(a, b)], xe, ye)
                     rows.append(dict(checkpoint=name, ckpt=ck, rep=rep, field=fi, ber=p, budget=float(b), arm=a,
@@ -94,7 +104,7 @@ def job(name, rep, threads, out_root, rates, fields):
         print(json.dumps(dict(job=f"{name}/rep{rep}", field_done=fi, seconds=round(time.time() - t0))), flush=True)
     with open(out / "results.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
-    (out / "fields.json").write_text(json.dumps(dict(fields=field_log, rates=list(rates), clean_accuracy=clean_acc,
+    (out / "field.json").write_text(json.dumps(dict(fields=field_log, rates=list(rates), clean_accuracy=clean_acc,
                                                      clean_cross_entropy=clean_ce), indent=0))
     (out / "DONE").write_text(json.dumps(dict(seconds=round(time.time() - t0), evaluations=len(rows),
                                               script_sha256=sha256_file(Path(__file__)),
@@ -108,14 +118,14 @@ def main():
     j = sub.add_parser("job")
     j.add_argument("--checkpoint", required=True, choices=NAMES)
     j.add_argument("--rep", type=int, required=True)
-    j.add_argument("--threads", type=int, default=2)
+    j.add_argument("--field", type=int, required=True)
+    j.add_argument("--threads", type=int, default=1)
     j.add_argument("--out", type=Path, default=OUT)
     j.add_argument("--rates", type=float, nargs="*", default=list(RATES))
-    j.add_argument("--fields", type=int, default=FIELDS)
     a = ap.parse_args()
-    if a.out == OUT and (tuple(a.rates) != RATES or a.fields != FIELDS):
-        raise SystemExit("the frozen output directory only takes the frozen rates and field count")
-    job(a.checkpoint, a.rep, a.threads, a.out, tuple(a.rates), a.fields)
+    if a.out == OUT and tuple(a.rates) != RATES:
+        raise SystemExit("the frozen output directory only takes the frozen rates")
+    job(a.checkpoint, a.rep, a.field, a.threads, a.out, tuple(a.rates))
 
 
 if __name__ == "__main__":
