@@ -494,3 +494,10 @@ Amendment R-A3 prerequisites are complete:
 - Predicted $p^*$ at 1% / 50%: pinned $4.9\times10^{-3}$ / $2.2\times10^{-2}$; under-trained $1.1\times10^{-2}$ / grid
   end; pruned 70% $3.7\times10^{-3}$ / $8.4\times10^{-3}$; pruned 50% $5.4\times10^{-3}$ / $1.9\times10^{-2}$; retrained
   seeds $1.6\times10^{-3}$ to $4.1\times10^{-3}$ / $1.8\times10^{-2}$ to $2.2\times10^{-2}$.
+
+## Amendment R-A4 (12 November 2026, before any Stage 1 or Stage 2 outcome, at the researcher's request)
+
+The annealing arm is removed from Stage 2. As specified, one temperature sets both the acceptance of a block and the
+sampling of single bits, and in Stage 0 the sampling became uniform (Stage 0 record, Section 3). Stage 2 keeps the
+analytic `rate_aware_mask` and the version with the MC correction; rule R2c applies to the MC correction only.
+A corrected annealing schedule, if wanted later, needs its own amendment. Nothing else changes.
