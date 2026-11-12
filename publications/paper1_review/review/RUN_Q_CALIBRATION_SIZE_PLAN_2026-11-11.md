@@ -100,3 +100,11 @@ None of these is claimed.
 - Launcher: `workspace/launch/orchestrate_runQ.sh`, tmux `runQ`.
 - Output: `workspace/runs/paper1_runQ_calibration_size_v1/`, write-once.
 - Registry entry: `20_runQ`.
+
+## 6. Launch record (11 November 2026, 22:42 CST, before any Run Q outcome)
+
+- Go-ahead from the researcher: "Yes, launch Run Q".
+- Launched in tmux `runQ` at runner commit c442d09; registered as `20_runQ`.
+- Analysis script `workflows/runQ_analyze.py`, commit feb8db1, written after launch and before any outcome. It
+  implements Section 3. It was dry-tested on the existing 64-image and Run P outcomes, with stand-in empty Run Q
+  files in a scratch directory.
