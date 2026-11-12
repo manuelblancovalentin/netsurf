@@ -27,4 +27,6 @@ for name in NAMES:
 EOF
 export PY LOGS
 xargs -P "$P" -L 1 sh -c 'id=$0; "$PY" "$@" > "$LOGS/$id.log" 2>&1 || echo "FAILED $id" >> "$LOGS/failed.txt"' < "$LOGS/jobs.txt"
-echo "all jobs ended: $(date)"; test ! -s "$LOGS/failed.txt" && echo "no failures" || cat "$LOGS/failed.txt"
+echo "all jobs ended: $(date)"
+if [ -s "$LOGS/failed.txt" ]; then cat "$LOGS/failed.txt"; exit 1; fi
+echo "no failures"
