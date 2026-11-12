@@ -59,6 +59,14 @@ CHECKPOINTS = {
     "pruned_s05": dict(file=RUNJ / "pruned_s0.5/trained_quant.tflite", bundle=RUNK / "paper1_runK_resnet8_pruned_s05_v2",
                        reps=range(0, 8), measured=MEASURED / "tecs_runK/pruned_s05/fresh_cell_quality.csv"),
 }
+RUND = PAPER / "workspace/runs/paper1_runD_resnet8_retrain_v1"
+for _seed in (7101, 7102, 7103, 7104, 7105):
+    CHECKPOINTS[f"retrained_seed{_seed}"] = dict(
+        file=RUND / f"seed_{_seed}/trained_quant.tflite", bundle=RUNK / f"paper1_runK_resnet8_retrained_seed{_seed}_v2",
+        reps=range(0, 8), measured=MEASURED / f"tecs_runK/retrained_seed{_seed}/fresh_cell_quality.csv")
+OUT_V2 = PAPER / "workspace/runs/paper1_runP_v2_gate"
+HELDOUT_OFFSET, HELDOUT_COUNT = 3000, 512        # training images 28000-28511 (plan v2, Section 2)
+GATE_BERS = (1e-3, 3e-3, 1e-2, 3e-2, 1e-1)
 RANKINGS = {"random": "random_global", "msb": "msb_global", "jump": "numerical_jump_global",
             "global_grad": "gradient_global", "abs_grad": "per_example_absolute_global",
             "pos_grad": "per_example_positive_global", "fkeras": "fkeras_paper"}
@@ -379,14 +387,51 @@ def stage_curv_exact(name: str, threads: int, per_group: int = 256) -> None:
     print(json.dumps(res), flush=True)
 
 
+def stage_heldout(name: str, threads: int) -> None:
+    """Plan v2, Section 3: objective of every saved mask on 512 held-out images."""
+    spec = CHECKPOINTS[name]
+    out = OUT_V2 / name
+    out.mkdir(parents=True, exist_ok=False)
+    model = Model(name, threads)
+    bundle = bundle_dir(spec["bundle"])
+    masks, _ = load_masks(model, bundle, spec["reps"])
+    xh, yh, ih = model.images("empirical_validation", HELDOUT_COUNT, HELDOUT_OFFSET)
+    assert ih[0] == 28000 and ih[-1] == 28511
+    Gh = model.per_example(xh, yh)
+    m2h = bit_second_moments(model.jumps, (Gh * Gh).mean(0))
+    model.set_displacement(np.zeros(model.n))
+    clean_h = model.loss_acc(xh, yh)[0]
+    rows = []
+    for rep in spec["reps"]:
+        t0 = time.time()
+        for r, key in RANKINGS.items():
+            for b in BUDGETS:
+                mk = masks[rep][f"{key}@{b}"]
+                for p in GATE_BERS:
+                    mu, _ = displacement_moments(model.jumps, mk, p)
+                    model.set_displacement(mu)
+                    loss_h = model.loss_acc(xh, yh)[0]
+                    rows.append(dict(checkpoint=name, replication=rep, ranking=r, budget=float(b), ber=p,
+                                     heldout_mean_term=loss_h - clean_h, heldout_variance_term=variance_term(m2h, mk, p),
+                                     mask_sha256=mask_sha256(mk)))
+        model.set_displacement(np.zeros(model.n))
+        print(json.dumps(dict(replication=rep, seconds=round(time.time() - t0))), flush=True)
+    with open(out / "heldout_objective.csv", "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
+    (out / "provenance.json").write_text(json.dumps(dict(
+        checkpoint=name, checkpoint_sha256=model.sha256, bundle=str(bundle), heldout_indices=[ih[0], ih[-1]],
+        script_sha256=sha256_file(Path(__file__)), module_sha256=sha256_file(ROOT / "netsurf/mean_variance.py"),
+        bers=GATE_BERS, budgets=BUDGETS), indent=1))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("stage", choices=["stats", "calib", "curv", "curv_exact"])
+    ap.add_argument("stage", choices=["stats", "calib", "curv", "curv_exact", "heldout"])
     ap.add_argument("--checkpoint", choices=sorted(CHECKPOINTS), required=True)
     ap.add_argument("--threads", type=int, default=4)
     a = ap.parse_args()
     {"stats": stage_stats, "calib": stage_calib, "curv": stage_curv,
-     "curv_exact": stage_curv_exact}[a.stage](a.checkpoint, a.threads)
+     "curv_exact": stage_curv_exact, "heldout": stage_heldout}[a.stage](a.checkpoint, a.threads)
 
 
 if __name__ == "__main__":
