@@ -26,6 +26,24 @@ Amendment R-A2 (12 November 2026, before any Run R outcome, at the researcher's 
   recomputes these counts under test; Stage 3a checks them by simulation.
 - No other design choice, number or rule changes.
 
+Amendment R-A3 (12 November 2026, before any Run R outcome, at the researcher's request; Stage 0 checks still
+running, no Stage 1 field drawn):
+- **Wider budget range in Stage 1.** Eight budgets: 1%, 3.125%, 6.25%, 12.5%, 18.75%, 25%, 37.5% and 50% of the
+  kernel bits. The predicted switch moves with the budget, so a wider range is a sharper test. If the new budgets
+  add nothing, later stages may return to the four of the paper.
+- **Masks.** `abs1024` and `pos1024` are rebuilt at all eight budgets from the same 1,024 calibration images with
+  Run Q's scoring code. At the four old budgets they must equal the Run Q masks bit for bit, or Stage 1 stops.
+  Budget sizes are the fraction times 618,880, rounded to the nearest integer (1%: 6,189 bits).
+- **Predictions for the new budgets** are computed with the same script and definition as the frozen ones
+  (`runPQ_crossover_theory.py`, held-out images 28000-28511, rates up to $3\times10^{-2}$) and frozen by file hash in
+  a dated note before any Stage 1 field is drawn. The four old budgets keep their frozen values.
+- **Predictions at a grid end.** If $p^*$ lies at the lowest or highest predicted rate ($10^{-4}$ or $3\times10^{-2}$)
+  for a checkpoint and budget, that pair enters R1a and R1b only and is left out of R1c.
+- **Parallel jobs.** Every stage is split into independent jobs run at the same time. Stage 1 runs one job per
+  checkpoint, replication and field (576 jobs), single-threaded, up to 76 at a time. Mask rebuilding and
+  predictions run one job per checkpoint and replication (72 jobs each).
+- Cost of Stage 1 updated in Section 4. Nothing else changes.
+
 ## 1. Why
 
 What exists, all exploratory and post hoc (`BER_AWARE_RULE_EXPLORATORY_2026-11-12.md`):
@@ -307,7 +325,8 @@ under ideal suppression.
 window of 1,000 test images (offset $1000 \times \mathrm{rep}$), as in Runs K, P and Q. These images were used
 before.
 
-**Masks.** `abs1024` and `pos1024` at 6.25%, 12.5%, 18.75% and 25%, read from the Run Q `masks.npz` files. Their
+**Masks.** (Amendment R-A3: eight budgets, rebuilt; see the top of this plan.) `abs1024` and `pos1024` at 6.25%,
+12.5%, 18.75% and 25%, read from the Run Q `masks.npz` files. Their
 hashes are in `publications/paper1_review/data/tecs_runQ/mask_stability.json` (sha256 `e2acaf29…`). No mask is built.
 
 **Fault regime.** Exact INT8 stored-bit XOR faults on kernels, independent with probability $p$, ideal suppression.
@@ -366,11 +385,11 @@ pruned ones.
 
 | Item | Value |
 |---|---|
-| Evaluations | $72 \times 12 \times 8 \times 4 \times 2 = 55{,}296$ (jobs, rates, fields, budgets, masks), plus 72 engine checks |
-| Time per evaluation | about 4 s (Run Q) |
-| Parallelism | 26 jobs, 2 TensorFlow threads each (52 of 80 cores) |
-| Wall time | about 3 hours |
-| Memory | about 1.5 GB per job |
+| Evaluations | $72 \times 12 \times 8 \times 8 \times 2 = 110{,}592$ (replications, rates, fields, budgets, masks), plus one engine check per job (amendment R-A3; was 55,296 with four budgets) |
+| Time per evaluation | about 6.2 s (Stage 0 timing smoke; the plan first said about 4 s) |
+| Parallelism | 576 jobs (checkpoint, replication, field), single-threaded, up to 76 at a time |
+| Wall time | about 2.5 to 3 hours |
+| Memory | about 1.4 GB per job, about 110 GB at 76 jobs (430 GB available) |
 | Storage | under 300 MB in `workspace/runs/paper1_runR_stage1_crossover_v1/`, write-once |
 | Interpreter | `/projects/kona-assets/manuelbv/.venv-mlperf/bin/python` (TensorFlow 2.14.1 reference kernels) |
 
