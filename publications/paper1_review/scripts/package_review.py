@@ -130,7 +130,7 @@ def validate():
         "figures/tecs_protection_vs_unprotected_125.pdf",
         "review/RUN_A_B_FROZEN_PLANS_2026-11-11.md", "review/RUN_A_B_RESULTS_2026-11-11.md",
         "data/tecs_runA/summary.json", "data/tecs_runA/absgrad_contrasts.csv", "data/tecs_runA/within_tier_contrasts.csv",
-        "data/tecs_runA/fresh_cell_quality.csv", "data/tecs_runB/summary.json", "data/tecs_runB/cap_statistics.csv", "data/tecs_runL2/analysis.json", "figures/tecs_correction_mechanisms.pdf", "data/tecs_runN/analysis.json",
+        "data/tecs_runA/fresh_cell_quality.csv", "data/tecs_runB/summary.json", "data/tecs_runB/cap_statistics.csv", "data/tecs_runL2/analysis.json", "figures/tecs_correction_mechanisms.pdf", "data/tecs_runN/analysis.json", "figures/tecs_checkpoint_fragility.pdf",
     ]
     for name in required:
         assert (ROOT / name).is_file(), name

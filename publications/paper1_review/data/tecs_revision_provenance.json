@@ -389,8 +389,10 @@
  ],
  "experiments_executed": 15,
  "figures": {
-  "tecs_confirmation_runA.pdf": "f1125a8214093b4d7a4999de5ead6a54464efdf1fa6bef758cdc9c0ccd68a3eb",
-  "tecs_confirmation_runA.png": "0c7fa3a7b99ccfe264c8e948c4e358fbe92d0b0e4e91f02381f5935a7d16b63c",
+  "tecs_checkpoint_fragility.pdf": "f933cc28588f6bc09f7bbdd61c6c1972d7d9ab8263c6083f01fd5607badd0811",
+  "tecs_checkpoint_fragility.png": "085e4d19d16901563adfd4934bef5cb4de79cc2463a33698ce7c28cafacbce84",
+  "tecs_confirmation_runA.pdf": "6fc4815b684b51a1a4af4645c33d29bc5066729d98ee18ded2fa82f35dab43a6",
+  "tecs_confirmation_runA.png": "5292c8cdc7c5e8f96a187ba4441dd9906e21832ffbf57ba527a131964f13ee13",
   "tecs_correction_mechanisms.pdf": "43ca7592803a2aad48d5b9efa9adaad6ac50ab2ab88012132b8b2a1be5c74a57",
   "tecs_correction_mechanisms.png": "ec570213b8ac454c429269d94d993f836f9e29af70e4b3afe8b375b2bb9cd75e",
   "tecs_fkeras_partial_tiers.pdf": "dfd082353fd10b8bd06882898b2c716fa72bc47b2c5b3e079e8a4b81194915f7",
@@ -458,8 +460,9 @@
  "scripts": {
   "build_tecs_correction_figure.py": "d5ff602c3cdb5d84bce2bb6708d949a018154e697a06ec8b4efe6f7dc8421574",
   "build_tecs_figures.py": "e5c266032a81e4e42b1fb1323e2c1be62d5ba0b4aca008353e984901e3b9ee13",
+  "build_tecs_fragility_figure.py": "3968f0fdef5d0f69620a559ec3f282ffc9ab71a1149d02afa00f5ffb95db9f20",
   "build_tecs_provenance.py": "68dc007e220b63f397c96845aea0a101f1edf8a5b3e978eee4d599a546a1dc80",
-  "build_tecs_runA_figure.py": "afd219927392113ba5d12b6647b077e6238726747f99d12dab185f1a53a78833",
+  "build_tecs_runA_figure.py": "1f55e057e96893f20c3f1e29eaee91cae81f065a0ec6e6644bf838c9036daa95",
   "tecs_grid_audit.py": "02c17570e082337e02c81a7e21c09a39e6dc461bd1797aebd900bfb62e849a03",
   "tecs_kws_conditional_audit.py": "3fe379c3dcac7e65bb438e79fcff3fa16bcaff49e38560a31c0ae852b7150e9f",
   "tecs_residual_drift_check.py": "8cad48f293e0db085066276ca44b601e5873f3217078e042153080994e933c3f",

@@ -106,6 +106,12 @@ Conditional selection takes the mask with the lowest mean $J_G$; isolated select
 The held-out means are $-0.00268$ nats per clip for conditional against original (interval $-0.00478$ to $-0.00058$), $-0.00248$ for isolated against original ($-0.00459$ to $-0.00036$) and $-0.00008$ for conditional against isolated ($-0.00169$ to $0.00153$; Fig.~\ref{fig:decisions}). The three do not add up exactly because each contrast is estimated along its own swap path with its own analytically integrated coordinates; the estimands are transitive, the finite estimates are not, and 15 of the 32 pools are exactly transitive. On the selection tables, the range of risk over the 15 masks has a median of 0.013 and a maximum of 0.086 nats per clip, and the selected mask leads its runner-up by a median of 0.0009. The in-sample advantage of the conditional mask over the isolated one is 0.0053, against 0.00008 held out. Candidate bits are spread over all positions, with 46 sign bits and 17 least-significant bits among the 192. Earlier counts of how often an additive prediction misorders masks on the selection tables are not reported, because the conditioned predictor and its target share the same sampled fields.
 
 \section{Supplementary Measurements}\label{app:evidence}
+\begin{figure}[h]
+\centering\includegraphics[width=\linewidth]{tecs_grid_regret_map}
+\caption{The complete grid. Colour: regret of the absolute-gradient mask divided by the usefulness margin (0.05 accuracy or AUC, 0.5 nats/token). Letter: best measured ranking in the cell (A absolute, G global, P positive gradient, M MSB-first, F FKeras, J numerical jump, R random); bold when it is not absolute gradient. Hatched cells are not decision-useful.}\label{fig:map}
+\Description{Six heat maps over bit-error probability and budget showing absolute-gradient regret and the best ranking per cell.}
+\end{figure}
+
 \begin{table}[h]
 \caption{Spearman correlation with positive isolated damage on 320 stratified candidate bits per model, with 95\% within-stratum bootstrap intervals. These are sample-design statistics, not whole-network correlations. ToyCar AUC values are descriptive. FKeras entries for DS-CNN and ToyCar were not computed because the calibration inputs of the saved candidate audit and of the Hessian scores could not be matched.}\label{tab:isolated}
 \centering\small
