@@ -1,0 +1,58 @@
+\section{Experimental Methodology}\label{sec:experiments}
+\subsection{Static rankings}\label{sec:susceptibility}\label{sec:estimators}
+Each static ranking orders the eligible bits, and protecting the first $B$ gives an exact-budget mask (Table~\ref{tab:methods}). With $e_{x,b}=g_{x,w(b)}\Delta_b$, the three gradient rankings aggregate the same per-example effects differently; Section~\ref{sec:theory} relates each to a piece of the expected loss. For FKeras~\cite{weng2024fkeras} we use the published projection $H'=\sum_{k=1}^{r}\lambda_k(v_k^\top\theta)v_k$ with $r=2$ signed largest-magnitude eigenpairs of a continuous loss Hessian, and order bits by significance tier and then by $|H'_i|$. The gradient companions use straight-through requantization and the Hessian companion omits activation rounding; neither differentiates the integer program (Appendix~\ref{app:implementation}). At 12.5\% and 25\% coverage MSB-first and FKeras protect the same complete tiers and are counted as one decision (Appendix~\ref{app:repeated}).
+
+\begin{table}[t]
+\caption{Static rankings. Larger scores rank first; $\E_x$ averages calibration inputs and $j$ is the bit position. Remaining ties follow the stored tensor, word and bit order.}\label{tab:methods}
+\centering\small
+\begin{tabularx}{\linewidth}{l l X}\toprule
+Ranking & Score or ordering & Needs\\\midrule
+Random & Seeded permutation & Nothing\\
+MSB-first & Descending $j$ & Bit positions\\
+Numerical jump & $|\Delta_b|$ & Stored codes and scales\\
+Global gradient & $|\E_x e_b(x)|$ & Labelled calibration set, one mean gradient\\
+Absolute gradient & $\E_x|e_b(x)|$ & Labelled calibration set, per-example gradients\\
+Positive gradient & $\E_x\max(0,e_b(x))$ & Same as absolute gradient\\
+FKeras & Descending $j$, then $|H'_i|$ & Calibration set, two Hessian eigenpairs\\\bottomrule
+\end{tabularx}
+\Description{Seven ranking methods differ in their scores, aggregation and required information.}
+\end{table}
+
+\subsection{Models and operating grid}
+Table~\ref{tab:models} lists the six frozen studies. The three MLPerf Tiny models are the reference INT8 TFLite files with their reference preprocessing~\cite{banbury2021mlperf,mlcommons2026tiny}: ResNet-8 on CIFAR-10, DS-CNN on Speech Commands~\cite{warden2018speechcommands}, and the ToyCar autoencoder on ToyADMOS~\cite{koizumi2019toyadmos}, run on the TensorFlow Lite 2.14.1 reference kernels. DistilBERT on SST-2~\cite{sanh2019distilbert,socher2013sentiment}, Pythia-160M~\cite{biderman2023pythia} and Qwen3-0.6B~\cite{yang2025qwen3} are W8A8 executables derived from the public checkpoints, with per-channel symmetric INT8 weight codes, per-token activation quantization and exact INT32 accumulation; the language models are scored on WikiText-2~\cite{merity2017pointer}. Appendix~\ref{app:implementation} gives checkpoint identities and quantization rules.
+
+\begin{table}[t]
+\caption{Frozen models, eligible populations and evaluation cohorts. $Np$ is the expected number of proposed faults per field at the lowest BER. Clean quality is measured on the listed cohort.}\label{tab:models}
+\centering\small
+\begin{tabular}{l r r l r l}\toprule
+Model & Eligible bits $N$ & $Np$ at $10^{-5}$ & Cohort & Fields/BER & Clean quality\\\midrule
+ResNet-8 & 618,880 & 6.2 & 1,000 images & 32 & 88.0\% accuracy\\
+DS-CNN & 176,128 & 1.8 & 1,000 clips & 32 & 90.1\% accuracy\\
+ToyCar & 2,113,536 & 21 & 64 files & 32 & 0.869 file AUC\\
+DistilBERT & 344,469,504 & 3,445 & 512 sentences & 24 & 91.4\% accuracy\\
+Pythia-160M & 988,545,024 & 9,885 & 4,096 tokens & 24 & 3.530 nats/token\\
+Qwen3-0.6B & 4,767,875,072 & 47,679 & 4,096 tokens & 24 & 2.829 nats/token\\\bottomrule
+\end{tabular}
+\Description{Six models with eligible bit counts, expected fault counts, cohorts, fields per BER and clean task quality.}
+\end{table}
+
+Every study evaluates 6.25\%, 12.5\%, 18.75\% and 25\% protection, with unprotected and fully protected controls, at BERs of $10^{-5}$, $10^{-4}$, $3\!\times\!10^{-4}$, $10^{-3}$, $3\!\times\!10^{-3}$, $10^{-2}$, $3\!\times\!10^{-2}$ and $10^{-1}$; ToyCar omits $3\!\times\!10^{-4}$, $3\!\times\!10^{-2}$ and $10^{-1}$. A (BER, budget) pair is a \emph{cell}. All six non-Hessian rankings are measured in every cell, FKeras on the three TFLite models only, for 1,254 method-cell conditions and 35,136 saved policy-field outcomes. Rankings use 64 calibration inputs for ResNet-8, DS-CNN and DistilBERT, 16 normal training files for ToyCar, and 8,184 validation targets for each language model. Evaluation inputs are disjoint from calibration inputs, but several cohorts were used in earlier exploratory runs.
+
+\paragraph{Task metrics.} Classifiers are judged by accuracy. TFLite cross-entropy, computed from the 8-bit softmax output, is dominated by zero-probability outputs and is not used for conclusions. ToyCar is judged by ROC-AUC over 64 files, with one fault state per file. Language models are judged by mean token negative log-likelihood (NLL), capped at 30 nats per token, which is also the penalty for a nonfinite output; none occurred. Appendix~\ref{app:implementation} gives the exact definitions.
+
+\subsection{Usefulness criterion}
+Comparisons between masks only matter where at least one of them leaves a usable model. We therefore fixed the following criterion before computing any regret, although after the fault data had been collected and two slices of the grid had been plotted. A method is \emph{useful} in a cell if its mean accuracy or file AUC is within 0.05 of the clean value, or, for a language model, if its mean NLL is within 0.5 nats per token of clean (a perplexity ratio of at most 1.65). A cell is \emph{decision-useful} if at least one measured ranking is useful there. Margins of 0.01/0.1 and 0.10/1.0 are used as sensitivity checks.
+
+\subsection{Statistics}
+In the main grid the independent unit is the fault field. All contrasts between masks are paired on the field, intervals are two-sided 95\% Student-$t$ intervals on the paired differences, and tests are paired sign-flip tests with 20,000 random sign assignments. Holm correction is applied within each model over all contrasts between the absolute-gradient mask and every other mask on the whole grid (120 to 192 contrasts); statements about other pairs use the family of all pairwise contrasts. A difference is \emph{resolved} when its Holm-adjusted $p$ is below 0.05, and identical masks are counted once. The \emph{regret} of a ranking in a cell is its paired mean risk minus that of the best measured ranking in the same cell; because the best ranking is chosen on the same fields, regrets are biased slightly upward. These intervals describe fault randomness only and condition on one checkpoint, one cohort and one mask per deterministic ranking and budget.
+
+\subsection{Repeated evaluations of the static rankings}\label{sec:repeated}\label{sec:confirm}
+The two TFLite classifiers were evaluated again in replications that each draw their own 64 calibration inputs, rebuild every mask, evaluate their own input window and propose new fault fields: nine ResNet-8 and eleven DS-CNN replications, with an analysis plan and decision rule fixed before the runs. Eight further ResNet-8 checkpoints were trained with the reference recipe: two pruned copies (50\% and 70\% of each layer's kernel weights), one trained for 100 instead of 500 epochs, and five retrained from scratch with different seeds (86.6\% to 87.2\% INT8 test accuracy). The gradient masks of all nine checkpoints were also rebuilt from 128 to 1,024 calibration inputs and replayed on the saved fault fields. Appendices~\ref{app:repeated}, \ref{app:calibration} and~\ref{app:static} give the designs and results.
+
+\subsection{Confirmatory tests of the theory and the method}\label{sec:runr}
+Every prediction and decision rule below was fixed in a written plan before the fault fields were drawn (Appendix~\ref{app:runr}). The tests use the nine ResNet-8 checkpoints, the replications and input windows of the repeated evaluations, and fresh fault fields whose random numbers are nested across rates and shared by every mask.
+\begin{itemize}
+\item \textbf{Stage 1, the switch.} Positive- and absolute-gradient masks from 1,024 calibration inputs at eight budgets from 1\% to 50\%, at twelve rates from $3\times10^{-4}$ to $3\times10^{-2}$, eight fields per replication. The predicted switch $p^*$ of every checkpoint and budget was computed from held-out training images and frozen by file hash. Rules: no resolved usable cell outside a factor 1.25 of $p^*$ has the wrong sign (R1a); at least 80\% of all such cells have the right sign (R1b); the measured switch is within a factor 1.5 of $p^*$, with a 95\% interval over the nine checkpoints (R1c).
+\item \textbf{Stage 2, the rate-aware assignment.} The six static rankings and three versions of the assignment (analytic, with Monte Carlo correction, with annealing), each built for the rate at which it is tested, at eight rates from $10^{-4}$ to $3\times10^{-2}$. On two checkpoints every built-for rate is also tested at every rate. Rule R2a: no other mask is ahead of the analytic assignment by half a point or more in a usable cell after Holm correction; R2b: the absolute and the positive gradient each fail the same test on at least seven of nine checkpoints.
+\item \textbf{Stage 3, mechanisms.} Each residual curve of Table~\ref{tab:mechanisms} against a bit-level simulation of its mechanism (R3a), and accuracy at equal extra storage of ranked triplication, rate-aware triplication, a rate-aware choice between three and five copies, SEC-DED codes and ABFT (R3b).
+\end{itemize}

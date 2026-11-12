@@ -1,0 +1,194 @@
+\section{Execution, Identity and Surrogate Details}\label{app:implementation}
+\subsection{Models, backends and eligible tensors}
+Table~\ref{tab:identity} identifies the executed artifacts. The MLPerf Tiny models are the reference INT8 TFLite flatbuffers, executed with TensorFlow Lite 2.14.1 reference kernels; faults are XOR mutations of the INT8 kernel buffers in a private copy of the flatbuffer. The transformers are W8A8 executables derived from the public checkpoints. Every linear-layer weight matrix is stored as INT8 codes with one float32 scale per output channel, $s_i=\max_j|w_{ij}|/127$, rounding half to even, and codes in $[-127,127]$; the code $-128$ can arise only through a fault. Activations are quantized per token at run time, products accumulate exactly in INT32, and all other operations are float32. These are not integer-only networks. Every trial restores the clean state.
+
+\begin{table}[h]
+\caption{Executed artifacts. Hashes are SHA-256 prefixes of the model file or snapshot. ``Full-set'' is clean quality of the INT8 executable and its floating-point source on the complete evaluation split, which is larger than the cohort used under faults.}\label{tab:identity}
+\centering\small
+\begin{tabularx}{\linewidth}{l l X X}\toprule
+Model & Source artifact & Eligible INT8 tensors & Full-set reference\\\midrule
+ResNet-8 & MLPerf Tiny IC, \code{3c002613} & 10 kernels & cohort only\\
+DS-CNN & MLPerf Tiny KWS, \code{aeea4368} & 10 kernels & cohort only\\
+ToyCar & MLPerf Tiny AD, \code{87cf2419} & 10 kernels & cohort only\\
+DistilBERT & SST-2 fine-tuned, rev. \code{714eb0fa}; \code{1f07e001} & 38 linear weights & 90.8\% vs 91.1\% (872 sentences)\\
+Pythia-160M & rev. \code{b56d9bee}; \code{1264fe12} & 49 linear weights incl. output embedding & PPL 26.3 vs 25.4 (288,729 tokens)\\
+Qwen3-0.6B & Base, rev. \code{da87bfb6}; \code{ea3fe5f6} & 197 linear weights incl. output head & PPL 12.5 vs 12.1 (299,077 tokens)\\\bottomrule
+\end{tabularx}
+\Description{Source artifacts, eligible tensors and full-set clean references for six models.}
+\end{table}
+
+Not faulted in any model: biases (INT32 in TFLite), quantization scales and zero points, and activations. Additionally not faulted in the transformers: input embedding tables, normalization parameters and the 42,242 to 496,000 per-channel scales. In the Qwen source model the output head is tied to the input embedding; the executable stores a separate quantized copy of the head, so a fault in the head does not alter the input embedding. The language-model cohorts are 4,096 scored tokens with clean perplexity 34.1 (Pythia) and 16.9 (Qwen), higher than the full-set values above.
+
+\subsection{Exact jump and losses}
+For affine decoding $w=s(q-z)$ and current stored bit value $a_j$, the exact INT8 jump is
+\begin{equation}\label{eq:xor-delta}
+\Delta w_j=\begin{cases}s(1-2a_j)2^j,&j<7,\\-s(1-2a_7)2^7,&j=7.\end{cases}
+\end{equation}
+The zero point cancels and each word keeps its own scale. TFLite cross-entropy is the mean of $-\ln\max\{(o+128)/256,10^{-12}\}$ over the cohort, with $o$ the INT8 output code of the true class, without renormalization; a per-example loss is therefore at most 5.5 nats or exactly 27.6 nats, and the mean is dominated by the count of zero-probability outputs, which is why classifier conclusions use accuracy. For ToyCar every window is evaluated under the same fault state, one score is formed per complete file, and ROC-AUC is computed over the 64 files with half credit for ties; reconstruction error is only the surrogate used for gradients. Transformer NLL is $\min\{\max(0,\mathrm{NLL}),30\}$ per sentence or token, with 30 assigned to nonfinite outputs; no nonfinite output occurred in any of the 9,984 saved language-model outcomes. The fraction of token losses that reach the cap was not recorded in the main grids and was obtained afterwards by replaying every saved fault field (Appendix~\ref{app:evidence}).
+
+\subsection{Gradient and Hessian companions}
+Gradient scores use a differentiable companion with straight-through requantization (TFLite) or the decoded weights with fixed float32 scales (transformers). The positive-part score is computed exactly from two saved moments, $\E_x\max(0,g)=\tfrac12(\E_x|g|+\E_x g)$ and $\E_x\max(0,-g)=\tfrac12(\E_x|g|-\E_x g)$, applied according to the sign of $\Delta_b$. The FKeras Hessian is that of a continuous float64 companion without activation rounding, using cross-entropy or ToyCar window MSE, two signed largest-magnitude eigenpairs, a Lanczos tolerance of $10^{-5}$ and 25 Hessian-vector products; normalized residuals are below $6.1\times10^{-16}$. These numbers certify the truncated continuous calculation, not a Hessian of the integer program. On 64 ResNet-8 inputs the continuous companion and the integer model agree on 61 predicted classes, with cross-entropy 0.626 against 0.918 nats.
+
+\subsection{Tests in the source studies}
+The finalized studies saved their own paired contrasts using sign-flip tests with $10^4$ random assignments and Holm families of 112 contrasts (TFLite, per BER and metric) and 160 contrasts (transformers, per model). Their smallest attainable adjusted $p$-values are therefore 0.0112 and 0.016. The analysis in this paper recomputes all contrasts from the saved field outcomes as described in Section~\ref{sec:experiments}.
+
+\section{Fault-Model Motivation}\label{app:faultmotivation}
+Only stored weights are faulted. Two published results motivate that choice and the range of $p$; neither calibrates it.
+
+The first concerns exposure. In the architectural-vulnerability view, the error rate of a bit is its raw upset rate multiplied by the fraction of time during which it holds data that the computation still needs~\cite{mukherjee2003avf}; the same decomposition has been extended to delay faults caused by marginal defects~\cite{deutsch2024delayavf}. A stored weight is needed for the whole deployment, and an activation only until it is consumed. Li et al.\ quantified the consequence for the Eyeriss accelerator with one raw rate for all storage~\cite{li2017understanding}. The projected failure rate of the filter memory is 3.0 FIT for AlexNet and 3.9 FIT for NiN. The global buffer, which holds the feature maps passed between layers, contributes 0.20 and 0.04 FIT, the image and partial-sum registers at most 0.006 FIT, and the whole datapath of NiN 0.004 FIT. The authors give two reasons: buffers are larger than the datapath, and a stored fault is read many times. Tyagi et al.\ make the same point for vulnerability estimation, arguing that the weights and activations of an accelerator should not be assumed to have equal fault probability~\cite{tyagi2023thales}. The same study marks the limit of the argument. For its smallest network the global buffer (87.5 FIT) exceeds the filter memory (62.7 FIT). Which storage dominates is therefore a property of the architecture and of how long values are held. We study stored weights because they are the persistent state of an accelerator, and we do not claim that weight faults are always the more important ones.
+
+The second concerns magnitude. Proton-beam tests of ECON-D, a radiation-hard front-end ASIC of the CMS high-granularity calorimeter, report an upset cross section of a few $10^{-14}$\,cm$^2$ per flip-flop before voting, and the chips were tested to a fluence of $5\times10^{13}$ protons per cm$^2$~\cite{cummings2023econd}. As an illustration only: if a hadron fluence of order $10^{13}$--$10^{14}$\,cm$^{-2}$ accumulates over the roughly $6\times10^{7}$\,s of beam that 3000\,fb$^{-1}$ at $5\times10^{34}$\,cm$^{-2}$\,s$^{-1}$ require~\cite{hllhc2017tdr}, a register bit with that cross section that is neither protected nor rewritten accumulates an upset probability of order $10^{-5}$ to $10^{-4}$ per hour of beam; it reaches $10^{-3}$ within hours to days and $10^{-2}$ within days to weeks, which spans the band in which the masks of this study differ. A value held for one 25\,ns bunch crossing sees about $10^{-11}$ of the hourly figure. These chips triplicate their registers for this reason, and the neural-network encoder of the same detector keeps its weights in triplicated, self-correcting registers~\cite{diguglielmo2021reconfigurable}. The question studied here is what is lost when less than everything is protected. The numbers come from one technology and one environment, and the cross section is read from a published plot; $p$ remains a model parameter.
+
+\section{Repeated Evaluations: Curves and Partial Tiers}\label{app:repeated}
+Figure~\ref{fig:confirm} shows the repeated evaluation of the two pinned classifiers. A first DS-CNN run with three replications agreed in its estimates (largest regret 0.13 points, no resolved loss), but its replication-level bounds, with a Student-$t$ quantile of 4.3, exceeded one point in eight cells; the second run with eleven replications meets the rule. The DS-CNN windows had also been used by earlier six-bit conditional-selection studies, though not for whole-mask comparisons, and we did not audit whether a 200-image subset used in early ResNet-8 engineering runs overlaps the new ResNet-8 windows.
+
+\begin{figure}[tbp]
+\centering\includegraphics[width=\linewidth]{tecs_confirmation_runA}
+\caption{Repeated evaluation of the pinned checkpoints on other input windows. Accuracy lost against each replication's clean accuracy; bands are 95\% intervals over replications (nine for ResNet-8, three for DS-CNN in this run) and the shaded region is the usefulness margin. The vertical axis is linear up to five points and logarithmic above. Top: the seven rankings at 12.5\% protection, where FKeras selects the same mask as MSB-first. Middle and bottom: the two partial-tier budgets, where the half-protected tier is filled by tensor storage order, by the FKeras Hessian order, or uniformly at random (mean of four fills).}\label{fig:confirm}
+\Description{Six panels of accuracy lost against bit-error probability for ResNet-8 and DS-CNN on new evaluation windows.}
+\end{figure}
+
+\begin{figure}[tbp]
+\centering\includegraphics[width=\linewidth]{tecs_fkeras_partial_tiers}
+\caption{FKeras at the two partial-tier budgets, where its mask differs from MSB-first, on the three models for which it was measured. Bands are 95\% intervals of the field mean; the shaded region is the usefulness margin. MSB-first here resolves the half-protected tier by tensor storage order.}\label{fig:fkeras}
+\Description{Six panels comparing FKeras with MSB-first, global gradient and absolute gradient at 6.25 and 18.75 percent protection.}
+\end{figure}
+
+Contrasts between FKeras and MSB-first at the partial tiers (Fig.~\ref{fig:fkeras}) need a reference, because the MSB-first mask there is determined by tensor storage order (Section~\ref{sec:susceptibility}), so the repeated evaluations included four masks that fill the partial tier uniformly at random (Fig.~\ref{fig:confirm}, middle and bottom). Both structured fills are better than the random one. On ResNet-8 the random fill has a resolved higher error rate than FKeras in 9 of the 16 partial-tier cells and than the storage-order mask in 12, by up to 16.0 and 18.4 points at $p=10^{-2}$ and 18.75\%, and by 4.9 and 5.4 points at $p=10^{-3}$ and 6.25\%, inside the useful region. On DS-CNN the counts are 4 and 5 cells. FKeras is nevertheless not better than plain storage order. No difference between the two is resolved in a decision-useful cell of either model, where they differ by at most 0.6 points, and on ResNet-8 at $p=10^{-2}$ the storage-order mask is better by 4.0 points at 6.25\% (replication-level interval 2.2 to 5.8) and by 2.5 points at 18.75\%. Storage order protects complete tensors, beginning with the first layers; we did not test whether that explains its advantage over a uniform fill.
+
+\section{Calibration Size of the Gradient Rankings}\label{app:calibration}
+Every other comparison builds its masks from 64 calibration inputs. For each replication of the nine ResNet-8 checkpoints of Table~\ref{tab:repeated} we rebuilt the absolute-, positive- and global-gradient masks from the first 128, 256, 512 and 1,024 training images of the block that begins with the replication's own 64, at the bit counts of the saved masks, and replayed them on the replication's saved fault fields and input window at $p=10^{-3}$, $3\times10^{-3}$, $10^{-2}$ and $3\times10^{-2}$ (28,512 new evaluations; the 1,024-input set overlaps the next replication's first 24 inputs). Before any evaluation each rebuilt 64-input mask had to agree with the saved one in at least 99.9\% of its bits, and every saved fault field had to reproduce the saved outcome of one saved mask exactly; all 648 did. One replication of the retrained copy R2 failed the first check (99.66\% to 99.92\%: its saved masks came from gradients about 1\% different from those recomputed now) and was excluded before any outcome. Two rules were fixed before the runs, each tested with pooled-field sign-flip tests and Holm correction over its 328 contrasts. The default holds if neither the positive nor the global gradient, built from 512 or 1,024 inputs, is resolved ahead of the absolute gradient built from the same inputs by half a point or more in a decision-useful cell where it was not already resolved ahead with 64. Calibration size matters for the default if its 512- or 1,024-input mask is resolved ahead of its 64-input mask by half a point on at least three checkpoints.
+
+\begin{table}[tbp]
+\caption{Positive- minus absolute-gradient mask, both built from the same number of calibration inputs, in the decision-useful cells of the nine ResNet-8 checkpoints (accuracy points). Ahead: cells where the positive-gradient mask has the higher mean accuracy. Resolved: Holm-corrected sign-flip tests; the 64-input row uses the masks of Table~\ref{tab:repeated}.}\label{tab:calibration}
+\centering\footnotesize
+\begin{tabular}{l r r r r c c}\toprule
+BER & Inputs & Cells & Ahead & Median & Range & Resolved ahead / behind\\\midrule
+$10^{-3}$ & 64 & 36 & 17 & $-0.01$ & $-0.81$ to $+1.30$ & 4 / 1\\
+ & 512 & 36 & 36 & $+0.65$ & $+0.23$ to $+1.32$ & 8 / 0\\
+ & 1,024 & 36 & 36 & $+0.65$ & $+0.24$ to $+1.55$ & 9 / 0\\\midrule
+$3\times10^{-3}$ & 64 & 29 & 3 & $-4.29$ & $-8.10$ to $+1.46$ & 0 / 22\\
+ & 512 & 29 & 15 & $+0.17$ & $-1.28$ to $+2.41$ & 4 / 0\\
+ & 1,024 & 29 & 20 & $+0.42$ & $-0.91$ to $+2.46$ & 5 / 0\\\midrule
+$10^{-2}$ & 64 & 15 & 0 & $-36.9$ & $-46.4$ to $-12.3$ & 0 / 15\\
+ & 512 & 15 & 0 & $-10.2$ & $-22.6$ to $-0.5$ & 0 / 13\\
+ & 1,024 & 15 & 0 & $-8.1$ & $-17.8$ to $-0.6$ & 0 / 12\\\midrule
+$3\times10^{-2}$ & 1,024 & 2 & 0 & $-54.6$ & $-58.3$ to $-50.8$ & 0 / 2\\\bottomrule
+\end{tabular}
+\Description{Counts, medians and ranges of the accuracy difference between positive- and absolute-gradient masks at three calibration sizes and four bit-error probabilities.}
+\end{table}
+
+The first rule fails (Table~\ref{tab:calibration}). The positive-gradient mask is resolved ahead by 0.5 to 2.5 points in ten cells on five checkpoints: five cells of the under-trained checkpoint at $10^{-3}$ and $3\times10^{-3}$ and one or two cells at those rates on the 50\%-pruned checkpoint and on R1, R3 and R4. With 1,024 inputs, resolved wins in both directions appear on the pinned checkpoint (three ahead at $10^{-3}$, one behind at $10^{-2}$), the under-trained one (8 and 3), the 50\%-pruned one (1 and 1), R1 and R4 (1 and 2 each). The global gradient is never ahead. Its mask keeps changing with more inputs (the 512-input mask shares 80\% to 87\% of its bits with the 1,024-input mask at 12.5\%, against 94\% to 96\% for the positive and 96\% to 97\% for the absolute gradient), but its accuracy does not improve: averaging signed effects over more inputs converges to a mean gradient that is small for a trained model. The second rule is not met. In the 82 decision-useful cells the absolute-gradient mask gains a median 0.09, 0.15, 0.20 and 0.23 points from 128, 256, 512 and 1,024 inputs, at most 1.5, with a single resolved gain of 0.44 points; going from 512 to 1,024 inputs changes it by a median 0.06. Pooled over the five retrained copies, however, its 1,024-input mask gains 0.95 and 0.55 points at $p=10^{-2}$ and 18.75\% and 25\% protection (95\% intervals over copies 0.74 to 1.16 and 0.19 to 0.90), so at the densest useful rates a larger calibration set is worth about half a point to a point. At $p=10^{-3}$ and 25\%, the 512-input positive-gradient mask leaves seven of the eight well-trained checkpoints at or above their clean accuracy, by up to 0.64 points, and the under-trained one 1.0 point above, whereas the 1,024-input absolute-gradient mask leaves six of the nine slightly below. This is the low-rate side of the mechanism of Section~\ref{sec:harm}; it was not tested, and 0.1 point is one image of the 1,000-image window. Rates below $10^{-3}$, other models and FKeras were not measured at larger calibration sizes.
+
+\section{Protection Worse Than None: Checks and Mechanism}\label{app:harm}
+Before treating the harm of Section~\ref{sec:harm} as an effect we checked it as a possible defect. The ranking code computes $\E_x\max(0,e_b(x))$ exactly from the saved mean and mean-absolute gradients and from the exact XOR jump of each stored code. Fields are paired by hash; in every saved outcome the proposed count equals applied plus suppressed, and no protected run applies more faults than its unprotected partner. No nonfinite output occurred, so the failure penalty plays no role. The low-BER behaviour is also what a correct sign predicts: where faults are sparse, the positive-gradient mask is the best ranking on the two language models and within 0.2 accuracy points of the best on DistilBERT. On Pythia, in the four cells at $p=3\times10^{-3}$ where the positive-gradient mask has a higher loss than no protection, at most 6\% of token losses are capped and the uncapped difference is 1.1 to 5.5 nats per token.
+
+\begin{table}[t]
+\caption{DistilBERT, 12.5\% protection. First-order effect of the faults left unprotected, split into loss-increasing and loss-decreasing parts and summed over bits (the predicted mean loss change is $p$ times the net value). Jump energy is $\sum\Delta_b^2$ over unprotected bits relative to no protection. Accuracy is measured at $p=10^{-2}$.}\label{tab:drift}
+\centering\small
+\begin{tabular}{l r r r r r}\toprule
+Mask & Increasing & Decreasing & Net & Jump energy & Accuracy (\%)\\\midrule
+Unprotected & $+32.94$ & $-32.86$ & $+0.08$ & 1.00 & 60.3\\
+Random & $+28.82$ & $-28.75$ & $+0.07$ & 0.87 & 62.3\\
+MSB-first & $+16.35$ & $-16.42$ & $-0.07$ & 0.25 & 87.6\\
+Numerical jump & $+16.52$ & $-16.48$ & $+0.04$ & 0.16 & 89.5\\
+Global gradient & $+8.55$ & $-8.54$ & $0.00$ & 0.39 & 90.0\\
+Absolute gradient & $+10.41$ & $-10.41$ & $0.00$ & 0.33 & 90.7\\
+Positive gradient & $+6.67$ & $-20.62$ & $-13.95$ & 0.37 & 58.5\\\bottomrule
+\end{tabular}
+\Description{Residual first-order effect, jump energy and measured accuracy for seven DistilBERT masks.}
+\end{table}
+
+Table~\ref{tab:drift} gives the mechanism, obtained offline from the saved gradients, masks and stored codes of DistilBERT. For every other mask the loss-increasing and loss-decreasing first-order effects of the unprotected bits cancel to within 0.5\%. The positive-gradient mask protects mainly flips predicted to increase the loss (72\% of its protected bits, against 50\% for the others) and so leaves a one-sided remainder: $+6.7$ against $-20.6$. A first-order model would then predict that faults reduce the loss by $0.14$ nats at $p=10^{-2}$, which is impossible for a model whose loss is already near its minimum on the calibration set. The many remaining faults push the weights coherently in one direction, far beyond the range in which a gradient describes the loss, and the measured loss rises instead. The amount of perturbation left is not the explanation: the positive-gradient mask leaves about the same jump energy as the absolute- and global-gradient masks (0.37 against 0.33 and 0.39).
+
+The stored codes of the under-trained ResNet-8 are distributed like those of the pinned model and of the five retrained copies: mean magnitude 31.9 code units against 31.4 and 31.3 to 31.9, and 15.6\% of codes below 8 in magnitude against 15.9\% and 15.5\% to 16.1\%.
+
+Two weaker cases should not be confused with this one. MSB-first has a higher loss than the unprotected DistilBERT model in four cells at $p\ge3\times10^{-2}$ but never a lower accuracy: the model becomes more confidently wrong, not more often wrong. And at $p=10^{-1}$ several ResNet-8 masks have a higher cross-entropy than no protection although their accuracy is above, or within 0.2 points of, the unprotected model's 10\%. That ordering is produced by the loss floor, not by the task.
+
+\section{Conditional Evaluation}\label{app:proofs}
+Exact local re-selection does not help measurably in the one setting we could test. On DS-CNN at $p=5\times10^{-2}$, in 32 randomly drawn pools of six bits, two protected and four unprotected under the 12.5\% absolute-gradient mask, we re-chose which two bits of each pool to protect, using isolated or background-conditioned measured damage. The two selectors differ on held-out fields by $-8\times10^{-5}$ nats per clip (interval $-0.0017$ to $0.0015$), and each improves on the original mask by about $0.003$ nats per clip. At that BER the model is not useful (background loss 7.1 nats per clip), the whole range of risk across the 15 possible masks of a pool has a median of 0.013 nats per clip, and the selected mask beats its runner-up by less than two paired standard errors in all 32 pools. The study shows that re-selecting two of six random bits cannot matter much; it does not show whether conditional information helps a selector with a useful search space.
+
+\subsection{Protection benefit and paired swaps}
+Conditioning on whether unprotected bit $b$ flips gives $J_p(\protset)=(1-p)\E\risk(G)+p\E\risk(G\cup\{b\})$. Protecting it leaves $\E\risk(G)$, which proves Eq.~\eqref{eq:protection-benefit}. Under additive risk the best exact-budget mask protects the bits with the largest isolated effects; nonadditive risk need not preserve that order. For a swap that exposes protected bit $a$ and protects unprotected bit $b$, giving mask $\protset'$, a common background $G$ that excludes both bits and all protected coordinates gives
+\begin{equation}\label{eq:swap}
+J_p(\protset')-J_p(\protset)=p\,\E_G[\risk(G\cup\{a\})-\risk(G\cup\{b\})].
+\end{equation}
+Both identities hold for any scalar risk, including complete-cohort AUC, under independent faults; they do not hold for correlated or fixed-count fault laws.
+
+\subsection{The 32-pool DS-CNN study}
+Each pool $C$ contains six bits, two protected and four unprotected in the 12.5\% absolute-gradient mask, drawn uniformly within those two strata. All other protected bits stay fixed. For each of eight selection fields on the bits outside the pool, the model is evaluated in all $2^6$ fault states of the pool, giving the exact conditional risk of each of the 15 two-bit masks $Q$,
+\begin{equation}\label{eq:response-table}
+J_G(Q)=\sum_{A\subseteq C\setminus Q}p^{|A|}(1-p)^{|C\setminus Q|-|A|}\,\risk(G\cup A).
+\end{equation}
+Conditional selection takes the mask with the lowest mean $J_G$; isolated selection protects the two bits with the largest clean isolated damage. The three masks (original, isolated, conditional) are then compared on 32 new fields and 384 clips using Eq.~\eqref{eq:swap}. The pool is the unit of inference.
+
+\begin{figure}[h]
+\centering\includegraphics[width=.85\linewidth]{compact_kws_pools}
+\caption{Held-out conditional-minus-isolated loss in the 32 DS-CNN pools at $p=5\times10^{-2}$, with the mean and its 95\% pool-level interval. Negative favours conditional selection. The background loss is about 7 nats per clip.}\label{fig:decisions}
+\Description{Thirty-two pool effects scattered around zero with an unresolved mean.}
+\end{figure}
+
+The held-out means are $-0.00268$ nats per clip for conditional against original (interval $-0.00478$ to $-0.00058$), $-0.00248$ for isolated against original ($-0.00459$ to $-0.00036$) and $-0.00008$ for conditional against isolated ($-0.00169$ to $0.00153$; Fig.~\ref{fig:decisions}). The three do not add up exactly because each contrast is estimated along its own swap path with its own analytically integrated coordinates; the estimands are transitive, the finite estimates are not, and 15 of the 32 pools are exactly transitive. On the selection tables, the range of risk over the 15 masks has a median of 0.013 and a maximum of 0.086 nats per clip, and the selected mask leads its runner-up by a median of 0.0009. The in-sample advantage of the conditional mask over the isolated one is 0.0053, against 0.00008 held out. Candidate bits are spread over all positions, with 46 sign bits and 17 least-significant bits among the 192. Earlier counts of how often an additive prediction misorders masks on the selection tables are not reported, because the conditioned predictor and its target share the same sampled fields.
+
+\section{Supplementary Measurements}\label{app:evidence}
+\begin{figure}[h]
+\centering\includegraphics[width=\linewidth]{tecs_grid_regret_map}
+\caption{The complete grid. Colour: regret of the absolute-gradient mask divided by the usefulness margin (0.05 accuracy or AUC, 0.5 nats/token). Letter: best measured ranking in the cell (A absolute, G global, P positive gradient, M MSB-first, F FKeras, J numerical jump, R random); bold when it is not absolute gradient. Hatched cells are not decision-useful.}\label{fig:map}
+\Description{Six heat maps over bit-error probability and budget showing absolute-gradient regret and the best ranking per cell.}
+\end{figure}
+
+Of the 32 cells per model, 19 (ResNet-8), 22 (DS-CNN), 30 (DistilBERT), 17 (Pythia) and 21 (Qwen) are decision-useful, and in 11, 6, 14, 9 and 9 of them the unprotected model is not. Once the ToyCar autoencoder is heavily corrupted, file AUC reflects how the corrupted model orders files rather than preserved function, so its AUC at high BER is not interpreted.
+
+\begin{table}[h]
+\caption{Spearman correlation with positive isolated damage on 320 stratified candidate bits per model, with 95\% within-stratum bootstrap intervals. These are sample-design statistics, not whole-network correlations. ToyCar AUC values are descriptive. FKeras entries for DS-CNN and ToyCar were not computed because the calibration inputs of the saved candidate audit and of the Hessian scores could not be matched.}\label{tab:isolated}
+\centering\small
+\begin{tabular}{l l l l r}\toprule
+Ranking & ResNet-8 & DS-CNN & ToyCar (MSE) & ToyCar (AUC)\\\midrule
+Random & $-0.05$ [$-0.15$, 0.04] & 0.01 [$-0.08$, 0.10] & 0.06 [$-0.04$, 0.15] & 0.03\\
+MSB-first & 0.26 [0.17, 0.34] & 0.20 [0.11, 0.28] & 0.50 [0.43, 0.57] & 0.32\\
+Numerical jump & 0.07 [$-0.02$, 0.16] & 0.17 [0.08, 0.26] & 0.44 [0.36, 0.51] & 0.23\\
+Global gradient & 0.36 [0.29, 0.45] & 0.26 [0.16, 0.35] & 0.50 [0.41, 0.58] & 0.49\\
+Absolute gradient & 0.38 [0.29, 0.46] & 0.29 [0.20, 0.38] & 0.55 [0.46, 0.63] & 0.50\\
+Positive gradient & 0.36 [0.28, 0.45] & 0.25 [0.16, 0.33] & 0.64 [0.56, 0.71] & 0.50\\
+FKeras & 0.29 [0.21, 0.37] & --- & --- & ---\\\bottomrule
+\end{tabular}
+\Description{Rank correlations of seven scores with measured isolated damage on three models.}
+\end{table}
+
+\paragraph{Single-fault fidelity and cost.} Single-fault fidelity does not predict protection quality. On 320 stratified candidate bits per TFLite model, Spearman correlations between each score and the measured positive isolated damage are low to moderate (Table~\ref{tab:isolated}): 0.07 (numerical jump) to 0.38 (absolute gradient) on ResNet-8 and 0.17 to 0.29 on DS-CNN, with bootstrap intervals of about $\pm0.09$ that overlap among the three gradient scores. Global, absolute and positive gradient have nearly equal correlations on ResNet-8 (0.36, 0.38, 0.36), yet their worst accuracy regrets differ (2.1, 0.06 and 3.2 points). Score construction is cheap for the small models. Mean times on ResNet-8, DS-CNN and ToyCar are 1.2, 0.4 and 3.8 seconds for the global gradient, 17, 7.5 and 208 seconds for the shared per-example gradients behind the absolute and positive scores, and 5.6, 1.4 and 11.4 seconds for the rank-two Hessian projection. MSB-first needs no data. Score-construction times for the transformers were not recorded; one evaluation of a faulted transformer took a median of 12 to 33 seconds.
+
+\paragraph{ToyCar.} ToyCar behaves differently and cannot inform the choice of ranking. Its unprotected mean AUC falls from 0.83 at $p=10^{-5}$ (about 21 faults) to 0.50 at $10^{-3}$ and then rises again to 0.74 at $10^{-2}$; a single field at $10^{-5}$ gives 0.34. Once the autoencoder is heavily corrupted, file AUC reflects how the corrupted model happens to order files, not preserved function. Only the four cells at $p=10^{-5}$ are decision-useful, the unprotected model is useful in all of them, and no contrast between rankings is resolved there.
+
+\paragraph{Loss cap.} A replay of every saved language-model fault field, reproduced bit for bit, shows where the cap matters. No token is capped in the useful conditions of Qwen and one in those of Pythia, and removing the cap changes neither the best ranking nor the absolute-gradient regret in any decision-useful cell. Outside the useful region the cap dominates on Pythia, where 18\% of the unprotected model's token losses are capped at $p=10^{-2}$ and 83\% at $3\times10^{-2}$, against 1\% and 9\% on Qwen. Without the cap the best ranking would change in two Pythia cells, both at $p\ge3\times10^{-2}$; capped losses there are lower bounds on the damage.
+
+\paragraph{Comparisons outside the useful region.} For completeness we record two comparisons that the previous version of this work emphasized and that lie where no ranking keeps the model useful. On Pythia at $p=10^{-2}$, global gradient minus MSB-first is $-4.82$ nats per token at 12.5\% protection and $+0.77$ at 25\%. In a separate exploratory run on Qwen with 24 new fields per BER, absolute gradient minus MSB-first at 12.5\% is $-9.30$ nats per token at $p=5\times10^{-2}$ (interval $-10.02$ to $-8.57$) and $+1.64$ at $7.5\times10^{-2}$ ($0.61$ to $2.66$); at the latter BER 10.5\% and 7.1\% of finite token losses reach the cap for the two masks and the mean losses exceed 21 nats per token. Two focused runs with more fields give, on ResNet-8 at $p=10^{-2}$ and 6.25\%, FKeras minus MSB-first cross-entropy of $+2.24$ nats per image (320 fields, interval $1.89$ to $2.59$), and on ToyCar at $p=10^{-2}$ and 18.75\%, FKeras minus absolute-gradient risk of $+0.111$ (384 fields, $0.092$ to $0.129$). None of these bears on the conclusions of the paper.
+
+\section{Search-Based, Relaxed and Literature-Derived Masks}\label{app:search}
+To test whether optimizing the mask beats a fixed ranking, we built five further kinds of mask for the pinned ResNet-8 at 12.5\% and 25\% protection, from the 64 calibration images of one repeated-evaluation replication (training images 2000--2063), and evaluated them with the TFLite executable on test images 2000--2999 under 16 common fault fields per rate. Search objectives used 256 further training images (27000--27255).
+\begin{itemize}
+\item \emph{MC-guided swap search.} Starting from the absolute-gradient mask, each of eight rounds samples fault fields under the current mask, re-scores bits by the mean per-example absolute gradient of the faulted models, proposes three swap sets towards the re-scored top bits, and keeps a proposal only if it lowers the validation loss on twelve common fault fields. One mask per rate.
+\item \emph{Relaxed per-bit optimization.} A protection probability per bit is optimized with Adam: each step samples a fault field, scales every sampled fault by one minus its bit's protection probability in the differentiable companion, and restores the budget; the final mask protects the top bits. This is a pathwise-gradient relative of policy-gradient reinforcement learning. One mask per rate, and one with the rate drawn log-uniformly from $[3\times10^{-3},3\times10^{-2}]$ at every step.
+\item \emph{Group CEM.} The cross-entropy method over 80 groups (10 kernel tensors $\times$ 8 bit positions); whole groups are filled in sampled order and the last group in absolute-gradient order, so the mask is regular by construction.
+\item \emph{Thales.} Bits ranked by their single-flip accuracy loss on the calibration images, ties broken by cross-entropy increase, from an exhaustive table of all 618,880 single flips; our adaptation of the Thales vulnerability factor with a uniform fault probability~\cite{tyagi2023thales}.
+\item \emph{HarDNN.} Output filters ranked by the mean absolute loss change of their bits, or by their mean per-example absolute gradient (HarDNN's best cheap heuristic), and protected whole~\cite{mahmoud2020hardnn}.
+\end{itemize}
+\begin{table}[h]
+\caption{Pinned ResNet-8, test images 2000--2999 (clean accuracy 85.6\%), 16 common fault fields per rate. First row: accuracy of the absolute-gradient mask; other rows: paired difference from it, in points; bold when the 95\% field-level interval excludes zero (no multiplicity correction). Masks built for one rate are evaluated at that rate. The first three cells are usable (within five points of clean).}\label{tab:search}
+\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{l r r r r r r}\toprule
+BER & $3\!\times\!10^{-3}$ & $3\!\times\!10^{-3}$ & $10^{-2}$ & $10^{-2}$ & $3\!\times\!10^{-2}$ & $3\!\times\!10^{-2}$\\
+Protection & 12.5\% & 25\% & 25\% & 12.5\% & 12.5\% & 25\%\\\midrule
+Absolute gradient (accuracy, \%) & 83.0 & 85.0 & 83.7 & 76.8 & 54.1 & 79.7\\
+MC-guided swap search & +0.1 & $-$0.1 & +0.3 & +0.7 & \textbf{+4.0} & +0.5\\
+Group CEM (layer $\times$ bit position) & \textbf{$-$0.7} & $-$0.4 & \textbf{$-$1.0} & $-$1.3 & $-$3.0 & \textbf{$-$1.9}\\
+Relaxed per-bit optimization & \textbf{$-$5.8} & \textbf{$-$4.6} & \textbf{$-$8.2} & \textbf{$-$12.7} & \textbf{$-$12.4} & \textbf{$-$7.3}\\
+Relaxed, rate range [$3\!\times\!10^{-3}$, $3\!\times\!10^{-2}$] & \textbf{$-$5.2} & \textbf{$-$3.7} & \textbf{$-$12.3} & \textbf{$-$22.6} & \textbf{$-$33.2} & \textbf{$-$35.2}\\
+Thales single-flip ranking & \textbf{$-$21.7} & \textbf{$-$24.0} & \textbf{$-$66.4} & \textbf{$-$58.4} & \textbf{$-$43.5} & \textbf{$-$68.8}\\
+HarDNN, loss change (whole filters) & \textbf{$-$5.3} & \textbf{$-$3.8} & \textbf{$-$15.1} & \textbf{$-$18.3} & \textbf{$-$29.8} & \textbf{$-$41.0}\\
+HarDNN, gradient (whole filters) & \textbf{$-$14.8} & \textbf{$-$11.8} & \textbf{$-$41.0} & \textbf{$-$47.9} & \textbf{$-$41.2} & \textbf{$-$64.2}\\
+MSB-first & \textbf{$-$12.9} & \textbf{$-$2.5} & \textbf{$-$12.7} & \textbf{$-$38.6} & \textbf{$-$37.8} & \textbf{$-$33.0}\\\bottomrule
+\end{tabular}
+\Description{Accuracy differences between five search-based or literature-derived masks and the absolute-gradient mask on ResNet-8.}
+\end{table}
+
+No mask is better than the absolute-gradient mask by a point in a usable cell (Table~\ref{tab:search}). The only gain above a point, 4.0 points for the swap search, is at $p=3\times10^{-2}$ and 12.5\%, where every mask has already failed. The relaxed optimizers are 4 to 12 points worse in the usable cells and up to 35 points worse elsewhere; the version optimized over a range of rates is worst at the high rates it was built for. Thales and HarDNN, designed for transient faults in flip-flops and in computation, lose 4 to 66 points at the stored-bit level: 74\% of single flips, and 52\% of sign-bit flips, leave the accuracy on the 64 calibration images unchanged, so most of the Thales ranking is decided by its tie-break, and whole-filter protection spends the budget on low-order bits. The group-structured mask loses at most one point in the usable cells. The study is exploratory: one checkpoint and window, one implementation of each method with search budgets fixed in advance (eight swap rounds, up to 4,000 optimizer steps, eight CEM iterations), and field-level intervals without multiplicity correction.

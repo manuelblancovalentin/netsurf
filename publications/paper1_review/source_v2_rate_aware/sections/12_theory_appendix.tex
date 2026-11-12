@@ -1,0 +1,18 @@
+\appendix
+\section{Derivations}\label{app:theory}
+\paragraph{Exact moments.} In two's complement the change of a word caused by any set of flipped bits is the sum of the single-bit jumps, so $X_w=\sum_{b:\,w(b)=w}\xi_b\Delta_b$ holds exactly. With independent $\xi_b\sim\mathrm{Bernoulli}(r_b)$, $\E X_w=\sum r_b\Delta_b$ and $\mathrm{Var}X_w=\sum r_b(1-r_b)\Delta_b^2$, and displacements of different weights are independent.
+
+\paragraph{Second order around the average weights.} Write $X=\mu+\varepsilon$ with $\E\varepsilon=0$. Then $L(\theta+X)=L(\theta+\mu)+\nabla L(\theta+\mu)^\top\varepsilon+\tfrac12\varepsilon^\top H(\theta+\mu)\varepsilon+O(\|\varepsilon\|^3)$, and taking expectations removes the linear term, leaving $\E L(\theta+X)\approx L(\theta+\mu)+\tfrac12\sum_w H_{ww}(\theta+\mu)\,V_w$, because $\varepsilon$ has a diagonal covariance. We use the Fisher diagonal at $\theta$, $F_w=\E_x g_{x,w}^2$, for $H_{ww}$.
+
+\paragraph{Expansion in $p$.} For ideal suppression, $\mu=p\,v$ with $v=\sum_{b\in U}\Delta_b$ (as a vector over weights). Expanding the first term, $L(\theta+\mu)-L(\theta)=p\,g^\top v+\tfrac12p^2v^\top Hv+O(p^3)$, and with the Fisher approximation $H\approx\E_x g_xg_x^\top$, $v^\top Hv=\sum_{b,b'\in U}\E_x e_{x,b}e_{x,b'}$. The second term is $\tfrac12p(1-p)\sum_{b\in U}\E_xe_{x,b}^2$. Adding the two, the $p^2$ diagonal terms cancel, which gives Eq.~\eqref{eq:p-expansion}: a per-bit term in $p$ and a sum over distinct pairs in $p^2$.
+
+\paragraph{Grouped failures.} For a SEC-DED word that leaves double errors as they are, two data bits of the word are both wrong after decoding exactly when both flipped, so $\mathrm{Cov}(\xi_b,\xi_{b'})=p^2-r_br_{b'}$ for $b\ne b'$ in the word. For one-weight checksum repair, two bits in different weights of a channel are both wrong when both flipped, $p^2$, and two bits of the same weight when both flipped and another weight of the channel is faulty. The extra spread is $\tfrac12\sum_{b\ne b'}\mathrm{Cov}(\xi_b,\xi_{b'})\E_x[e_{x,b}e_{x,b'}]$ over pairs in the same group, computed from per-input gradients summed per group.
+
+\paragraph{Wrong repairs.} With integer errors $\delta_i$ in a channel and errors $\epsilon_1,\epsilon_2$ in the two checksum words, the decoder sees $\sigma_1=\sum_i\delta_i-\epsilon_1$ and $\sigma_2=\sum_ii\,\delta_i-\epsilon_2$. It does nothing if $\sigma_1=0$, subtracts $\sigma_1$ from weight $\ell=\sigma_2/\sigma_1$ if $\ell$ is an integer in $1,\dots,G$, and otherwise leaves the channel. One faulty weight is repaired exactly and one faulty checksum word alone changes nothing. For two faults, the outcome is fixed by the stored codes and the positions of the two flips, so all pairs can be enumerated once per channel; a wrong repair adds $-\sigma_1$ to weight $\ell$, which enters $\mu$ and $V$ with weight $p^2$.
+
+\section{Confirmatory Tests: Design and Records}\label{app:runr}
+\TBD{Condensed version of the frozen Run R plan: stages, cohort, seeds, predictions by file hash, decision rules R1a to R3b, amendments, and the Stage 0 checks (parity with the earlier mean-variance search, residual curves against enumeration, wrong-repair counts against a brute-force decoder).}
+
+\paragraph{Search traces.}\leavevmode\par\noindent\TBDfig{4cm}{Course of the rate-aware search on one checkpoint and budget at a sparse and a dense rate: cost and its parts per round, storage used, bits per level, and the mean and spread of $v_b$ over all moves and over the chosen ones.}
+
+\paragraph{Predicted switch rates.} \TBD{Table of $p^*$ per checkpoint and budget (eight budgets), from the frozen predictions file.}
