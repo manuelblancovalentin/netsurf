@@ -126,7 +126,7 @@ must reproduce the saved accuracy exactly, or it stops.
 
 **Predictions, fixed now.** p*(checkpoint, budget) is read from
 `workspace/runs/paper1_runPQ_crossover_theory_v1_analysis/summary_maxp0.03.json` (sha256 `851cae16dd1b2520…`),
-calibration size 1,024. Definition: on the 16 grid rates up to 3e-2, the rate above which the positive mask has the
+calibration size 1,024. Definition: on the 17 grid rates up to 3e-2, the rate above which the positive mask has the
 higher predicted loss at every larger rate, by log-linear interpolation. Values at 12.5%:
 
 | Checkpoint | p* | Checkpoint | p* |
