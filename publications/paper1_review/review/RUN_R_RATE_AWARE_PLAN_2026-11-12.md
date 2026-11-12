@@ -501,3 +501,14 @@ The annealing arm is removed from Stage 2. As specified, one temperature sets bo
 sampling of single bits, and in Stage 0 the sampling became uniform (Stage 0 record, Section 3). Stage 2 keeps the
 analytic `rate_aware_mask` and the version with the MC correction; rule R2c applies to the MC correction only.
 A corrected annealing schedule, if wanted later, needs its own amendment. Nothing else changes.
+
+## Analysis note A1 (12 November 2026, Stage 1 running, before any Stage 1 outcome is read)
+
+Two details the Stage 1 analysis needs and the plan did not state:
+- A usable cell whose mean difference is exactly zero counts as not agreeing with the prediction in R1b.
+- A checkpoint and budget whose mean difference never changes sign on its usable rates has no measured switch. It is
+  left out of R1c (as are grid-end predictions), and the number of such pairs is reported. A checkpoint left with no
+  pair is left out of the R1c interval, which is then computed over the remaining checkpoints and reported with
+  their number.
+- Clean accuracy for the usability criterion: the mean over replications of the clean accuracy of each replication's
+  window, measured in the Stage 1 jobs.
