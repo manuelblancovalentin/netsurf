@@ -13,6 +13,10 @@ and the name used in the paper is still open.
 Notation note (12 November 2026, before any Run R outcome): formulas were rewritten in LaTeX. No design choice,
 number or rule was changed by that rewrite.
 
+Amendment R-A1 (12 November 2026, before any Run R outcome, at the researcher's request): ABFT gets a closed-form
+residual curve, marked with an asterisk as an approximation (Section 2), and it is now covered by rule R3a
+(Section 6). Nothing else changes.
+
 ## 1. Why
 
 What exists, all exploratory and post hoc (`BER_AWARE_RULE_EXPLORATORY_2026-11-12.md`):
@@ -47,7 +51,25 @@ are ideal.
 | 3 copies | $3p^2 - 2p^3$ | 2 bits per bit |
 | 5 copies | $10p^3 - 15p^4 + 6p^5$ | 4 bits per bit |
 | SEC-DED over $k$ data bits, $n$ total | $p\,[1 - (1-p)^{n-1}]$, double errors left as they are, miscorrection ignored | $(n-k)$ per $k$ bits, whole words |
-| ABFT, one repair per output channel | measured in Stage 3; no closed form is assumed | two checksums per channel |
+| ABFT, one faulty weight repaired per output channel of $G$ weights$^*$ | $p\,[1 - (1-p)^{8(G-1)}] \approx 8(G-1)\,p^2$ | two checksum words per channel |
+
+$^*$ **The ABFT curve is an approximation.** It is exact for the model the paper simulates (Section 7,
+`workflows/correction_mechanisms_resnet8.py`): two checksum words per output channel of each kernel locate and
+repair one faulty weight; a channel with two or more faulty weights is left as it is; the checksum words never
+flip. A flipped bit then survives exactly when at least one of the other $8(G-1)$ bits of its channel has also
+flipped. A real ABFT differs in three ways, each of which makes it worse than the curve:
+1. **Wrong repairs.** With two faulty weights in one channel, the checksum ratio can point at a third, healthy
+   weight, which is then changed. For SEC-DED the equivalent needs three errors and is negligible; for ABFT it
+   occurs at the same order, $p^2$, as the main term, and how often depends on the stored weight values, not
+   only on $p$. No closed form is assumed for it.
+2. **Faulty checksums.** The checksum words are stored too and can flip, which creates false repairs. The curve
+   assumes they never flip, as the paper does.
+3. **Where it checks.** A real ABFT checks the computed outputs of a layer, not the stored weights. Applying it to
+   the stored weights, as the paper does, favours it.
+
+Two further properties matter for the method. The curve differs per layer, because $G$ is the number of weights
+per output channel (from 16 to 576 in ResNet-8; the Stage 0 code lists them). And the residual flips of one channel
+fail together, so ABFT needs the same within-group variance term as the codes, with the channel as the group.
 
 **Objective.** For a storage budget $S$ and rate $p$, choose the assignment $s$ that minimizes
 
@@ -80,10 +102,10 @@ $$
 
 where $g_{x,w}$ is the gradient of the loss of input $x$ with respect to weight $w$.
 
-For codes, $V$ gains the within-word term
+For codes and ABFT, $V$ gains the within-group term (the group is the code word, or the output channel for ABFT)
 
 $$
-\sum_{\substack{b \ne c \\ \text{same word}}} \mathrm{Cov}(\xi_b,\xi_c)\;\mathbb{E}_x\big[e_b\,e_c\big],
+\sum_{\substack{b \ne c \\ \text{same group}}} \mathrm{Cov}(\xi_b,\xi_c)\;\mathbb{E}_x\big[e_b\,e_c\big],
 \qquad e_b = g_{x,w(b)}\,\Delta_b .
 $$
 
@@ -259,7 +281,8 @@ everywhere", or any statement about other models.
 **3a. Residual curves, no network.** For 3 copies, 5 copies, SEC-DED over 8 and 64 data bits, and ABFT with channel
 sizes of the ResNet-8 layers: simulate $10^7$ protected bits (or as many words) per rate at the twelve Stage 1 rates
 and compare the measured residual error rate with $\rho_s(p)$. Rule R3a: every formula lies inside the 99% binomial
-interval of its simulation at every rate. ABFT has no assumed formula; its measured curve is reported.
+interval of its simulation at every rate. For ABFT the simulation is the paper's model, with one curve per channel
+size $G$; the wrong repairs and faulty checksums of a real ABFT are outside R3a (see the asterisk in Section 2).
 
 **3b. Accuracy at equal extra storage,** 12.5% and 25%, with every copy and check bit flipping:
 - absolute-gradient ranking with 3 copies (the paper's Section 7 arm);
@@ -285,6 +308,7 @@ already), then an estimate for Pythia-160M and Qwen3-0.6B.
 - Hardware cost: area, power, latency, voters, decoders, scrubbing. Storage bits only.
 - Physical fault rates. $p$ is a logical bit-error probability.
 - Correlated or multi-bit upsets, and faults in voters or decoders.
+- The gap between the ABFT curve and a real ABFT (wrong repairs, faulty checksums, checks on computed outputs).
 - Whole-network optimality: the search is a descent from two starts.
 - Any model other than ResNet-8 before Stage 4.
 - "MC-guided selection is superior" unless R2c holds.
