@@ -92,3 +92,47 @@ A frozen confirmatory run on fresh fault fields:
 - **Cost:** about 20 fresh fields per replication; 72 jobs at 26 in parallel; about 2 hours; well under 1 GB.
 
 It needs the researcher's go-ahead and a frozen plan before launch.
+
+## 4. Predicted crossover against the Run Q measurements (added 12 November 2026, exploratory)
+
+Scripts `workflows/runPQ_crossover_theory.py` (commit f6a5a66) and `workflows/runPQ_crossover_plot.py` (commit
+80f081e), branch `paper1-runP-mean-variance`. Outputs, read-only:
+`workspace/runs/paper1_runPQ_crossover_theory_v1/` (one file per checkpoint) and
+`workspace/runs/paper1_runPQ_crossover_theory_v1_analysis/` (`summary.json` sha256 `1b139636d3248fa5…`,
+`summary_maxp0.03.json` sha256 `851cae16dd1b2520…`, two figures).
+
+**What was computed.** For each checkpoint, replication, budget and calibration size (512, 1,024), the objective
+J_p of the positive and of the absolute mask on 21 rates from 1e-4 to 1e-1, on the 512 held-out training images
+28000-28511. No fault outcome is read. The predicted crossover p* is the rate above which the positive mask is
+predicted worse at every larger grid rate.
+
+**Predicted crossovers (1,024 images, four budgets).**
+- Pinned and five retrained seeds: 2.4e-3 to 5.2e-3.
+- Under-trained: 6.9e-3 to 8.8e-3, about twice as high, as expected for a model farther from a minimum.
+- Pruned: 3.1e-3 to 6.0e-3 on the measured rate range (see the caveat below).
+
+**Agreement with the measured sign of positive minus absolute (1,024 images).**
+
+| BER | Usable cells | Sign agrees | All cells | Sign agrees |
+|---|---|---|---|---|
+| 1e-3 | 36 | 36 | 36 | 36 |
+| 3e-3 | 29 | 21 | 36 | 27 |
+| 1e-2 | 15 | 15 | 36 | 36 |
+| 3e-2 | 2 | 2 | 36 | 36 |
+
+- 74 of 82 usable cells agree, and all 56 usable cells whose 95% interval over replications excludes zero agree.
+- The 8 disagreements are all at 3e-3, all unresolved, and all within 15% below the predicted crossover (BER / p*
+  from 0.85 to 0.96). The measured switch is therefore at or slightly below the predicted one.
+- With 512 images: 73 of 82 usable cells, and all 53 resolved ones.
+
+**Caveats.**
+- Post hoc: the derivation was written after Run Q was seen. The prediction itself uses no outcome.
+- The definition of p* was written before any output. On the two pruned checkpoints the predicted difference turns
+  negative again above 5e-2, where nothing was measured and every mask has failed, so the original definition puts
+  p* at the end of the grid there. The numbers above for all cells use the definition restricted to the measured
+  range (rates up to 3e-2), added after seeing this. With the original definition the usable-cell counts are
+  identical (74 of 82, 56 of 56) and the all-cell count is 123 of 144, the misses being unusable pruned cells.
+- The measured grid has four rates, so the measured switch is located only between 1e-3 and 1e-2.
+- The prediction is in loss and the measurement in accuracy; only the sign and the crossover are compared.
+- Below about 1e-3 the predicted difference is noisy, because the companion model rounds activations.
+- ResNet-8 only.
