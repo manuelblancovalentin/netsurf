@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Move the Run P/Q/R workflows to another machine (for example Quest) without changing what they compute.
 
-Standard library only.  Layout on the other machine, under one folder SITE:
+``lists`` needs only the standard library; ``relocate`` imports the netsurf package, so it needs numpy (run it in the
+installed environment).  Layout on the other machine, under one folder SITE:
 
     SITE/data/...      the files of the two MLPerf Tiny asset locks (models, CIFAR-10, Speech Commands), same relative
                        paths as under /data here, symbolic links kept (the locks resolve snapshot links to blobs)
