@@ -34,7 +34,7 @@ where $v$ is the summed jump of the one-sided remainder and $g$ the mean gradien
 \subsection{What static rankings optimize}
 Each static ranking of Table~\ref{tab:methods} is the exact optimum of one simplified piece of Eq.~\eqref{eq:p-expansion}, or close to one:
 \begin{itemize}
-\item The \emph{positive gradient}, $\E_x\max(0,e_{x,b})=\tfrac12(\E_x|e_{x,b}|+\E_x e_{x,b})$, keeps the signed mean, as the per-bit term does, so it should win at sparse rates and lose once the pairwise term matters.
+\item The \emph{positive gradient}, $\E_x\max(0,e_{x,b})=\tfrac12(\E_x|e_{x,b}|+\E_x e_{x,b})$, is half the signed mean that drives the per-bit term plus half the absolute gradient. It is not the per-bit term itself, but it is the only static ranking that keeps the sign of the mean effect, so it should win at sparse rates and lose once the pairwise term matters.
 \item The \emph{squared effect}, $\E_x e_{x,b}^2$, is the variance term alone.
 \item The \emph{absolute gradient}, $\E_x|e_{x,b}|$, minimizes $\sum_{b\in U}\E_x|e_{x,b}|$, which bounds the per-input first-order damage when every unprotected flip happens to push the same way. Being sign-blind, it leaves a balanced remainder, so it should be close to the best choice at dense rates and never far behind at sparse ones.
 \item \emph{Significance-first} and the \emph{numerical jump} rank by $|\Delta_b|$, the variance term with equal curvature for every weight, which is far from true in a trained network.

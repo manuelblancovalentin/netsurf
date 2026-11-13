@@ -524,3 +524,6 @@ The look found one defect in the analysis script: the sign-flip matrix had 64 co
 9 replications x 8 fields = 72 paired differences per cell, so the script would have stopped with an error. Fix F2
 sizes the matrix to the largest cell (72 columns, same seed 20261116). The test, its number of assignments and its
 seed are unchanged; only the shape of the random matrix, which does not depend on the data, changes.
+
+A second descriptive look, at the researcher's request, was taken at 475 of 576 jobs with the same scratch scripts.
+Nothing was changed after it.
