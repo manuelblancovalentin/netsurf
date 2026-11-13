@@ -6,7 +6,7 @@ mean(d) + z sd(d)/sqrt(N) < 0 with z = 2 over the N calibration inputs; (ii) a s
 abs1024 and pos1024, the one with the lowest predicted objective on a separate selection set.
 
 Data roles per (model, replication): search = the 1,024 calibration inputs of v1; selection = 512 further training
-inputs (ResNet-8: training images from 30000 + 512 r; DS-CNN: validation clips from 1024 + 512 r); scoring = the
+inputs (ResNet-8: held-out training images from 30000 + 512 r; DS-CNN: validation clips from 1024 + 512 r); scoring = the
 held-out set of the earlier check (ResNet-8: training images 28000-28511; DS-CNN: validation clips 0-511).
 
   job --model resnet8 --checkpoint C --budget B      (first Stage 2 replication of C)
@@ -80,7 +80,7 @@ def job(model, key, frac, threads):
         m = Model(key, threads)
         rep = reps_for(key)[0]
         xc, yc, _ = m.images("ranking", 1024, 1000 * rep)
-        xs, ys, _ = m.images("ranking", 512, 30000 + 512 * rep)
+        xs, ys, _ = m.images("empirical_validation", 512, 30000 + 512 * rep)
         xd, yd, idd = m.images("empirical_validation", HELDOUT_COUNT, HELDOUT_OFFSET)
         assert idd[0] == 28000
         base = RUNS / "paper1_runR_stage2_masks_v1" / key / f"rep{rep}" / f"b{b}"
