@@ -527,3 +527,51 @@ seed are unchanged; only the shape of the random matrix, which does not depend o
 
 A second descriptive look, at the researcher's request, was taken at 475 of 576 jobs with the same scratch scripts.
 Nothing was changed after it.
+
+## Stage 2 addendum (12 November 2026, before any Stage 2 outcome; launch approved by the researcher)
+
+Constants and choices for Stage 2, fixed here. Nothing below is chosen from a Stage 2 outcome; the timing smoke wrote
+outside `workspace/runs/` and its accuracies were not read.
+
+- **Constants** (Stage 0 rule): $K = 32$ MC fields, refresh interval 1, at most 40 rounds, stop when $m < 16$. No
+  annealing (amendment R-A4).
+- **Calibration.** All Stage 2 masks use the 1,024 calibration images of `abs1024` (training images from offset
+  $1000 \times \mathrm{rep}$), including the MC objective. $\mathrm{se}_w$ for the shrinkage comes from the
+  per-input gradients on the same images at $\theta$.
+- **Starts of the analytic search.** Rates are swept from the lowest up. At each rate the search descends from the
+  absolute-gradient assignment (`abs1024`), from the ranking by $v_b$ at $\mu = 0$, and, above the lowest rate, from
+  the previous rate's result, and keeps the lowest $\hat J$. Which start won is recorded for every mask and reported.
+- **Start of the MC-corrected search.** The analytic mask of the same checkpoint, replication, budget and rate. Rule
+  R2c therefore compares the MC-corrected mask with the mask it started from.
+- **Static arms.** `abs1024` and `pos1024` from `paper1_runR_masks_v1` (hash-checked); squared effect $F\Delta^2$
+  from the same 1,024 images (`squared1024`); the paper's absolute gradient from 64 images (`abs64`), FKeras and
+  significance-first read from the v14 bundles of each checkpoint.
+- **Evaluation.** The same 1,000-image test window per replication as in Stage 1. Fields
+  `default_rng([20261117, ckpt, rep, field])`, eight per replication, nested across rates, shared by every arm.
+  Usable cell and statistics as in Section 5; Holm over the usable cells and arms of each checkpoint.
+- **Seeds.** MC fields `[20261118, ckpt, rep]`, one draw of 32 fields per replication shared by all budgets and rates.
+
+**Order of phases**, so that rules R2a and R2b can be read before the MC phases end: extract the v14 masks (9 jobs);
+build the static and analytic masks (288 jobs, checkpoint x replication x budget); evaluate them (576 jobs); MC search
+(2,304 jobs, one per budget and rate); evaluate the MC masks on the same fields (576 jobs). R2a and R2b are evaluated
+only after all phases end, by one analysis script committed before any Stage 2 outcome is read.
+
+**Cost, measured in the timing smoke** (one process per job, pinned checkpoint, under full machine load):
+
+| Phase | Jobs | Per job | Wall time at 76 processes |
+|---|---|---|---|
+| Extract v14 masks | 9 | ~3 min, ~13 GB | ~5 min |
+| Static and analytic masks | 288 | ~26 min (about 3 min per rate) | ~1.7 h |
+| Evaluate static and analytic | 576 | ~30 min, ~60 min with the $8 \times 8$ grid | ~4.7 h |
+| MC search | 2,304 | ~25 min, ~2.7 GB | ~13.6 h |
+| Evaluate MC masks | 576 | ~6 min, ~36 min with the $8 \times 8$ grid | ~1.7 h |
+| Total | | | about 22 h |
+
+The earlier estimate (about 8 h) assumed Stage 0's setting of 512 images and 2 threads per process. Storage: under
+2 GB in `workspace/runs/paper1_runR_stage2_masks_v1/` and `paper1_runR_stage2_eval_v1/`, write-once. Interpreter:
+the TensorFlow 2.14.1 reference environment.
+
+**Descriptive look, not a rule (12 November 2026, Stage 1 at 514 of 576 jobs, at the researcher's request).** The
+accuracy lost by the switch rule (positive below $p^*$, absolute above) against the better of the two masks, per usable
+cell, was summarised in a scratch script. It will be reported from the final Stage 1 data as a descriptive number; no
+rule, threshold or prediction changes.
