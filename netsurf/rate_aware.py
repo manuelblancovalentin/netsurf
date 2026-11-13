@@ -29,6 +29,7 @@ __all__ = [
     "ladder_rates", "rate_moments", "rate_variance_term", "shrink_mean_gradient", "grouped_covariance_term",
     "abft_decode", "abft_pair_outcomes", "mc_uniforms", "mc_displacement", "analytic_evaluator", "mc_evaluator",
     "step_changes", "SearchResult", "descend", "value_ranking_start", "rate_aware_assignment",
+    "per_input_evaluator", "select_on_heldout",
 ]
 
 MeanTerm = Callable[[np.ndarray], "tuple[float, np.ndarray]"]
@@ -262,6 +263,32 @@ def mc_evaluator(jumps, m2, rho, mean_term: MeanTerm, uniforms: np.ndarray, refr
     return evaluate
 
 
+def per_input_evaluator(jumps, rho, losses_term, gsq) -> Evaluator:
+    """Validated variant (v2): ``A -> (J_hat, gradient at theta + mu, parts)`` with the objective kept per calibration
+    input, ``J_x = [L_x(theta+mu) - L_x(theta)] + 1/2 sum_w g_{x,w}^2 V_w``, so that a swap can be accepted only when
+    its gain is resolved over inputs (``descend(..., accept_z=z)``).  ``losses_term(mu)`` returns the per-input loss
+    increase (N,) and the mean gradient at theta + mu; ``gsq`` (N, weights) holds the squared per-input gradients at
+    theta.  The mean of ``J_x`` equals the analytic ``J_hat`` with ``F_w = mean_x g_{x,w}^2``."""
+    gsq = np.asarray(gsq)
+
+    def evaluate(levels):
+        mu, V = rate_moments(jumps, levels, rho)
+        per_loss, grad = losses_term(mu)
+        per_var = 0.5 * (gsq @ np.asarray(V, dtype=gsq.dtype)).astype(np.float64)
+        per_input = np.asarray(per_loss, dtype=np.float64) + per_var
+        return float(per_input.mean()), np.asarray(grad, dtype=np.float64).reshape(-1), dict(
+            drift=float(np.mean(per_loss)), variance=float(per_var.mean()), mc_correction=0.0,
+            mu_norm=float(np.linalg.norm(mu)), per_input=per_input)
+    return evaluate
+
+
+def select_on_heldout(candidates: dict, score: Callable[[np.ndarray], float]) -> tuple[str, dict]:
+    """Safeguard of the validated variant: score every candidate assignment on inputs that the search did not use
+    and return the name of the lowest, with all scores."""
+    scores = {k: float(score(v)) for k, v in candidates.items()}
+    return min(scores, key=scores.get), scores
+
+
 # ----------------------------------------------------------------------------------------------- search
 def step_changes(jumps, m2, rho, step_cost, g, levels):
     """Predicted change of the objective per storage bit for one step up (``up``, +inf at the top level) and for one
@@ -309,14 +336,16 @@ def _stats(x):
 
 
 def descend(initial, jumps, m2, rho, step_cost, evaluate: Evaluator, *, max_rounds=40, min_swap=16,
-            initial_swap=None, se=None, anneal=False, anneal_factor=0.9, seed=0) -> SearchResult:
+            initial_swap=None, se=None, anneal=False, anneal_factor=0.9, seed=0, accept_z=None) -> SearchResult:
     """Budget-preserving swap descent (plan Section 2.3) from ``initial`` levels (n, 8).
 
     Each round scores every step up and down with the gradient returned by ``evaluate`` (shrunk with ``se`` when
     given), swaps the ``m`` best step-ups against the ``m`` cheapest step-downs, and accepts when the recomputed
     objective is lower; otherwise ``m`` is halved.  With ``anneal`` the moves are sampled with probability
     proportional to exp(v / T) and a worse objective is accepted with probability exp(-dJ / T); T is set by the first
-    rejected step and multiplied by ``anneal_factor`` every round.  The best assignment seen is returned.  With
+    rejected step and multiplied by ``anneal_factor`` every round.  With ``accept_z`` (validated variant v2; needs an
+    evaluator that returns ``per_input``) a swap is accepted only if the mean per-input change d of the objective is
+    negative and mean(d) + accept_z * sd(d) / sqrt(N) < 0, so gains carried by a few calibration inputs are refused.  The best assignment seen is returned.  With
     two levels, ``anneal=False`` and ``se=None`` this is Run P's ``greedy_mean_variance_mask`` for one rate.
 
     The trace keeps, per round: objective and its parts, predicted change, swap size, temperature, storage used,
@@ -328,6 +357,9 @@ def descend(initial, jumps, m2, rho, step_cost, evaluate: Evaluator, *, max_roun
     m = int(initial_swap) if initial_swap is not None else max(min_swap, budget_steps // 16)
     rng = np.random.default_rng(seed)
     current, g, parts = evaluate(levels)
+    cur_inputs = parts.pop("per_input", None)
+    if accept_z is not None and cur_inputs is None:
+        raise ValueError("accept_z needs an evaluator that returns per_input")
     start, best, best_levels, T = current, current, levels.copy(), None
     counts = lambda L: [int((L == s).sum()) for s in range(len(rho))]  # noqa: E731
     trace = [dict(round=0, objective=current, accepted=True, swap=0, predicted=0.0, temperature=None,
@@ -366,7 +398,13 @@ def descend(initial, jumps, m2, rho, step_cost, evaluate: Evaluator, *, max_roun
         candidate[cost] -= 1
         candidate = candidate.reshape(levels.shape)
         value, cand_g, cand_parts = evaluate(candidate)
+        cand_inputs = cand_parts.pop("per_input", None)
         accepted = value < current
+        if accept_z is not None:
+            d = cand_inputs - cur_inputs
+            bound = float(d.mean() + accept_z * d.std(ddof=1) / math.sqrt(d.size))
+            row["gate_bound"] = bound
+            accepted = bool(accepted and bound < 0)
         if not accepted and anneal:
             if T is None:
                 T = float(value - current)
@@ -376,6 +414,7 @@ def descend(initial, jumps, m2, rho, step_cost, evaluate: Evaluator, *, max_roun
                           * step_cost), level_counts=counts(candidate), rho=rho.tolist(), **cand_parts))
         if accepted:
             levels, current, g = candidate, value, cand_g
+            cur_inputs = cand_inputs
             if value < best:
                 best, best_levels = value, candidate.copy()
         else:

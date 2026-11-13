@@ -250,3 +250,61 @@ def test_descend_keeps_storage_exact_and_is_deterministic(anneal):
         assert t["storage"] == 150 * step
         assert sum(t["level_counts"]) == jumps.size
     assert "v_chosen_up" in a.trace[1] and "drift" in a.trace[0]
+
+
+# ------------------------------------------------------------------------------- validated variant (v2)
+def test_per_input_evaluator_mean_matches_analytic():
+    """With per-input quadratic losses L_x = a_x . mu + 1/2 |mu|^2, the mean of the per-input objective equals the
+    analytic objective whose curvature is the mean squared per-input gradient at theta."""
+    from netsurf.rate_aware import per_input_evaluator
+    rng, jumps, _ = _toy(11, n=30)
+    a = rng.normal(0, 0.5, size=(64, 30))
+    gsq = a * a
+    m2 = bit_second_moments(jumps, gsq.mean(0))
+    rho, _ = ladder_rates(COPIES_LADDER, 0.05)
+    levels = rng.integers(0, 3, size=jumps.shape).astype(np.int8)
+
+    def losses_term(mu):
+        return a @ mu + 0.5 * mu @ mu, a.mean(0) + mu
+
+    def mean_term(mu):
+        return float(a.mean(0) @ mu + 0.5 * mu @ mu), a.mean(0) + mu
+    v_val, v_g, v_parts = per_input_evaluator(jumps, rho, losses_term, gsq)(levels)
+    a_val, a_g, _ = analytic_evaluator(jumps, m2, rho, mean_term)(levels)
+    assert v_val == pytest.approx(a_val, rel=1e-10, abs=1e-12)
+    assert np.allclose(v_g, a_g) and v_parts["per_input"].shape == (64,)
+
+
+def test_gate_refuses_a_gain_carried_by_one_input():
+    """A candidate whose mean gain comes from a single calibration input is accepted by plain descent and refused
+    by the gate."""
+    rng, jumps, m2 = _toy(12, n=50)
+    rho, step = ladder_rates(IDEAL_LADDER, 0.02)
+    start = (rng.random(jumps.shape) < 0.3).astype(np.int8)
+    grad = np.full(50, 0.3)
+    bad = np.r_[-10.0, np.full(49, 0.1)]
+
+    def ev(levels):
+        per = np.zeros(50) if np.array_equal(levels, start) else bad
+        return float(per.mean()), grad, dict(drift=float(per.mean()), variance=0.0, mc_correction=0.0, mu_norm=0.0,
+                                             per_input=per)
+    plain = descend(start, jumps, m2, rho, step, ev, min_swap=1, max_rounds=5)
+    gated = descend(start, jumps, m2, rho, step, ev, min_swap=1, max_rounds=5, accept_z=2.0)
+    assert plain.objective < 0 and not np.array_equal(plain.levels, start)
+    assert gated.objective == 0.0 and np.array_equal(gated.levels, start)
+    assert all(not t["accepted"] for t in gated.trace[1:] if "gate_bound" in t)
+    assert "per_input" not in gated.trace[0]
+
+
+def test_gate_needs_per_input_values():
+    _, jumps, m2 = _toy(13, n=20)
+    rho, step = ladder_rates(IDEAL_LADDER, 0.02)
+    ev = analytic_evaluator(jumps, m2, rho, lambda mu: (float(mu.sum()), np.ones_like(mu)))
+    with pytest.raises(ValueError):
+        descend(np.zeros(jumps.shape, dtype=np.int8), jumps, m2, rho, step, ev, accept_z=2.0)
+
+
+def test_select_on_heldout_picks_the_lowest():
+    from netsurf.rate_aware import select_on_heldout
+    name, scores = select_on_heldout({"a": np.zeros(3), "b": np.ones(3)}, lambda v: float(v.sum()))
+    assert name == "a" and scores == {"a": 0.0, "b": 3.0}
