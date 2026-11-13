@@ -85,6 +85,106 @@ class KwsModel(Model):
         return np.asarray(x), np.asarray(y), tuple(int(i) for i in part.indices)
 
 
+FKERAS_SEED = 970201
+FKERAS_OPTIONS = dict(eigenpairs=2, max_iterations=100, tolerance=1e-5, max_products=300)
+V14_BUNDLE = Path("/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runA-tflite-confirm/workspace/"
+                  "runs/paper1_runA2_kws_confirm12_v1/20261111T163724.628443Z-dd9a9dab")
+V14_POLICIES = {"abs64": "per_example_absolute_global", "msb": "msb_global", "fkeras": "fkeras_paper"}
+
+
+def static_masks(m, x, y, fractions):
+    """abs64, significance-first and FKeras masks with the engine's own ordering code (as in the v14 runs):
+    abs64 and msb ordered by score then stable identity; FKeras by bit significance, score, stable identity.
+    Count per budget: floor(f * bits), the engine's rule."""
+    from netsurf.ordering import compose_ordering
+    from netsurf.ranking import Ranking
+    from netsurf.fkeras_estimator import fkeras_family
+    from netsurf.protection import ProtectionPolicy
+    ids = m.adapter.bit_identities()
+    specs = m.adapter.parameter_specs()
+    row = {n: int(m.starts[i]) for i, n in enumerate(m.names)}
+    S = scores(m.per_example(x, y), m.jumps)["abs"]
+    abs_scores = {b: float(S[row[b.parameter] + b.flat_index, b.bit_index]) for b in ids}
+    msb_scores = {b: float(b.bit_index) for b in ids}
+    t0 = time.time()
+    fk = fkeras_family(m.adapter, x, y, ids, seed=FKERAS_SEED, options=FKERAS_OPTIONS, requested=["fkeras_paper"])
+    fk_seconds = time.time() - t0
+    specs_by_arm = {"abs64": (abs_scores, ("estimator_score_desc", "stable_identity")),
+                    "msb": (msb_scores, ("estimator_score_desc", "stable_identity")),
+                    "fkeras": (dict(fk["fkeras_paper"].scores), ("bit_significance_desc", "estimator_score_desc", "stable_identity"))}
+    out = {}
+    for arm, (sc, criteria) in specs_by_arm.items():
+        ordering = compose_ordering(arm, Ranking(arm, sc, {}), ids, specs, criteria)
+        for f in fractions:
+            pm = ProtectionPolicy.ordered(ordering, f)
+            mk = np.zeros((m.n, 8), dtype=bool)
+            for b in pm.protected:
+                mk[row[b.parameter] + b.flat_index, b.bit_index] = True
+            out[f"{arm}@{bkey(f)}"] = mk
+    return out, fk_seconds
+
+
+def parity(out, threads):
+    """Rebuild the v14 DS-CNN masks of Run A2 replication 1 (training clips 405-468) and compare bit for bit."""
+    t0 = time.time()
+    m = KwsModel(threads)
+    x, y, idx = m.clips("ranking", 64, 405)
+    assert idx[0] == 405
+    fr = (0.0625, 0.125, 0.1875, 0.25)
+    mine, fk_seconds = static_masks(m, x, y, fr)
+    data = json.loads((V14_BUNDLE / "artifacts/protection_masks.json").read_text())["replication_1"]
+    row = {n: int(m.starts[i]) for i, n in enumerate(m.names)}
+    res = {}
+    for arm, pol in V14_POLICIES.items():
+        for f in fr:
+            ref = np.zeros((m.n, 8), dtype=bool)
+            for p, fi, bi in data[f"{pol}@{bkey(f)}"]:
+                ref[row[p] + fi, bi] = True
+            got = mine[f"{arm}@{bkey(f)}"]
+            res[f"{arm}@{bkey(f)}"] = dict(identical=bool(np.array_equal(got, ref)), differing=int((got != ref).sum()),
+                                           count=int(got.sum()), v14_count=int(ref.sum()))
+    rec = dict(masks=res, all_identical=all(v["identical"] for v in res.values()), fkeras_seconds=round(fk_seconds),
+               seconds=round(time.time() - t0), script_sha256=sha256_file(Path(__file__)))
+    write_once(out / "parity_v14.json", rec)
+    print(json.dumps(rec, indent=0), flush=True)
+
+
+STAGE4_FRACTIONS = (0.125, 0.1875, 0.25, 0.375)
+ENGINE_TRIAL = dict(replication="replication_1", policy="ber=0.003/msb_global@0.125000",
+                    schedule_sha256="e448a8a29657348ebacd2279b4bc726bc5f7e5b47e9d063da759f57d4ff87212")
+
+
+def static(out, rep, threads):
+    """abs64 (first 64 clips of the draw), significance-first and FKeras at the four Stage 4 budgets."""
+    t0 = time.time()
+    m = KwsModel(threads)
+    x, y, idx = m.clips("ranking", 64, CAL_COUNT * rep)
+    mk, fk_seconds = static_masks(m, x, y, STAGE4_FRACTIONS)
+    d = out / "static" / f"rep{rep}"
+    d.mkdir(parents=True, exist_ok=False)
+    np.savez(d / "static.npz", **{k: pack(v) for k, v in mk.items()})
+    write_once(d / "static.json", dict(masks={k: dict(count=int(v.sum()), sha256=mask_sha256(v)) for k, v in mk.items()},
+                                       calibration_first=idx[0], calibration_count=len(idx), fkeras_seconds=round(fk_seconds),
+                                       seconds=round(time.time() - t0), script_sha256=sha256_file(Path(__file__))))
+    print(json.dumps(dict(rep=rep, seconds=round(time.time() - t0))), flush=True)
+
+
+def engine_ref(out):
+    """Extract one saved v14 DS-CNN trial (schedule, expected accuracy, evaluation clips) for the engine check."""
+    B = V14_BUNDLE
+    sched = next(s for s in json.loads((B / "artifacts/fault_schedules.json").read_text())[ENGINE_TRIAL["replication"]]
+                 if s["sha256"] == ENGINE_TRIAL["schedule_sha256"])
+    import csv
+    with open(B / "measurements/trials.csv") as fh:
+        row = next(r for r in csv.DictReader(fh) if r["replication"] == ENGINE_TRIAL["replication"]
+                   and r["policy"] == ENGINE_TRIAL["policy"])
+    parts = json.loads((B / "artifacts/sample_partitions.json").read_text())[ENGINE_TRIAL["replication"]]
+    write_once(out / "engine_ref.json", dict(**ENGINE_TRIAL, events=sched["events"], accuracy=float(row["accuracy"]),
+                                             evaluation_indices=parts["evaluation"]["indices"],
+                                             source=str(B)))
+    print("engine reference:", row["accuracy"], len(sched["events"]), "events")
+
+
 def write_once(path: Path, obj):
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
@@ -162,7 +262,7 @@ def predict(out, rep, threads):
     print(json.dumps(dict(rep=rep, seconds=round(time.time() - t0))), flush=True)
 
 
-def summarize(out, reps):
+def summarize(out, reps, name="predictions.json"):
     pg = np.array(PGRID, dtype=float)
     J = defaultdict(list)
     for rep in reps:
@@ -173,7 +273,7 @@ def summarize(out, reps):
         D = np.array([np.mean(J[("pos1024", f, float(p))]) - np.mean(J[("abs1024", f, float(p))]) for p in pg])
         ps, how = crossover(pg, D)
         pred[bkey(f)] = dict(p_star=ps, how=how, curve=[float(v) for v in D])
-    write_once(out / "predictions.json", dict(status="DS-CNN predicted switch; no fault outcome read", reps=list(reps),
+    write_once(out / name, dict(status="DS-CNN predicted switch; no fault outcome read", reps=list(reps),
                                               pgrid=list(map(float, pg)), predictions=pred,
                                               script_sha256=sha256_file(Path(__file__))))
     for b, v in pred.items():
@@ -186,15 +286,25 @@ if __name__ == "__main__":
     ap.add_argument("--threads", type=int, default=1)
     sub = ap.add_subparsers(dest="cmd", required=True)
     v = sub.add_parser("verify"); v.add_argument("--count", type=int, default=1000)
+    sub.add_parser("parity")
+    sub.add_parser("engine_ref")
+    st = sub.add_parser("static"); st.add_argument("--rep", type=int, required=True)
     for c in ("masks", "predict"):
         s = sub.add_parser(c); s.add_argument("--rep", type=int, required=True)
     s = sub.add_parser("summarize"); s.add_argument("--reps", type=int, nargs="+", required=True)
+    s.add_argument("--name", default="predictions.json")
     a = ap.parse_args()
     if a.cmd == "verify":
         verify(a.out, a.count, a.threads)
+    elif a.cmd == "parity":
+        parity(a.out, a.threads)
+    elif a.cmd == "engine_ref":
+        engine_ref(a.out)
+    elif a.cmd == "static":
+        static(a.out, a.rep, a.threads)
     elif a.cmd == "masks":
         masks(a.out, a.rep, a.threads)
     elif a.cmd == "predict":
         predict(a.out, a.rep, a.threads)
     else:
-        summarize(a.out, a.reps)
+        summarize(a.out, a.reps, a.name)
