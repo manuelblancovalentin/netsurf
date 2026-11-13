@@ -512,3 +512,15 @@ Two details the Stage 1 analysis needs and the plan did not state:
   their number.
 - Clean accuracy for the usability criterion: the mean over replications of the clean accuracy of each replication's
   window, measured in the Stage 1 jobs.
+
+## Interim look and fix F2 (12 November 2026, Stage 1 at 304 of 576 jobs, at the researcher's request)
+
+At the researcher's request the finished jobs were summarised descriptively (signs, raw sign-flip p-values without
+Holm, measured against predicted switch), in a scratch script outside `workspace/runs`; nothing was written to the
+run outputs. No rule, threshold, rate, budget, cohort or prediction is changed after this look, and the frozen
+analysis is run once, on all 576 jobs.
+
+The look found one defect in the analysis script: the sign-flip matrix had 64 columns, but the pinned checkpoint has
+9 replications x 8 fields = 72 paired differences per cell, so the script would have stopped with an error. Fix F2
+sizes the matrix to the largest cell (72 columns, same seed 20261116). The test, its number of assignments and its
+seed are unchanged; only the shape of the random matrix, which does not depend on the data, changes.
