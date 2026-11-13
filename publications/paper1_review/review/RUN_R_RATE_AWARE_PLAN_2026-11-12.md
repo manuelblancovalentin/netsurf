@@ -575,3 +575,8 @@ the TensorFlow 2.14.1 reference environment.
 accuracy lost by the switch rule (positive below $p^*$, absolute above) against the better of the two masks, per usable
 cell, was summarised in a scratch script. It will be reported from the final Stage 1 data as a descriptive number; no
 rule, threshold or prediction changes.
+
+**Cost correction (no change to the design).** Stage 1 evaluations took 12.2 s each with 76 jobs running, against
+6.2 s in the single-job smoke (`workflows/runR_timing.py`). At that rate the Stage 2 evaluation phases take about
+7.1 h (static and analytic) and 2.2 h (MC) instead of 4.7 h and 1.7 h; the total becomes about 25 h, with R2a and
+R2b inputs after about 9 h.
