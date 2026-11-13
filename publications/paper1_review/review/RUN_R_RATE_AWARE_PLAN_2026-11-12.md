@@ -619,3 +619,29 @@ untouched by that development.
   Stage 2 analysis script before the Stage 2 evaluation ends. This amendment was made without the researcher's
   explicit approval of R-A5 itself (the researcher approved developing the fix); it adds an arm and changes no
   existing rule, and the researcher may drop it.
+
+## Analysis note A2 (13 November 2026, Stage 2 main evaluation ended and MC phase running, before any Stage 2 outcome is read)
+
+The Stage 2 analysis script is `workflows/runR_stage2_analyze.py` (branch `paper1-runR-v2-validated`, 6c8b185), tested on
+synthetic data with planted effects (`workflows/runR_stage2_analyze_synthetic.py`) before any Stage 2 outcome is read.
+Details the plan did not state, fixed here:
+- Usable cell: the best arm (any of the six static arms, the analytic mask, the MC-corrected mask) within 0.05 of the
+  checkpoint's clean accuracy, the mean over replications of each window's clean accuracy (as Stage 1, note A1).
+- Paired test: per-field differences in images of the 1,000-image window (replication x field), two-sided
+  pooled-field sign-flip test in exact integer arithmetic, 100,000 assignments, seed 20261123, 72 columns (the
+  largest cell).
+- R2a: "any other arm" is the six static arms and the MC-corrected mask; Holm over the checkpoint's usable cells x
+  these seven arms. R2b: the same with reference `abs1024` and with reference `pos1024`; the other arms are the five
+  other static arms and both rate-aware masks.
+- R2c: "resolved" means Holm p < 0.05 over the checkpoint's usable cells for the single comparison MC-corrected minus
+  analytic, in either direction.
+- R2a′: as R-A5; v2's accuracy per replication is that of its frozen choice.
+- Misjudged rate: the gap of the analytic mask built for $p_a$ and tested at $p_b$ against the best arm of the cell
+  $(p_b, \text{budget})$, averaged over the budgets where that cell is usable.
+
+**Interim look (13 November 2026, at the researcher's request; main evaluation finished, MC phase running).** The same
+script in its interim mode (`--interim-main`, 6c8b185) is run on the main arms only: the six static arms, the analytic
+mask and v2, without the MC-corrected mask and without R2c, written outside the confirmatory output. It is descriptive.
+No rule, threshold, rate, budget, arm or choice is changed after it; the MC phase continues unchanged, and the
+confirmatory analysis runs once, unchanged, after every phase has ended. Because the MC-corrected mask is one of the
+"other arms" of R2a and R2b, the interim R2a and R2b can only gain violations in the confirmatory run, never lose them.
