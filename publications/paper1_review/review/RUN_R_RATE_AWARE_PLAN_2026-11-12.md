@@ -643,5 +643,6 @@ Details the plan did not state, fixed here:
 script in its interim mode (`--interim-main`, 6c8b185) is run on the main arms only: the six static arms, the analytic
 mask and v2, without the MC-corrected mask and without R2c, written outside the confirmatory output. It is descriptive.
 No rule, threshold, rate, budget, arm or choice is changed after it; the MC phase continues unchanged, and the
-confirmatory analysis runs once, unchanged, after every phase has ended. Because the MC-corrected mask is one of the
-"other arms" of R2a and R2b, the interim R2a and R2b can only gain violations in the confirmatory run, never lose them.
+confirmatory analysis runs once, unchanged, after every phase has ended. The confirmatory run adds the MC-corrected
+mask as an arm, which can add violations and also enlarges each Holm family, so its results can differ from the
+interim look in either direction. Output: `workspace/runs/paper1_runR_stage2_interim_main_v1/` (labelled interim).
