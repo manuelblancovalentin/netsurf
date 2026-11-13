@@ -580,3 +580,42 @@ rule, threshold or prediction changes.
 6.2 s in the single-job smoke (`workflows/runR_timing.py`). At that rate the Stage 2 evaluation phases take about
 7.1 h (static and analytic) and 2.2 h (MC) instead of 4.7 h and 1.7 h; the total becomes about 25 h, with R2a and
 R2b inputs after about 9 h.
+
+## Amendment R-A5 (13 November 2026, before any Stage 2 or Stage 4 outcome is read): the selected rate-aware mask
+
+**Why.** An exploratory check on training-side data only (no test input, no fault outcome) found that the analytic
+search overfits its 1,024 calibration inputs. Scored on held-out training inputs, its predicted advantage over the
+best static mask survived on ResNet-8 (median $-0.0075$ in loss, best in 56-88% of cells per checkpoint) but not on
+DS-CNN, where it was predicted worse than the best static mask almost everywhere (up to $+0.11$). Records:
+`review/RUN_R_V2_DEVELOPMENT_2026-11-13.md`.
+
+**Method (v2, `rate_aware_mask_selected`).** The v1 analytic search, unchanged, followed by a held-out choice: among
+the v1 mask built for the rate, `abs1024` and `pos1024`, keep the one with the lowest predicted objective $\hat J_p$
+on 512 held-out training inputs that the search did not use (ResNet-8: training images $30000 + 512\,r$; DS-CNN:
+validation clips $1024 + 512\,r$). A gated variant (accept a swap only if its per-input gain is resolved at two
+standard errors) was developed and rejected on the same development data: it removed the DS-CNN losses but also most of
+the ResNet-8 gains. Development code: branch `paper1-runR-v2-validated`.
+
+**Choices, frozen.** The chosen mask of every Stage 2 cell (72 replications, 4 budgets, 8 rates) and every Stage 4 cell
+(6 replications, 4 budgets, 12 rates) is in `workspace/runs/paper1_runR_v2_picks_v1/picks.json`, sha256 `8c1a864f5310903d941d2d2e4eae51c5479c1aed25b0d78fa680eda347618335`,
+computed from training-side data only, before any Stage 2 or Stage 4 outcome was read.
+
+**Evaluation.** The chosen mask is always one of three masks already evaluated in the frozen runs, so v2's accuracy in a
+cell is that mask's accuracy on the same fields; no new faults are drawn. v2 is added as an arm to the frozen analyses
+with the same statistics.
+- **R2a′ (ResNet-8):** rule R2a applied to v2: on no checkpoint is any static arm ahead of v2 by 0.5 point or more in a
+  usable cell after Holm correction over that checkpoint's usable cells and static arms.
+- **R4d′ (DS-CNN):** rule R4d applied to v2 against the five static arms.
+- Reported descriptively: v2 against v1 in every usable cell, and how often the choice kept v1.
+- The original rules R2a, R2b, R2c and R4a-R4d are unchanged and are reported as specified, whatever v2 shows.
+
+**What may be claimed.** If R2a′ and R4d′ hold: the selected rate-aware mask is never more than half a point behind the
+best tested static mask on either model under these designs. Caveat to be stated: v2 was designed on training-side
+development data from the same models, after the v1 overfitting was seen there; the test windows and fault fields are
+untouched by that development.
+- Choices: ResNet-8 kept the v1 mask in 1,692 of 2,304 cells (positive 451, absolute 161); DS-CNN in 27 of 288 (absolute
+  141, positive 120). R4d' analysis: `workflows/runR_v2_stage4_analyze.py` on branch `paper1-runR-v2-validated`
+  (commit 0b57e51), tested on synthetic data before any Stage 4 outcome. The R2a' analysis is written into the
+  Stage 2 analysis script before the Stage 2 evaluation ends. This amendment was made without the researcher's
+  explicit approval of R-A5 itself (the researcher approved developing the fix); it adds an arm and changes no
+  existing rule, and the researcher may drop it.
