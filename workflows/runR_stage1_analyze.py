@@ -30,7 +30,9 @@ PRED = PAPER / "workspace/runs/paper1_runR_predictions_v1/predictions.json"
 PRED_SHA = "bf38ffd6651bfa179352c18c8205d13465315e4f0019634642da6e0995f7a037"
 OUTD = PAPER / "workspace/runs/paper1_runR_stage1_analysis_v1"
 MARGIN, NEAR, LOC = 0.05, 1.25, 1.5
-SIGNS = np.random.default_rng(20261116).choice((-1.0, 1.0), size=(100_000, 64))
+# One column per field of the largest cell (pinned: 9 replications x 8 fields = 72).  Fix F2: was 64, which
+# cannot hold the pinned cells; found in the interim look before the final analysis, data-independent.
+SIGNS = np.random.default_rng(20261116).choice((-1.0, 1.0), size=(100_000, max(len(reps_for(n)) for n in NAMES) * FIELDS))
 WELL = ("pinned",) + tuple(f"retrained_seed{s}" for s in range(7101, 7106))
 
 
