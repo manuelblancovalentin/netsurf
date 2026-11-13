@@ -87,3 +87,11 @@ anything about budgets below 12.5%, other models, or the MC correction.
 About 28 CPU hours. Wall time: about 4 h with 8 processes alongside Stage 2, or about 1.2 h with 24 after it.
 Storage under 200 MB in `workspace/runs/paper1_runR_stage4_kws_masks_v1/` and `..._eval_v1/`, write-once.
 Interpreter: the TensorFlow 2.14.1 reference environment. Code: `workflows/runR_stage4_kws.py` (Run R branch).
+
+## Analysis note (12 November 2026, Stage 4 build running, before any Stage 4 evaluation outcome)
+
+Launched on the researcher's go-ahead with 8 processes alongside Stage 2. The analysis script
+`workflows/runR_stage4_analyze.py` (Run R branch) was committed and tested on synthetic data before any evaluation
+job finished. It fixes one detail the rules leave implicit: under R4d, a violation is a usable cell and static arm
+whose mean difference (static minus rate-aware) is at least 0.5 point and whose two-sided sign-flip test is resolved
+after Holm correction over all usable cells and static arms. Stage 2's rule R2a will be analysed the same way.
