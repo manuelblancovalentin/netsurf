@@ -80,7 +80,8 @@ def job(model, key, frac, threads):
         m = Model(key, threads)
         rep = reps_for(key)[0]
         xc, yc, _ = m.images("ranking", 1024, 1000 * rep)
-        xs, ys, _ = m.images("empirical_validation", 512, 30000 + 512 * rep)
+        xs, ys, ixs = m.images("empirical_validation", 512, 5000 + 512 * rep)   # offsets relative to image 25000
+        assert ixs[0] == 30000 + 512 * rep, ixs[0]
         xd, yd, idd = m.images("empirical_validation", HELDOUT_COUNT, HELDOUT_OFFSET)
         assert idd[0] == 28000
         base = RUNS / "paper1_runR_stage2_masks_v1" / key / f"rep{rep}" / f"b{b}"
