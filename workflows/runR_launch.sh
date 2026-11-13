@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run R: run one script's jobs in parallel, one process per job, with a cap on concurrent processes.
-#   runR_launch.sh <masks|predict|stage1|stage2_bundle|stage2_build|stage2_eval_main|stage2_mc|stage2_eval_mc> <max_parallel>
+#   runR_launch.sh <masks|predict|stage1|stage2_bundle|stage2_build|stage2_eval_main|stage2_mc|stage2_eval_mc|stage4_build|stage4_eval> <max_parallel>
 # Logs: workspace/runs/paper1_runR_<kind>_logs/<job>.log in the paper worktree.  Jobs whose output exists are skipped
 # by the scripts themselves (write-once), so a relaunch only runs what is missing.
 set -euo pipefail
@@ -13,6 +13,17 @@ mkdir -p "$LOGS"
 cd "$HERE"
 "$PY" - "$KIND" <<'EOF' > "$LOGS/jobs.txt"
 import sys
+if sys.argv[1] in ("stage4_build", "stage4_eval"):
+    from runR_kws import STAGE4_FRACTIONS
+    from runR_stage4_kws import REPS, FIELDS as F4
+    for r in REPS:
+        if sys.argv[1] == "stage4_build":
+            for b in STAGE4_FRACTIONS:
+                print(f"kws_rep{r}_b{b} runR_stage4_kws.py build --rep {r} --budget {b}")
+        else:
+            for f in range(F4):
+                print(f"kws_rep{r}_f{f} runR_stage4_kws.py eval --rep {r} --field {f}")
+    sys.exit(0)
 from runR_stage1 import NAMES, reps_for, FIELDS
 kind = sys.argv[1]
 for name in NAMES:
