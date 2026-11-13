@@ -38,11 +38,13 @@ from netsurf.mean_variance import (  # noqa: E402
     mask_sha256, top_budget, variance_term,
 )
 
-WT = Path("/projects/netsurf/manuelbv/workspace/implementation-worktrees")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from site_paths import DATA, LOCKS, WT  # noqa: E402  (machine-local roots; defaults are this machine's paths)
+
 PAPER = WT / "paper1-tecs-revision-v1"
-PINNED = Path("/data/models/models--mlcommons--tiny/blobs/3c002613d1b2475eb51dd78dfb85a546c8ae658dee71cf6ade43b022fe205415")
-DATASET = Path("/data/datasets/cifar10/cifar-10-python.tar.gz")
-LOCK = Path("/projects/kona-assets/manuelbv/locks/mlperf-tiny/ic.lock.json")
+PINNED = DATA / "models/models--mlcommons--tiny/blobs/3c002613d1b2475eb51dd78dfb85a546c8ae658dee71cf6ade43b022fe205415"
+DATASET = DATA / "datasets/cifar10/cifar-10-python.tar.gz"
+LOCK = LOCKS / "mlperf-tiny/ic.lock.json"
 RUNJ = PAPER / "workspace/runs/paper1_runJ_resnet8_variants_v1"
 RUNK = WT / "paper1-runK-retrained-engine/workspace/runs"
 RUNA = WT / "paper1-runA-tflite-confirm/workspace/runs/paper1_runA_resnet8_confirm_v1"

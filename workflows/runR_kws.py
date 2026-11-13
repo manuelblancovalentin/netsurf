@@ -30,6 +30,7 @@ from pathlib import Path
 import numpy as np
 
 from runP_phase0 import PAPER, Model, code_jumps, sha256_file
+from site_paths import DATA, LOCKS, WT
 from runP_phase12 import pack, unpack
 from runPQ_crossover_theory import PGRID
 from runQ_calibration import scores
@@ -37,9 +38,9 @@ from runR_predict import crossover
 from runR_stage1 import FRACTIONS, bkey
 from netsurf.mean_variance import bit_second_moments, displacement_moments, mask_sha256, top_budget, variance_term
 
-CHECKPOINT = Path("/data/models/models--mlcommons--tiny/blobs/aeea436800704fce17b17292e4412630ad856e9d777c044c64ef748a880bd0ae")
-DATASET = Path("/data/datasets/speech_commands/0.0.3")
-LOCK = Path("/projects/kona-assets/manuelbv/locks/mlperf-tiny/kws.lock.json")
+CHECKPOINT = DATA / "models/models--mlcommons--tiny/blobs/aeea436800704fce17b17292e4412630ad856e9d777c044c64ef748a880bd0ae"
+DATASET = DATA / "datasets/speech_commands/0.0.3"
+LOCK = LOCKS / "mlperf-tiny/kws.lock.json"
 OUT = PAPER / "workspace/runs/paper1_runR_kws_prep_v1"
 CAL_COUNT, HELD_COUNT, HELD_OFFSET = 1024, 512, 0
 
@@ -87,8 +88,8 @@ class KwsModel(Model):
 
 FKERAS_SEED = 970201
 FKERAS_OPTIONS = dict(eigenpairs=2, max_iterations=100, tolerance=1e-5, max_products=300)
-V14_BUNDLE = Path("/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runA-tflite-confirm/workspace/"
-                  "runs/paper1_runA2_kws_confirm12_v1/20261111T163724.628443Z-dd9a9dab")
+V14_BUNDLE = WT / ("paper1-runA-tflite-confirm/workspace/"
+                   "runs/paper1_runA2_kws_confirm12_v1/20261111T163724.628443Z-dd9a9dab")
 V14_POLICIES = {"abs64": "per_example_absolute_global", "msb": "msb_global", "fkeras": "fkeras_paper"}
 
 
