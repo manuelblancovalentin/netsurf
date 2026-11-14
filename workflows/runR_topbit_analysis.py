@@ -108,8 +108,9 @@ def cmd_masks(a):
     m = KwsModel(a.threads)
     t0 = time.time()
     x, y, idx = m.clips("ranking", CAL_COUNT, CAL_COUNT * REP)
+    log(phase="masks", stage="per-example gradients on the calibration clips", done=0, total=2)
     S = scores(m.per_example(np.asarray(x), np.asarray(y).astype(np.int64)), m.jumps)
-    log(stage="gradient scores", seconds=round(time.time() - t0))
+    log(stage="gradient scores", seconds=round(time.time() - t0), done=1, total=2)
     total = m.n * 8
     stored = np.load(PREP / "masks" / f"rep{REP}" / "masks.npz")
     np.savez(a.out / "scores.npz", **{k: S[k] for k in ("abs", "pos")})
@@ -160,7 +161,7 @@ def cmd_masks(a):
     layer_means = {n: dict(mean_loss_damage=float(L[layer == i].mean()), mean_abs_score=float(S["abs"][W, B][layer == i].mean()))
                    for i, n in enumerate(m.names)}
     write_once(a.out / "q4.json", json.dumps(dict(scores=q4, layers=layer_means), indent=1))
-    log(stage="masks done", seconds=round(time.time() - t0), q4={k: v["all"] for k, v in q4.items()})
+    log(stage="masks done", seconds=round(time.time() - t0), done=2, total=2)
 
 
 # ---------------------------------------------------------------------------------------------------------- evaluate
@@ -188,14 +189,18 @@ def cmd_evaluate(a):
     assert ie[0] == WINDOW * REP and len(ie) == WINDOW
     u = np.random.default_rng([EVAL_SEED, REP, a.field]).random((m.n, 8))
     rows = []
-    for p in (a.rates or RATES):
+    rates = list(a.rates or RATES)
+    log(phase="evaluate", field=a.field, masks=len(masks), rates=len(rates), done=0, total=len(rates) * len(masks))
+    for ri, p in enumerate(rates):
         fl = u < p
         for k, mk in masks.items():
             acc, ce, prop, app = rp.evaluate(fl, mk, xe, ye)
             arm, b = k.split("@")
             rows.append(dict(rep=REP, field=a.field, ber=p, budget=float(b), arm=arm, accuracy=acc, cross_entropy=ce,
                              proposed=prop, applied=app))
-        log(field=a.field, rate_done=p, seconds=round(time.time() - t0))
+        el, done = time.time() - t0, (ri + 1) * len(masks)
+        log(field=a.field, rate_done=p, done=done, total=len(rates) * len(masks), seconds=round(el),
+            eta_minutes=round(el / done * (len(rates) * len(masks) - done) / 60, 1))
     with open(out / "results.csv", "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
     (out / "DONE").write_text(json.dumps(dict(seconds=round(time.time() - t0), evaluations=len(rows))))
