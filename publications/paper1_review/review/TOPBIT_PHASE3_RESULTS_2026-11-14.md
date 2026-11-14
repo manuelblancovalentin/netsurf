@@ -12,7 +12,13 @@ been read, so everything here is descriptive.
 **Checks:**
 - On Quest, the recomputed absolute-gradient scores rebuild the stored abs1024 masks exactly, with 0 differing
   bits.
-- On busy kona they differed by 85–98 bits, which is CPU round-off.
+- An earlier kona smoke run differed by 85–98 bits. I first attributed that to CPU round-off. **Correction:** that
+  smoke run used the conda `netsurf` environment, which has TensorFlow 2.21, instead of the TensorFlow 2.14.1
+  reference environment (`.venv-mlperf`). The difference comes from the TensorFlow version. The group-search smoke
+  check found the same cause for a one-clip TFLite difference: in the reference environment, it reproduces the
+  Stage 4 cell exactly.
+- No locked output is affected. Every locked output ran in TensorFlow 2.14.1, either on Quest or with
+  `.venv-mlperf`.
 
 ## Q3: ranking by measured single-flip damage is much worse than the gradient rankings
 
