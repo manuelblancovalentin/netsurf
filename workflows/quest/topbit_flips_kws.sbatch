@@ -20,12 +20,16 @@ source $HOME/miniforge3/etc/profile.d/conda.sh
 conda activate netsurf-gpu
 export NETSURF_SITE_DATA=$SITE/data NETSURF_SITE_WT=$SITE/wt NETSURF_SITE_LOCKS=$SITE/locks
 export TF_DETERMINISTIC_OPS=1 TF_CPP_MIN_LOG_LEVEL=2 PYTHONUNBUFFERED=1
-# CUDA 11.8 libraries come from the nvidia-* pip packages of the environment
+# CUDA 11.8 libraries come from the nvidia-* pip packages of the environment, including nvidia-cuda-nvrtc-cu11==11.8.89
+# (cuDNN 8.7 compiles convolution kernels at run time and opens the unversioned libnvrtc.so, which the package does not
+# ship, so a link to libnvrtc.so.11.2 is kept in $SITE/libshim)
 NV=$(python -c "import nvidia; print(list(nvidia.__path__)[0])")
-export LD_LIBRARY_PATH=$(ls -d $NV/*/lib | tr '\n' ':')${LD_LIBRARY_PATH:-}
+mkdir -p $SITE/libshim && ln -sfn $NV/cuda_nvrtc/lib/libnvrtc.so.11.2 $SITE/libshim/libnvrtc.so
+export LD_LIBRARY_PATH=$SITE/libshim:$(ls -d $NV/*/lib | tr '\n' ':')${LD_LIBRARY_PATH:-}
 echo "job $SLURM_JOB_ID on $(hostname) at $(date)"
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
-python -c "import tensorflow as tf; g = tf.config.list_physical_devices('GPU'); print('TensorFlow GPUs:', g); assert g, 'no GPU visible to TensorFlow'"
+# fail within seconds if TensorFlow sees no GPU or cuDNN cannot run a convolution
+python -c "import tensorflow as tf; g = tf.config.list_physical_devices('GPU'); print('TensorFlow GPUs:', g); assert g, 'no GPU visible to TensorFlow'; y = tf.nn.conv2d(tf.ones((1, 8, 8, 4)), tf.ones((3, 3, 4, 2)), 1, 'SAME'); print('GPU convolution ok', float(tf.reduce_sum(y)))"
 cd $SITE/wt/paper1-runR-v2-validated/workflows
 # compute nodes have no git: record the exact code by hash instead
 sha256sum runR_topbit_flips.py site_paths.py runR_kws.py quest/topbit_flips_kws.sbatch
