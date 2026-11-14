@@ -77,6 +77,8 @@ def newest(paths):
 def slurm(entry: dict, row: dict) -> None:
     """Fill ``row`` for a remote Slurm job (one ssh call, 20 s timeout)."""
     host, job = entry.get("host", "quest"), str(entry["job"])
+    if entry.get("array_logs"):                                # array job: sum the progress of every task's log
+        return slurm_array(entry, row, host, job)
     cmd = (f"squeue -h -j {job} -o %T 2>/dev/null; echo '@@'; sacct -n -X -j {job} -o State 2>/dev/null | head -1; "
            f"echo '@@'; tail -c 30000 {entry['log']} 2>/dev/null")
     try:
@@ -117,6 +119,52 @@ def slurm(entry: dict, row: dict) -> None:
         row.update(complete=True, done=row["total"])
     elif state in ("FAILED", "CANCELLED", "TIMEOUT", "OUT_OF_MEMORY", "NODE_FAIL") or "Traceback" in text[-5000:]:
         row["problem"] = f"{state.lower()}: check {entry['log']}"
+
+
+def slurm_array(entry: dict, row: dict, host: str, job: str) -> None:
+    """An array job as one row: states of all tasks, progress summed over the last JSON progress line of each log."""
+    cmd = (f"squeue -h -j {job} -o %T 2>/dev/null; echo '@@'; sacct -n -X -j {job} -o State 2>/dev/null; echo '@@'; "
+           f"for f in {entry['array_logs']}; do echo '%%'; tail -c 4000 $f 2>/dev/null; done")
+    try:
+        out = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", host, cmd], capture_output=True,
+                             text=True, timeout=20).stdout
+    except subprocess.TimeoutExpired:
+        out = ""
+    parts = out.split("@@\n")
+    if len(parts) < 3:
+        row.update(problem=f"{host} unreachable", state="?")
+        return
+    queued = parts[0].split()
+    acct = [s for s in parts[1].split() if s.isupper()]
+    tasks = int(entry.get("tasks", 1))
+    done = total = 0
+    seen = 0
+    for chunk in parts[2].split("%%\n")[1:]:
+        for line in reversed(chunk.splitlines()):
+            if line.startswith("{") and '"total"' in line:
+                try:
+                    d = json.loads(line)
+                    done += int(d["done"]); total += int(d["total"]); seen += 1
+                    break
+                except Exception:
+                    continue
+    per_task = (total / seen) if seen else 0
+    total_all = int(per_task * tasks) if seen else 1
+    if "RUNNING" in queued:
+        state = "RUNNING"
+    elif "PENDING" in queued:
+        state = "PENDING"
+    elif acct and all(s == "COMPLETED" for s in acct) and len(acct) >= tasks:
+        state = "COMPLETED"
+    else:
+        state = next((s for s in acct if s != "COMPLETED"), "UNKNOWN")
+    finished = sum(s == "COMPLETED" for s in acct)
+    row.update(done=min(done, total_all), total=max(1, total_all), state=state,
+               detail=f"array {job} on {host}: {state.lower()}, {finished}/{tasks} tasks finished, {len(queued)} in queue")
+    if state == "COMPLETED":
+        row.update(complete=True, done=row["total"])
+    elif state in ("FAILED", "CANCELLED", "TIMEOUT", "OUT_OF_MEMORY", "NODE_FAIL"):
+        row["problem"] = f"a task {state.lower()}: check {entry['array_logs']}"
 
 
 def status(entry: dict) -> dict:
