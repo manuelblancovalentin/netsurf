@@ -1,5 +1,7 @@
 # Group-level protection search on the DS-CNN: plan (exploratory, not run)
 
+**Superseded on 14 November 2026 by `GROUP_SEARCH_PLAN_v2_2026-11-14.md`** (never run; v2 judges every decision by network passes after top-bit Phases 2-3 showed per-bit sums and scores fail).
+
 Status: PLAN ONLY. Nothing here has been implemented or run. Every run stage below needs its own go-ahead.
 Classification: EXPLORATORY. The Stage 4 DS-CNN outcomes have already been read, so any comparison against
 them is post hoc and is not a confirmatory result.
