@@ -20,6 +20,12 @@ source $HOME/miniforge3/etc/profile.d/conda.sh
 conda activate netsurf-gpu
 export NETSURF_SITE_DATA=$SITE/data NETSURF_SITE_WT=$SITE/wt NETSURF_SITE_LOCKS=$SITE/locks
 export TF_DETERMINISTIC_OPS=1 TF_CPP_MIN_LOG_LEVEL=2 PYTHONUNBUFFERED=1
+# A100s run float32 convolutions and matrix products in TF32 (10-bit mantissa) by default; that moves activations across
+# INT8 rounding steps (job 8664433: GPU-CPU differences about 40% of a typical flip effect). Force full float32.
+export NVIDIA_TF32_OVERRIDE=0
+# PHASES and OUT_NAME can be overridden with sbatch --export=ALL,PHASES=check,OUT_NAME=...
+PHASES=${PHASES:-check measure}
+OUT_NAME=${OUT_NAME:-wt/paper1-tecs-revision-v1/workspace/runs/paper1_topbit_flips_kws_v2}
 # CUDA 11.8 libraries come from the nvidia-* pip packages of the environment, including nvidia-cuda-nvrtc-cu11==11.8.89
 # (cuDNN 8.7 compiles convolution kernels at run time and opens the unversioned libnvrtc.so, which the package does not
 # ship, so a link to libnvrtc.so.11.2 is kept in $SITE/libshim)
@@ -33,7 +39,9 @@ python -c "import tensorflow as tf; g = tf.config.list_physical_devices('GPU'); 
 cd $SITE/wt/paper1-runR-v2-validated/workflows
 # compute nodes have no git: record the exact code by hash instead
 sha256sum runR_topbit_flips.py site_paths.py runR_kws.py quest/topbit_flips_kws.sbatch
-OUT=$SITE/wt/paper1-tecs-revision-v1/workspace/runs/paper1_topbit_flips_kws_v1
-python runR_topbit_flips.py check --out $OUT --threads 4
-python runR_topbit_flips.py measure --out $OUT --threads 4 --log-every 1000
+OUT=$SITE/$OUT_NAME
+echo "TF32 override: $NVIDIA_TF32_OVERRIDE; phases: $PHASES; output: $OUT"
+for phase in $PHASES; do
+  python runR_topbit_flips.py $phase --out $OUT --threads 4 --log-every 1000
+done
 echo "finished at $(date)"
