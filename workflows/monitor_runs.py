@@ -16,6 +16,9 @@ Registry entry fields
     kind = "epochs":  log_glob, unit_regex (one match per finished unit), total, done_glob, done_count
     kind = "logsum":  log_glob, done_key (JSON field holding work done in the last JSON line of each log), total,
                       done_glob + done_count (completion files)
+    kind = "slurm":   a job on a remote Slurm cluster, read over ssh (key login, no prompt): host (ssh alias, default
+                      "quest"), job (job id), log (remote log path).  Progress is the last JSON line of the log that
+                      has "done" and "total"; the phase is the last JSON line with "phase".  State from squeue/sacct.
 """
 from __future__ import annotations
 
@@ -37,6 +40,7 @@ from rich.table import Table
 from rich.text import Text
 
 REGISTRY = Path("/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-tecs-revision-v1/workspace/run_registry")
+LABEL_MAX = 48   # longer run labels are cut with an ellipsis so the progress columns stay visible
 LINE = re.compile(r"NetSuRF[^|\n]*\| (?P<exp>[^|\n]+) \| (?P<stage>[^|\n]+) \| (?P<done>\d+)/(?P<total>\d+)\s+[\d.]+%"
                   r"[^\n]*?elapsed (?P<elapsed>[^|\n]+) \|[^\n]*?ETA (?P<eta>[^|\n]+)")
 
@@ -68,6 +72,51 @@ def alive(entry: dict) -> bool:
 def newest(paths):
     times = [os.path.getmtime(p) for p in paths if p and os.path.exists(p)]
     return max(times) if times else None
+
+
+def slurm(entry: dict, row: dict) -> None:
+    """Fill ``row`` for a remote Slurm job (one ssh call, 20 s timeout)."""
+    host, job = entry.get("host", "quest"), str(entry["job"])
+    cmd = (f"squeue -h -j {job} -o %T 2>/dev/null; echo '@@'; sacct -n -X -j {job} -o State 2>/dev/null | head -1; "
+           f"echo '@@'; tail -c 30000 {entry['log']} 2>/dev/null")
+    try:
+        out = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", host, cmd], capture_output=True,
+                             text=True, timeout=20).stdout
+    except subprocess.TimeoutExpired:
+        out = ""
+    parts = out.split("@@\n")
+    if len(parts) < 3:
+        row.update(problem=f"{host} unreachable", state="?")
+        return
+    queue, acct, text = parts[0].strip(), parts[1].strip().split(" ")[0], parts[2]
+    state = queue or acct or "UNKNOWN"
+    progress, phase, eta = None, None, None
+    for line in reversed(text.splitlines()):
+        if not line.startswith("{"):
+            continue
+        try:
+            d = json.loads(line)
+        except Exception:
+            continue
+        if progress is None and "done" in d and "total" in d:
+            progress = d
+        if eta is None and "eta_minutes" in d and progress is not None and d.get("total") == progress.get("total"):
+            eta = d["eta_minutes"]
+        if phase is None and "phase" in d:
+            phase = d["phase"]
+            break                                              # lines before the phase start belong to an earlier phase
+    detail = f"job {job} on {host}: {state.lower()}" + (f", phase {phase}" if phase else "")
+    if progress:
+        row.update(done=min(int(progress["done"]), int(progress["total"])), total=max(1, int(progress["total"])))
+        if eta is not None:
+            row["eta"] = fmt(60 * float(eta))
+        where = progress.get("layer") or progress.get("cell") or progress.get("stage")
+        detail += f" ({where})" if where else ""
+    row.update(detail=detail, state=state)
+    if state == "COMPLETED":
+        row.update(complete=True, done=row["total"])
+    elif state in ("FAILED", "CANCELLED", "TIMEOUT", "OUT_OF_MEMORY", "NODE_FAIL") or "Traceback" in text[-5000:]:
+        row["problem"] = f"{state.lower()}: check {entry['log']}"
 
 
 def status(entry: dict) -> dict:
@@ -127,7 +176,10 @@ def status(entry: dict) -> dict:
                 row["eta"] = fmt((now - start) / units * (int(entry["total"]) - units))
         if any("Traceback" in tail(log, 5000) for log in logs):
             row["problem"] = "error in a log"
-    row["running"] = (not row["complete"]) and alive(entry)
+    elif kind == "slurm":
+        slurm(entry, row)
+    row["running"] = (not row["complete"]) and (row.get("state") in ("RUNNING", "PENDING", "CONFIGURING", "COMPLETING")
+                                                if kind == "slurm" else alive(entry))
     row["elapsed"] = fmt((row["end"] if row["complete"] and row["end"] else now) - start)   # frozen once complete
     if row["complete"]:
         row["eta"] = "done"
@@ -147,7 +199,7 @@ def render(active_only: bool) -> Group:
     if active_only:
         rows = [r for r in rows if not r["complete"]]
     table = Table(expand=True, show_lines=False, pad_edge=False)
-    table.add_column("Run", no_wrap=True, min_width=26)
+    table.add_column("Run", no_wrap=True, min_width=26, max_width=LABEL_MAX, overflow="ellipsis")
     table.add_column("Progress", ratio=3, min_width=14)
     table.add_column("%", justify="right", no_wrap=True)
     table.add_column("Done / total", justify="right", no_wrap=True)
@@ -156,8 +208,11 @@ def render(active_only: bool) -> Group:
     table.add_column("State", no_wrap=True)
     notes = []
     for r in rows:
-        state = Text("complete", style="bold green") if r["complete"] else Text("running", style="cyan") if r["running"] else Text("NOT RUNNING", style="bold red")
-        table.add_row(r["label"], ProgressBar(total=r["total"], completed=r["done"], width=None, complete_style="green", finished_style="bold green"),
+        state = Text("complete", style="bold green") if r["complete"] else \
+            Text("queued", style="yellow") if r.get("state") == "PENDING" else \
+            Text("running", style="cyan") if r["running"] else Text("NOT RUNNING", style="bold red")
+        label = r["label"] if len(r["label"]) <= LABEL_MAX else r["label"][:LABEL_MAX - 1] + "…"
+        table.add_row(label, ProgressBar(total=r["total"], completed=r["done"], width=None, complete_style="green", finished_style="bold green"),
                       f'{100 * r["done"] / r["total"]:5.1f}', f'{r["done"]:,} / {r["total"]:,}', r["elapsed"], r["eta"], state)
         if not r["complete"] or r["problem"]:
             notes.append(f'[bold]{r["label"]}[/bold]: {r["detail"]}' + (f'  [red]{r["problem"]}[/red]' if r["problem"] else ""))
