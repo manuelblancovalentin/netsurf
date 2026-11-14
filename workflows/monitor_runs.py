@@ -79,7 +79,8 @@ def slurm(entry: dict, row: dict) -> None:
     host, job = entry.get("host", "quest"), str(entry["job"])
     if entry.get("array_logs"):                                # array job: sum the progress of every task's log
         return slurm_array(entry, row, host, job)
-    cmd = (f"squeue -h -j {job} -o %T 2>/dev/null; echo '@@'; sacct -n -X -j {job} -o State 2>/dev/null | head -1; "
+    since = time.strftime("%Y-%m-%dT%H:%M", time.localtime(float(entry.get("started", 0)) - 600))
+    cmd = (f"squeue -h -j {job} -o %T 2>/dev/null; echo '@@'; sacct -n -X -u $USER -S {since} -j {job} -o State 2>/dev/null | head -1; "
            f"echo '@@'; tail -c 30000 {entry['log']} 2>/dev/null")
     try:
         out = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", host, cmd], capture_output=True,
@@ -123,7 +124,9 @@ def slurm(entry: dict, row: dict) -> None:
 
 def slurm_array(entry: dict, row: dict, host: str, job: str) -> None:
     """An array job as one row: states of all tasks, progress summed over the last JSON progress line of each log."""
-    cmd = (f"squeue -h -j {job} -o %T 2>/dev/null; echo '@@'; sacct -n -X -j {job} -o State 2>/dev/null; echo '@@'; "
+    since = time.strftime("%Y-%m-%dT%H:%M", time.localtime(float(entry.get("started", 0)) - 600))
+    # Quest's accounting reuses job numbers: restrict to this user and to jobs started since submission
+    cmd = (f"squeue -h -j {job} -o %T 2>/dev/null; echo '@@'; sacct -n -X -u $USER -S {since} -j {job} -o State 2>/dev/null; echo '@@'; "
            f"for f in {entry['array_logs']}; do echo '%%'; tail -c 4000 $f 2>/dev/null; done")
     try:
         out = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", host, cmd], capture_output=True,
