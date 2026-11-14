@@ -49,24 +49,99 @@ class Round:
     accepted: int = -1
 
 
-def evaluate_round(index: int, mask: np.ndarray, gs: list[Group], measure) -> Round:
-    """Measure the current mask and every unprotected group added to it on the same K fields; paired gains."""
-    cand = unprotected(mask, gs)
-    masks = [mask] + [protect(mask, g) for g in cand]
+def _round(index, mask, cand, measure, describe, apply, uid):
+    masks = [mask] + [apply(mask, u) for u in cand]
     score, tie = measure(masks)
     score, tie = np.asarray(score, dtype=np.float64), np.asarray(tie, dtype=np.float64)
     K = score.shape[1]
     r = Round(index, float(score[0].mean()))
-    for j, g in enumerate(cand, start=1):
+    for j, u in enumerate(cand, start=1):
         d = score[j] - score[0]
-        size = g.hi - g.lo
-        r.candidates.append(dict(gid=g.gid, layer=g.layer, bit=g.bit, size=size, gain=float(d.mean()),
-                                 se=float(d.std(ddof=1) / np.sqrt(K)) if K > 1 else float("nan"),
-                                 gain_per_bit=float(d.mean() / size), tie=float((tie[j] - tie[0]).mean() / size)))
+        c = describe(u)
+        size = c["size"]
+        c.update(gain=float(d.mean()), se=float(d.std(ddof=1) / np.sqrt(K)) if K > 1 else float("nan"),
+                 gain_per_bit=float(d.mean() / size), tie=float((tie[j] - tie[0]).mean() / size))
+        r.candidates.append(c)
     if r.candidates:
-        best = sorted(r.candidates, key=lambda c: (-c["gain_per_bit"], -c["tie"], c["gid"]))[0]
-        r.accepted = best["gid"]
+        best = sorted(r.candidates, key=lambda c: (-c["gain_per_bit"], -c["tie"], c[uid]))[0]
+        r.accepted = best[uid]
     return r
+
+
+def evaluate_round(index: int, mask: np.ndarray, gs: list[Group], measure) -> Round:
+    """Measure the current mask and every unprotected group added to it on the same K fields; paired gains."""
+    return _round(index, mask, unprotected(mask, gs), measure,
+                  lambda g: dict(gid=g.gid, layer=g.layer, bit=g.bit, size=g.hi - g.lo), protect, "gid")
+
+
+# ---- partial-group search (plan review/PARTIAL_GROUP_SEARCH_PLAN_2026-11-14.md) ------------------------------------
+
+@dataclass(frozen=True, eq=False)
+class Slice:
+    """Part `part` of `parts` of a group: the weights `idx` (absolute indices), in descending score order."""
+    uid: int         # gid * parts + part
+    gid: int
+    layer: int
+    bit: int
+    part: int
+    parts: int
+    idx: np.ndarray
+
+
+def slices(gs: list[Group], score: np.ndarray, parts: int) -> list[Slice]:
+    """Split every group into `parts` slices of nearly equal size (sizes differ by at most one), ordered by the
+    weights' score at the group's bit, highest first, ties by storage order.  Slice 0 holds the highest scores."""
+    out = []
+    for g in gs:
+        s = np.asarray(score[g.lo:g.hi, g.bit], dtype=np.float64)
+        order = g.lo + np.lexsort((np.arange(s.size), -s))
+        for k, idx in enumerate(np.array_split(order, parts)):
+            out.append(Slice(g.gid * parts + k, g.gid, g.layer, g.bit, k, parts, idx))
+    return out
+
+
+def protect_slice(mask: np.ndarray, s: Slice) -> np.ndarray:
+    out = mask.copy()
+    out[s.idx, s.bit] = True
+    return out
+
+
+def next_slices(mask: np.ndarray, sl: list[Slice]) -> list[Slice]:
+    """For every group, its first slice that is not fully protected; later slices of a group wait for earlier ones."""
+    seen, out = set(), []
+    for s in sl:                                   # slices() lists a group's parts in order
+        if s.gid in seen or mask[s.idx, s.bit].all():
+            continue
+        seen.add(s.gid)
+        out.append(s)
+    return out
+
+
+def evaluate_slice_round(index: int, mask: np.ndarray, sl: list[Slice], measure) -> Round:
+    """As evaluate_round, with each group's next slice as the candidate; `accepted` is a slice uid."""
+    return _round(index, mask, next_slices(mask, sl), measure,
+                  lambda s: dict(uid=s.uid, gid=s.gid, layer=s.layer, bit=s.bit, part=s.part, size=int(s.idx.size)),
+                  protect_slice, "uid")
+
+
+def slice_path_masks(n: int, sl: list[Slice], accepted: list[int], counts: dict) -> dict:
+    """Nested budget masks from the accepted slice order; the last slice of a budget is filled in its score order."""
+    by_id = {s.uid: s for s in sl}
+    out = {}
+    for f, count in sorted(counts.items()):
+        mk = np.zeros((n, 8), dtype=bool)
+        used = 0
+        for uid in accepted:
+            s = by_id[uid]
+            take = min(s.idx.size, count - used)
+            mk[s.idx[:take], s.bit] = True
+            used += take
+            if used == count:
+                break
+        if used != count:
+            raise ValueError(f"accepted slices hold only {used} bits, budget {f} needs {count}")
+        out[f] = mk
+    return out
 
 
 def path_masks(n: int, gs: list[Group], accepted: list[int], counts: dict, rng: np.random.Generator):

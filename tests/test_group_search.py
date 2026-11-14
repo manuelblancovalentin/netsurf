@@ -4,7 +4,8 @@ import itertools
 import numpy as np
 import pytest
 
-from netsurf.group_search import budget_counts, evaluate_round, groups, path_masks, protect, unprotected
+from netsurf.group_search import (budget_counts, evaluate_round, evaluate_slice_round, groups, next_slices,
+                                  path_masks, protect, protect_slice, slice_path_masks, slices, unprotected)
 
 STARTS = [0, 6, 10, 19]            # three toy layers of 6, 4 and 9 weights
 N = STARTS[-1]
@@ -93,6 +94,84 @@ def test_path_masks_exact_counts_nested_and_reproducible():
         assert (full1[a] <= full1[b]).all()                       # nested
     with pytest.raises(ValueError):
         path_masks(N, gs, order[:2], counts, np.random.default_rng(0))
+
+
+def test_slices_partition_groups_in_score_order():
+    rng = np.random.default_rng(1)
+    score = rng.random((N, 8))
+    score[0:3, 5] = 0.5                                          # ties: storage order
+    gs = groups(STARTS)
+    sl = slices(gs, score, 4)
+    assert [s.uid for s in sl] == list(range(len(gs) * 4))
+    cover = np.zeros((N, 8), dtype=int)
+    for g in gs:
+        parts = [s for s in sl if s.gid == g.gid]
+        sizes = [s.idx.size for s in parts]
+        assert sum(sizes) == g.hi - g.lo and max(sizes) - min(sizes) <= 1
+        cat = np.concatenate([s.idx for s in parts])
+        assert np.all(np.diff(score[cat, g.bit]) <= 0)           # highest score first, across slices
+        for s in parts:
+            cover[s.idx, s.bit] += 1
+    assert (cover == 1).all()
+    assert list(slices(gs, score, 4)[0 * 4 + 0].idx[:0]) == []
+    tied = [s for s in slices(groups([0, 3]), np.full((3, 8), 0.5), 1) if s.bit == 5][0]
+    assert list(tied.idx) == [0, 1, 2]
+
+
+def test_one_slice_per_group_reproduces_the_group_search():
+    rng = np.random.default_rng(2)
+    w = rng.random((N, 8))
+    gs = groups(STARTS)
+    sl = slices(gs, rng.random((N, 8)), 1)
+    a, b = np.zeros((N, 8), dtype=bool), np.zeros((N, 8), dtype=bool)
+    for i in range(6):
+        ra = evaluate_round(i, a, gs, linear_measure(w))
+        rb = evaluate_slice_round(i, b, sl, linear_measure(w))
+        assert ra.accepted == rb.accepted
+        assert [c["gain"] for c in ra.candidates] == [c["gain"] for c in rb.candidates]
+        a, b = protect(a, gs[ra.accepted]), protect_slice(b, sl[rb.accepted])
+        assert np.array_equal(a, b)
+
+
+def test_a_later_slice_is_offered_only_after_the_earlier_one():
+    rng = np.random.default_rng(3)
+    gs = groups(STARTS)
+    sl = slices(gs, rng.random((N, 8)), 3)
+    mk = np.zeros((N, 8), dtype=bool)
+    assert {s.part for s in next_slices(mk, sl)} == {0} and len(next_slices(mk, sl)) == len(gs)
+    mk = protect_slice(mk, sl[4 * 3 + 0])                         # group 4, part 0
+    nxt = {s.gid: s.part for s in next_slices(mk, sl)}
+    assert nxt[4] == 1 and all(p == 0 for g, p in nxt.items() if g != 4)
+    w = np.zeros((N, 8)); w[:, 2] = 1.0
+    r = evaluate_slice_round(0, mk, sl, linear_measure(w))
+    assert r.accepted in {s.uid for s in next_slices(mk, sl)}
+    assert sl[r.accepted].bit == 2 and sl[r.accepted].part == 0
+
+
+def test_slice_path_masks_exact_nested_and_filled_in_score_order():
+    rng = np.random.default_rng(4)
+    score = rng.random((N, 8))
+    gs = groups(STARTS)
+    sl = slices(gs, score, 4)
+    counts = budget_counts(N * 8, (0.125, 0.25, 0.375))
+    order = [s.uid for s in sl]
+    full = slice_path_masks(N, sl, order, counts)
+    fs = sorted(counts)
+    for f in fs:
+        assert full[f].sum() == counts[f]
+    for a, b in zip(fs, fs[1:]):
+        assert (full[a] <= full[b]).all()
+    # the first budget ends inside some slice: its protected bits there are that slice's highest-scored weights
+    k = counts[fs[0]]
+    used = 0
+    for s in sl:
+        if used + s.idx.size > k:
+            take = k - used
+            assert full[fs[0]][s.idx[:take], s.bit].all() and not full[fs[0]][s.idx[take:], s.bit].any()
+            break
+        used += s.idx.size
+    with pytest.raises(ValueError):
+        slice_path_masks(N, sl, order[:3], counts)
 
 
 def test_budget_counts_floor():
