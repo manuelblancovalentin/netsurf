@@ -1,6 +1,6 @@
 #!/bin/bash
 # Partial-group search plan (review/PARTIAL_GROUP_SEARCH_PLAN_2026-11-14.md), Phase 0 smoke: replication ${REP:-0},
-# rate 3e-2, 4 slices per group, K = 2, one round.  Checks the abs1024 rebuild, the clean-protection identity and one round.
+# rate 3e-2, 4 slices per group, K = 2, one round, with the CPU scores.  Checks the abs1024 rebuild, the clean-protection identity and one round.
 #SBATCH --account=p33112
 #SBATCH --partition=gengpu
 #SBATCH --gres=gpu:a100:1
@@ -26,7 +26,7 @@ cd $SITE/wt/paper1-runR-v2-validated/workflows
 RUNS=$SITE/wt/paper1-tecs-revision-v1/workspace/runs
 echo "job $SLURM_JOB_ID on $(hostname) at $(date)"
 sha256sum runR_partial_search.py ../netsurf/group_search.py quest/partial_search_smoke_kws.sbatch
-python runR_partial_search.py search --out $RUNS/paper1_partial_search_smoke_v1 --rep ${REP:-0} --rate 0.03 --parts 4 --K 2 \
+python runR_partial_search.py search --out $RUNS/paper1_partial_search_smoke_v2 --rep ${REP:-0} --rate 0.03 --parts 4 --K 2 \
   --max-rounds 1 --threads 4
-cat $RUNS/paper1_partial_search_smoke_v1/rep${REP:-0}_mc_0.03_s4/DONE
+cat $RUNS/paper1_partial_search_smoke_v2/rep${REP:-0}_mc_0.03_s4/DONE
 echo "finished at $(date)"

@@ -6,10 +6,12 @@ each group's next slice is a candidate, judged by real-flip network passes on K 
 (paired gain in accuracy per protected bit, ties by cross-entropy then slice id).  The search therefore chooses only
 how much of each group to protect; within a group the order is abs1024's.
 
-  search    --rep R --rate P --parts S   One path on the first --clips calibration clips of replication R.  The abs
-            scores are recomputed from the replication's 1,024 calibration clips and must rebuild its stored abs1024
-            masks exactly.  Seeds [20261215, R, rate index, round, draw].  Output <out>/rep<R>_mc_<P>_s<S>/: rounds.json,
-            masks.npz (mask@<budget>), scores_check.json, DONE.
+  scores    --rep R   CPU only.  The abs scores recomputed from the replication's 1,024 calibration clips; they must
+            rebuild its stored abs1024 masks exactly (the stored masks were built on CPU; on the GPU, summation order
+            moves 85-100 near-tied bits).  <out>/rep<R>/abs.npy, check.json.
+  search    --rep R --rate P --parts S   One path on the first --clips calibration clips of replication R, with the
+            scores of `scores` (checked again).  Seeds [20261215, R, rate index, round, draw].  Output
+            <out>/rep<R>_mc_<P>_s<S>/: rounds.json, masks.npz (mask@<budget>), scores_check.json, DONE.
   evaluate  --rep R --field F   Every finished path of replication R in the Stage 4 protocol (engine check, TFLite on
             test window R, field seeds [20261119, R, F]), each mask at its own rate.  <out>/rep<R>/field<F>/results.csv.
 
@@ -42,10 +44,42 @@ def rebuild_differences(score, stored: dict, counts: dict) -> dict:
     return {f"{f:g}": int((stored[f] & ~top_budget(score, counts[f])).sum()) for f in stored}
 
 
-def cmd_search(a):
-    from runP_phase12 import pack, unpack
+def stored_abs1024(n, rep):
+    from runP_phase12 import unpack
+    from runR_kws import OUT as PREP
+    from runR_stage1 import bkey
+    packed = np.load(PREP / "masks" / f"rep{rep}" / "masks.npz")
+    return {f: unpack(packed[f"abs1024@{bkey(f)}"], n) for f in FRACTIONS}
+
+
+def cmd_scores(a):
+    import os
+    if os.environ.get("CUDA_VISIBLE_DEVICES", None) != "":
+        raise SystemExit("scores must run on CPU: set CUDA_VISIBLE_DEVICES=\"\" (the stored abs1024 masks were built on CPU)")
     from runQ_calibration import scores
-    from runR_kws import CAL_COUNT, OUT as PREP, KwsModel
+    from runR_kws import CAL_COUNT, KwsModel
+    from netsurf.group_search import budget_counts
+    t0 = time.time()
+    m = KwsModel(a.threads)
+    require_reference_tf(m.tf)
+    rep = a.rep
+    out = a.out / f"rep{rep}"
+    out.mkdir(parents=True, exist_ok=False)
+    xc, yc, ic = m.clips("ranking", CAL_COUNT, CAL_COUNT * rep)
+    assert ic[0] == CAL_COUNT * rep and len(ic) == CAL_COUNT
+    log(phase="scores", rep=rep, stage="per-example gradients on the 1,024 calibration clips", done=0, total=1)
+    S = scores(m.per_example(np.asarray(xc), np.asarray(yc).astype(np.int64)), m.jumps)["abs"]
+    diff = rebuild_differences(S, stored_abs1024(m.n, rep), budget_counts(m.n * 8, FRACTIONS))
+    (out / "check.json").write_text(json.dumps(dict(rep=rep, threads=a.threads, differing_bits=diff), indent=1))
+    log(stage="abs1024 rebuild", rep=rep, differing_bits=diff, done=1, total=1, seconds=round(time.time() - t0))
+    if any(diff.values()):
+        raise SystemExit(f"recomputed abs scores do not rebuild the stored abs1024 masks: {diff}")
+    np.save(out / "abs.npy", S)
+
+
+def cmd_search(a):
+    from runP_phase12 import pack
+    from runR_kws import CAL_COUNT, KwsModel
     from runR_stage1 import bkey
     from netsurf.group_search import budget_counts, evaluate_slice_round, groups, protect_slice, slice_path_masks, slices
     t0 = time.time()
@@ -58,17 +92,13 @@ def cmd_search(a):
     counts = budget_counts(m.n * 8, FRACTIONS)
     target = max(counts.values())
 
-    xc, yc, ic = m.clips("ranking", CAL_COUNT, CAL_COUNT * rep)
-    assert ic[0] == CAL_COUNT * rep and len(ic) == CAL_COUNT
-    log(phase="scores", rep=rep, stage="per-example gradients on the 1,024 calibration clips", done=0, total=target)
-    S = scores(m.per_example(np.asarray(xc), np.asarray(yc).astype(np.int64)), m.jumps)["abs"]
-    packed = np.load(PREP / "masks" / f"rep{rep}" / "masks.npz")
-    stored = {f: unpack(packed[f"abs1024@{bkey(f)}"], m.n) for f in FRACTIONS}
+    S = np.load(a.scores / f"rep{rep}" / "abs.npy")
+    stored = stored_abs1024(m.n, rep)
     diff = rebuild_differences(S, stored, counts)
-    (out / "scores_check.json").write_text(json.dumps(dict(rep=rep, differing_bits=diff), indent=1))
+    (out / "scores_check.json").write_text(json.dumps(dict(rep=rep, scores=str(a.scores), differing_bits=diff), indent=1))
     log(stage="abs1024 rebuild", differing_bits=diff, seconds=round(time.time() - t0))
     if any(diff.values()):
-        raise SystemExit(f"recomputed abs scores do not rebuild the stored abs1024 masks: {diff}")
+        raise SystemExit(f"the scores do not rebuild the stored abs1024 masks: {diff}")
 
     x, y, idx = m.clips("ranking", a.clips, CAL_COUNT * rep)
     x, y = np.asarray(x), np.asarray(y).astype(np.int64)
@@ -193,7 +223,7 @@ def cmd_evaluate(a):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("command", choices=("search", "evaluate"))
+    ap.add_argument("command", choices=("scores", "search", "evaluate"))
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--rep", type=int, required=True, choices=range(6))
     ap.add_argument("--rate", type=float, default=1e-2)
@@ -205,8 +235,9 @@ def main():
     ap.add_argument("--max-round-seconds", type=float, default=0, help="stop if one round takes longer (cost guard)")
     ap.add_argument("--field", type=int, default=0)
     ap.add_argument("--search", type=Path, default=RUNS / "paper1_partial_search_kws_v1")
+    ap.add_argument("--scores", type=Path, default=RUNS / "paper1_partial_search_scores_v1")
     a = ap.parse_args()
-    {"search": cmd_search, "evaluate": cmd_evaluate}[a.command](a)
+    {"scores": cmd_scores, "search": cmd_search, "evaluate": cmd_evaluate}[a.command](a)
 
 
 if __name__ == "__main__":
