@@ -17,8 +17,17 @@ Phases
            (3) timing per flip.  Writes <out>/check.json.
   measure  all weights x bits, one output file per layer (write-once, a finished layer is skipped on restart),
            <out>/layer_<k>.npz, then <out>/DONE.  Progress lines every --log-every flips (unbuffered).
+  logits   as measure, but keeps the INT8 output code of every class per clip (int8 codes, exact: the output
+           layer rounds to INT8), <out>/layer_<k>.npz with weight, bit, codes (flips x clips x classes), and
+           <out>/clean.npz.  With --compare DIR (the margins run), the correctness from the codes is compared with
+           DIR's per clip and the result written to <out>/compare.json.
+  background  for the cells of --cells (Stage 4 masks of replication 0 x rates), with B = bits 0-5 left unprotected:
+           gauss  --draws network passes with weights displaced by mu + sqrt(V) eps over B (eps ~ N(0, 1),
+                  seeds [20261212, cell, draw]); low  the Stage 4 field's real flips of B only; full  all of the
+                  field's unprotected flips (fields [20261119, 0, f], f < --fields, as Stage 4).  Output codes per
+                  clip, one file per mask: <out>/<arm>@<budget>.npz.  Top-bit analysis plan, Phase 1.
 
-  runR_topbit_flips.py check|measure [--out DIR] [--bits 6 7] [--limit N] [--threads T]
+  runR_topbit_flips.py check|measure|logits|background [--out DIR] [--bits 6 7] [--limit N] [--threads T]
 Default <out>: workspace/runs/paper1_topbit_flips_kws_v1 in the paper worktree (NETSURF_SITE_WT moves it).
 """
 from __future__ import annotations
@@ -219,16 +228,152 @@ def measure(a):
     log(stage="measure done", flips=done, seconds=round(time.time() - t0))
 
 
+def to_codes(comp, logits):
+    """INT8 output codes of the logits (the output layer rounds to INT8); asserts the decoding is exact."""
+    s, zp = comp._quantization(DENSE[2])
+    z = logits.numpy().astype(np.float64)
+    q = np.rint(z / s + zp)
+    assert np.all((q >= -128) & (q <= 127)), "output codes outside INT8"
+    assert np.max(np.abs((q - zp) * s - z)) < 1e-3 * s, "logits are not on the INT8 output grid"
+    return q.astype(np.int8)
+
+
+def logits(a):
+    m, x, y, sets = setup(a.threads)
+    log(phase="logits", stage="model loaded", devices=[d.name for d in m.tf.config.list_logical_devices()])
+    D = Downstream(m, x, y)
+    a.out.mkdir(parents=True, exist_ok=True)
+    clean = to_codes(m.comp, m.comp.forward(x)[0])
+    if not (a.out / "clean.npz").exists():
+        np.savez(a.out / "clean.npz", codes=clean, labels=y)
+    index = {n: i for i, n in enumerate(m.names)}
+    total = sum(int(m.starts[index[n] + 1] - m.starts[index[n]]) for n in m.names) * len(a.bits)
+    total = min(total, a.limit) if a.limit else total
+    compare = dict(layers={}, clean_same_correct=None)
+    if a.compare:
+        ref = np.load(a.compare / "clean.npz")
+        compare["clean_same_correct"] = bool(np.array_equal(ref["correct"], (clean.argmax(1) == y).astype(np.int8)))
+    done, t0 = 0, time.time()
+    for name in m.names:
+        k = int(name.split("_")[2].split("/")[0])
+        target = a.out / f"layer_{k}.npz"
+        lo, hi = int(m.starts[index[name]]), int(m.starts[index[name] + 1])
+        pairs = [(w, b) for w in range(lo, hi) for b in a.bits]
+        if a.limit:
+            pairs = pairs[: max(0, a.limit - done)]
+        if not pairs:
+            break
+        if target.exists():
+            done += len(pairs)
+            log(stage="layer skipped (exists)", layer=name)
+            continue
+        fn = D.func(k)
+        Q = np.empty((len(pairs), len(y), clean.shape[1]), dtype=np.int8)
+        for i, (w, b) in enumerate(pairs):
+            Q[i] = to_codes(m.comp, fn(flipped_kernel(m, m.comp, name, w, b)))
+            done += 1
+            if done % a.log_every == 0:
+                el = time.time() - t0
+                log(done=done, total=total, layer=name, seconds=round(el), ms_per_flip=round(1000 * el / done, 1),
+                    eta_minutes=round(el / done * (total - done) / 60, 1))
+        if a.compare and (a.compare / target.name).exists():
+            ref = np.load(a.compare / target.name)
+            n_ref = min(len(pairs), len(ref["correct"]))
+            same = ref["correct"][:n_ref] == (Q[:n_ref].argmax(2) == y[None]).astype(np.int8)
+            compare["layers"][name] = dict(flips=n_ref, clips_differing=int((~same).sum()),
+                                           flips_with_a_difference=int((~same).any(1).sum()))
+        tmp = a.out / f"layer_{k}.tmp.npz"
+        np.savez(tmp, weight=np.array([p[0] for p in pairs]), bit=np.array([p[1] for p in pairs]), codes=Q)
+        tmp.rename(target)
+        log(stage="layer written", layer=name, flips=len(pairs), done=done, total=total,
+            **({"compare": compare["layers"].get(name)} if a.compare else {}))
+    if a.compare:
+        (a.out / "compare.json").write_text(json.dumps(compare, indent=1))
+    (a.out / "DONE").write_text(json.dumps(dict(flips=done, bits=a.bits, seconds=round(time.time() - t0, 1),
+                                                 sets={k: [v.start, v.stop] for k, v in sets.items()})))
+    log(stage="logits done", flips=done, seconds=round(time.time() - t0))
+
+
+BG_SEED, EVAL_SEED_STAGE4 = 20261212, 20261119
+
+
+def background(a):
+    from runP_phase12 import unpack
+    m, x, y, sets = setup(a.threads)
+    log(phase="background", stage="model loaded", devices=[d.name for d in m.tf.config.list_logical_devices()])
+    spec = json.loads((a.cells.with_suffix(".json")).read_text())
+    packed = np.load(a.cells)
+    a.out.mkdir(parents=True, exist_ok=True)
+    J = m.jumps
+    fields = [np.random.default_rng([EVAL_SEED_STAGE4, 0, f]).random((m.n, 8)) for f in range(a.fields)]
+
+    def codes_for(disp):
+        m.set_displacement(disp)
+        return to_codes(m.comp, m.comp.forward(x)[0])
+
+    clean = codes_for(np.zeros(m.n))
+    if not (a.out / "clean.npz").exists():
+        np.savez(a.out / "clean.npz", codes=clean, labels=y)
+    groups = {}
+    for ci, c in enumerate(spec["cells"]):
+        groups.setdefault(c["group"], []).append((ci, c))
+    total, done, t0 = len(spec["cells"]), 0, time.time()
+    for g, cells in groups.items():
+        target = a.out / f"{g}.npz"
+        if target.exists():
+            done += len(cells)
+            log(stage="group skipped (exists)", group=g)
+            continue
+        G = np.empty((len(cells), a.draws, len(y), clean.shape[1]), dtype=np.int8)
+        Lo = np.empty((len(cells), a.fields, len(y), clean.shape[1]), dtype=np.int8)
+        Fu = np.empty_like(Lo)
+        counts = np.zeros((len(cells), a.fields, 2), dtype=np.int64)
+        for j, (ci, c) in enumerate(cells):
+            mask = unpack(packed[c["mask_key"]], m.n)
+            unprot = ~mask
+            low = unprot.copy()
+            low[:, 6:] = False
+            p = c["rate"]
+            mu = p * np.where(low, J, 0.0).sum(1)
+            sd = np.sqrt(p * (1 - p) * np.where(low, J * J, 0.0).sum(1))
+            for d in range(a.draws):
+                G[j, d] = codes_for(mu + sd * np.random.default_rng([BG_SEED, ci, d]).standard_normal(m.n))
+            for f in range(a.fields):
+                applied = (fields[f] < p) & unprot
+                Lo[j, f] = codes_for(np.where(applied & low, J, 0.0).sum(1))
+                Fu[j, f] = codes_for(np.where(applied, J, 0.0).sum(1))
+                counts[j, f] = [int(applied[:, 6:].sum()), int((applied & low).sum())]
+            done += 1
+            el = time.time() - t0
+            log(done=done, total=total, cell=c["key"], seconds=round(el), eta_minutes=round(el / done * (total - done) / 60, 1))
+        tmp = a.out / f"{g}.tmp.npz"
+        np.savez(tmp, cells=np.array([ci for ci, _ in cells]), gauss=G, low=Lo, full=Fu, applied_top_low=counts)
+        tmp.rename(target)
+    m.set_displacement(np.zeros(m.n))
+    (a.out / "DONE").write_text(json.dumps(dict(cells=total, draws=a.draws, fields=a.fields, seconds=round(time.time() - t0, 1),
+                                                 cells_sha256=sha256(a.cells), sets={k: [v.start, v.stop] for k, v in sets.items()})))
+    log(stage="background done", cells=total, seconds=round(time.time() - t0))
+
+
+def sha256(path):
+    import hashlib
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("phase", choices=("check", "measure"))
+    ap.add_argument("phase", choices=("check", "measure", "logits", "background"))
+    ap.add_argument("--compare", type=Path, default=None, help="logits: the margins run to compare correctness with")
+    ap.add_argument("--cells", type=Path, default=None, help="background: cells .npz (with a .json next to it)")
+    ap.add_argument("--draws", type=int, default=16)
+    ap.add_argument("--fields", type=int, default=8)
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--bits", type=int, nargs="+", default=[6, 7])
     ap.add_argument("--limit", type=int, default=0, help="stop after this many flips (smoke tests)")
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--log-every", type=int, default=1000)
     a = ap.parse_args()
-    {"check": check, "measure": measure}[a.phase](a)
+    {"check": check, "measure": measure, "logits": logits, "background": background}[a.phase](a)
 
 
 if __name__ == "__main__":
