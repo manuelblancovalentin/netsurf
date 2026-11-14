@@ -27,7 +27,8 @@ echo "job $SLURM_JOB_ID on $(hostname) at $(date)"
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
 python -c "import tensorflow as tf; g = tf.config.list_physical_devices('GPU'); print('TensorFlow GPUs:', g); assert g, 'no GPU visible to TensorFlow'"
 cd $SITE/wt/paper1-runR-v2-validated/workflows
-git log --oneline -1
+# compute nodes have no git: record the exact code by hash instead
+sha256sum runR_topbit_flips.py site_paths.py runR_kws.py quest/topbit_flips_kws.sbatch
 OUT=$SITE/wt/paper1-tecs-revision-v1/workspace/runs/paper1_topbit_flips_kws_v1
 python runR_topbit_flips.py check --out $OUT --threads 4
 python runR_topbit_flips.py measure --out $OUT --threads 4 --log-every 1000
