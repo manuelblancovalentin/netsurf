@@ -28,6 +28,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))          # the netsurf package
 
 FRACTIONS = (0.125, 0.25)
 CUT_LOW, CUT_HIGH = 0.30, 0.40          # plan Section 4, decided 15 November 2026
@@ -211,15 +212,140 @@ def cmd_diag_kws(a):
         size_study=summary["size_study"])
 
 
+RATES = (1e-4, 3e-4, 1e-3, 1.5e-3, 2e-3, 2.5e-3, 3e-3, 4e-3, 5e-3, 7e-3, 1e-2, 1.5e-2, 3e-2)   # plan Section 5
+FIELDS, SEED_FAULTS = 8, 20261218
+STAT_KEYS = ("g", "g2", "gabs", "gpos", "gneg", "se")
+
+
+def load_card(path: Path) -> dict:
+    """A checkpoint card (JSON): id, tflite, sha256, exploratory (bool), calibration and evaluation (lists of npz
+    files with int8 `x` and integer `y`, one per replication)."""
+    card = json.loads(Path(path).read_text())
+    for k in ("id", "tflite", "sha256", "calibration", "evaluation"):
+        if k not in card:
+            raise SystemExit(f"card {path} lacks {k}")
+    if len(card["calibration"]) != len(card["evaluation"]):
+        raise SystemExit("one evaluation window per calibration draw is required")
+    return card
+
+
+def load_xy(path):
+    z = np.load(path)
+    x, y = np.asarray(z["x"]), np.asarray(z["y"]).astype(np.int64).reshape(-1)
+    if x.dtype != np.int8:
+        raise SystemExit(f"{path}: inputs must be int8 encoded")
+    return x, y
+
+
+def card_model(card, threads):
+    return GenModel(Path(card["tflite"]).read_bytes(), threads, expected_sha256=card["sha256"])
+
+
+def cmd_diag(a):
+    """Phase 1 for one checkpoint card: <out>/<id>/summary.json and stats.npz (per-draw gradient statistics)."""
+    card = load_card(a.card)
+    m = card_model(card, a.threads)
+    out = a.out / card["id"]
+    out.mkdir(parents=True, exist_ok=False)
+    draws = [load_xy(p) for p in card["calibration"]]
+    if len({len(y) for _, y in draws}) != 1:
+        raise SystemExit("calibration draws must have equal size")
+    summary, stats = phase1(m, draws)
+    summary.update(id=card["id"], sha256=m.sha256, exploratory=bool(card.get("exploratory")),
+                   operators=sorted({o["name"] for o in m.comp.ops}))
+    summary["size_study"] = size_study(m, draws, (256, 512))
+    np.savez(out / "stats.npz", **{f"{k}@{r}": s[k] for r, s in enumerate(stats) for k in STAT_KEYS})
+    (out / "summary.json").write_text(json.dumps(summary, indent=1))
+    log(stage="done", id=card["id"], D1=round(summary["D1"], 3), D2=round(summary["D2"], 3),
+        prediction=summary["prediction"], size_study=summary["size_study"])
+
+
+def cmd_predictions(a):
+    """Collect every Phase 1 summary under <out> into <out>/predictions.json (frozen before Phase 2)."""
+    res = dict(status="gradient-trust predictions (plan Section 4), frozen before any Phase 2 fault run",
+               cut_low=CUT_LOW, cut_high=CUT_HIGH, checkpoints={})
+    for f in sorted(a.out.glob("*/summary.json")):
+        s = json.loads(f.read_text())
+        res["checkpoints"][s["id"]] = dict(D1=s["D1"], D2=s["D2"], prediction=s["prediction"],
+                                          exploratory=s["exploratory"], sha256=s["sha256"])
+    target = a.out / "predictions.json"
+    if target.exists():
+        raise SystemExit("predictions.json already exists (write-once)")
+    target.write_text(json.dumps(res, indent=1, sort_keys=True))
+    print(json.dumps(res["checkpoints"], indent=1))
+
+
+def masks_for(m, st):
+    from netsurf.mean_variance import top_budget
+    sc = m.scores(st)
+    msb = np.broadcast_to(np.arange(8, dtype=float), (m.n, 8))
+    out = {}
+    for f in FRACTIONS:
+        c = int(np.floor(f * m.n * 8))
+        out[f] = dict(abs1024=top_budget(sc["abs"], c), pos1024=top_budget(sc["pos"], c), msb=top_budget(msb, c))
+    return out
+
+
+def cmd_faults(a):
+    """Phase 2 for one card, replication and field: every rate, budget and arm on evaluation window `rep`."""
+    import zlib
+    card = load_card(a.card)
+    m = card_model(card, a.threads)
+    stats_file = a.diag / card["id"] / "stats.npz"
+    z = np.load(stats_file)
+    st = {k: z[f"{k}@{a.rep}"] for k in STAT_KEYS}
+    masks = masks_for(m, st)
+    xe, ye = load_xy(card["evaluation"][a.rep])
+    out = a.out / card["id"] / f"rep{a.rep}" / f"field{a.field}"
+    out.mkdir(parents=True, exist_ok=False)
+    t0 = time.time()
+    clean_acc, _, _, _ = m.evaluate(np.zeros((m.n, 8), bool), np.zeros((m.n, 8), bool), xe, ye)
+    cid = zlib.crc32(card["id"].encode())
+    u = np.random.default_rng([SEED_FAULTS, cid, a.rep, a.field]).random((m.n, 8))
+    jobs = [(p, f, arm) for p in RATES for f in FRACTIONS for arm in ("abs1024", "pos1024", "msb")]
+    rows = []
+    log(phase="faults", id=card["id"], rep=a.rep, field=a.field, clean_accuracy=clean_acc, done=0, total=len(jobs))
+    for i, (p, f, arm) in enumerate(jobs):
+        acc, ce, prop, app = m.evaluate(u < p, masks[f][arm], xe, ye)
+        rows.append(dict(checkpoint=card["id"], rep=a.rep, field=a.field, ber=p, budget=f, arm=arm, window=len(ye),
+                         accuracy=acc, cross_entropy=ce, proposed=prop, applied=app))
+        el = time.time() - t0
+        log(done=i + 1, total=len(jobs), seconds=round(el), eta_minutes=round(el / (i + 1) * (len(jobs) - i - 1) / 60, 1))
+    import csv
+    with open(out / "results.csv", "w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
+    (out / "clean.json").write_text(json.dumps(dict(checkpoint=card["id"], rep=a.rep, clean_accuracy=clean_acc)))
+    (out / "DONE").write_text(json.dumps(dict(seconds=round(time.time() - t0), evaluations=len(rows),
+                                              stats_sha256=__import__("hashlib").sha256(stats_file.read_bytes()).hexdigest())))
+
+
+def cmd_clean_table(a):
+    """<out>/<id>/clean.csv from the per-field clean.json files (one row per replication)."""
+    import csv
+    for d in sorted(p for p in a.out.iterdir() if p.is_dir()):
+        rows = {}
+        for f in sorted(d.glob("rep*/field*/clean.json")):
+            c = json.loads(f.read_text())
+            rows[c["rep"]] = c
+        with open(d / "clean.csv", "w", newline="") as fh:
+            w = csv.DictWriter(fh, fieldnames=["checkpoint", "rep", "clean_accuracy"]); w.writeheader()
+            w.writerows(rows[r] for r in sorted(rows))
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("command", choices=("diag-kws",))
+    ap.add_argument("command", choices=("diag-kws", "diag", "predictions", "faults", "clean-table"))
     ap.add_argument("out", type=Path)
+    ap.add_argument("--card", type=Path)
+    ap.add_argument("--diag", type=Path, help="faults: the Phase 1 output folder (stats.npz per checkpoint)")
+    ap.add_argument("--rep", type=int, default=0)
+    ap.add_argument("--field", type=int, default=0)
     ap.add_argument("--threads", type=int, default=4)
     a = ap.parse_args()
-    if os.environ.get("CUDA_VISIBLE_DEVICES", None) != "":
+    if a.command in ("diag-kws", "diag", "faults") and os.environ.get("CUDA_VISIBLE_DEVICES", None) != "":
         raise SystemExit('run on CPU: CUDA_VISIBLE_DEVICES=""')
-    {"diag-kws": cmd_diag_kws}[a.command](a)
+    {"diag-kws": cmd_diag_kws, "diag": cmd_diag, "predictions": cmd_predictions, "faults": cmd_faults,
+     "clean-table": cmd_clean_table}[a.command](a)
 
 
 if __name__ == "__main__":
