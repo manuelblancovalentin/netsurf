@@ -185,9 +185,15 @@ Each asset is registered with a lock (files by sha256), as done for the ResNet-8
    - confirm that the existing locks are usable;
    - add the same index files: 6 calibration draws of 1,024 from training data, 6 evaluation windows of 1,000.
 
-## 9. Open points for the researcher
+## 9. Decisions (researcher, 15 November 2026: "Perfect … Send the plan. And let's run stuff.")
 
-- **The thresholds 0.30 and 0.40.** A single cut-off (0.34) would give a prediction for every checkpoint, at the
-  cost of more risk near it.
-- **Whether ToyCar AD stays in at all.** Its metric differs; it is listed as exploratory.
-- **Whether to send Section 8 to the kona-assets session as written.**
+- **Thresholds:** the two cut-offs 0.30 and 0.40 stand, with the no-prediction band between them.
+- **ToyCar AD:** stays in as exploratory only. It is not counted in the decision rule.
+- **Section 8:** sent to the kona-assets session as written.
+- **Where to run:** Quest, on CPU.
+  - The TFLite reference kernels run only on CPU.
+  - The masks must also be built on CPU: on the GPU, summation order moved 85–100 near-tied bits of an abs1024 mask
+    (14 November).
+  - GPUs would only speed up the companion passes, which this plan does not need in its fault runs.
+  - Phase 1 and Phase 2 therefore run as Quest `short`-partition CPU arrays, each preceded by a one-cell timing smoke
+    run.
