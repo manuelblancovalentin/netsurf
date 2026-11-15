@@ -16,13 +16,13 @@ from netsurf.tflite_graph_companion import TFLiteGraphCompanion, UnsupportedGrap
 def _model(conv=True):
     tf.keras.utils.set_random_seed(7)
     if conv:
-        inp = tf.keras.Input((8, 8, 2))
+        inp = tf.keras.Input((8, 8, 2), batch_size=1)   # static batch, as the MLPerf models
         x = tf.keras.layers.Conv2D(4, 3, strides=2, padding="same", activation="relu")(inp)
         x = tf.keras.layers.DepthwiseConv2D(3, padding="same", activation="relu")(x)
         x = tf.keras.layers.AveragePooling2D(2)(x)
-        x = tf.keras.layers.Flatten()(x)
+        x = tf.keras.layers.Reshape((16,))(x)          # fixed shape: Flatten adds SHAPE ops under newer TF
     else:
-        inp = tf.keras.Input((6,))
+        inp = tf.keras.Input((6,), batch_size=1)
         x = inp
     x = tf.keras.layers.Dense(8, activation="relu")(x)
     out = tf.keras.layers.Dense(3, activation="softmax")(x)
@@ -31,7 +31,7 @@ def _model(conv=True):
     xs = rng.normal(size=(200, *inp.shape[1:])).astype(np.float32)
     ys = rng.integers(0, 3, size=200)
     model.compile("adam", "sparse_categorical_crossentropy")
-    model.fit(xs, ys, epochs=3, verbose=0, batch_size=32)
+    model.fit(xs, ys, epochs=3, verbose=0, batch_size=1)
     conv_ = tf.lite.TFLiteConverter.from_keras_model(model)
     conv_.optimizations = [tf.lite.Optimize.DEFAULT]
     conv_.representative_dataset = lambda: ([v[None]] for v in xs[:64])
