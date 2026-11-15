@@ -132,14 +132,14 @@ def first_order(jumps, pos, abs_):
     return (jumps * (abs_.astype(float) - pos.astype(float))).sum(1)
 
 
-def phase1(model: GenModel, draws, sizes=(256, 512)):
+def phase1(model: GenModel, draws, sizes=(256, 512), batch=256):
     """draws: list of (x, y) disjoint calibration sets of equal size.  Returns (summary, per-draw arrays)."""
     from netsurf.mean_variance import top_budget
     from runR_stage4_diagnostics import grad_stats
     t0 = time.time()
     stats = []
     for r, (x, y) in enumerate(draws):
-        stats.append(model.gradient_stats(x, y))
+        stats.append(model.gradient_stats(x, y, batch=batch))
         log(stage="gradients", draw=r, done=r + 1, total=len(draws), seconds=round(time.time() - t0))
     G = np.stack([s["g"] for s in stats])
     R = len(stats)
@@ -171,17 +171,17 @@ def phase1(model: GenModel, draws, sizes=(256, 512)):
     return summary, stats
 
 
-def size_study(model, draws, sizes):
+def size_study(model, draws, sizes, batch=256):
     """D1 at other calibration sizes (descriptive): the first `n` inputs of every draw, and pairs of draws merged."""
     out = {}
     for n in sizes:
-        st = [model.gradient_stats(x[:n], y[:n])["g"] for x, y in draws]
+        st = [model.gradient_stats(x[:n], y[:n], batch=batch)["g"] for x, y in draws]
         c = np.corrcoef(np.stack(st))[np.triu_indices(len(st), 1)]
         out[str(n)] = float(np.median(c))
     merged = [(np.concatenate([draws[k][0], draws[k + 1][0]]), np.concatenate([draws[k][1], draws[k + 1][1]]))
               for k in range(0, len(draws) - 1, 2)]
     if len(merged) >= 2:
-        st = [model.gradient_stats(x, y)["g"] for x, y in merged]
+        st = [model.gradient_stats(x, y, batch=batch)["g"] for x, y in merged]
         c = np.corrcoef(np.stack(st))[np.triu_indices(len(st), 1)]
         out[str(len(merged[0][1]))] = float(np.median(c))
     return out
@@ -262,10 +262,10 @@ def cmd_diag(a):
     draws = [load_xy(p) for p in card["calibration"]]
     if len({len(y) for _, y in draws}) != 1:
         raise SystemExit("calibration draws must have equal size")
-    summary, stats = phase1(m, draws)
+    summary, stats = phase1(m, draws, batch=a.grad_batch)
     summary.update(id=card["id"], sha256=m.sha256, exploratory=bool(card.get("exploratory")),
                    operators=sorted({o["name"] for o in m.comp.ops}))
-    summary["size_study"] = size_study(m, draws, (256, 512))
+    summary["size_study"] = size_study(m, draws, (256, 512), batch=a.grad_batch)
     np.savez(out / "stats.npz", **{f"{k}@{r}": s[k] for r, s in enumerate(stats) for k in STAT_KEYS})
     (out / "summary.json").write_text(json.dumps(summary, indent=1))
     log(stage="done", id=card["id"], D1=round(summary["D1"], 3), D2=round(summary["D2"], 3),
@@ -353,6 +353,7 @@ def main():
     ap.add_argument("--rep", type=int, default=0)
     ap.add_argument("--field", type=int, default=0)
     ap.add_argument("--threads", type=int, default=4)
+    ap.add_argument("--grad-batch", type=int, default=256, help="examples per vectorized gradient batch (memory)")
     a = ap.parse_args()
     if a.command in ("diag-kws", "diag", "faults") and os.environ.get("CUDA_VISIBLE_DEVICES", None) != "":
         raise SystemExit('run on CPU: CUDA_VISIBLE_DEVICES=""')

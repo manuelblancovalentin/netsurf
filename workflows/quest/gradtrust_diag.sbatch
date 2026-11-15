@@ -7,7 +7,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=24G
+#SBATCH --mem=64G
 #SBATCH --time=02:00:00
 #SBATCH --job-name=gt_diag
 #SBATCH --output=/home/mbv6231/netsurf_site/logs/gradtrust_diag_%j.log
@@ -21,5 +21,5 @@ echo "job $SLURM_JOB_ID on $(hostname) at $(date): card ${CARD:?}"
 cd $SITE/wt/paper1-runR-v2-validated/workflows
 sha256sum runG_gradtrust.py ../netsurf/tflite_graph_companion.py quest/gradtrust_diag.sbatch "$CARD"
 RUNS=$SITE/wt/paper1-tecs-revision-v1/workspace/runs
-python runG_gradtrust.py diag $RUNS/paper1_gradtrust_diag_v1 --card "$CARD" --threads 8
+python runG_gradtrust.py diag $RUNS/paper1_gradtrust_diag_v1 --card "$CARD" --threads 8 --grad-batch ${GRAD_BATCH:-256}
 echo "finished at $(date)"
