@@ -11,8 +11,8 @@ interpreter must be measured, never assumed.
 
 Supported operators: QUANTIZE, DEQUANTIZE (graph boundaries), FULLY_CONNECTED, CONV_2D, DEPTHWISE_CONV_2D,
 AVERAGE_POOL_2D, MAX_POOL_2D, MEAN (over height and width), ADD, RESHAPE, SOFTMAX; fused NONE, RELU, RELU6.
-Anything else raises.  The logits are the input of the final SOFTMAX; the loss is sparse cross-entropy on them (the
-pinned companions' loss).  Side effect free; TensorFlow is imported when an instance is built.
+Anything else raises.  The logits are the input of the final SOFTMAX, or the model output when there is no SOFTMAX;
+the loss is sparse cross-entropy on them (the pinned companions' loss).  Side effect free; TensorFlow is imported when an instance is built.
 """
 from __future__ import annotations
 
@@ -89,9 +89,13 @@ class TFLiteGraphCompanion:
             opts = self._options(schema, name, op)
             self.ops.append(dict(name=name, inputs=ins, outputs=outs, options=opts))
         softmax = [o for o in self.ops if o["name"] == "SOFTMAX"]
-        if len(softmax) != 1:
-            raise UnsupportedGraph("exactly one SOFTMAX is required (classification models)")
-        self.logits_tensor = softmax[0]["inputs"][0]
+        if len(softmax) > 1:
+            raise UnsupportedGraph("at most one SOFTMAX is supported")
+        # Classifier with a final SOFTMAX: logits are its input.  Without one, the model's output is the logits.
+        self.has_softmax = bool(softmax)
+        if softmax and softmax[0]["outputs"][0] != self.outputs[0]:
+            raise UnsupportedGraph("the SOFTMAX must produce the model output")
+        self.logits_tensor = softmax[0]["inputs"][0] if softmax else self.outputs[0]
 
     @staticmethod
     def _options(schema, name, op):
@@ -231,7 +235,8 @@ class TFLiteGraphCompanion:
             else:
                 raise UnsupportedGraph(name)
             env[out] = self._requantize_ste(y, out)
-        return env[self.logits_tensor], env[self.outputs[0]]
+        logits = env[self.logits_tensor]
+        return logits, (env[self.outputs[0]] if self.has_softmax else tf.nn.softmax(logits))
 
     def losses(self, encoded_inputs, labels):
         logits, _ = self.forward(encoded_inputs)
@@ -239,7 +244,10 @@ class TFLiteGraphCompanion:
         return self.tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
 
     def encoded_outputs(self, encoded_inputs):
-        _, p = self.forward(encoded_inputs)
+        """The int8 codes of the model output (probabilities, or logits for a model without SOFTMAX)."""
+        logits, p = self.forward(encoded_inputs)
+        if not self.has_softmax:
+            p = logits
         scale, zp = self._qparams(self.outputs[0])
         return np.clip(np.rint(p.numpy() / scale + zp), -128, 127).astype(np.int8)
 

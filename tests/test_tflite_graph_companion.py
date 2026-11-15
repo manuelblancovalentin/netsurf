@@ -88,3 +88,27 @@ def test_unsupported_operator_is_refused():
     c.inference_output_type = tf.int8
     with pytest.raises(UnsupportedGraph):
         TFLiteGraphCompanion(c.convert())
+
+
+def test_logit_output_model_is_supported():
+    tf.keras.utils.set_random_seed(3)
+    inp = tf.keras.Input((6,), batch_size=1)
+    out = tf.keras.layers.Dense(3)(tf.keras.layers.Dense(8, activation="relu")(inp))
+    model = tf.keras.Model(inp, out)
+    rng = np.random.default_rng(1)
+    xs = rng.normal(size=(64, 6)).astype(np.float32)
+    c = tf.lite.TFLiteConverter.from_keras_model(model)
+    c.optimizations = [tf.lite.Optimize.DEFAULT]
+    c.representative_dataset = lambda: ([v[None]] for v in xs)
+    c.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+    c.inference_input_type = tf.int8
+    c.inference_output_type = tf.int8
+    content = c.convert()
+    g = TFLiteGraphCompanion(content)
+    assert not g.has_softmax
+    _, (scale, zp) = _reference(content, np.zeros((1, 6), np.int8))
+    x8 = np.clip(np.rint(xs / scale + zp), -128, 127).astype(np.int8)
+    ref, _ = _reference(content, x8)
+    assert np.mean(np.abs(g.encoded_outputs(x8).astype(int) - ref.astype(int)) <= 1) >= 0.95
+    logits, p = g.forward(x8)
+    np.testing.assert_allclose(p.numpy().sum(1), 1.0, rtol=1e-5)

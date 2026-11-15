@@ -102,7 +102,7 @@ class GenModel:
 
     # ---- reference-kernel evaluation with flipped stored bits ----
     def evaluate(self, flips, mask, x, y):
-        """Accuracy and mean cross-entropy (from the int8 softmax output) of the TFLite reference interpreter with
+        """Accuracy and mean cross-entropy (from the int8 softmax output, or the softmax of the int8 logits) of the TFLite reference interpreter with
         the bits `flips & ~mask` flipped in the stored kernels."""
         tf = self.tf
         applied = flips & ~mask
@@ -120,9 +120,11 @@ class GenModel:
             it.set_tensor(i["index"], s[None])
             it.invoke()
             q = it.get_tensor(o["index"])[0].astype(np.float64)
-            p = (q - zp) * sc
+            v = (q - zp) * sc
+            if not self.comp.has_softmax:                  # the output is the logits
+                v = np.exp(v - v.max()); v = v / v.sum()
             correct += int(np.argmax(q) == lab)
-            ce += -np.log(max(p[int(lab)], 1e-12))
+            ce += -np.log(max(v[int(lab)], 1e-12))
         return correct / len(y), ce / len(y), int(flips.sum()), int(applied.sum())
 
 
