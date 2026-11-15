@@ -175,3 +175,69 @@ def path_masks(n: int, gs: list[Group], accepted: list[int], counts: dict, rng: 
             raise ValueError(f"accepted groups hold only {used} bits, budget {f} needs {count}")
         full[f] = mk
     return full, whole
+
+
+# ---- swap search from abs1024 (pre-registration review/PARTIAL_SEARCH_FOLLOWUP_PREREG_2026-11-14.md) ---------------
+# State: one protected count per group; the protected bits of a group are always the first `count` of its weights in
+# score order (highest first, ties by storage order).  A top-budget mask of the same score has this form in every group.
+
+def group_orders(gs: list[Group], score: np.ndarray) -> dict:
+    """gid -> absolute weight indices of the group in descending score order, ties by storage order."""
+    out = {}
+    for g in gs:
+        s = np.asarray(score[g.lo:g.hi, g.bit], dtype=np.float64)
+        out[g.gid] = g.lo + np.lexsort((np.arange(s.size), -s))
+    return out
+
+
+def prefix_counts(mask: np.ndarray, gs: list[Group], orders: dict) -> dict:
+    """gid -> protected count; ValueError if some group's protected bits are not a prefix of its score order."""
+    out = {}
+    for g in gs:
+        col = mask[orders[g.gid], g.bit]
+        c = int(col.sum())
+        if not col[:c].all():
+            raise ValueError(f"group {g.gid}: protected bits are not a prefix of the score order")
+        out[g.gid] = c
+    return out
+
+
+def prefix_mask(n: int, gs: list[Group], orders: dict, counts: dict) -> np.ndarray:
+    mk = np.zeros((n, 8), dtype=bool)
+    for g in gs:
+        mk[orders[g.gid][:counts[g.gid]], g.bit] = True
+    return mk
+
+
+def apply_move(counts: dict, sizes: dict, move: int, add: int | None = None, remove: int | None = None) -> dict:
+    """Grow group `add` and/or shrink group `remove` by `move` bits; ValueError if a count would leave [0, size]."""
+    out = dict(counts)
+    if add is not None:
+        out[add] += move
+    if remove is not None:
+        out[remove] -= move
+    for gid in (add, remove):
+        if gid is not None and not 0 <= out[gid] <= sizes[gid]:
+            raise ValueError(f"group {gid}: count {out[gid]} outside [0, {sizes[gid]}]")
+    return out
+
+
+def swap_moves(counts: dict, sizes: dict, move: int):
+    """(groups that can grow by `move`, groups that can shrink by `move`), each in gid order."""
+    adds = [g for g in sorted(counts) if sizes[g] - counts[g] >= move]
+    removes = [g for g in sorted(counts) if counts[g] >= move]
+    return adds, removes
+
+
+def propose_swap(gain: dict, loss: dict):
+    """(out gid, in gid, predicted) maximising gain[in] - loss[out] over different groups; ties by smaller in gid, then
+    smaller out gid.  None if no pair exists."""
+    best = None
+    for i in sorted(gain):
+        for o in sorted(loss):
+            if i == o:
+                continue
+            v = gain[i] - loss[o]
+            if best is None or v > best[2]:
+                best = (o, i, v)
+    return best

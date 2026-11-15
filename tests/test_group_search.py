@@ -176,3 +176,66 @@ def test_slice_path_masks_exact_nested_and_filled_in_score_order():
 
 def test_budget_counts_floor():
     assert budget_counts(176128, (0.125, 0.1875, 0.25, 0.375)) == {0.125: 22016, 0.1875: 33024, 0.25: 44032, 0.375: 66048}
+
+
+# ---- swap search -----------------------------------------------------------------------------------------------------
+
+from netsurf.group_search import (apply_move, group_orders, prefix_counts, prefix_mask, propose_swap,  # noqa: E402
+                                  swap_moves)
+from netsurf.mean_variance import top_budget  # noqa: E402
+
+
+def test_top_budget_is_a_prefix_in_every_group_and_round_trips():
+    rng = np.random.default_rng(3)
+    score = rng.integers(0, 4, size=(N, 8)).astype(float)          # many ties
+    gs = groups(STARTS)
+    orders = group_orders(gs, score)
+    for b in range(0, N * 8 + 1, 7):
+        mk = top_budget(score, b)
+        c = prefix_counts(mk, gs, orders)
+        assert sum(c.values()) == b
+        assert (prefix_mask(N, gs, orders, c) == mk).all()
+
+
+def test_group_orders_match_single_slice_order():
+    rng = np.random.default_rng(4)
+    score = rng.integers(0, 3, size=(N, 8)).astype(float)
+    gs = groups(STARTS)
+    orders = group_orders(gs, score)
+    for s in slices(gs, score, 1):
+        assert (orders[s.gid] == s.idx).all()
+
+
+def test_prefix_counts_rejects_a_non_prefix():
+    gs = groups(STARTS)
+    orders = group_orders(gs, np.zeros((N, 8)))        # storage order
+    mk = np.zeros((N, 8), dtype=bool)
+    mk[1, 0] = True                                     # second weight of group 0 without the first
+    with pytest.raises(ValueError):
+        prefix_counts(mk, gs, orders)
+
+
+def test_moves_keep_the_total_and_respect_bounds():
+    sizes = {0: 6, 1: 4, 2: 9}
+    counts = {0: 3, 1: 4, 2: 0}
+    adds, removes = swap_moves(counts, sizes, 2)
+    assert adds == [0, 2] and removes == [0, 1]
+    new = apply_move(apply_move(counts, sizes, 2, remove=1), sizes, 2, add=2)
+    assert new == {0: 3, 1: 2, 2: 2} and sum(new.values()) == sum(counts.values())
+    with pytest.raises(ValueError):
+        apply_move(counts, sizes, 2, add=1)
+    with pytest.raises(ValueError):
+        apply_move(counts, sizes, 2, remove=2)
+
+
+def test_propose_swap_is_the_brute_force_best_pair_of_different_groups():
+    assert propose_swap({0: 0.5, 1: 0.2, 2: 0.4}, {0: 0.0, 1: 0.1}) == (1, 0, 0.4)   # in 0 with out 0 excluded
+    tie = propose_swap({0: 0.5, 2: 0.5}, {1: 0.1, 3: 0.1})       # four pairs tie at 0.4
+    assert tie[:2] == (1, 0)                                       # smaller in gid, then smaller out gid
+    assert propose_swap({0: 1.0}, {0: 0.0}) is None
+    rng = np.random.default_rng(5)
+    for _ in range(50):
+        g = {k: float(v) for k, v in enumerate(rng.normal(size=6))}
+        l = {k: float(v) for k, v in enumerate(rng.normal(size=6))}
+        o, i, v = propose_swap(g, l)
+        assert o != i and v == max(g[a] - l[b] for a, b in itertools.product(g, l) if a != b)

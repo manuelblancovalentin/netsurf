@@ -12,6 +12,13 @@ how much of each group to protect; within a group the order is abs1024's.
   search    --rep R --rate P --parts S   One path on the first --clips calibration clips of replication R, with the
             scores of `scores` (checked again).  Seeds [20261215, R, rate index, round, draw].  Output
             <out>/rep<R>_mc_<P>_s<S>/: rounds.json, masks.npz (mask@<budget>), scores_check.json, DONE.
+  swap      --rep R --rate P --budget F   Swap search from abs1024 at one budget (pre-registration
+            review/PARTIAL_SEARCH_FOLLOWUP_PREREG_2026-11-14.md): protected bits stay a prefix of each group's abs order;
+            a move drops the last --move protected bits of one group and protects the next --move of another.  Each
+            round proposes the best pair from one-group changes on --K fields (seeds [20261217, R, rate index, budget
+            index, round, 0, draw]) and verifies it against the current mask on --K-verify fresh fields ([..., round, 1,
+            draw]); accepted if the paired mean gain is positive and above 2 standard errors.  Stops after
+            --stop-after rejections in a row or --max-rounds rounds.  <out>/rep<R>_mc_<P>_swap_b<F>/.
   evaluate  --rep R --field F   Every finished path of replication R in the Stage 4 protocol (engine check, TFLite on
             test window R, field seeds [20261119, R, F]), each mask at its own rate.  <out>/rep<R>/field<F>/results.csv.
 
@@ -35,6 +42,7 @@ from runR_group_search import FRACTIONS, log, rate_index, require_reference_tf  
 
 RUNS = WT / "paper1-tecs-revision-v1/workspace/runs"
 SEED_PARTIAL = 20261215
+SEED_SWAP = 20261217
 
 
 def rebuild_differences(score, stored: dict, counts: dict) -> dict:
@@ -175,6 +183,111 @@ def cmd_search(a):
         seconds_per_pass=round((time.time() - t_search) / max(passes, 1), 4))
 
 
+def cmd_swap(a):
+    from runP_phase12 import pack
+    from runR_kws import CAL_COUNT, KwsModel
+    from runR_stage1 import bkey
+    from netsurf.group_search import (apply_move, budget_counts, group_orders, groups, prefix_counts, prefix_mask,
+                                      propose_swap, swap_moves)
+    t0 = time.time()
+    m = KwsModel(a.threads)
+    tf = m.tf
+    require_reference_tf(tf)
+    p, ri, rep, b = a.rate, rate_index(a.rate), a.rep, a.budget
+    bi = FRACTIONS.index(b)
+    out = a.out / f"rep{rep}_mc_{p:g}_swap_b{b:g}"
+    out.mkdir(parents=True, exist_ok=False)
+    counts_b = budget_counts(m.n * 8, FRACTIONS)
+    S = np.load(a.scores / f"rep{rep}" / "abs.npy")
+    stored = stored_abs1024(m.n, rep)
+    diff = rebuild_differences(S, stored, counts_b)
+    (out / "scores_check.json").write_text(json.dumps(dict(rep=rep, scores=str(a.scores), differing_bits=diff), indent=1))
+    if any(diff.values()):
+        raise SystemExit(f"the scores do not rebuild the stored abs1024 masks: {diff}")
+    gs = groups(m.starts)
+    orders = group_orders(gs, S)
+    sizes = {g.gid: g.hi - g.lo for g in gs}
+    start = prefix_counts(stored[b], gs, orders)
+    assert (prefix_mask(m.n, gs, orders, start) == stored[b]).all() and sum(start.values()) == counts_b[b]
+
+    x, y, idx = m.clips("ranking", a.clips, CAL_COUNT * rep)
+    x, y = np.asarray(x), np.asarray(y).astype(np.int64)
+    J = m.jumps
+    passes = 0
+
+    def acc_of(mk, fields):
+        nonlocal passes
+        r = np.empty(len(fields))
+        for d, u in enumerate(fields):
+            m.set_displacement(np.where(u & ~mk, J, 0.0).sum(1))
+            logits, _ = m.comp.forward(x)
+            r[d] = float(np.mean(logits.numpy().argmax(1) == y))
+            passes += 1
+        return r
+
+    def draw(rr, stage, K):
+        return [np.random.default_rng([SEED_SWAP, rep, ri, bi, rr, stage, d]).random((m.n, 8)) < p for d in range(K)]
+
+    log(phase="swap", rep=rep, rate=p, budget=b, move=a.move, K=a.K, K_verify=a.K_verify, clips=len(y), done=0,
+        total=a.max_rounds, seconds=round(time.time() - t0))
+    counts, rounds, rejections, t_search = dict(start), [], 0, time.time()
+    for rr in range(a.max_rounds):
+        tr = time.time()
+        fields = draw(rr, 0, a.K)
+        adds, removes = swap_moves(counts, sizes, a.move)
+        base = acc_of(prefix_mask(m.n, gs, orders, counts), fields)
+        gain, loss, se = {}, {}, {}
+        for g in adds:
+            d = acc_of(prefix_mask(m.n, gs, orders, apply_move(counts, sizes, a.move, add=g)), fields) - base
+            gain[g], se[("add", g)] = float(d.mean()), float(d.std(ddof=1) / np.sqrt(a.K))
+        for g in removes:
+            d = base - acc_of(prefix_mask(m.n, gs, orders, apply_move(counts, sizes, a.move, remove=g)), fields)
+            loss[g], se[("remove", g)] = float(d.mean()), float(d.std(ddof=1) / np.sqrt(a.K))
+        prop = propose_swap(gain, loss)
+        rec = dict(index=rr, current=float(base.mean()), adds=len(adds), removes=len(removes))
+        if prop is None:
+            rec.update(stopped="no swap possible")
+            rounds.append(rec)
+            break
+        o, i, predicted = prop
+        new = apply_move(apply_move(counts, sizes, a.move, remove=o), sizes, a.move, add=i)
+        vf = draw(rr, 1, a.K_verify)
+        dv = acc_of(prefix_mask(m.n, gs, orders, new), vf) - acc_of(prefix_mask(m.n, gs, orders, counts), vf)
+        vm, vs = float(dv.mean()), float(dv.std(ddof=1) / np.sqrt(a.K_verify))
+        accepted = vm > 0 and vm > 2 * vs
+        rec.update(out=o, into=i, predicted=predicted, gain_in=gain[i], se_in=se[("add", i)], loss_out=loss[o],
+                   se_out=se[("remove", o)], verify_mean=vm, verify_se=vs, accepted=bool(accepted),
+                   seconds=round(time.time() - tr, 1))
+        rounds.append(rec)
+        if accepted:
+            counts, rejections = new, 0
+        else:
+            rejections += 1
+        el = time.time() - t_search
+        log(round=rr, done=rr + 1, total=a.max_rounds, out=o, into=i, predicted=round(predicted, 5),
+            verify=round(vm, 5), verify_se=round(vs, 5), accepted=bool(accepted), rejections_in_a_row=rejections,
+            round_seconds=rec["seconds"], seconds=round(el), eta_minutes=round(el / (rr + 1) * (a.max_rounds - rr - 1) / 60, 1))
+        if a.max_round_seconds and rec["seconds"] > a.max_round_seconds:
+            (out / "rounds.json").write_text(json.dumps(rounds))
+            raise SystemExit(f"round {rr} took {rec['seconds']} s, more than the limit {a.max_round_seconds} s")
+        if rejections >= a.stop_after:
+            break
+    m.set_displacement(np.zeros(m.n))
+    final = prefix_mask(m.n, gs, orders, counts)
+    assert int(final.sum()) == counts_b[b]
+    (out / "rounds.json").write_text(json.dumps(rounds))
+    np.savez(out / "masks.npz", **{f"mask@{bkey(b)}": pack(final)})
+    moved = {str(g): counts[g] - start[g] for g in counts if counts[g] != start[g]}
+    (out / "DONE").write_text(json.dumps(dict(
+        rep=rep, rate=p, rate_index=ri, budget=b, budget_index=bi, parts="swap", move=a.move, K=a.K,
+        K_verify=a.K_verify, clips=len(y), calibration_first=int(idx[0]), rounds=len(rounds),
+        accepted=int(sum(r.get("accepted", False) for r in rounds)), moved_bits_by_group=moved,
+        differing_from_abs1024=int((final & ~stored[b]).sum()), passes=passes, seconds=round(time.time() - t0, 1)),
+        indent=1))
+    log(stage="swap done", rounds=len(rounds), accepted=int(sum(r.get("accepted", False) for r in rounds)),
+        passes=passes, seconds=round(time.time() - t0), seconds_per_pass=round((time.time() - t_search) / max(passes, 1), 4))
+
+
 def cmd_evaluate(a):
     from runP_phase12 import Replayer, unpack
     from runR_kws import OUT as PREP, KwsModel
@@ -190,7 +303,8 @@ def cmd_evaluate(a):
         meta = json.loads((d / "DONE").read_text())
         z = np.load(d / "masks.npz")
         for k in z.files:
-            masks.append((f"partial_s{meta['parts']}", float(k.split("@")[1]), float(meta["rate"]), unpack(z[k], m.n)))
+            arm = a.arm or f"partial_s{meta['parts']}"
+            masks.append((arm, float(k.split("@")[1]), float(meta["rate"]), unpack(z[k], m.n)))
     if not masks:
         raise SystemExit(f"no finished search path for replication {rep} in {a.search}")
     out = a.out / f"rep{rep}" / f"field{a.field}"
@@ -223,7 +337,7 @@ def cmd_evaluate(a):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("command", choices=("scores", "search", "evaluate"))
+    ap.add_argument("command", choices=("scores", "search", "swap", "evaluate"))
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--rep", type=int, required=True, choices=range(6))
     ap.add_argument("--rate", type=float, default=1e-2)
@@ -234,10 +348,17 @@ def main():
     ap.add_argument("--max-rounds", type=int, default=0, help="stop after this many rounds (smoke tests)")
     ap.add_argument("--max-round-seconds", type=float, default=0, help="stop if one round takes longer (cost guard)")
     ap.add_argument("--field", type=int, default=0)
+    ap.add_argument("--budget", type=float, default=0.125, choices=FRACTIONS)
+    ap.add_argument("--move", type=int, default=256)
+    ap.add_argument("--K-verify", type=int, default=128)
+    ap.add_argument("--stop-after", type=int, default=3, help="swap: stop after this many rejections in a row")
+    ap.add_argument("--arm", default="", help="evaluate: arm label (default partial_s<parts>)")
     ap.add_argument("--search", type=Path, default=RUNS / "paper1_partial_search_kws_v1")
     ap.add_argument("--scores", type=Path, default=RUNS / "paper1_partial_search_scores_v1")
     a = ap.parse_args()
-    {"scores": cmd_scores, "search": cmd_search, "evaluate": cmd_evaluate}[a.command](a)
+    if a.command == "swap" and not a.max_rounds:
+        a.max_rounds = 40
+    {"scores": cmd_scores, "search": cmd_search, "swap": cmd_swap, "evaluate": cmd_evaluate}[a.command](a)
 
 
 if __name__ == "__main__":
