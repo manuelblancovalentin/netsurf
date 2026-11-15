@@ -226,6 +226,16 @@ def load_card(path: Path) -> dict:
             raise SystemExit(f"card {path} lacks {k}")
     if len(card["calibration"]) != len(card["evaluation"]):
         raise SystemExit("one evaluation window per calibration draw is required")
+    base = Path(path).resolve().parent
+
+    def resolve(v):
+        if v.startswith("data:"):
+            from site_paths import DATA
+            return str(DATA / v[5:])
+        return str(v if Path(v).is_absolute() else base / v)
+    card["tflite"] = resolve(card["tflite"])
+    card["calibration"] = [resolve(v) for v in card["calibration"]]
+    card["evaluation"] = [resolve(v) for v in card["evaluation"]]
     return card
 
 
