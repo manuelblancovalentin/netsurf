@@ -197,3 +197,26 @@ Each asset is registered with a lock (files by sha256), as done for the ResNet-8
   - GPUs would only speed up the companion passes, which this plan does not need in its fault runs.
   - Phase 1 and Phase 2 therefore run as Quest `short`-partition CPU arrays, each preceded by a one-cell timing smoke
     run.
+
+## 10. Amendment A1 (15 November 2026, before any Phase 1 result for the jet, MNIST or ToyCar models exists)
+
+Two Phase 1 results existed when this amendment was written:
+- VWW Phase 1 was submitted (Quest job 8844441). Its result had not been read.
+- The exploratory toy MLP had been run end to end.
+
+| Checkpoint | Decision | Why |
+|---|---|---|
+| **mnist-tcad** | Exploratory; not counted in the decision rule. | The TCAD checkpoint was trained on the first 20,000 MNIST training rows, which overlap its calibration draws. Kona assets reported this. Every other checkpoint's calibration draws are disjoint from its training data. |
+| **ToyCar AD** | Not run in Phase 1 for now. | It is an autoencoder, and the graph companion and the decision rule are for classifiers. It stays exploratory, as decided in Section 9. |
+| **VWW** | Inputs built by the NetSuRF side (`workflows/runG_vww_inputs.py`, 1e3cc42) under the plan's rules. | Done on the researcher's instruction to run VWW meanwhile. |
+
+**VWW input rules:**
+- Calibration draws come from the training part under MLPerf's `validation_split` of 0.1; evaluation windows come from the validation part.
+- The official evaluation images and the quantization images are excluded.
+- Files are ordered by sha256.
+
+**Test checkpoints counted in Section 6:** jet-e1, jet-e3, jet-e10, jet-e30, jet-e100; mnist-e1, mnist-e3, mnist-e10, mnist-e30; vww. That is 10 checkpoints.
+
+**Model-output detail:** the MNIST models output logits, without a SOFTMAX. The companion then uses the output as the logits, with the same loss as for the other models.
+
+**Toy MLP (exploratory, not part of the test):** the check predicted two regimes (D1 0.61). The fault runs showed one, with every difference within ±0.1 point. It is reported, and changes no rule.
