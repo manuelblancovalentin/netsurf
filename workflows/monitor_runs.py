@@ -227,6 +227,9 @@ def status(entry: dict) -> dict:
                 row["eta"] = fmt((now - start) / units * (int(entry["total"]) - units))
         if any("Traceback" in tail(log, 5000) for log in logs):
             row["problem"] = "error in a log"
+    elif kind == "slurm" and entry.get("status") == "finished":
+        # finished, copied back and locked: no SSH to the cluster on every refresh
+        row.update(complete=True, end=float(entry.get("finished") or now), detail=entry.get("note", "") + "  (finished)")
     elif kind == "slurm":
         slurm(entry, row)
     row["running"] = (not row["complete"]) and (row.get("state") in ("RUNNING", "PENDING", "CONFIGURING", "COMPLETING")
