@@ -204,3 +204,5 @@ Run on kona: 6 jobs of 4 threads now, plus 8 more when T1b has ended.
 - **First full job (8948045):** crashed with a segmentation fault inside ARPACK, whose 32-bit work arrays overflow at 596M dimensions × 20 vectors.
 - **Replacement solver:** Lanczos with full reorthogonalization, with the same acceptance checks, ordering and sign rule. It agrees with ARPACK to 1e-10 on a test operator (\`tests/test_lanczos_qwen.py\`, commit ab9307e).
 - **Resubmitted** as job 8951472.
+- **Pythia's first mask build failed** the solver's Hessian symmetry check (5.3e-5 against 1e-5). The cause: the Hugging Face attention computes softmax in float32, and Qwen's RMSNorm also normalizes in float32. Both FKeras scripts now keep these operations in float64 (commit 3902c4d). This changes precision only; the function is the same.
+- **Qwen** was resubmitted as Quest job 8955871. Pythia was restarted on kona.
