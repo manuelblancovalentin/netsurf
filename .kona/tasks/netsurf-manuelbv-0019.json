@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0019",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 19,
  "label": "",
  "title": "M9.8: ResNet conditional adapters and ToyCar task-risk gate",
  "summary": "M9.8: ResNet conditional adapters and ToyCar task-risk gate",
- "notes": "On branch m98-conditional-adapters (2 commits, not merged into v2). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branch m98-conditional-adapters (2 commits, not merged into v2). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0018 (branch forked from the M9.7 integration merge (e3209f7)).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -27,7 +29,9 @@
  "end": "2026-10-31",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0018"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -36,8 +40,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branch m98-conditional-adapters (2 commits, not merged in"
   }
- ],
- "number": 19,
- "id": "netsurf-manuelbv-0019"
+ ]
 }

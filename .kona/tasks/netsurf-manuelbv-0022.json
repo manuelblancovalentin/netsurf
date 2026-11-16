@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0022",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 22,
  "label": "",
  "title": "M11: conditional scaling proofs, validation evidence and limits",
  "summary": "M11: conditional scaling proofs, validation evidence and limits",
- "notes": "On branch m11-conditional-scaling (9 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branch m11-conditional-scaling (9 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0021 (branch m11 grew from the m910 tip).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -27,7 +29,9 @@
  "end": "2026-11-02",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0021"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -36,8 +40,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branch m11-conditional-scaling (9 commits, not merged). T"
   }
- ],
- "number": 22,
- "id": "netsurf-manuelbv-0022"
+ ]
 }

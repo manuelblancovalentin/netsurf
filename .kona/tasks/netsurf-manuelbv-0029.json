@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0029",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 29,
  "label": "",
  "title": "Pythia wide-BER confirmation with a progress monitor",
  "summary": "Pythia wide-BER confirmation with a progress monitor",
- "notes": "On branch m12-pythia-wide-confirm (45 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branch m12-pythia-wide-confirm (45 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0027 (branch contains all 43 commits of m12-w8a8-followup).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -28,7 +30,9 @@
  "end": "2026-11-10",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0027"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -37,8 +41,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branch m12-pythia-wide-confirm (45 commits, not merged). "
   }
- ],
- "number": 29,
- "id": "netsurf-manuelbv-0029"
+ ]
 }

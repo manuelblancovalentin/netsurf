@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0013",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 13,
  "label": "",
  "title": "M9.3: exact KWS and ToyCar adapters and benchmark conformance",
  "summary": "M9.3: exact KWS and ToyCar adapters and benchmark conformance",
- "notes": "Delivered on v2: 1f4688c, f35f7fa, e65a5f2, 1f66bab, defaf99 (adapters, conformance docs, parallel ToyCar repair). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "Delivered on v2: 1f4688c, f35f7fa, e65a5f2, 1f66bab, defaf99 (adapters, conformance docs, parallel ToyCar repair). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0012 (KWS and ToyCar adapters reuse the M9 TFLite adapter).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -28,7 +30,9 @@
  "end": "2026-10-29",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0012"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -37,8 +41,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "Delivered on v2: 1f4688c, f35f7fa, e65a5f2, 1f66bab, defaf99"
   }
- ],
- "number": 13,
- "id": "netsurf-manuelbv-0013"
+ ]
 }

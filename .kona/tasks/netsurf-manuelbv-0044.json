@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0044",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 44,
  "label": "",
  "title": "Paper 1 Run T addendum T4: language models to 16 fault draws",
  "summary": "Paper 1 Run T addendum T4: language models to 16 fault draws",
- "notes": "Addendum 6f61b21 and analysis runT_analyze_lm_v2.py (712ab83, tests pass) committed before any added draw. 224 jobs on kona from 2026-11-16 12:23; a recovery pass reruns jobs stopped by the host's earlyoom; the analysis runs once when all 224 finish.",
+ "notes": "Addendum 6f61b21 and analysis runT_analyze_lm_v2.py (712ab83, tests pass) committed before any added draw. 224 jobs on kona from 2026-11-16 12:23; a recovery pass reruns jobs stopped by the host's earlyoom; the analysis runs once when all 224 finish. Builds on: netsurf-manuelbv-0042 (adds draws to the Run T language-model runs); netsurf-manuelbv-0043 (includes the FKeras conditions).",
  "status": "doing",
  "priority": "high",
  "stage": "",
@@ -29,8 +31,8 @@
  "completed": "",
  "percent": null,
  "dependencies": [
-  "netsurf-manuelbv-0043",
-  "netsurf-manuelbv-0042"
+  "netsurf-manuelbv-0042",
+  "netsurf-manuelbv-0043"
  ],
  "links": {},
  "updated_by": "manuelbv",
@@ -40,8 +42,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "doing"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "Addendum 6f61b21 and analysis runT_analyze_lm_v2.py (712ab83"
   }
- ],
- "number": 44,
- "id": "netsurf-manuelbv-0044"
+ ]
 }

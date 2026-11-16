@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0040",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 40,
  "label": "",
  "title": "Paper 1 Run R: fault-rate study, switch prediction and rate-aware masks",
  "summary": "Paper 1 Run R: fault-rate study, switch prediction and rate-aware masks",
- "notes": "On branch paper1-runR-rate-aware (38 commits; Claude trailer on 34). Stage analyses committed before outcomes. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branch paper1-runR-rate-aware (38 commits; Claude trailer on 34). Stage analyses committed before outcomes. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0039 (Run R branch contains all Run P commits; rate-aware masks use the Run P drift and spread).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -29,7 +31,9 @@
  "end": "2026-11-12",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0039"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -38,8 +42,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branch paper1-runR-rate-aware (38 commits; Claude trailer"
   }
- ],
- "number": 40,
- "id": "netsurf-manuelbv-0040"
+ ]
 }

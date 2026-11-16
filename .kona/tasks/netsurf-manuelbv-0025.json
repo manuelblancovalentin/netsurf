@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0025",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 25,
  "label": "",
  "title": "Full-population W8A8 FKeras feasibility gate",
  "summary": "Full-population W8A8 FKeras feasibility gate",
- "notes": "On branch codex/w8a8-fkeras-feasibility (36 commits, not merged). The gate is prepared there; the FKeras masks used in the paper were built later (see the language-model FKeras task). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branch codex/w8a8-fkeras-feasibility (36 commits, not merged). The gate is prepared there; the FKeras masks used in the paper were built later (see the language-model FKeras task). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0024 (branch grew from the codex/transformer-integration tip); netsurf-manuelbv-0018 (FKeras paper-form baseline).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -28,7 +30,10 @@
  "end": "2026-11-04",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0024",
+  "netsurf-manuelbv-0018"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -37,8 +42,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branch codex/w8a8-fkeras-feasibility (36 commits, not mer"
   }
- ],
- "number": 25,
- "id": "netsurf-manuelbv-0025"
+ ]
 }

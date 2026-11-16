@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0031",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 31,
  "label": "",
  "title": "Matched FKeras reliability and paired-precision plans",
  "summary": "Matched FKeras reliability and paired-precision plans",
- "notes": "On branch m12-fkeras-multibench (4 commits, not merged). Plans only; their execution is not recorded on the branch. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branch m12-fkeras-multibench (4 commits, not merged). Plans only; their execution is not recorded on the branch. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0018 (extends the paper-form FKeras of M9.7 to ResNet-8 and ToyCar).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -27,7 +29,9 @@
  "end": "2026-11-04",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0018"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -36,8 +40,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branch m12-fkeras-multibench (4 commits, not merged). Pla"
   }
- ],
- "number": 31,
- "id": "netsurf-manuelbv-0031"
+ ]
 }

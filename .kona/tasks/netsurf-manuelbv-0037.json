@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0037",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 37,
  "label": "",
  "title": "Paper 1 Run A/I: repeated TFLite evaluations; kernels and biases as one fault population",
  "summary": "Paper 1 Run A/I: repeated TFLite evaluations; kernels and biases as one fault population",
- "notes": "On branch paper1-runA-tflite-confirm (8 commits; Claude trailer on 4). Repeated evaluations of the pinned ResNet-8 and DS-CNN; used in the calibration appendix. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branch paper1-runA-tflite-confirm (8 commits; Claude trailer on 4). Repeated evaluations of the pinned ResNet-8 and DS-CNN; used in the calibration appendix. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0031 (Run A branch starts with the four m12-fkeras-multibench commits).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -28,7 +30,9 @@
  "end": "2026-11-11",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0031"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -37,8 +41,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branch paper1-runA-tflite-confirm (8 commits; Claude trai"
   }
- ],
- "number": 37,
- "id": "netsurf-manuelbv-0037"
+ ]
 }

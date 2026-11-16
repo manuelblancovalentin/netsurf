@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0042",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 42,
  "label": "",
  "title": "Paper 1 Run T: rankings and mechanisms with failing protection on all 24 checkpoints",
  "summary": "Paper 1 Run T: rankings and mechanisms with failing protection on all 24 checkpoints",
- "notes": "Protocol and addenda T1, T1b, T2, T3 committed before outcomes (72e1e52, 4be3a69, a925082, 9467725 on paper1-tecs-revision-v1). Analyses t1a, t1b_fkeras, t1b_engine, t3_toycar, t2_lm written 2026-11-15/16. 19 jobs rerun with original seeds (conduct note bbfc9a3). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "Protocol and addenda T1, T1b, T2, T3 committed before outcomes (72e1e52, 4be3a69, a925082, 9467725 on paper1-tecs-revision-v1). Analyses t1a, t1b_fkeras, t1b_engine, t3_toycar, t2_lm written 2026-11-15/16. 19 jobs rerun with original seeds (conduct note bbfc9a3). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0039 (failing-protection code grew from the Run P ABFT wrong-repair count); netsurf-manuelbv-0040 (masks from 1,024 calibration inputs, as in Run R); netsurf-manuelbv-0041 (planned after the model check, to test the claims with failing protection); netsurf-manuelbv-0031 (FKeras as published).",
  "status": "done",
  "priority": "high",
  "stage": "",
@@ -29,7 +31,12 @@
  "end": "2026-11-16",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0039",
+  "netsurf-manuelbv-0040",
+  "netsurf-manuelbv-0041",
+  "netsurf-manuelbv-0031"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -38,8 +45,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "Protocol and addenda T1, T1b, T2, T3 committed before outcom"
   }
- ],
- "number": 42,
- "id": "netsurf-manuelbv-0042"
+ ]
 }

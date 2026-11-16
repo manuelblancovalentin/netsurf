@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0016",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 16,
  "label": "",
  "title": "M9.5.3-M9.5.7: same-distribution, context, paired-swap, preflight and frozen-mask replication studies",
  "summary": "M9.5.3-M9.5.7: same-distribution, context, paired-swap, preflight and frozen-mask replication studies",
- "notes": "Delivered on v2: 84c44a3, b4d0179, afe5424, 92d1f70, 9a96d5e, c94ee4b, e0ddf3a (docs M953 to M957). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "Delivered on v2: 84c44a3, b4d0179, afe5424, 92d1f70, 9a96d5e, c94ee4b, e0ddf3a (docs M953 to M957). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0015 (same-distribution, context, swap, preflight and replication studies follow M9.5).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -27,7 +29,9 @@
  "end": "2026-10-30",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0015"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -36,8 +40,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "Delivered on v2: 84c44a3, b4d0179, afe5424, 92d1f70, 9a96d5e"
   }
- ],
- "number": 16,
- "id": "netsurf-manuelbv-0016"
+ ]
 }

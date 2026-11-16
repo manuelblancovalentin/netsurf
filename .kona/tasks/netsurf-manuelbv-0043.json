@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0043",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 43,
  "label": "",
  "title": "Paper 1: FKeras masks for DistilBERT, Pythia and Qwen3 (Lanczos, float64 softmax/RMSNorm)",
  "summary": "Paper 1: FKeras masks for DistilBERT, Pythia and Qwen3 (Lanczos, float64 softmax/RMSNorm)",
- "notes": "Notes a5c32da, d8e17f1, 3e01a3a on paper1-tecs-revision-v1; code on paper1-runR-v2-validated (runT_fkeras_w8a8.py, runT_fkeras_qwen_gpu.py, tests/test_lanczos_qwen.py). Pythia and Qwen3 eigenpairs computed on Quest GPUs. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "Notes a5c32da, d8e17f1, 3e01a3a on paper1-tecs-revision-v1; code on paper1-runR-v2-validated (runT_fkeras_w8a8.py, runT_fkeras_qwen_gpu.py, tests/test_lanczos_qwen.py). Pythia and Qwen3 eigenpairs computed on Quest GPUs. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0025 (W8A8 FKeras feasibility gate); netsurf-manuelbv-0042 (FKeras conditions of Run T on the language models).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -29,7 +31,10 @@
  "end": "2026-11-16",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0025",
+  "netsurf-manuelbv-0042"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -38,8 +43,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "Notes a5c32da, d8e17f1, 3e01a3a on paper1-tecs-revision-v1; "
   }
- ],
- "number": 43,
- "id": "netsurf-manuelbv-0043"
+ ]
 }

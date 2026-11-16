@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0030",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 30,
  "label": "",
  "title": "Reliability database v3 builder",
  "summary": "Reliability database v3 builder",
- "notes": "On branch m12-reliability-database (21 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branch m12-reliability-database (21 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0026 (database collects the W8A8 campaign evidence); netsurf-manuelbv-0035 (includes the finalized engineering cohorts).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -27,7 +29,10 @@
  "end": "2026-11-08",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0026",
+  "netsurf-manuelbv-0035"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -36,8 +41,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branch m12-reliability-database (21 commits, not merged)."
   }
- ],
- "number": 30,
- "id": "netsurf-manuelbv-0030"
+ ]
 }

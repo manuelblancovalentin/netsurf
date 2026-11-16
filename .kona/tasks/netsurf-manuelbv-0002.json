@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0002",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 2,
  "label": "",
  "title": "M1/M1.5: versioned experiment engine and self-service workflows",
  "summary": "M1/M1.5: versioned experiment engine and self-service workflows",
- "notes": "Delivered on v2: 18849a2, e08f95a, 3a91e61, 795d7de (reproducibility characterization, experiment framework, workflow docs, milestone routed through the engine). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "Delivered on v2: 18849a2, e08f95a, 3a91e61, 795d7de (reproducibility characterization, experiment framework, workflow docs, milestone routed through the engine). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0001 (the experiment engine is built inside the canonical package).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -27,7 +29,9 @@
  "end": "2026-10-22",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0001"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -36,8 +40,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "Delivered on v2: 18849a2, e08f95a, 3a91e61, 795d7de (reprodu"
   }
- ],
- "number": 2,
- "id": "netsurf-manuelbv-0002"
+ ]
 }

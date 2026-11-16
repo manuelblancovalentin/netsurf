@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0046",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 46,
  "label": "",
  "title": "Paper 1: update language-model results with the 16-draw analysis",
  "summary": "Paper 1: update language-model results with the 16-draw analysis",
- "notes": "Replace the descriptive language-model statements in Sections 7.1, 7.3 and the appendix with the T4 analysis.",
+ "notes": "Replace the descriptive language-model statements in Sections 7.1, 7.3 and the appendix with the T4 analysis. Builds on: netsurf-manuelbv-0044 (needs the 16-draw analysis); netsurf-manuelbv-0045 (edits draft v18).",
  "status": "todo",
  "priority": "high",
  "stage": "",
@@ -40,8 +42,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "todo"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes",
+   "to": "Replace the descriptive language-model statements in Section"
   }
- ],
- "number": 46,
- "id": "netsurf-manuelbv-0046"
+ ]
 }

@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0014",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 14,
  "label": "",
  "title": "Cross-benchmark vulnerability diagnostics",
  "summary": "Cross-benchmark vulnerability diagnostics",
- "notes": "Delivered on v2: 2e255dd (branch toycar-conformance-mechanisms, merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "Delivered on v2: 2e255dd (branch toycar-conformance-mechanisms, merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0013 (diagnostics compare the M9.3 benchmarks).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -27,7 +29,9 @@
  "end": "2026-10-29",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0013"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -36,8 +40,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "Delivered on v2: 2e255dd (branch toycar-conformance-mechanis"
   }
- ],
- "number": 14,
- "id": "netsurf-manuelbv-0014"
+ ]
 }

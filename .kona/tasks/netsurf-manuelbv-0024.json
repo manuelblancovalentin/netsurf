@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0024",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 24,
  "label": "",
  "title": "Transformer integration and compact Pythia W8A8 scientific handoff",
  "summary": "Transformer integration and compact Pythia W8A8 scientific handoff",
- "notes": "On branch codex/transformer-integration (35 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branch codex/transformer-integration (35 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0018 (transformer work forked from the M9.7 integration merge, after the benchmark-expansion gates of M9.6/M9.7).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -28,7 +30,9 @@
  "end": "2026-11-04",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0018"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -37,8 +41,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branch codex/transformer-integration (35 commits, not mer"
   }
- ],
- "number": 24,
- "id": "netsurf-manuelbv-0024"
+ ]
 }

@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0021",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 21,
  "label": "",
  "title": "M9.10: interaction attribution evidence and publication priorities",
  "summary": "M9.10: interaction attribution evidence and publication priorities",
- "notes": "On branch m910-interaction-attribution (6 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branch m910-interaction-attribution (6 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0020 (branch m910 contains all m99 commits).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -27,7 +29,9 @@
  "end": "2026-11-01",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0020"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -36,8 +40,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branch m910-interaction-attribution (6 commits, not merge"
   }
- ],
- "number": 21,
- "id": "netsurf-manuelbv-0021"
+ ]
 }

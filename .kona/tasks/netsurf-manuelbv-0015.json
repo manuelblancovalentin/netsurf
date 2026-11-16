@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0015",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 15,
  "label": "",
  "title": "M9.5: exact conditional damage evidence and restricted subcube evaluation",
  "summary": "M9.5: exact conditional damage evidence and restricted subcube evaluation",
- "notes": "Delivered on v2: fdad54f, c2fb33c, 031c307 (docs/M95_CONDITIONAL_DAMAGE.md). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "Delivered on v2: fdad54f, c2fb33c, 031c307 (docs/M95_CONDITIONAL_DAMAGE.md). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0014 (conditional damage measured on the M9.3 benchmarks); netsurf-manuelbv-0008 (uses the conditional search machinery).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -27,7 +29,10 @@
  "end": "2026-10-30",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0014",
+  "netsurf-manuelbv-0008"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -36,8 +41,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "Delivered on v2: fdad54f, c2fb33c, 031c307 (docs/M95_CONDITI"
   }
- ],
- "number": 15,
- "id": "netsurf-manuelbv-0015"
+ ]
 }

@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0028",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 28,
  "label": "",
  "title": "Pythia recovery: finalized Qwen and exploratory KWS high-BER evidence",
  "summary": "Pythia recovery: finalized Qwen and exploratory KWS high-BER evidence",
- "notes": "On branch m12-pythia-recovery (44 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branch m12-pythia-recovery (44 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0026 (branch grew from the m12-w8a8-ber-stress tip); netsurf-manuelbv-0033 (its last commit consolidates the KWS high-BER evidence (inferred from commit subjects)).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -28,7 +30,10 @@
  "end": "2026-11-10",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0026",
+  "netsurf-manuelbv-0033"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -37,8 +42,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branch m12-pythia-recovery (44 commits, not merged). The "
   }
- ],
- "number": 28,
- "id": "netsurf-manuelbv-0028"
+ ]
 }

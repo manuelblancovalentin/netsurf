@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0038",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 38,
  "label": "",
  "title": "Paper 1 Run K: retrained ResNet-8 checkpoints through the engine",
  "summary": "Paper 1 Run K: retrained ResNet-8 checkpoints through the engine",
- "notes": "On branch paper1-runK-retrained-engine (11 commits; Claude trailer on 7). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branch paper1-runK-retrained-engine (11 commits; Claude trailer on 7). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0037 (Run K branch contains all Run A commits).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -28,7 +30,9 @@
  "end": "2026-11-11",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0037"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -37,8 +41,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branch paper1-runK-retrained-engine (11 commits; Claude t"
   }
- ],
- "number": 38,
- "id": "netsurf-manuelbv-0038"
+ ]
 }

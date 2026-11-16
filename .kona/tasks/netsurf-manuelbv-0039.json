@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0039",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 39,
  "label": "",
  "title": "Paper 1 Run P: mean-variance (drift and spread) analysis and ABFT wrong-repair count",
  "summary": "Paper 1 Run P: mean-variance (drift and spread) analysis and ABFT wrong-repair count",
- "notes": "On branch paper1-runP-mean-variance (26 commits; Claude trailer on 22). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branch paper1-runP-mean-variance (26 commits; Claude trailer on 22). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0038 (Run P branch contains all Run K commits).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -27,7 +29,9 @@
  "end": "2026-11-12",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0038"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -36,8 +40,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branch paper1-runP-mean-variance (26 commits; Claude trai"
   }
- ],
- "number": 39,
- "id": "netsurf-manuelbv-0039"
+ ]
 }

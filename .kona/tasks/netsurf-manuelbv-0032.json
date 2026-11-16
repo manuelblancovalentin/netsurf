@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0032",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 32,
  "label": "",
  "title": "PrioriFI probe-scheduling reference and cross-benchmark engineering gate",
  "summary": "PrioriFI probe-scheduling reference and cross-benchmark engineering gate",
- "notes": "On branches m12-priorifi-crossbench (6 commits) and m12-priorifi-probing (1 commit), not merged. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branches m12-priorifi-crossbench (6 commits) and m12-priorifi-probing (1 commit), not merged. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0031 (branch m12-priorifi-crossbench contains all m12-fkeras-multibench commits).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -27,7 +29,9 @@
  "end": "2026-11-09",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0031"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -36,8 +40,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branches m12-priorifi-crossbench (6 commits) and m12-prio"
   }
- ],
- "number": 32,
- "id": "netsurf-manuelbv-0032"
+ ]
 }

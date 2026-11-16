@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0035",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 35,
  "label": "",
  "title": "Paper 1: cross-precision benchmark evidence integrated",
  "summary": "Paper 1: cross-precision benchmark evidence integrated",
- "notes": "On branch paper1-expanded-benchmarks (10 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branch paper1-expanded-benchmarks (10 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0034 (branch grew from the paper1-engineering-reconstruction tip).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -27,7 +29,9 @@
  "end": "2026-11-03",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0034"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -36,8 +40,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branch paper1-expanded-benchmarks (10 commits, not merged"
   }
- ],
- "number": 35,
- "id": "netsurf-manuelbv-0035"
+ ]
 }

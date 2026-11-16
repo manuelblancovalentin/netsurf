@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0018",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 18,
  "label": "",
  "title": "M9.7: paper-form FKeras baseline and joint KWS multi-BER campaign",
  "summary": "M9.7: paper-form FKeras baseline and joint KWS multi-BER campaign",
- "notes": "Delivered on v2: 81d7cd9, 220e14a, 5c28521, ee71581, 060667e and merges b051986, e3209f7 (docs M97_*). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "Delivered on v2: 81d7cd9, 220e14a, 5c28521, ee71581, 060667e and merges b051986, e3209f7 (docs M97_*). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0017 (M9.7 campaign uses the M9.6 frozen cross-pool orchestration); netsurf-manuelbv-0012 (FKeras baseline on the TFLite adapters).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -28,7 +30,10 @@
  "end": "2026-10-31",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0017",
+  "netsurf-manuelbv-0012"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -37,8 +42,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "Delivered on v2: 81d7cd9, 220e14a, 5c28521, ee71581, 060667e"
   }
- ],
- "number": 18,
- "id": "netsurf-manuelbv-0018"
+ ]
 }

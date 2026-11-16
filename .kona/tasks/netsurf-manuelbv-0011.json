@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0011",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 11,
  "label": "",
  "title": "MNIST-lite benchmark identity and benchmark expansion validation",
  "summary": "MNIST-lite benchmark identity and benchmark expansion validation",
- "notes": "Delivered on v2: 40cf15e, 90b6fa7, b059402, f24b15b (legacy checkpoint identity, exact benchmark identity, worker consistency). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "Delivered on v2: 40cf15e, 90b6fa7, b059402, f24b15b (legacy checkpoint identity, exact benchmark identity, worker consistency). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0010 (worker-consistency validation of the parallel engine on MNIST-lite).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -27,7 +29,9 @@
  "end": "2026-10-27",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0010"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -36,8 +40,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "Delivered on v2: 40cf15e, 90b6fa7, b059402, f24b15b (legacy "
   }
- ],
- "number": 11,
- "id": "netsurf-manuelbv-0011"
+ ]
 }

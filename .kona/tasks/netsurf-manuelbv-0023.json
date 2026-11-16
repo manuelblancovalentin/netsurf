@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0023",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 23,
  "label": "",
  "title": "Exact BF16 storage faults with FP32 computation (Pythia)",
  "summary": "Exact BF16 storage faults with FP32 computation (Pythia)",
- "notes": "On branch pythia-bf16-storage (10 commits, not merged); last commit prepares the BF16 path. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "notes": "On branch pythia-bf16-storage (10 commits, not merged); last commit prepares the BF16 path. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end. Builds on: netsurf-manuelbv-0024 (branch shares 9 of its 10 commits with codex/transformer-integration).",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -27,7 +29,9 @@
  "end": "2026-11-02",
  "completed": "2026-11-16",
  "percent": null,
- "dependencies": [],
+ "dependencies": [
+  "netsurf-manuelbv-0024"
+ ],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
@@ -36,8 +40,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,dependencies",
+   "to": "On branch pythia-bf16-storage (10 commits, not merged); last"
   }
- ],
- "number": 23,
- "id": "netsurf-manuelbv-0023"
+ ]
 }
