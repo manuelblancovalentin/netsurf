@@ -207,3 +207,23 @@ Run on kona: 6 jobs of 4 threads now, plus 8 more when T1b has ended.
 - **Pythia's first mask build failed** the solver's Hessian symmetry check (5.3e-5 against 1e-5). The cause: the Hugging Face attention computes softmax in float32, and Qwen's RMSNorm also normalizes in float32. Both FKeras scripts now keep these operations in float64 (commit 3902c4d). This changes precision only; the function is the same.
 - **Qwen** was resubmitted as Quest job 8955871. Pythia was restarted on kona.
 - **Pythia's second kona build** crashed with a segmentation fault in ARPACK after 2.5 hours: 124M dimensions × 20 vectors also overflows its 32-bit indexing. Pythia now runs on Quest with the same GPU script and Lanczos solver as Qwen (job 8968279). Its frozen selection tokens match the campaign's hash, and a one-window check passed on kona's CPU (NLL 3.29).
+
+## Note on conduct (16 November 2026, 11:15)
+
+**The "exit" lines in the overnight chain logs are not job exit codes.** They have the form `echo "$(date …) … exit $?"`, so `$?` is the exit status of `date`. The finished markers (`DONE`, `DONE_fkeras`) are the record of what completed.
+
+**What completed:**
+
+| Part | Finished |
+|---|---|
+| T1a | 240 / 240 |
+| T1b engine jobs | 240 / 240 |
+| T1b FKeras arms | 240 / 240 |
+| ToyCar | 8 / 8 |
+| DistilBERT and Pythia FKeras arms | 64 / 64 each |
+| T2 base jobs | 155 / 160 |
+| Qwen FKeras arms | 18 / 32 |
+
+**What was rerun:** the 19 missing jobs died with no error in their logs, most likely killed for memory while many language-model jobs ran at once. They were rerun from 11:15 with the same code and arguments (\`recover.sh\`, 6 at a time, exit codes now recorded).
+
+**Stalls:** two stalls were caused by background waiters whose command lines matched the names they waited for. One is why the T1b analyses ran only at 11:06, from the same frozen script and unchanged inputs.
