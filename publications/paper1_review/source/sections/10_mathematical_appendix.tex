@@ -40,6 +40,126 @@ The first concerns exposure. In the architectural-vulnerability view, the error 
 
 The second concerns magnitude. Proton-beam tests of ECON-D, a radiation-hard front-end ASIC of the CMS high-granularity calorimeter, report an upset cross section of a few $10^{-14}$\,cm$^2$ per flip-flop before voting, and the chips were tested to a fluence of $5\times10^{13}$ protons per cm$^2$~\cite{cummings2023econd}. As an illustration only: if a hadron fluence of order $10^{13}$--$10^{14}$\,cm$^{-2}$ accumulates over the roughly $6\times10^{7}$\,s of beam that 3000\,fb$^{-1}$ at $5\times10^{34}$\,cm$^{-2}$\,s$^{-1}$ require~\cite{hllhc2017tdr}, a register bit with that cross section that is neither protected nor rewritten accumulates an upset probability of order $10^{-5}$ to $10^{-4}$ per hour of beam; it reaches $10^{-3}$ within hours to days and $10^{-2}$ within days to weeks, which spans the band in which the masks of this study differ. A value held for one 25\,ns bunch crossing sees about $10^{-11}$ of the hourly figure. These chips triplicate their registers for this reason, and the neural-network encoder of the same detector keeps its weights in triplicated, self-correcting registers~\cite{diguglielmo2021reconfigurable}. The question studied here is what is lost when less than everything is protected. The numbers come from one technology and one environment, and the cross section is read from a published plot; $p$ remains a model parameter.
 
+\section{Supporting Results for Section~\ref{sec:results}}\label{app:supporting}
+\paragraph{Useful range.} Table~\ref{tab:useful} condenses the main grid into the highest measured BER at which each ranking keeps the model useful. At 12.5\% protection the absolute-gradient mask extends the useful range over MSB-first by a factor of ten on ResNet-8 and three on DistilBERT, Pythia and Qwen, and over the unprotected model by three to thirty. These factors are resolved only to the half-decade grid and depend on the input window: on nine further ResNet-8 windows they are three and ten, while the accuracy losses at $3\times10^{-3}$ for absolute gradient, MSB-first and no protection (3.0, 16.1 and 44.5 points) agree with the original window (5.0, 17.7 and 51.2).
+
+\begin{table}[h]
+\caption{Highest measured BER, in units of $10^{-4}$, at which each ranking keeps mean task quality within the usefulness margin, at 12.5\% / 25\% protection. Unprotected has no budget. FKeras equals MSB-first at these two budgets.}\label{tab:useful}
+\centering\small
+\begin{tabular}{l r r r r r}\toprule
+Ranking & ResNet-8 & DS-CNN & DistilBERT & Pythia & Qwen\\\midrule
+Unprotected & 1 & 10 & 10 & 1 & 3\\
+Random & 1 / 3 & 10 / 10 & 10 / 10 & 1 / 3 & 3 / 3\\
+MSB-first & 3 / 10 & 30 / 100 & 100 / 100 & 3 / 10 & 10 / 30\\
+Numerical jump & 3 / 3 & 10 / 30 & 100 / 300 & 3 / 10 & 10 / 30\\
+Global gradient & 10 / 30 & 30 / 100 & 300 / 300 & 10 / 30 & 30 / 100\\
+Absolute gradient & 30 / 30 & 30 / 100 & 300 / 1000 & 10 / 10 & 30 / 100\\
+Positive gradient & 10 / 30 & 30 / 30 & 10 / 30 & 3 / 3 & 10 / 30\\\bottomrule
+\end{tabular}
+\Description{Highest useful bit-error probability for seven policies on five models at two budgets.}
+\end{table}
+
+\begin{figure}[h]
+\centering\includegraphics[width=\linewidth]{tecs_story_blind}
+\caption{Absolute-gradient mask against MSB-first (FORTUNE-style sign-bit protection at this budget) at 12.5\% protection, on three main-grid models (top, 64-input masks, with no protection dotted) and three further checkpoints (bottom, 1,024-input masks, mean over 48 fields). The grey band is the usefulness margin of 5 points below clean.}\label{fig:blind}
+\Description{Six panels of accuracy against bit-error probability for the absolute-gradient mask, MSB-first and no protection.}
+\end{figure}
+
+\paragraph{Repeated evaluations.} Table~\ref{tab:repeated} varies the mask, the input window and the checkpoint. On the pinned ResNet-8 and DS-CNN the default meets the rule fixed before the runs: with the replication as the unit, the upper bound on its regret against every other ranking stays below one point in every decision-useful cell, and no ranking is resolved better. On ResNet-8 at $p=3\times10^{-3}$ and 12.5\% its gain over MSB-first is 13.1 points (replication-level interval 9.4 to 16.8), against 12.7 in the main grid; on DS-CNN MSB-first and FKeras trail by at most 3.0 and 1.8 points. On the five retrained copies its largest regret is 0.29 to 0.64 points and one of 239 resolved contrasts goes against it, by less than a point; with eight replications the replication-level bounds reach 1.0 to 2.2 points. Significance-first protection's largest regret ranges from 13.1 points on the pinned checkpoint to 49 on the under-trained one (Fig.~\ref{fig:fragility}); on the retrained copies (29 to 37 points) this worst case is at a half-protected tier (18.75\%, $p=10^{-2}$) where the pinned checkpoint is not usable.
+
+\begin{table}[h]
+\caption{Repeated evaluations of the classifiers (Section~\ref{sec:repeated}). Each replication has its own calibration draw, masks, input window and fault fields. Regrets are the largest accuracy loss, in points, against the best of the seven rankings in a decision-useful cell. The upper bound is the 95\% limit of the absolute-gradient mask's accuracy regret against any other ranking, with the replication as the unit, maximized over cells. Resolved contrasts use pooled fields with Holm correction. The retrained column gives the range over five copies of the reference recipe (resolved contrasts summed). All masks use 64 calibration inputs.}\label{tab:repeated}
+\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{l r r r r r r}\toprule
+ & \multicolumn{2}{c}{Pinned} & & Retrained & Pruned & Pruned \\
+ & ResNet-8 & DS-CNN & Under-trained & ($\times$5) & 50\% & 70\%\\\midrule
+Replications (fields per BER) & 9 (36) & 11 (88) & 8 (16) & 8 (16) each & 8 (16) & 8 (16)\\
+Clean accuracy (\%) & 87.1 & 91.7 & 81.5 & 86.3--87.3 & 85.7 & 83.7\\
+Decision-useful cells & 20 & 22 & 25 & 21--22 & 20 & 18\\
+Absolute-gradient largest regret & 0.19 & 0.06 & 1.46 & 0.29--0.64 & 0.40 & 0.46\\
+Largest upper bound & 0.64 & 0.20 & 2.47 & 1.00--1.93 & 2.24 & 1.36\\
+Contrasts resolved for / against & 63 / 0 & 48 / 0 & 60 / 3 & 238 / 1 & 37 / 0 & 36 / 0\\
+Cells where a ranking is better by $\ge$1 point & 0 & 0 & 3 & 0 & 0 & 0\\
+MSB-first largest regret & 13.1 & 3.0 & 49.1 & 29.4--37.4 & 19.4 & 28.9\\
+FKeras largest regret & 13.1 & 1.8 & 24.9 & 10.2--14.5 & 19.4 & 8.8\\
+Highest useful BER, 12.5\% ($10^{-4}$), MSB / abs. & 10 / 30 & 30 / 30 & 10 / 100 & 3--10 / 30 & 10 / 30 & 3 / 10\\\bottomrule
+\end{tabular}
+\Description{Regrets, bounds and resolved contrasts of repeated evaluations on ResNet-8, DS-CNN, five retrained ResNet-8 copies and three further ResNet-8 checkpoints.}
+\end{table}
+
+\begin{figure}[h]
+\centering\includegraphics[width=\linewidth]{tecs_checkpoint_fragility}
+\caption{The ResNet-8 checkpoints of Table~\ref{tab:repeated}: the pinned MLPerf reference, five copies retrained with its recipe (R1--R5), two pruned checkpoints and one under-trained checkpoint. Left: largest regret of each ranking in decision-useful cells (symmetric-log axis). Right: accuracy lost at $p=3\times10^{-3}$ and 12.5\% protection; the dashed line is the usefulness margin.}\label{fig:fragility}
+\Description{Two panels comparing MSB-first, FKeras, gradient rankings and no protection across nine ResNet-8 checkpoints.}
+\end{figure}
+
+\paragraph{The switch on ResNet-8.} At 1\% and 3.125\% protection on every checkpoint, and at 6.25\% on five of the nine, the network has lost more than five points before the masks change order, so the switch lies outside the usable cells. Figure~\ref{fig:switch} rescales every usable cell by its predicted switch.
+
+\begin{figure}[h]
+\centering\includegraphics[width=.72\linewidth]{tecs_story_switch}
+\caption{Positive- minus absolute-gradient mask against the BER divided by the predicted switch $p^*$, for the nine ResNet-8 checkpoints at six budgets from 6.25\% to 50\% (529 usable cells) and for DS-CNN at four budgets (45 cells). ResNet-8 changes sign at $p^*$; DS-CNN, for which a switch was also predicted, does not.}\label{fig:switch}
+\Description{Scatter of the accuracy difference against p over the predicted switch.}
+\end{figure}
+
+\paragraph{Rate-aware masks on ResNet-8.} Table~\ref{tab:ratechoice} gives the largest gap of every arm. The absolute-gradient mask is beaten in 273 cells, 253 of them at $p\le3\times10^{-3}$; the positive-gradient mask in 228, 177 of them at $p\ge5\times10^{-3}$. A Monte Carlo correction of the analytic objective is resolved ahead of the analytic mask on all nine checkpoints and behind on none (median $+0.07$ points). An interim look at the main arms was taken during the study, after which nothing was changed.
+
+\begin{table}[h]
+\caption{ResNet-8, rate-aware masks against static rankings (Section~\ref{sec:ratechoice-setup}). Largest gap to the best arm in the usable cells of each checkpoint, in accuracy points, biased upward because the best arm is chosen on the same fields. Beaten: checkpoints on which another arm is resolved ahead by at least 0.5 points in a usable cell (Holm over the checkpoint's usable cells; for v2, against the static arms), tested for the four arms fixed in the plan. All masks from 1,024 inputs; the rate-aware masks are built for the BER at which they are tested.}\label{tab:ratechoice}
+\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{l r r r r r r r}\toprule
+Checkpoint & MSB-first & FKeras & Positive & Absolute & Rate-aware & + MC & Selected (v2)\\\midrule
+Pinned & 23.7 & 23.7 & 12.7 & 0.7 & 1.3 & 1.0 & 0.2\\
+Under-trained & 52.3 & 27.1 & 57.0 & 3.1 & 1.2 & 0.1 & 0.8\\
+Pruned 70\% & 41.0 & 28.6 & 5.2 & 1.7 & 0.9 & 0.1 & 0.8\\
+Pruned 50\% & 32.6 & 27.1 & 6.7 & 1.5 & 0.6 & 0.3 & 0.4\\
+Retrained ($\times$5) & 32.5--38.9 & 19.1--23.6 & 12.2--20.8 & 0.6--1.3 & 0.5--1.1 & 0.4--0.7 & 0.3--0.6\\\midrule
+Beaten on (of 9) & --- & --- & 9 & 8 & 6 & --- & 0\\\bottomrule
+\end{tabular}
+\Description{Largest accuracy gap of seven protection arms on nine ResNet-8 checkpoints, and the number of checkpoints on which each is beaten.}
+\end{table}
+
+\paragraph{Further checkpoints.} Table~\ref{tab:newmodels} gives the ten further checkpoints. The largest single positive-over-absolute difference, $+0.38$ points on the epoch-30 jet model at $3\times10^{-3}$, is not resolved; where the two separate, the absolute gradient is ahead. On VWW and the MNIST models either gradient mask leaves at most a few tenths of a point of damage up to $3\times10^{-3}$; the jet models lose 1 to 3 points there after three or more epochs and up to 7 after 100.
+
+\begin{table}[h]
+\caption{Further models (Section~\ref{sec:ratechoice-setup}): accuracy in percent at 12.5\% protection, mean over 48 fields, and positive- minus absolute-gradient mask in the usable cells at $p\le3\times10^{-3}$, in points. Resolved: cells in which one mask is ahead by at least 0.2 points after Holm correction (positive / absolute), over all usable cells of both budgets.}\label{tab:newmodels}
+\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{l r r r r r r c c}\toprule
+ & & & \multicolumn{3}{c}{$p=3\times10^{-2}$} & & Positive $-$ abs. & \\\cmidrule(lr){4-6}
+Checkpoint & Clean & Abs., $3\!\times\!10^{-3}$ & Abs. & Positive & MSB-first & Usable cells & $p\le3\times10^{-3}$ & Resolved\\\midrule
+Jet, epoch 1 & 73.2 & 72.9 & 64.0 & 62.6 & 60.7 & 25 & $-0.11$ to $+0.03$ & 0 / 0\\
+Jet, epoch 3 & 74.7 & 73.7 & 53.3 & 50.3 & 50.1 & 22 & $-0.07$ to $+0.05$ & 0 / 1\\
+Jet, epoch 10 & 76.2 & 73.4 & 46.8 & 45.7 & 48.0 & 21 & $-0.07$ to $+0.05$ & 0 / 1\\
+Jet, epoch 30 & 76.1 & 73.1 & 42.1 & 43.1 & 46.0 & 20 & $-0.13$ to $+0.38$ & 0 / 0\\
+Jet, epoch 100 & 76.3 & 69.1 & 31.1 & 29.5 & 32.9 & 14 & $-0.19$ to $+0.05$ & 0 / 0\\
+MNIST, epoch 1 & 91.3 & 91.3 & 91.2 & 91.2 & 89.5 & 26 & $-0.01$ to $+0.02$ & 0 / 0\\
+MNIST, epoch 3 & 93.9 & 93.8 & 93.6 & 93.6 & 90.8 & 26 & $-0.01$ to $+0.02$ & 0 / 0\\
+MNIST, epoch 10 & 95.7 & 95.7 & 95.1 & 94.9 & 87.3 & 26 & $0.00$ to $+0.06$ & 0 / 0\\
+MNIST, epoch 30 & 96.1 & 95.8 & 93.8 & 91.2 & 76.1 & 26 & $0.00$ to $+0.11$ & 0 / 1\\
+VWW & 84.0 & 83.9 & 83.9 & 83.9 & 60.0 & 26 & $-0.01$ to $0.00$ & 0 / 0\\\bottomrule
+\end{tabular}
+\Description{Clean and faulted accuracy of absolute-gradient, positive-gradient and MSB-first masks on ten further checkpoints, with the range of their low-rate difference and resolved contrasts.}
+\end{table}
+
+\paragraph{Smaller effects.} On Pythia at $p=3\times10^{-3}$ and 25\%, where it protects two complete tiers, MSB-first is better than absolute gradient by 0.09 nats per token, and within a half-protected tier structured fills beat a uniformly random one while FKeras does not beat storage order (Appendix~\ref{app:repeated}). Reversals outside the decision-useful region are not interpreted, and a bit-exact replay of every saved language-model field shows that the loss cap changes no conclusion in a decision-useful cell (Appendix~\ref{app:evidence}).
+
+\paragraph{Mechanisms on DistilBERT.} Table~\ref{tab:correction-distilbert} repeats the comparison of Section~\ref{sec:correction} on DistilBERT. ABFT repairs 88\% of the faults at $10^{-5}$ and almost none from $10^{-3}$ on. At $10^{-3}$, SEC-DED over 8 bits leaves 1.2\% of the raw faults and ranked triplication 87.5\%.
+
+\begin{table}[h]
+\caption{DistilBERT, mechanisms at equal extra storage (exploratory, two fault draws per BER, the study's 512 sentences; clean accuracy 91.4\%). Every stored bit, copies and check bits included, flips with probability $p$. Highest BER: the highest grid BER at which mean accuracy stays within 5 points of clean.}\label{tab:correction-distilbert}
+\centering\footnotesize
+\begin{tabular}{l r c r r}\toprule
+Scheme & Extra storage & Highest BER & Accuracy at $10^{-2}$ & at $3\times10^{-2}$\\\midrule
+No protection & 0\% & $10^{-3}$ & 59.1 & 55.7\\
+ABFT checksum correction (one faulty weight per row) & ${\approx}1\%$ & $10^{-3}$ & 59.1 & 55.7\\
+SEC-DED over 64 / 32 data bits & 12.5 / 21.9\% & $3\times10^{-3}$ & 76.2 / 83.2 & 52.9 / 54.1\\
+SEC-DED over 16 / 8 data bits & 37.5 / 62.5\% & $10^{-2}$ & 87.4 / 91.0 & 60.6 / 54.2\\
+TMR of all sign bits (FORTUNE-style) & 25\% & $3\times10^{-3}$ & 83.3 & 54.8\\
+TMR of the absolute-gradient mask, 6.25 / 12.5\% of bits & 12.5 / 25\% & $10^{-2}$ & 90.6 / 91.1 & 70.3 / 81.8\\
+TMR of the absolute-gradient mask, 18.75 / 25\% of bits & 37.5 / 50\% & $10^{-2}$ / $3\times10^{-2}$ & 90.1 / 91.2 & 85.3 / 86.5\\\bottomrule
+\end{tabular}
+\Description{Accuracy of seven protection schemes on DistilBERT at two dense bit-error probabilities, with their extra storage.}
+\end{table}
+
 \section{Repeated Evaluations: Curves and Partial Tiers}\label{app:repeated}
 Figure~\ref{fig:confirm} shows the repeated evaluation of the two pinned classifiers. A first DS-CNN run with three replications agreed in its estimates (largest regret 0.13 points, no resolved loss), but its replication-level bounds, with a Student-$t$ quantile of 4.3, exceeded one point in eight cells; the second run with eleven replications meets the rule. The DS-CNN windows had also been used by earlier six-bit conditional-selection studies, though not for whole-mask comparisons, and we did not audit whether a 200-image subset used in early ResNet-8 engineering runs overlaps the new ResNet-8 windows.
 
@@ -80,6 +200,17 @@ $3\times10^{-2}$ & 1,024 & 2 & 0 & $-54.6$ & $-58.3$ to $-50.8$ & 0 / 2\\\bottom
 \end{table}
 
 The first rule fails (Table~\ref{tab:calibration}). The positive-gradient mask is resolved ahead by 0.5 to 2.5 points in ten cells on five checkpoints: five cells of the under-trained checkpoint at $10^{-3}$ and $3\times10^{-3}$ and one or two cells at those rates on the 50\%-pruned checkpoint and on R1, R3 and R4. With 1,024 inputs, resolved wins in both directions appear on the pinned checkpoint (three ahead at $10^{-3}$, one behind at $10^{-2}$), the under-trained one (8 and 3), the 50\%-pruned one (1 and 1), R1 and R4 (1 and 2 each). The global gradient is never ahead. Its mask keeps changing with more inputs (the 512-input mask shares 80\% to 87\% of its bits with the 1,024-input mask at 12.5\%, against 94\% to 96\% for the positive and 96\% to 97\% for the absolute gradient), but its accuracy does not improve: averaging signed effects over more inputs converges to a mean gradient that is small for a trained model. The second rule is not met. In the 82 decision-useful cells the absolute-gradient mask gains a median 0.09, 0.15, 0.20 and 0.23 points from 128, 256, 512 and 1,024 inputs, at most 1.5, with a single resolved gain of 0.44 points; going from 512 to 1,024 inputs changes it by a median 0.06. Pooled over the five retrained copies, however, its 1,024-input mask gains 0.95 and 0.55 points at $p=10^{-2}$ and 18.75\% and 25\% protection (95\% intervals over copies 0.74 to 1.16 and 0.19 to 0.90), so at the densest useful rates a larger calibration set is worth about half a point to a point. At $p=10^{-3}$ and 25\%, the 512-input positive-gradient mask leaves seven of the eight well-trained checkpoints at or above their clean accuracy, by up to 0.64 points, and the under-trained one 1.0 point above, whereas the 1,024-input absolute-gradient mask leaves six of the nine slightly below. This is the low-rate side of the mechanism of Section~\ref{sec:harm}; it was not tested, and 0.1 point is one image of the 1,000-image window. Rates below $10^{-3}$, other models and FKeras were not measured at larger calibration sizes.
+
+\section{Designs of the Repeated Evaluations, the Ranking-Choice Studies and Run T}\label{app:designs}
+\begin{itemize}
+\item \emph{Repeated evaluations.} Nine ResNet-8 replications evaluate windows of 1,000 CIFAR-10 test images not used by the main grid, with four fields per BER each. Eleven DS-CNN replications evaluate windows of 400 previously used test clips, with eight fields per BER. Sign-flip tests use 100,000 assignments. The partial-tier masks are complemented by four uniformly random fills of the half-protected tier.
+\item \emph{Further ResNet-8 checkpoints.} The pruned copies were fine-tuned for 40 epochs. A checkpoint entered the comparison only if its INT8 test accuracy reached 80\%; runs stopped after 10 and 30 epochs did not. Each was evaluated in eight replications on windows of 1,000 previously used test images, with two fields per BER, and the absolute-gradient mask was to be counted as broken on a checkpoint if another ranking was better by at least one accuracy point in a decision-useful cell after Holm correction. The retrained copies test whether the pinned checkpoint is typical of its recipe and serve as controls for the stored-code statistics of Appendix~\ref{app:harm}. The gradient masks of all nine checkpoints were also rebuilt from 128 to 1,024 calibration inputs and replayed on the saved fault fields (Appendix~\ref{app:calibration}).
+\item \emph{Switch prediction, ResNet-8.} The nine checkpoints of Table~\ref{tab:repeated}, 72 replications in all, each with its own window of 1,000 test images and eight new fields; eight budgets from 1\% to 50\% and twelve BERs from $3\times10^{-4}$ to $3\times10^{-2}$.
+\item \emph{Rate-aware masks, ResNet-8.} The same replications with eight further fields, four budgets from 6.25\% to 25\% and eight BERs from $10^{-4}$ to $3\times10^{-2}$. Arms: the absolute gradient from 64 and 1,024 inputs, the positive gradient, a squared-effect score, FKeras, MSB-first, and the rate-aware masks of Appendix~\ref{app:ratechoice}, each built for the BER at which it is tested.
+\item \emph{DS-CNN.} Six replications of 1,024 calibration clips, 800 test clips and eight fields; budgets 12.5\% to 37.5\%, the twelve BERs above; the same arms without the squared-effect score and the Monte Carlo correction. Follow-ups: fault-injection searches at $p=10^{-2}$ on five further replications, and masks from 4,096 and 8,192 clips.
+\item \emph{Further checkpoints.} The hls4ml jet-tagging MLP (16--64--32--32--5, 4,256 weights) saved after 1, 3, 10, 30 and 100 epochs, an MNIST MLP (784--32--10, 25,408 weights) saved after 1, 3, 10 and 30 epochs, both trained here, and the MLPerf Tiny Visual Wake Words MobileNet (208,112 weights), all INT8 TFLite files run with the reference kernels. Six replications of 1,024 calibration inputs, 1,000 test inputs and eight fields; budgets 12.5\% and 25\%; thirteen BERs from $10^{-4}$ to $3\times10^{-2}$; absolute- and positive-gradient masks and MSB-first.
+\item \emph{Run T.} Conditions, all on the same raw fault field within a draw: no protection; triple modular redundancy of the top 6.25, 12.5, 18.75 or 25\% of bits by each ranking (extra storage twice that share), the ranking being the absolute gradient, FKeras, the FKeras source's tier-mixing variant (weight score times the bit's power of two; defined there but not used by its ranking path), MSB-first (at 12.5\% FORTUNE-style sign-bit triplication), the positive and global gradients, numerical jump or random; SEC-DED over 64, 32, 16 or 8 data bits (12.5 to 62.5\% extra storage), one error per codeword repaired; ABFT checksum correction per output channel, with fault-free checksums and with 32-bit checksums that can flip and cause wrong repairs (two 32-bit words per channel). Masks are built from the same 1,024 calibration inputs for every data-driven ranking, FKeras included. Each checkpoint has six windows of 1,000 inputs and four draws per window at the eight BERs of the main grid. Fixed contrasts include ranked triplication against SEC-DED of equal storage, against FORTUNE-style triplication and against ABFT, absolute gradient against MSB-first and FKeras at every share, and faulty against ideal ABFT checksums; a difference is resolved at 0.5 points with Holm $p<0.05$ over all contrasts and usable rates of a checkpoint.
+\end{itemize}
 
 \section{Rate-Aware Masks and the Ranking-Choice Studies}\label{app:ratechoice}
 \paragraph{Rate-aware masks.} The analytic rate-aware mask minimizes $\hat J_p$ of Eq.~\eqref{eq:two-term} at the intended BER, computed on the 1,024 calibration inputs with the curvature $F_w=\E_x g_w(x)^2$. It starts from the absolute-gradient mask or from the ranking by the score below at $\mu=0$, whichever has the lower $\hat J_p$. Each round evaluates the gradient $\hat g_w$ at $\theta+\mu$, scores every bit by the change of $\hat J_p$ from protecting it,
