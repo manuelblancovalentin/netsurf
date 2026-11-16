@@ -68,10 +68,19 @@ def main():
     torch.set_num_threads(a.threads)
 
     if a.target == "distilbert_sst2_int8":
-        coh = plan["selection_cohort"] if "selection_cohort" in plan else None
-        rows = adapter.sst2_cohorts()["selection"][:64]
-        if coh and [r.source_index for r in rows] != coh.get("source_indices", [r.source_index for r in rows]):
-            raise SystemExit("selection cohort differs from the frozen campaign")
+        coh = plan["selection_cohort"]                 # the 64 train sentences of the main-grid masks, in frozen order
+        sys.path.insert(0, str(T.W8A8))
+        from netsurf.transformer_data import read_sst2_parquet
+        train = read_sst2_parquet(adapter.asset.dataset_root / "sst2" / "train-00000-of-00001.parquet", "train")
+        by_index = {r.source_index: r for r in train}
+        missing = [i for i in coh["source_indices"] if i not in by_index]
+        if missing or coh.get("split") != "train":
+            raise SystemExit(f"selection cohort not found in the train partitions ({len(missing)} missing)")
+        rows = [by_index[i] for i in coh["source_indices"]]
+        sys.path.insert(0, str(T.W8A8))
+        from netsurf.transformer_data import sst2_records_digest
+        if sst2_records_digest(rows) != coh["ordered_labels_and_text_sha256"]:
+            raise SystemExit("selection cohort text or labels differ from the frozen campaign")
         batches = []
         for s in range(0, len(rows), a.batch):
             b = rows[s:s + a.batch]
