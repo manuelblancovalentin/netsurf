@@ -30,7 +30,7 @@ import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "pkg"))
-from netsurf.fkeras_baseline import leading_hessian_eigenpairs, principal_weight_hessian_score  # noqa: E402
+from netsurf.fkeras_baseline import leading_hessian_eigenpairs, principal_weight_hessian_score  # noqa: E402,F401
 
 FK_SEED, FK_OPTIONS = 970201, dict(eigenpairs=2, max_iterations=100, tolerance=1e-5, max_products=300)
 SHARES = (0.0625, 0.125, 0.1875, 0.25)
@@ -95,6 +95,63 @@ def windows(n, context=1024, stride=512):
         if end == n:
             break
     return out
+
+
+def lanczos_eigenpairs(product, n, *, count, seed, tolerance, max_products, max_basis=48, check_every=6):
+    """Largest-magnitude eigenpairs of a symmetric operator by Lanczos with full reorthogonalization (64-bit sizes).
+    Same acceptance rules as netsurf.fkeras_baseline.leading_hessian_eigenpairs, which uses ARPACK; ARPACK's 32-bit
+    work-array indexing overflows at n * ncv > 2^31 (Qwen: n = 596M).  Symmetry check on two random vectors, ordering
+    by descending |lambda| (algebraic value breaks ties), sign rule (largest absolute component nonnegative), and
+    acceptance only if every normalized residual ||Hx - lambda x|| / (||Hx|| + |lambda||) <= tolerance, with the
+    residual computed from an explicit product."""
+    rng = np.random.default_rng(seed)
+    u, v = rng.normal(size=(2, n)); u /= np.linalg.norm(u); v /= np.linalg.norm(v)
+    hu, hv = product(u), product(v)
+    symmetry = float(abs(u @ hv - v @ hu) / max(np.linalg.norm(hu), np.linalg.norm(hv), 1e-30))
+    if symmetry > max(tolerance, 1e-10):
+        raise ValueError(f"HVP symmetry check failed: {symmetry}")
+    del u, hu, hv
+    Q = [v / np.linalg.norm(v)]
+    alphas, betas = [], []
+    calls = 2
+    while True:
+        w = product(Q[-1]); calls += 1
+        a = float(Q[-1] @ w); alphas.append(a)
+        for q in Q:                                    # full reorthogonalization, twice for stability
+            w -= (q @ w) * q
+        for q in Q:
+            w -= (q @ w) * q
+        b = float(np.linalg.norm(w))
+        k = len(alphas)
+        if k >= count and (k % check_every == 0 or k >= max_basis or b < 1e-14 or calls + count + 1 > max_products):
+            T = np.diag(alphas) + np.diag(betas, 1) + np.diag(betas, -1)
+            vals, S = np.linalg.eigh(T)
+            order = sorted(range(len(vals)), key=lambda i: (-abs(vals[i]), -vals[i]))[:count]
+            est = [abs(b * S[-1, i]) / max(abs(vals[i]), 1e-30) for i in order]   # Lanczos residual estimate
+            print(json.dumps(dict(stage="lanczos", basis=k, ritz=[float(vals[i]) for i in order], est=est)), flush=True)
+            if max(est) <= tolerance * 0.1 or k >= max_basis or b < 1e-14 or calls + count + 1 > max_products:
+                vectors = np.stack([sum(S[j, i] * Q[j] for j in range(k)) for i in order])
+                values = np.array([vals[i] for i in order])
+                break
+        if b < 1e-14:
+            raise ValueError("Lanczos breakdown before convergence")
+        betas.append(b)
+        Q.append(w / b)
+    del Q
+    for x in vectors:
+        x /= np.linalg.norm(x)
+        if x[np.argmax(np.abs(x))] < 0:
+            x *= -1
+    products = np.stack([product(x) for x in vectors]); calls += count
+    residuals = np.linalg.norm(products - values[:, None] * vectors, axis=1)
+    normalized = residuals / np.maximum(np.linalg.norm(products, axis=1) + np.abs(values), 1e-30)
+    orthogonality = float(np.linalg.norm(vectors @ vectors.T - np.eye(count), ord=2))
+    if np.any(normalized > tolerance) or orthogonality > max(tolerance, 1e-10):
+        raise ValueError(f"FKeras eigenpair validation failed: residual={normalized}, orthogonality={orthogonality}")
+    diag = dict(eigenvalues=[float(x) for x in values], normalized_residuals=[float(x) for x in normalized],
+                orthogonality_error=orthogonality, symmetry_error=symmetry, hvp_calls=calls,
+                solver="numpy-lanczos-full-reorthogonalization/v1", basis=len(alphas))
+    return vectors, diag
 
 
 def tier_first(word, budget):
@@ -207,10 +264,9 @@ def main():
         log(stage="check", mean_nll_first_window=first_loss, hvp_norm=float(np.linalg.norm(hv)),
             gpu_peak_gb=round(torch.cuda.max_memory_allocated() / 1e9, 2) if device == "cuda" else None)
         return
-    vectors, diag = leading_hessian_eigenpairs(hvp, theta.size, count=FK_OPTIONS["eigenpairs"], seed=FK_SEED,
-                                               max_iterations=FK_OPTIONS["max_iterations"],
-                                               tolerance=FK_OPTIONS["tolerance"], max_products=FK_OPTIONS["max_products"])
-    word = np.abs(principal_weight_hessian_score(theta, vectors, np.asarray(diag.eigenvalues)))
+    vectors, diag = lanczos_eigenpairs(hvp, theta.size, count=FK_OPTIONS["eigenpairs"], seed=FK_SEED,
+                                       tolerance=FK_OPTIONS["tolerance"], max_products=FK_OPTIONS["max_products"])
+    word = np.abs(principal_weight_hessian_score(theta, vectors, np.asarray(diag["eigenvalues"])))
     del vectors
     budgets = {float(k): int(v) for k, v in json.loads(a.budgets.read_text()).items()}
     masks = {}
@@ -222,8 +278,7 @@ def main():
     (a.out / "fkeras.json").write_text(json.dumps(dict(
         target="qwen3_0_6b_int8", calibration_targets=count, windows=len(W), seconds=round(time.time() - t0, 1),
         device=device, gpu=torch.cuda.get_device_name(0) if device == "cuda" else None,
-        torch=torch.__version__, eigenvalues=[float(v) for v in diag.eigenvalues],
-        residuals=[float(v) for v in diag.normalized_residuals], hessian_vector_products=int(diag.hvp_calls),
+        torch=torch.__version__, eigensolver=diag,
         options=FK_OPTIONS, seed=FK_SEED, tokens_sha256=meta["token_ids_sha256"],
         word_score_sha256=hashlib.sha256(word.tobytes()).hexdigest(),
         masks_sha256={k: hashlib.sha256(v.tobytes()).hexdigest()[:16] for k, v in masks.items()}), indent=1))
