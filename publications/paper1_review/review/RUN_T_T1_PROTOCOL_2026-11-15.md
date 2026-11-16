@@ -245,6 +245,6 @@ that the planned tests can resolve; it is a disclosed second look, with the stop
   `workspace/runs/paper1_runT_t4_lm_analysis_v1`. It replaces the T2 analysis as the language-model analysis of the paper;
   the T2 output is kept.
 - **Compute:** 224 jobs on kona (64 DistilBERT, 64 Pythia, 96 Qwen3), each the base conditions then the FKeras
-  conditions, 4 threads per job, 10 jobs at a time (40 of 80 cores; about 20 GB per Qwen3 job). Measured job times:
+  conditions, 4 threads per job. Started at 10 jobs at a time; stopped after 3 minutes, before any output, because the Qwen3 jobs hold 35 to 45 GB each; restarted as two pools, at most 6 Qwen3 jobs and 5 DistilBERT/Pythia jobs at once (44 of 80 cores, about 330 GB peak). Measured job times:
   DistilBERT 33 min, Pythia 13 min, Qwen3 46 min (base plus FKeras), about 123 job-hours, roughly 12 to 14 hours of wall
   time. Progress log `paper1_runT_w8a8_logs/more.log`, registry entry 80.
