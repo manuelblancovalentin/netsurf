@@ -15,4 +15,10 @@ Isolated damage ranks bit one first. Protecting it leaves expected risk $1.1p+3p
 
 A ranking also forces masks to be nested across budgets, and optimal masks need not be. For $\risk=z_1+1.05z_2+1.05z_3+z_1z_2+z_1z_3$ at $p=0.1$, the best single protected bit is bit one (expected risk $0.210$ against $0.215$), but the best protected pair is bits two and three ($0.100$ against $0.105$).
 
+\paragraph{Where the rate enters.} A second-order view shows how the fault rate enters in a network. For a mask $\protset$ let every unprotected bit flip with probability $p$, and let $X_w$ be the resulting displacement of weight $w$, with mean $\mu_w=p\sum_{b\in w,\,b\notin\protset}\Delta_b$ and variance $V_w=p(1-p)\sum_{b\in w,\,b\notin\protset}\Delta_b^2$. With $F_w=\E_x g_w(x)^2$ as the curvature along $w$, the expected loss increase is approximately
+\begin{equation}\label{eq:two-term}
+\hat J_p(\protset)=\big[\risk(\theta+\mu)-\risk(\theta)\big]+\tfrac12\textstyle\sum_w F_w V_w .
+\end{equation}
+The first term is the loss at the mean faulty weights. It contains the signed first-order effect $\sum_w\bar g_w\mu_w$, linear in $p$, which a mask can lower by leaving loss-decreasing flips unprotected; it also contains the curvature along the coherent shift $\mu$, which grows as $p^2$ and penalizes a remainder whose flips all push the same way. The second term is the spread around the mean. A mask that protects by the direction of a flip can therefore gain at small $p$ and lose at large $p$; the BER at which $\hat J_p$ of the positive- and absolute-gradient masks cross is a predicted switch $p^*$, and a mask can be searched to minimize $\hat J_p$ at an intended $p$. Section~\ref{sec:reversals} tests both.
+
 These examples prove only that no guarantee exists. They do not say that a static ranking performs badly in a real network, nor how large the loss from using one is. A fixed mask can be optimal for a fixed condition, and a static score may itself be built from multi-fault measurements. How much is lost in practice is an empirical question, which the remaining sections address by measuring task quality on the full BER-by-budget grid.

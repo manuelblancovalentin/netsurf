@@ -34,6 +34,23 @@
   "protection_vs_unprotected.csv": "ef998124f2664d5adf22e05e87add5191aa75e9266d12e07acfd4da84b8f3f04",
   "summary.json": "21738509f381a3da8b30b0ce47e2ddbc38cc34c98f090161e0f49d8e1b566195"
  },
+ "derived_data_rate_choice": {
+  "fault_means.csv": "e8986cc2150ca9d2341703f7a54a57f05ca2984298849fada008331a1aaa6053",
+  "gradtrust_diag.json": "b5b129fe6a007e69cc47d87173f57506d22f0627f74c51a061362fd7310e2671",
+  "gradtrust_summary.json": "cbc962dad3ac504df3d7caa4e96c8e33dd51a371aba0d73ba25f57947774ddb4",
+  "kws_calsize_summary.json": "4875a9ee53d9be4ac784977392d91da1ade453532f01df184d1283191daee006",
+  "provenance.json": "01a37d6747300da1609ba0e240a4ff440b534e334ff49712c08a5d529c6059bb",
+  "psearch_compare.json": "b84de8acf3aaeddbec2e422bc643ba9fe05e32c1a97e73eee835f36eec0daa7a",
+  "stage1_cells.csv": "ca299036707659709aa13de6689cfece1e6c05fda2331cb7f12f5f8b929be571",
+  "stage1_summary.json": "1916fa046ecc6ef6fe61c9310e81c07c5bc4061e462f2581a0ddafbe0751b67d",
+  "stage2_cells.csv": "3af2fb9b4a180a047a2a59585e44908a184218d57885296b80560fa9c66090ad",
+  "stage2_cross_rate.csv": "40dd6ab65f26c0e8f9f420c4ef9b6d05c0c72a8565ab5548478552e1e82a3de9",
+  "stage2_summary.json": "22483f94b9976ecfa50bce869fb96757ca14f2812476f86fe026783c66820107",
+  "stage4_summary.json": "1aea33849ba5df6bbb4a166ec5146862749e535a7f5cfa0b81d29c526698cac1",
+  "stage4_switch_cells.csv": "90c4ffb114bedcd50050e10bb565dd0c8029a275af3476b87b9fe500fc3a7cf8",
+  "stage4_v2_summary.json": "837de601179fc77e3f0fd58dfcbcb49fc000faec2768744818ed6188ba8a5b62",
+  "summary.json": "cdef847e760bd0fbeaad6775647541687f3157221724edfc3f303f535b0afaff"
+ },
  "derived_data_runA": {
   "absgrad_contrasts.csv": "94953f17947b1967ac56080d826abce79175a6572f16696b191e392d4bcf57c1",
   "fresh_cell_quality.csv": "f3918df8d5e4938ad157da23fc9b3fdf3feca4a31535c4014cf6267d294d4030",
@@ -400,6 +417,66 @@
    "script_sha256": "7de191f7f9aae9283c41db2bc73b379e127365176138f01f2a10ebe22817cea2"
   },
   {
+   "finalized_by_engine": false,
+   "outputs": "data/tecs_rate_choice (byte copies of locked analyses, aggregated fault means, summary)",
+   "run": "Ranking-choice studies (Run R Stages 1, 2 and 4, search follow-up, gradient trust, DS-CNN calibration size)",
+   "sources": {
+    "fault_means.csv": {
+     "sha256": "e8986cc2150ca9d2341703f7a54a57f05ca2984298849fada008331a1aaa6053",
+     "source": "aggregate of paper1_gradtrust_faults_v1 (fault_inputs)"
+    },
+    "gradtrust_diag.json": {
+     "sha256": "b5b129fe6a007e69cc47d87173f57506d22f0627f74c51a061362fd7310e2671",
+     "source": "extract of paper1_gradtrust_diag_v1/<id>/summary.json"
+    },
+    "gradtrust_summary.json": {
+     "sha256": "cbc962dad3ac504df3d7caa4e96c8e33dd51a371aba0d73ba25f57947774ddb4",
+     "source": "paper1_gradtrust_analysis_v1/summary.json"
+    },
+    "kws_calsize_summary.json": {
+     "sha256": "4875a9ee53d9be4ac784977392d91da1ade453532f01df184d1283191daee006",
+     "source": "paper1_kws_calsize_analysis_v1/summary.json"
+    },
+    "psearch_compare.json": {
+     "sha256": "b84de8acf3aaeddbec2e422bc643ba9fe05e32c1a97e73eee835f36eec0daa7a",
+     "source": "paper1_psearch_d_compare_v1/compare.json"
+    },
+    "stage1_cells.csv": {
+     "sha256": "ca299036707659709aa13de6689cfece1e6c05fda2331cb7f12f5f8b929be571",
+     "source": "paper1_runR_stage1_analysis_v1/cells.csv"
+    },
+    "stage1_summary.json": {
+     "sha256": "1916fa046ecc6ef6fe61c9310e81c07c5bc4061e462f2581a0ddafbe0751b67d",
+     "source": "paper1_runR_stage1_analysis_v1/summary.json"
+    },
+    "stage2_cells.csv": {
+     "sha256": "3af2fb9b4a180a047a2a59585e44908a184218d57885296b80560fa9c66090ad",
+     "source": "paper1_runR_stage2_analysis_v1/cells.csv"
+    },
+    "stage2_cross_rate.csv": {
+     "sha256": "40dd6ab65f26c0e8f9f420c4ef9b6d05c0c72a8565ab5548478552e1e82a3de9",
+     "source": "paper1_runR_stage2_analysis_v1/cross_rate.csv"
+    },
+    "stage2_summary.json": {
+     "sha256": "22483f94b9976ecfa50bce869fb96757ca14f2812476f86fe026783c66820107",
+     "source": "paper1_runR_stage2_analysis_v1/summary.json"
+    },
+    "stage4_summary.json": {
+     "sha256": "1aea33849ba5df6bbb4a166ec5146862749e535a7f5cfa0b81d29c526698cac1",
+     "source": "paper1_runR_stage4_kws_analysis_v1/summary.json"
+    },
+    "stage4_switch_cells.csv": {
+     "sha256": "90c4ffb114bedcd50050e10bb565dd0c8029a275af3476b87b9fe500fc3a7cf8",
+     "source": "paper1_runR_stage4_kws_analysis_v1/switch_cells.csv"
+    },
+    "stage4_v2_summary.json": {
+     "sha256": "837de601179fc77e3f0fd58dfcbcb49fc000faec2768744818ed6188ba8a5b62",
+     "source": "paper1_runR_v2_stage4_analysis_v1/summary.json"
+    }
+   },
+   "summary_script": "scripts/tecs_rate_choice_summary.py"
+  },
+  {
    "observation_listing_sha256": "98b075a2060362ee030de6e3c6ed086125c7404c327af34041d22ae5bb0ecdd4",
    "observations": 4800,
    "replay_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-tecs-revision-v1/workspace/runs/w8a8_cap_replay_v1/pythia160m_int8",
@@ -414,7 +491,7 @@
    "run": "Run B qwen"
   }
  ],
- "experiments_executed": 16,
+ "experiments_executed": 17,
  "figures": {
   "tecs_checkpoint_fragility.pdf": "f933cc28588f6bc09f7bbdd61c6c1972d7d9ab8263c6083f01fd5607badd0811",
   "tecs_checkpoint_fragility.png": "085e4d19d16901563adfd4934bef5cb4de79cc2463a33698ce7c28cafacbce84",
@@ -432,11 +509,17 @@
   "tecs_task_quality_ber_125.png": "b936e225aca78f791c877039c2f90f1646b736bb70ee78e6225bd75285d9959b"
  },
  "frozen_plans": {
+  "review/GRADIENT_TRUST_PLAN_2026-11-15.md": "06a5ae2e7091b967d11a43fb41558e242582f4dcfef174730cccdb15a0988590",
+  "review/GRADIENT_TRUST_PREDICTIONS_2026-11-15.json": "3c720998eeff7c2321b1042e0f853c18120daff0da2e8a7ea996066ef45909a5",
+  "review/KWS_CALIBRATION_SIZE_PREREG_2026-11-15.md": "b4173bb2c0bcdf04eeb67a9bdda07677a35d90fcea58691dcecef115f18b6e87",
+  "review/PARTIAL_SEARCH_FOLLOWUP_PREREG_2026-11-14.md": "cb8c7cd868134d8dc9ca44944850f016204a3c53affafa7355a08a504b2b1af2",
   "review/RUN_A2_D_F_FROZEN_PLANS_2026-11-11.md": "b3e1fb4a7e529fd49efb734b173bf2245663bc736c76d5f72dbfd46776559455",
   "review/RUN_A_B_FROZEN_PLANS_2026-11-11.md": "9b4adad9efd3d3e07b42800c7fdd1eb4a3a487a6c83c069f1f7bae613843e692",
   "review/RUN_J_K_L2_FROZEN_PLANS_2026-11-11.md": "7733169dc34415a767edf9079c24cc08ac708a609b3bd6dda041258b258b90f5",
   "review/RUN_N_METHOD_CAMPAIGNS_FROZEN_PLAN_2026-11-11.md": "b56523475a87c4bc00b573c7fab36c64b53f3bd5eb4f87bbe7f1926441b98c1d",
-  "review/RUN_Q_CALIBRATION_SIZE_PLAN_2026-11-11.md": "0c6c5c696f6618a0486265e2a5833fb4d5eb8d7edc9d688c8990f3e35f6210ad"
+  "review/RUN_Q_CALIBRATION_SIZE_PLAN_2026-11-11.md": "0c6c5c696f6618a0486265e2a5833fb4d5eb8d7edc9d688c8990f3e35f6210ad",
+  "review/RUN_R_RATE_AWARE_PLAN_2026-11-12.md": "9b70db27be511a384945227b259c2cc59b26f6d8cfb07bb56eb7117caec3d43e",
+  "review/RUN_R_STAGE4_DSCNN_PLAN_2026-11-12.md": "6eb4ca9aa263a899f29f4d1a8431bc4626c07364c152c6356975f9bdf4b9ddbd"
  },
  "limits": [
   "One trained checkpoint per model. Outside Run A: one evaluation cohort and one constructed mask per deterministic ranking and budget.",
@@ -489,10 +572,11 @@
   "build_tecs_correction_figure.py": "d5ff602c3cdb5d84bce2bb6708d949a018154e697a06ec8b4efe6f7dc8421574",
   "build_tecs_figures.py": "e5c266032a81e4e42b1fb1323e2c1be62d5ba0b4aca008353e984901e3b9ee13",
   "build_tecs_fragility_figure.py": "3968f0fdef5d0f69620a559ec3f282ffc9ab71a1149d02afa00f5ffb95db9f20",
-  "build_tecs_provenance.py": "c124d7a2d5ab7f0fd8d7e4c13d666e3da6fc66e907e3839cffc41ac0aa500c72",
+  "build_tecs_provenance.py": "03e7011dc72c5b13f7834188b1711427a33c4eb04111112b738540df916b221a",
   "build_tecs_runA_figure.py": "1f55e057e96893f20c3f1e29eaee91cae81f065a0ec6e6644bf838c9036daa95",
   "tecs_grid_audit.py": "02c17570e082337e02c81a7e21c09a39e6dc461bd1797aebd900bfb62e849a03",
   "tecs_kws_conditional_audit.py": "3fe379c3dcac7e65bb438e79fcff3fa16bcaff49e38560a31c0ae852b7150e9f",
+  "tecs_rate_choice_summary.py": "c1b7985e85c7f6763fb54f703daab958c7db6c3b12db923ac22fda4ddbcc6b55",
   "tecs_residual_drift_check.py": "8cad48f293e0db085066276ca44b601e5873f3217078e042153080994e933c3f",
   "tecs_runA_analysis.py": "65041af94baa684419319a794e2047e0702e9ca8644f60e591b7c5c12b452c01",
   "tecs_runB_tabulate.py": "fc6113b3275bee0e7ec76f78f436fb999333536666dab002ca68a97dcf1d33d4",

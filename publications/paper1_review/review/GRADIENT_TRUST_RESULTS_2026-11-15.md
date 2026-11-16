@@ -87,3 +87,17 @@ pos1024 was ahead: +0.21 point at 3e-2, 12.5%.
   whether more calibration data changes the DS-CNN's abs/pos gap at all.
 - **A possible follow-up, not run:** the same comparison at small budgets (1–6%), where faults still hurt after
   protection. It would need its own pre-registration, stating this explanation in advance.
+
+## Correction (15 November 2026, while drafting the paper section)
+
+The "Why" section above says the jet models lose under 1.5 points at the low rates. That holds at 1e-3 but not at
+3e-3. With abs1024 at 12.5%, the accuracy lost at 3e-3 is (from `data/tecs_rate_choice/summary.json`, computed from
+the locked fault files):
+
+| jet-e1 | jet-e3 | jet-e10 | jet-e30 | jet-e100 |
+|---|---|---|---|---|
+| 0.3 | 1.0 | 2.8 | 3.0 | 7.2 |
+
+So "little room left to win" explains VWW and MNIST, not the jet models: there, faults still cost 1-3 points in usable
+cells at 3e-3, and the signed ranking still gained nothing. What makes ResNet-8 different stays open. The verdict and
+every pre-registered number are unchanged.
