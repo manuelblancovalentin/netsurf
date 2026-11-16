@@ -121,3 +121,15 @@ Total: roughly 300–550 core-hours, one to two days of kona if nothing else run
    published tier-first order stays the arm named FKeras.
 4. **The ideal-protection grid stays in the draft for now** and is removed once the non-ideal results exist for
    every model. The conclusions are re-derived from the non-ideal results, not assumed.
+
+## Note A2 (15 November 2026): sources checked for the FKeras and PrioriFI text
+
+- FKeras paper, our hashed copy (sha256 `bb327b55…`), Section 4.2.2: the tier-first order "is not ideal, and a better
+  bit-level ranking can be achieved by mixing bits of different significance … We leave that as future work."
+- FKeras source at the pinned commit 68e775c (`fkeras/metrics/hessian.py`, sha256 `3e5b61b8…`, matching the hash on
+  record): `rank_bits` (weight score × 2^bit, tiers mixed) is defined; the ranking path calls `sort_bits_MSB_to_LSB`
+  (tier first). Run T labels the mixed arm "fkeras_weighted: defined in the FKeras source, not used by it".
+- PrioriFI, author PDF (ASPLOS 2026; sha256 `8cce24b6c8cce8d2…`), Section 3.1: "The single-bit
+  flip model, which simulates scenarios where only one bit flips at a time"; its goal is to find sensitive bits with
+  fewer injections; it builds no protection mask. An earlier NetSuRF adaptation (worktree `m12-priorifi-crossbench`,
+  `docs/PRIORIFI_CROSSBENCH_PREFLIGHT.md`) reached the same reading from its public code.
