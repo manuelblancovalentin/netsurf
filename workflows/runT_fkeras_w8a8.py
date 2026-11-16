@@ -24,11 +24,34 @@ import time
 from pathlib import Path
 
 import numpy as np
+import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import runT_w8a8 as T  # noqa: E402
 
 FK_SEED, FK_OPTIONS = 970201, dict(eigenpairs=2, max_iterations=100, tolerance=1e-5, max_products=300)
+
+
+def keep_float64(model):
+    """The Hessian needs float64 end to end: the Hugging Face attention computes softmax in float32 (Pythia, Qwen) and
+    the Qwen RMSNorm normalizes in float32.  Keep float64 when the input is float64 (precision only, same function)."""
+    import torch.nn.functional as F
+    if not getattr(F.softmax, "_fk64", False):
+        orig = F.softmax
+
+        def softmax(input, dim=None, _stacklevel=3, dtype=None):
+            if dtype is torch.float32 and input.dtype is torch.float64:
+                dtype = torch.float64
+            return orig(input, dim=dim, _stacklevel=_stacklevel, dtype=dtype)
+        softmax._fk64 = True
+        F.softmax = softmax
+    for m in model.modules():
+        if type(m).__name__.endswith("RMSNorm"):
+            eps = getattr(m, "variance_epsilon", getattr(m, "eps", 1e-6))
+
+            def fwd(x, m=m, eps=eps):
+                return m.weight * (x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + eps))
+            m.forward = fwd
 
 
 def main():
@@ -51,6 +74,7 @@ def main():
     names = [e["module"] for e in adapter.universe.entries]
     mods = [adapter.modules[n] for n in names]
     model = adapter.model.double()
+    keep_float64(model)
     U = [torch.zeros(tuple(m.qweight.shape), dtype=torch.float64, requires_grad=True) for m in mods]
     for m, u in zip(mods, U):
         m._fk_u = u

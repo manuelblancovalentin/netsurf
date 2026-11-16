@@ -36,6 +36,28 @@ FK_SEED, FK_OPTIONS = 970201, dict(eigenpairs=2, max_iterations=100, tolerance=1
 SHARES = (0.0625, 0.125, 0.1875, 0.25)
 
 
+def keep_float64(model):
+    """The Hessian needs float64 end to end: the Hugging Face attention computes softmax in float32 (Pythia, Qwen) and
+    the Qwen RMSNorm normalizes in float32.  Keep float64 when the input is float64 (precision only, same function)."""
+    import torch.nn.functional as F
+    if not getattr(F.softmax, "_fk64", False):
+        orig = F.softmax
+
+        def softmax(input, dim=None, _stacklevel=3, dtype=None):
+            if dtype is torch.float32 and input.dtype is torch.float64:
+                dtype = torch.float64
+            return orig(input, dim=dim, _stacklevel=_stacklevel, dtype=dtype)
+        softmax._fk64 = True
+        F.softmax = softmax
+    for m in model.modules():
+        if type(m).__name__.endswith("RMSNorm"):
+            eps = getattr(m, "variance_epsilon", getattr(m, "eps", 1e-6))
+
+            def fwd(x, m=m, eps=eps):
+                return m.weight * (x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + eps))
+            m.forward = fwd
+
+
 class Continuous(torch.nn.Module):
     def __init__(self, q, s, bias):
         super().__init__()
@@ -223,6 +245,7 @@ def main():
     if hashlib.sha256(ids.astype("<i4").tobytes()).hexdigest() != meta["token_ids_sha256"]:
         raise SystemExit("token ids differ from their recorded sha256")
     model, mods, manifest = load(a.model, device)
+    keep_float64(model)
     U = [m.u for m in mods]
     sizes = [u.numel() for u in U]
     theta = np.concatenate([m.w0.reshape(-1).cpu().numpy() for m in mods])
