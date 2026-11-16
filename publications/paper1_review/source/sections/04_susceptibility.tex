@@ -1,5 +1,5 @@
 \section{Rankings and Masks}\label{sec:susceptibility}\label{sec:estimators}
-Each ranking orders the eligible bits, and protecting the first $B$ gives an exact-budget mask. Table~\ref{tab:methods} lists the seven rankings. For bit $b$ of weight $\theta_i$, let $\Delta_b$ be the exact weight jump of its XOR transition and $g_i(x)$ the calibration-loss gradient for input $x$. The first-order effect of the flip is $e_b(x)=g_i(x)\Delta_b$.
+Each ranking orders the eligible bits, and protecting the first $B$ gives an exact-budget mask. Table~\ref{tab:methods} lists the rankings. For bit $b$ of weight $\theta_i$, let $\Delta_b$ be the exact weight jump of its XOR transition and $g_i(x)$ the calibration-loss gradient for input $x$. The first-order effect of the flip is $e_b(x)=g_i(x)\Delta_b$.
 
 \begin{table}[t]
 \caption{Static rankings. Larger scores rank first; $\E_x$ averages calibration inputs and $j$ is the bit position. Remaining ties follow the stored tensor, word and bit order.}\label{tab:methods}
@@ -9,16 +9,17 @@ Ranking & Score or ordering & Needs\\\midrule
 Random & Seeded permutation & Nothing\\
 MSB-first & Descending $j$ & Bit positions\\
 Numerical jump & $|\Delta_b|$ & Stored codes and scales\\
-Global gradient & $|\E_x e_b(x)|$ & Labelled calibration set, one mean gradient\\
-Absolute gradient & $\E_x|e_b(x)|$ & Labelled calibration set, per-example gradients\\
+Global gradient & $|\E_x e_b(x)|$ & Calibration set, one mean gradient\\
+Absolute gradient & $\E_x|e_b(x)|$ & Calibration set, per-example gradients\\
 Positive gradient & $\E_x\max(0,e_b(x))$ & Same as absolute gradient\\
-FKeras & Descending $j$, then $|H'_i|$ & Calibration set, two Hessian eigenpairs\\\bottomrule
+FKeras & Descending $j$, then $|H'_i|$ & Calibration set, two Hessian eigenpairs\\
+FKeras, tier-mixing & $|H'_i|\,2^{j}$ & Same as FKeras\\\bottomrule
 \end{tabularx}
-\Description{Seven ranking methods differ in their scores, aggregation and required information.}
+\Description{Eight ranking methods differ in their scores, aggregation and required information.}
 \end{table}
 
-The three gradient rankings aggregate the same per-example effects differently. The global score lets opposite-signed effects cancel before taking a magnitude. The absolute score keeps the magnitude of every per-example effect, whether the flip is predicted to raise or lower the loss. The positive score keeps only predicted harm, and so ranks a flip by its direction as well as its size. All three share the factor $|\Delta_b|$ and none is an exact finite-fault calculation.
+The three gradient rankings aggregate the same per-example effects differently. The global score lets opposite-signed effects cancel before taking a magnitude. The absolute score keeps the magnitude of every per-example effect, whether the flip is predicted to raise or lower the loss. The positive score keeps only predicted harm, and so ranks a flip by its direction as well as its size. None is an exact finite-fault calculation.
 
-For FKeras~\cite{weng2024fkeras} we use the published projection $H'=\sum_{k=1}^{r}\lambda_k(v_k^\top\theta)v_k$ with $r=2$ signed largest-magnitude eigenpairs of a continuous loss Hessian, and order bits by significance tier and then by $|H'_i|$, as published; its authors describe the tier-first order as a first approximation (Section~\ref{sec:related}). The gradient companions use straight-through requantization and the Hessian companion omits activation rounding; neither differentiates the integer program (Appendix~\ref{app:implementation}).
+For FKeras~\cite{weng2024fkeras} we use the published projection $H'=\sum_{k=1}^{r}\lambda_k(v_k^\top\theta)v_k$ with $r=2$ signed largest-magnitude eigenpairs of a continuous loss Hessian, and order bits by significance tier and then by $|H'_i|$, as published. The FKeras source also defines a score that multiplies the weight score by the bit's power of two, which mixes tiers but is not used by its ranking path; we evaluate it as a second, tier-mixing FKeras ranking. Gradients come from companions with straight-through requantization, the Hessian from a continuous float64 companion without activation rounding; neither differentiates the integer program (Appendix~\ref{app:implementation}).
 
-\paragraph{Rankings versus masks.} Two different rankings can select the same mask. With eight bits per word, 12.5\% coverage is exactly one tier, so MSB-first and FKeras both protect every sign bit, and at 25\% both protect the top two tiers. We keep the two names but count identical masks as one protection decision. At 6.25\% and 18.75\% a tier is only half protected, and the within-tier order decides which half. For FKeras that order is the Hessian score. For MSB-first it is the stored tensor order, which is arbitrary: at 6.25\% the ResNet-8 MSB-first mask protects every sign bit in eight tensors and none in the largest tensor, which holds 48\% of all eligible bits. Partial-tier contrasts between FKeras and MSB-first therefore compare a Hessian score with a storage order; the repeated evaluations (Section~\ref{sec:repeated}) add a uniformly random fill of the partial tier as a reference.
+\paragraph{Rankings versus masks.} Two rankings can select the same mask. With eight bits per word, 12.5\% coverage is exactly one tier, so MSB-first, FORTUNE and FKeras all protect every sign bit, and at 25\% MSB-first and FKeras both protect the top two tiers. We count identical masks as one protection decision. At 6.25\% and 18.75\% a tier is only half protected, and the within-tier order decides which half: for FKeras the Hessian score, for MSB-first the stored tensor order. The comparisons with FKeras therefore use 6.25\%, where its Hessian order is active, and the comparisons with FORTUNE use 12.5\%.

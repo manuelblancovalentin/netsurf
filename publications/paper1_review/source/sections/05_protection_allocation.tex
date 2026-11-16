@@ -1,5 +1,5 @@
 \section{Between Single Bits and Every Combination}\label{sec:allocation}
-This section states what can and cannot be expected of a static ranking, and then gives the statistical description of many simultaneous faults that the rest of the paper tests. The first part is standard reliability theory applied to bit protection; the second is our model.
+This section states what can and cannot be expected of a static ranking, and then gives the statistical description of many simultaneous faults through which we read the results. The first part is standard reliability theory applied to bit protection; the second is our model.
 
 \subsection{Single-fault damage is not protection value}
 The isolated damage of bit $b$, $I_b=\risk(\{b\})-\risk(\varnothing)$, is the risk after one flip minus the clean risk. Protecting a bit, however, removes its effect in a network that may already be faulty. For an unprotected bit $b$, let $G$ be the random set of faults on the other unprotected bits, and define the conditional vulnerability $V_b(p,\protset)=\E_G[\risk(G\cup\{b\})-\risk(G)]$. Because bit $b$ faults independently of $G$,
@@ -17,7 +17,7 @@ Isolated damage ranks bit one first. Protecting it leaves expected risk $1.1p+3p
 These examples prove only that no guarantee exists. Three bits already interact; a network has hundreds of thousands to billions, and $2^N$ fault states. Neither a single-bit score nor an enumeration of combinations is a practical description. The next subsection gives one in between.
 
 \subsection{A statistical model: Gaussian noise plus top-bit events}\label{sec:model}
-For a mask $\protset$ let every unprotected bit flip independently with probability $p$ (or with the residual $\rho(p)$ of its mechanism, Section~\ref{sec:fault}). Because a stored code is linear in its bits, the displacement of weight $w$ is $X_w=\sum_{b\in w}\xi_b\Delta_b$ with independent Bernoulli $\xi_b$, so its mean and variance are exact:
+For a mask $\protset$ let every unprotected bit flip independently with probability $p$ (or with the residual error of its mechanism, Section~\ref{sec:fault}). Because a stored code is linear in its bits, the displacement of weight $w$ is $X_w=\sum_{b\in w}\xi_b\Delta_b$ with independent Bernoulli $\xi_b$, so its mean and variance are exact:
 \begin{equation}\label{eq:moments}
 \mu_w=p\sum_{b\in w,\,b\notin\protset}\Delta_b,\qquad V_w=p(1-p)\sum_{b\in w,\,b\notin\protset}\Delta_b^2 .
 \end{equation}
@@ -26,7 +26,7 @@ Different weights are independent. The bits of a word fall into two populations.
 \item \emph{background noise}: every weight displaced by $\mu^{\le5}_w+\sqrt{V^{\le5}_w}\,\varepsilon_w$, $\varepsilon_w\sim\mathcal N(0,1)$, with the moments of its unprotected bits 0 to 5; and
 \item \emph{events}: the unprotected bits 6 and 7 flipped as real, discrete faults,
 \end{itemize}
-and evaluate the network on the displaced weights. The model has no fitted parameter: it uses only the stored codes, the mask and $p$. It does not assume that faults add up; the network combines them. Section~\ref{sec:noise} tests it against measured outcomes.
+and evaluate the network on the displaced weights. The model has no fitted parameter: it uses only the stored codes, the mask and $p$. It does not assume that faults add up; the network combines them. Section~\ref{sec:noise} compares it with measured outcomes.
 
 \subsection{Drift and spread}\label{sec:drift}
 Expanding the expected loss around the mean faulty weights gives the two-term approximation
@@ -37,4 +37,4 @@ The first term is the loss at the mean faulty weights, a \emph{drift}. It contai
 
 The two terms explain the behaviour of the rankings of Section~\ref{sec:susceptibility}. Ranking by significance protects the largest jumps but ignores which weights the loss is sensitive to, so it reduces the spread inefficiently. Ranking by the per-example magnitude $\E_x|g_b\Delta_b|$ targets the spread directly and, because it ignores the sign of a flip, leaves loss-increasing and loss-decreasing flips in balance, so the drift of its remainder stays near zero (Appendix~\ref{app:harm} measures this on DistilBERT). Ranking by the signed, positive part protects mostly loss-increasing flips. Its remainder has a drift that points downhill: at small $p$ that drift acts like a small training step and can even improve the model, and at large $p$ its quadratic cost dominates and the weights are pushed off the loss surface. The rate $p^*$ at which $\hat J_p$ of the positive- and absolute-gradient masks cross is a predicted switch between the two rankings, computable from calibration data before any fault is injected. A mask can also be searched to minimize $\hat J_p$ at an intended $p$ (Appendix~\ref{app:ratechoice}).
 
-Equation~\eqref{eq:two-term} replaces the network pass of the spread by a curvature shortcut, and that shortcut is its weak point: on DS-CNN it predicts a switch that does not occur. The network pass of the full model has no such shortcut, and it reproduces where the switch occurs and where it does not on all 18 checkpoints of its confirmation (Section~\ref{sec:noise}). We use Eq.~\eqref{eq:two-term} to explain and to locate the switch, and the network pass of the full model to evaluate masks.
+Equation~\eqref{eq:two-term} replaces the network pass of the spread by a curvature shortcut, and that shortcut is its weak point: on DS-CNN it predicts a switch that does not occur. The network pass of the full model has no such shortcut, and it reproduces where the switch occurs and where it does not on all 18 checkpoints on which it was checked (Section~\ref{sec:noise}). We use Eq.~\eqref{eq:two-term} to explain and to locate the switch, and the network pass of the full model to evaluate masks.

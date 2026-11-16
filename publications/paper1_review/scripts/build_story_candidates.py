@@ -26,11 +26,10 @@ ROOT = Path(__file__).resolve().parents[1]
 RUNS = ROOT.parents[1] / "workspace/runs"
 RC = ROOT / "data/tecs_rate_choice"
 PICKS_SHA = "8c1a864f5310903d941d2d2e4eae51c5479c1aed25b0d78fa680eda347618335"
-ABS, POS, V2, MSB, INK, INK2, GRID, SURF = "#2a78d6", "#eb6834", "#1baf7a", "#52514e", "#0b0b0b", "#52514e", "#e4e3df", "#fcfcfb"
-plt.rcParams.update({"font.size": 9, "axes.spines.top": False, "axes.spines.right": False, "axes.grid": True,
-                     "grid.color": GRID, "grid.linewidth": 0.6, "axes.edgecolor": INK2, "axes.labelcolor": INK,
-                     "xtick.color": INK2, "ytick.color": INK2, "lines.linewidth": 2, "figure.facecolor": SURF,
-                     "axes.facecolor": SURF, "savefig.facecolor": SURF, "legend.frameon": False})
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import paper_style as S  # noqa: E402
+ABS, POS, V2, MSB, INK, INK2, GRID, SURF = S.ABS, S.POS, S.RATE, S.MSB, S.INK, S.INK2, S.GRID, S.SURF
+S.apply()
 R8 = ["pinned", "retrained_seed7101", "retrained_seed7102", "retrained_seed7103", "retrained_seed7104",
       "retrained_seed7105", "pruned_s05", "pruned_s07", "undertrained_e100"]
 R8_LABEL = dict(pinned="pinned", undertrained_e100="under-trained", pruned_s05="pruned 50%", pruned_s07="pruned 70%",

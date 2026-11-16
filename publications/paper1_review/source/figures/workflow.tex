@@ -92,7 +92,7 @@
 \draw[group] (4.90,.72) rectangle (8.70,2.91);
 \node[label,text=flowbrown] at (6.80,2.60) {Calibrate scores; order bits};
 \node[detail] at (6.80,2.12) {Significance $\cdot$ jump $\cdot$ gradients};
-\node[detail] at (6.80,1.73) {Published-form FKeras (TFLite)};
+\node[detail] at (6.80,1.73) {Hessian (FKeras, two orders)};
 \node[label,text=flowred] at (6.80,1.13) {Choose budget; freeze mask};
 \draw[edge] (5.765,3.32)--(5.765,2.91);
 \draw[edge] (7.85,2.91)--(7.85,3.14);
@@ -101,8 +101,8 @@
 
 % Panel 3: same proposed field, exact suppressed XOR, inference, and outputs.
 \draw[group] (9.50,2.30) rectangle (13.30,4.82);
-\node[label,text=flowbrown] at (11.40,4.48) {Shared Bernoulli field $Z$};
-\node[detail] at (11.40,4.03) {Suppress $P$; apply XOR on $Z\setminus P$};
+\node[label,text=flowbrown] at (11.40,4.48) {Shared fault field};
+\node[detail] at (11.40,4.03) {All bits fail; vote \& decode};
 \draw[transfer] (8.70,4.03)--(9.50,4.03);
 \draw[edge] (11.40,3.80)--(11.40,3.58);
 \draw[draw=flowbrown!75,fill=white,rounded corners=2pt,line width=.65pt]
@@ -128,7 +128,7 @@
 
 \node[align=center,font=\sffamily\fontsize{7.6}{9.5}\selectfont,text=flowbrown]
   at (6.80,-.45)
-  {Ideal or failing protection $\cdot$ Paired saved fields $\cdot$ Exact restoration $\cdot$ Archived results};
+  {Copies and check bits fail too $\cdot$ Paired saved fields $\cdot$ Exact restoration $\cdot$ Archived results};
 \end{tikzpicture}%
 }%
 \endgroup%
