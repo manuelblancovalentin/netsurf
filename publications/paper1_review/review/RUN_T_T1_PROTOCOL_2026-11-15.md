@@ -134,3 +134,43 @@ FKeras job has ended; for ResNet-8 and DS-CNN, run once on their outputs. Both a
 | ResNet-8 and DS-CNN engine jobs | 240 | 39 conditions × 8 rates, 20–40 min each | about 120 core-hours |
 
 All on kona, 24 at a time. ToyCar is still to be added (it needs AUC scoring).
+
+## Addendum T2 (15 November 2026, before any T2 outcome; code 7582f78)
+
+The researcher's instruction: "Well build it! Let's run as much as possible overnight."
+
+**Models:** DistilBERT, Pythia-160M and Qwen3-0.6B, with the exact W8A8 executable.
+- Faults are XORed into the stored INT8 codes and removed after every evaluation.
+- Code: `workflows/runT_w8a8.py` (sha256 `3c1f341424cb…`).
+- Checks:
+  - the clean codes are verified by hash after each job;
+  - the frozen campaign's pinned kona-assets commit (1aea52b) has moved to a later commit that only added unrelated assets; the runner proceeds only if the two executable source files equal their pinned hashes, and records both commits.
+
+**Conditions:** as in T1, with these differences:
+- the ranked masks are the sealed masks of the frozen wide-BER campaign, the same masks as the main grid. These are six rankings: MSB-first in tier order with ties by global code, and five sealed rankings;
+- ABFT works per output row;
+- FKeras is not included yet. It needs a transformer Hessian and will be added later on the same fault fields.
+
+**Draws:**
+- 8 per BER for DistilBERT and Pythia;
+- 4 for Qwen, because of its cost.
+
+Each job is one (model, draw, BER).
+
+**Metrics:**
+- DistilBERT is judged by accuracy, as in T1.
+- Pythia and Qwen are judged by mean token NLL. A cell is usable if the better of the compared arms is within 0.5 nats of clean.
+- A difference is resolved if it is at least 0.05 nats with Holm p < 0.05.
+- The language-model analysis applies the T1 contrasts to NLL. It will be written before any T2 output is read.
+
+**Smoke:** DistilBERT, draw 9 (outside the analysis set), one BER, five conditions, written to scratch. About 20 s per evaluation and 80 s to load the model.
+
+**Cost estimate:**
+
+| Model | Jobs | Time per job |
+|---|---|---|
+| DistilBERT | 64 | about 12 min |
+| Pythia | 64 | not yet timed |
+| Qwen | 32 | not yet timed; probably 1–2 h |
+
+Run on kona: 6 jobs of 4 threads now, plus 8 more when T1b has ended.
