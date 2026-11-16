@@ -174,3 +174,19 @@ Each job is one (model, draw, BER).
 | Qwen | 32 | not yet timed; probably 1–2 h |
 
 Run on kona: 6 jobs of 4 threads now, plus 8 more when T1b has ended.
+
+## Addendum T3: ToyCar (16 November 2026, 00:00, before any T3 outcome; code 25e5cb3)
+
+**Runner:** `runT_engine.py --model toycar`. It uses the same conditions and fault model as T1b, with these differences:
+- the metric is file-level ROC-AUC, written in the accuracy column;
+- AUC points use the 0.05 usefulness margin of the main grid and a resolution threshold of 0.5 AUC points.
+
+**Masks:**
+- abs, pos, abs64 (here the same 16 files), FKeras and the tier-mixing variant are built from 16 normal training files per replication, as in the main grid;
+- msb, jump and random are built as in T1.
+
+**Cohort:** two disjoint windows of 62 balanced test files (evaluation half, offsets 0 and 62), 4 draws each: 8 draws in total.
+
+**Analysis:** `runT_analyze.py --draws 8 --ids toycar`, run once at the end.
+
+**Smoke:** replication 1, draw 9 (outside the analysis set), one BER, read for timing and clean AUC only. Clean AUC 0.877; about 3 min for FKeras; about 2 s per evaluation.
