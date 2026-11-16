@@ -1,0 +1,46 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Paper 1: tie per-bit protection value to AVF in the theory section",
+ "summary": "",
+ "notes": "Requested by the owner after draft v18: the paper cited AVF only as motivation. Builds on: netsurf-manuelbv-0045 (draft v18 text).",
+ "status": "doing",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
+ "summaryTags": [
+  "paper1",
+  "manuscript"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-11-16",
+ "end": "",
+ "completed": "",
+ "percent": null,
+ "dependencies": [
+  "netsurf-manuelbv-0045"
+ ],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "doing"
+  }
+ ],
+ "number": 48,
+ "id": "netsurf-manuelbv-0048"
+}
