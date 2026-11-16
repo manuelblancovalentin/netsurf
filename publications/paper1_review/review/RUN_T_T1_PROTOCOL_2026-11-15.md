@@ -190,3 +190,17 @@ Run on kona: 6 jobs of 4 threads now, plus 8 more when T1b has ended.
 **Analysis:** `runT_analyze.py --draws 8 --ids toycar`, run once at the end.
 
 **Smoke:** replication 1, draw 9 (outside the analysis set), one BER, read for timing and clean AUC only. Clean AUC 0.877; about 3 min for FKeras; about 2 s per evaluation.
+
+## Note T2-FK (16 November 2026): FKeras on the language models
+
+**DistilBERT and Pythia:** \`runT_fkeras_w8a8.py\` on kona.
+- The pinned PyTorch environment has no SciPy. The jobs import \`.venv-mlperf\`'s SciPy 1.17.1 through a symlink path; NumPy 1.26.4 still comes from the pinned environment. Neither environment was modified.
+- DistilBERT's selection sentences are taken by source index and checked against the campaign's hash.
+
+**Qwen3-0.6B:** \`runT_fkeras_qwen_gpu.py\` on a Quest A100 (80 GB SXM).
+- **Loader:** standalone, because the kona loader requires the CPU build of torch. Every tensor is checked against the manifest hash.
+- **Windows:** the frozen selection windows, shipped from kona with their hash.
+- **GPU check (job 8948044):** the first-window NLL equals the kona CPU value to 1e-8.
+- **First full job (8948045):** crashed with a segmentation fault inside ARPACK, whose 32-bit work arrays overflow at 596M dimensions × 20 vectors.
+- **Replacement solver:** Lanczos with full reorthogonalization, with the same acceptance checks, ordering and sign rule. It agrees with ARPACK to 1e-10 on a test operator (\`tests/test_lanczos_qwen.py\`, commit ab9307e).
+- **Resubmitted** as job 8951472.
