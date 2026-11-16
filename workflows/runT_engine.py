@@ -41,7 +41,47 @@ from runT_tflite import BERS, OUT, RANDOM, SEED, SHARES, channel_axes, condition
 FK_SEED, FK_OPTIONS = 970201, dict(eigenpairs=2, max_iterations=100, tolerance=1e-5, max_products=300)
 
 
+TOYCAR_MODEL = Path("/data/models/models--mlcommons--tiny/blobs/87cf24194ef93d1d9b11a591d805526b98008e351655d29883c825c9c106ba24")
+TOYCAR_DATA = Path("/data/datasets/dcase2020-toycar")
+TOYCAR_LOCK = Path("/projects/kona-assets/manuelbv/locks/mlperf-tiny/ad.lock.json")
+TOYCAR_FILES, TOYCAR_WINDOW = 16, 62       # 16 normal training files for the masks (as in the main grid); 62 test files
+
+
+class ToyModel:
+    """ToyCar engine adapter and differentiable companion, flattened in adapter storage order."""
+
+    def __init__(self, threads):
+        import tensorflow as tf
+        tf.config.threading.set_intra_op_parallelism_threads(threads)
+        tf.config.threading.set_inter_op_parallelism_threads(1)
+        from netsurf.adapters.mlperf_tiny_multibench import MlperfTinyToyCarAdapter
+        from netsurf.mlperf_multibench_companion import MlperfToyCarDifferentiableCompanion
+        self.adapter = MlperfTinyToyCarAdapter(TOYCAR_MODEL, TOYCAR_DATA, asset_lock=TOYCAR_LOCK, injectable_parameters=("kernels",))
+        self.adapter.load()
+        storage = self.adapter._require_loaded()
+        values = storage.values()
+        self.names = list(values)
+        self.shapes = {n: values[n].shape for n in self.names}
+        self.starts = np.concatenate([[0], np.cumsum([values[n].size for n in self.names])]).astype(np.int64)
+        self.codes = np.concatenate([np.asarray(values[n]).reshape(-1) for n in self.names]).astype(np.int8)
+        jumps = self.adapter.bit_perturbations()
+        self.jumps = np.concatenate([np.asarray(jumps[n]).reshape(-1, 8) for n in self.names]).astype(np.float64)
+        self.comp = MlperfToyCarDifferentiableCompanion(storage.reference_content)
+        self.n = int(self.starts[-1])
+        self.sha256 = storage.sha256
+
+    def per_example(self, x, y):
+        g = self.comp.per_example_gradients(x, y)
+        return np.concatenate([np.asarray(g[n]).reshape(len(x), -1) for n in self.names], axis=1).astype(np.float64)
+
+
 def load(model, rep, threads):
+    if model == "toycar":
+        m = ToyModel(threads)
+        xe, ye, _ = m.adapter.sample_partition("evaluation", TOYCAR_WINDOW, offset=TOYCAR_WINDOW * rep)
+        xc, yc, _ = m.adapter.sample_partition("ranking", TOYCAR_FILES, offset=TOYCAR_FILES * rep)
+        m.storage = m.adapter._require_loaded()
+        return m, None, (xe, np.asarray(ye)), (xc, np.asarray(yc)), (xc, np.asarray(yc)), "toycar"
     if model == "kws":
         from runR_kws import CAL_COUNT, OUT as PREP, KwsModel
         from runR_stage4_kws import WINDOW
@@ -73,7 +113,8 @@ def build_masks(m, saved, xc, yc, xf, yf, seed_id, rep):
     from runQ_calibration import scores
     ids, specs = m.adapter.bit_identities(), m.adapter.parameter_specs()
     row = {n: int(m.starts[i]) for i, n in enumerate(m.names)}
-    S = scores(m.per_example(xc, yc), m.jumps)["abs"]
+    SC = scores(m.per_example(xc, yc), m.jumps)
+    S = SC["abs"]
     t0 = time.time()
     fk = fkeras_family(m.adapter, xf, yf, ids, seed=FK_SEED, options=FK_OPTIONS, requested=["fkeras_paper"])
     word = dict(fk["fkeras_paper"].scores)
@@ -100,7 +141,10 @@ def build_masks(m, saved, xc, yc, xf, yf, seed_id, rep):
         out[f"jump@{share}"] = N.pack_mask(top_budget(np.abs(m.jumps), c))
         out[f"random@{share}"] = N.pack_mask(top_budget(rnd, c))
         for arm in ("abs", "pos"):
-            out[f"{arm}@{share}"] = N.pack_mask(unpack(saved[f"{arm}1024@{bkey(share)}"], m.n))
+            if saved is None:                                  # ToyCar: no saved 1,024-input masks; same files as FKeras
+                out[f"{arm}@{share}"] = N.pack_mask(top_budget(SC[arm], c))
+            else:
+                out[f"{arm}@{share}"] = N.pack_mask(unpack(saved[f"{arm}1024@{bkey(share)}"], m.n))
     sign = np.full(m.n, 0x80, dtype=np.uint8)
     assert np.array_equal(out["msb@0.125"], sign) and np.array_equal(out["fkeras@0.125"], sign), "full-tier masks must be the sign bits"
     return out, round(time.time() - t0, 1)
@@ -111,12 +155,14 @@ def evaluate(m, xor, x, y):
     faulted = {n: codes[m.starts[i]: m.starts[i + 1]].reshape(m.shapes[n]) for i, n in enumerate(m.names)}
     with m.adapter.temporary_values(faulted):
         res = m.adapter.evaluate(x, y)
+    if hasattr(res, "roc_auc"):                             # ToyCar: file-level AUC in the accuracy column
+        return float(res.roc_auc), float(res.reconstruction_mse)
     return float(res.accuracy), float(res.categorical_crossentropy)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--model", required=True, choices=["kws"] + list(NAMES))
+    ap.add_argument("--model", required=True, choices=["kws", "toycar"] + list(NAMES))
     ap.add_argument("--rep", type=int, required=True)
     ap.add_argument("--draw", type=int, required=True)
     ap.add_argument("--threads", type=int, default=1)
