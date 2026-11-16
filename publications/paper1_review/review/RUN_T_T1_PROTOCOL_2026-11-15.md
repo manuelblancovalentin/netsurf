@@ -206,3 +206,4 @@ Run on kona: 6 jobs of 4 threads now, plus 8 more when T1b has ended.
 - **Resubmitted** as job 8951472.
 - **Pythia's first mask build failed** the solver's Hessian symmetry check (5.3e-5 against 1e-5). The cause: the Hugging Face attention computes softmax in float32, and Qwen's RMSNorm also normalizes in float32. Both FKeras scripts now keep these operations in float64 (commit 3902c4d). This changes precision only; the function is the same.
 - **Qwen** was resubmitted as Quest job 8955871. Pythia was restarted on kona.
+- **Pythia's second kona build** crashed with a segmentation fault in ARPACK after 2.5 hours: 124M dimensions × 20 vectors also overflows its 32-bit indexing. Pythia now runs on Quest with the same GPU script and Lanczos solver as Qwen (job 8968279). Its frozen selection tokens match the campaign's hash, and a one-window check passed on kona's CPU (NLL 3.29).
