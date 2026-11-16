@@ -227,3 +227,24 @@ Run on kona: 6 jobs of 4 threads now, plus 8 more when T1b has ended.
 **What was rerun:** the 19 missing jobs died with no error in their logs, most likely killed for memory while many language-model jobs ran at once. They were rerun from 11:15 with the same code and arguments (\`recover.sh\`, 6 at a time, exit codes now recorded).
 
 **Stalls:** two stalls were caused by background waiters whose command lines matched the names they waited for. One is why the T1b analyses ran only at 11:06, from the same frozen script and unchanged inputs.
+
+## Addendum T4 (2026-11-16): sixteen fault draws for the language models
+
+Written before any added draw exists. **Reason:** with 8 (DistilBERT, Pythia) or 4 (Qwen3) draws the smallest
+attainable sign-flip p is 1/128 or 1/8, so no contrast can pass Holm over the 51 to 76 contrasts of a model; the
+T2 analysis resolved none, and the paper reported the language models descriptively. This addendum adds draws so
+that the planned tests can resolve; it is a disclosed second look, with the stopping point fixed here.
+
+- **Draws:** every language model goes to exactly 16 draws: DistilBERT and Pythia draws 8-15, Qwen3 draws 4-15, each
+  at the 8 BERs, base conditions and the FKeras conditions (same mask files: `distilbert_sst2_int8/fkeras_masks.npz`,
+  `<model>/fkeras_quest/fkeras_masks.npz`). No further draws will be added whatever the outcome.
+- **Code:** `runT_w8a8.py` unchanged (draw index enters the seed, so new draws get new fields). Output:
+  `workspace/runs/paper1_runT_w8a8_more_v1/<model>/draw<D>/ber<I>/`; the 8/4-draw outputs stay untouched.
+- **Analysis:** `runT_analyze_lm_v2.py` (tests `tests/test_runT_analyze_lm_v2.py`), committed before the runs: the
+  T2 rules unchanged, draws pooled from both directories, exactly draws 0-15 required, run once into
+  `workspace/runs/paper1_runT_t4_lm_analysis_v1`. It replaces the T2 analysis as the language-model analysis of the paper;
+  the T2 output is kept.
+- **Compute:** 224 jobs on kona (64 DistilBERT, 64 Pythia, 96 Qwen3), each the base conditions then the FKeras
+  conditions, 4 threads per job, 10 jobs at a time (40 of 80 cores; about 20 GB per Qwen3 job). Measured job times:
+  DistilBERT 33 min, Pythia 13 min, Qwen3 46 min (base plus FKeras), about 123 job-hours, roughly 12 to 14 hours of wall
+  time. Progress log `paper1_runT_w8a8_logs/more.log`, registry entry 80.
