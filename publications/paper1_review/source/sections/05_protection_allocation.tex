@@ -1,6 +1,7 @@
-\section{Why Single-Fault Damage Is Not Protection Value}\label{sec:allocation}
-This section states what can and cannot be expected of a static ranking. Its content is standard reliability theory applied to bit protection.
+\section{Between Single Bits and Every Combination}\label{sec:allocation}
+This section states what can and cannot be expected of a static ranking, and then gives the statistical description of many simultaneous faults that the rest of the paper tests. The first part is standard reliability theory applied to bit protection; the second is our model.
 
+\subsection{Single-fault damage is not protection value}
 The isolated damage of bit $b$, $I_b=\risk(\{b\})-\risk(\varnothing)$, is the risk after one flip minus the clean risk. Protecting a bit, however, removes its effect in a network that may already be faulty. For an unprotected bit $b$, let $G$ be the random set of faults on the other unprotected bits, and define the conditional vulnerability $V_b(p,\protset)=\E_G[\risk(G\cup\{b\})-\risk(G)]$. Because bit $b$ faults independently of $G$,
 \begin{equation}\label{eq:protection-benefit}
 J_p(\protset)-J_p(\protset\cup\{b\})=p\,V_b(p,\protset).
@@ -11,14 +12,29 @@ Two small examples show the consequences. With $z_i=1$ denoting a flip, let
 \begin{equation}\label{eq:three-bit-risk}
 \risk(z_1,z_2,z_3)=1.2z_1+z_2+0.1z_3+3z_2z_3.
 \end{equation}
-Isolated damage ranks bit one first. Protecting it leaves expected risk $1.1p+3p^2$, whereas protecting bit two leaves $1.3p$, so the better single bit to protect switches at $p=1/15$. No order of these bits that ignores $p$ is best at every $p$.
+Isolated damage ranks bit one first. Protecting it leaves expected risk $1.1p+3p^2$, whereas protecting bit two leaves $1.3p$, so the better single bit to protect switches at $p=1/15$. No order of these bits that ignores $p$ is best at every $p$. A ranking also forces masks to be nested across budgets, and optimal masks need not be. For $\risk=z_1+1.05z_2+1.05z_3+z_1z_2+z_1z_3$ at $p=0.1$, the best single protected bit is bit one (expected risk $0.210$ against $0.215$), but the best protected pair is bits two and three ($0.100$ against $0.105$).
 
-A ranking also forces masks to be nested across budgets, and optimal masks need not be. For $\risk=z_1+1.05z_2+1.05z_3+z_1z_2+z_1z_3$ at $p=0.1$, the best single protected bit is bit one (expected risk $0.210$ against $0.215$), but the best protected pair is bits two and three ($0.100$ against $0.105$).
+These examples prove only that no guarantee exists. Three bits already interact; a network has hundreds of thousands to billions, and $2^N$ fault states. Neither a single-bit score nor an enumeration of combinations is a practical description. The next subsection gives one in between.
 
-\paragraph{Where the rate enters.} A second-order view shows how the fault rate enters in a network. For a mask $\protset$ let every unprotected bit flip with probability $p$, and let $X_w$ be the resulting displacement of weight $w$, with mean $\mu_w=p\sum_{b\in w,\,b\notin\protset}\Delta_b$ and variance $V_w=p(1-p)\sum_{b\in w,\,b\notin\protset}\Delta_b^2$. With $F_w=\E_x g_w(x)^2$ as the curvature along $w$, the expected loss increase is approximately
-\begin{equation}\label{eq:two-term}
-\hat J_p(\protset)=\big[\risk(\theta+\mu)-\risk(\theta)\big]+\tfrac12\textstyle\sum_w F_w V_w .
+\subsection{A statistical model: Gaussian noise plus top-bit events}\label{sec:model}
+For a mask $\protset$ let every unprotected bit flip independently with probability $p$ (or with the residual $\rho(p)$ of its mechanism, Section~\ref{sec:fault}). Because a stored code is linear in its bits, the displacement of weight $w$ is $X_w=\sum_{b\in w}\xi_b\Delta_b$ with independent Bernoulli $\xi_b$, so its mean and variance are exact:
+\begin{equation}\label{eq:moments}
+\mu_w=p\sum_{b\in w,\,b\notin\protset}\Delta_b,\qquad V_w=p(1-p)\sum_{b\in w,\,b\notin\protset}\Delta_b^2 .
 \end{equation}
-The first term is the loss at the mean faulty weights. It contains the signed first-order effect $\sum_w\bar g_w\mu_w$, linear in $p$, which a mask can lower by leaving loss-decreasing flips unprotected; it also contains the curvature along the coherent shift $\mu$, which grows as $p^2$ and penalizes a remainder whose flips all push the same way. The second term is the spread around the mean. A mask that protects by the direction of a flip can therefore gain at small $p$ and lose at large $p$; the BER at which $\hat J_p$ of the positive- and absolute-gradient masks cross is a predicted switch $p^*$, and a mask can be searched to minimize $\hat J_p$ at an intended $p$. Section~\ref{sec:reversals} tests both.
+Different weights are independent. The bits of a word fall into two populations. The low-order bits are many and their jumps are small: bit $j$ moves an INT8 code by $2^j$ steps, so bits 0 to 5 together can move it by at most 63 steps, while the sign bit alone moves it by 128. A pre-activation sums the contributions of many weights, so the many small displacements of the low bits add up, by the central limit theorem, to an approximately Gaussian perturbation; their individual sign hardly matters. The top two bits flip rarely in any one weight but move it far, and the few such events in a fault field dominate the outputs they reach. We therefore describe a fault field, for a given mask and $p$, by
+\begin{itemize}
+\item \emph{background noise}: every weight displaced by $\mu^{\le5}_w+\sqrt{V^{\le5}_w}\,\varepsilon_w$, $\varepsilon_w\sim\mathcal N(0,1)$, with the moments of its unprotected bits 0 to 5; and
+\item \emph{events}: the unprotected bits 6 and 7 flipped as real, discrete faults,
+\end{itemize}
+and evaluate the network on the displaced weights. The model has no fitted parameter: it uses only the stored codes, the mask and $p$. It does not assume that faults add up; the network combines them. Section~\ref{sec:noise} tests it against measured outcomes.
 
-These examples prove only that no guarantee exists. They do not say that a static ranking performs badly in a real network, nor how large the loss from using one is. A fixed mask can be optimal for a fixed condition, and a static score may itself be built from multi-fault measurements. How much is lost in practice is an empirical question, which the remaining sections address by measuring task quality on the full BER-by-budget grid.
+\subsection{Drift and spread}\label{sec:drift}
+Expanding the expected loss around the mean faulty weights gives the two-term approximation
+\begin{equation}\label{eq:two-term}
+\hat J_p(\protset)=\big[\risk(\theta+\mu)-\risk(\theta)\big]+\tfrac12\textstyle\sum_w F_w V_w ,\qquad F_w=\E_x g_w(x)^2 .
+\end{equation}
+The first term is the loss at the mean faulty weights, a \emph{drift}. It contains the signed first-order effect $\sum_w\bar g_w\mu_w$, linear in $p$, which a mask can lower by leaving loss-decreasing flips unprotected, and the curvature along the coherent shift $\mu$, which grows as $p^2$ and penalizes a remainder whose flips all push the same way. The second term is the \emph{spread} around the mean, weighted by curvature.
+
+The two terms explain the behaviour of the rankings of Section~\ref{sec:susceptibility}. Ranking by significance protects the largest jumps but ignores which weights the loss is sensitive to, so it reduces the spread inefficiently. Ranking by the per-example magnitude $\E_x|g_b\Delta_b|$ targets the spread directly and, because it ignores the sign of a flip, leaves loss-increasing and loss-decreasing flips in balance, so the drift of its remainder stays near zero (Appendix~\ref{app:harm} measures this on DistilBERT). Ranking by the signed, positive part protects mostly loss-increasing flips. Its remainder has a drift that points downhill: at small $p$ that drift acts like a small training step and can even improve the model, and at large $p$ its quadratic cost dominates and the weights are pushed off the loss surface. The rate $p^*$ at which $\hat J_p$ of the positive- and absolute-gradient masks cross is a predicted switch between the two rankings, computable from calibration data before any fault is injected. A mask can also be searched to minimize $\hat J_p$ at an intended $p$ (Appendix~\ref{app:ratechoice}).
+
+Equation~\eqref{eq:two-term} replaces the network pass of the spread by a curvature shortcut, and that shortcut is its weak point: on DS-CNN it predicts a switch that does not occur, whereas the network pass of the full model does not (Section~\ref{sec:noise}). We use Eq.~\eqref{eq:two-term} to explain and to locate the switch, and the network pass of the full model to evaluate masks.

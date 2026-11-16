@@ -108,7 +108,7 @@ Budget & $3\!\times\!10^{-4}$ & $10^{-3}$ & $1.5\!\times\!10^{-3}$ & $2\!\times\
 \Description{Search-based masks against the absolute-gradient mask on DS-CNN, and positive- minus absolute-gradient masks built from 8,192 clips.}
 \end{table}
 
-\paragraph{DS-CNN follow-ups.} Table~\ref{tab:kwsfollow} gives the two follow-ups. In the swap search, 64 exchanges were proposed across 20 searches with a mean predicted gain of $+0.15$ points on their proposal fields (range $+0.04$ to $+0.29$); on new fields the same exchanges gained $-0.007$ on average, and 38 of 64 were negative. Two were kept, both moving 256 bits into the sign bits of the final dense layer. With four times as many fields per decision, the greedy search ends closer to the absolute-gradient mask (2,831 to 3,481 of its bits differ at 12.5\%, against 3,838 to 4,336). With 8,192 clips the absolute-gradient mask itself changes in about 900 bits at 12.5\% but its accuracy by at most 0.08 points, and the positive-gradient mask gains at most 0.13 points over its 1,024-clip version.
+\paragraph{DS-CNN follow-ups.} A first, exploratory search (replication 0, whose outcomes had been read) grew masks greedily over 80 groups of bits (10 layers $\times$ 8 bit positions) at $10^{-3}$, $3\times10^{-3}$ and $10^{-2}$, judging each step by network passes under real fault fields or under the Gaussian model of Section~\ref{sec:model}. No search mask was ahead of the absolute-gradient mask by two standard errors in any cell; most were behind, by up to 3.3 points at $10^{-2}$, because whole groups are too coarse. Masks searched with real flips were about 0.4 points better on average than masks searched with the Gaussian. Table~\ref{tab:kwsfollow} gives the two pre-registered follow-ups. In the swap search, 64 exchanges were proposed across 20 searches with a mean predicted gain of $+0.15$ points on their proposal fields (range $+0.04$ to $+0.29$); on new fields the same exchanges gained $-0.007$ on average, and 38 of 64 were negative. Two were kept, both moving 256 bits into the sign bits of the final dense layer. With four times as many fields per decision, the greedy search ends closer to the absolute-gradient mask (2,831 to 3,481 of its bits differ at 12.5\%, against 3,838 to 4,336). With 8,192 clips the absolute-gradient mask itself changes in about 900 bits at 12.5\% but its accuracy by at most 0.08 points, and the positive-gradient mask gains at most 0.13 points over its 1,024-clip version.
 
 \paragraph{Gradient agreement.} For each checkpoint we computed the per-weight mean gradient on six disjoint draws of 1,024 calibration inputs and took the median Pearson correlation over the 15 pairs of draws as the agreement. Its noise model is simple: if each draw's mean is the true mean plus independent noise, the expected agreement is about $ns/(ns+1)$, with $n$ the draw size and $s$ the squared norm of the true mean gradient divided by the summed per-input gradient variance. Cut-offs fixed on the ResNet-8 and DS-CNN data (below 0.30: no reversal; above 0.40: a reversal, positive gradient ahead by 0.2 points at low BER) were frozen with the predictions before any fault run on the further models. Table~\ref{tab:agreement} gives the outcome. One of nine predictions held. The MNIST model of an earlier version of this work, whose calibration draws overlap its training data, was run as an exploratory case; it is the only checkpoint with the positive-gradient mask resolved ahead, by 0.21 points at $3\times10^{-2}$ and 12.5\%. Agreement rises with the draw size on every model, does not follow the number of weights, and is lowered by heavy-tailed per-input gradients and by cancellation between per-class mean gradients, which are 4 to 12 times larger than the overall mean; these observations were made after the predictions were frozen and are descriptive.
 
@@ -124,6 +124,26 @@ DS-CNN & 22,016 & 0.21 & --- & no reversal\\\bottomrule
 \end{tabular}
 \Description{Gradient agreement, predicted and measured reversal for ten further checkpoints and DS-CNN.}
 \end{table}
+
+\begin{figure}[tbp]
+\centering\includegraphics[width=.7\linewidth]{tecs_story_room}
+\caption{Damage left at sparse rates does not explain the reversal. For each checkpoint at 12.5\% protection: accuracy lost at $p=3\times10^{-3}$ under the absolute-gradient mask (horizontal) and the largest low-rate gain of the positive- over the absolute-gradient mask in a usable cell at $p\le3\times10^{-3}$ (vertical). The jet models lose as much as ResNet-8 and gain nothing.}\label{fig:room}
+\Description{Scatter of low-rate gain against remaining damage for 20 checkpoints.}
+\end{figure}
+
+\paragraph{What sets the gradient agreement (exploratory).} Figures~\ref{fig:agree-size} and~\ref{fig:agree-class} describe the agreement measure after the predictions were frozen. Agreement rises with the calibration size on every model, as the noise model predicts; it does not follow the number of weights; and it is lowered by heavy-tailed per-input gradients and by cancellation between per-class mean gradients, which are 4 to 12 times larger than the overall mean gradient. On the epoch-1 jet model, re-weighting each draw to an equal class mix raises the agreement from 0.25 to 0.43.
+
+\begin{figure}[tbp]
+\centering\includegraphics[width=\linewidth]{tecs_agreement_vs_size}
+\caption{Gradient agreement against calibration size for every checkpoint, with the prediction of the simple noise model (exploratory).}\label{fig:agree-size}
+\Description{Agreement of mean gradients across calibration draws against the number of inputs per draw.}
+\end{figure}
+
+\begin{figure}[tbp]
+\centering\includegraphics[width=\linewidth]{tecs_agreement_class_mix}
+\caption{Left: agreement with the class mix as drawn and equalized. Right: size of the per-class mean gradients relative to the overall mean gradient, by training epoch (exploratory).}\label{fig:agree-class}
+\Description{Bar chart of agreement with and without class balancing, and line chart of class-mean cancellation by epoch.}
+\end{figure}
 
 \section{Protection Worse Than None: Checks and Mechanism}\label{app:harm}
 Before treating the harm of Section~\ref{sec:harm} as an effect we checked it as a possible defect. The ranking code computes $\E_x\max(0,e_b(x))$ exactly from the saved mean and mean-absolute gradients and from the exact XOR jump of each stored code. Fields are paired by hash; in every saved outcome the proposed count equals applied plus suppressed, and no protected run applies more faults than its unprotected partner. No nonfinite output occurred, so the failure penalty plays no role. The low-BER behaviour is also what a correct sign predicts: where faults are sparse, the positive-gradient mask is the best ranking on the two language models and within 0.2 accuracy points of the best on DistilBERT. On Pythia, in the four cells at $p=3\times10^{-3}$ where the positive-gradient mask has a higher loss than no protection, at most 6\% of token losses are capped and the uncapped difference is 1.1 to 5.5 nats per token.
