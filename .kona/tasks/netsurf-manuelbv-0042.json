@@ -1,0 +1,45 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Paper 1 Run T: rankings and mechanisms with failing protection on all 24 checkpoints",
+ "summary": "Paper 1 Run T: rankings and mechanisms with failing protection on all 24 checkpoints",
+ "notes": "Protocol and addenda T1, T1b, T2, T3 committed before outcomes (72e1e52, 4be3a69, a925082, 9467725 on paper1-tecs-revision-v1). Analyses t1a, t1b_fkeras, t1b_engine, t3_toycar, t2_lm written 2026-11-15/16. 19 jobs rerun with original seeds (conduct note bbfc9a3). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "high",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
+ "summaryTags": [
+  "paper1",
+  "fkeras",
+  "mechanisms"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-11-15",
+ "end": "2026-11-16",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 42,
+ "id": "netsurf-manuelbv-0042"
+}

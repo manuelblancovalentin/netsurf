@@ -1,0 +1,43 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Cross-benchmark vulnerability diagnostics",
+ "summary": "Cross-benchmark vulnerability diagnostics",
+ "notes": "Delivered on v2: 2e255dd (branch toycar-conformance-mechanisms, merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "canonical v2",
+ "milestone": "M9.3",
+ "summaryTags": [
+  "benchmarks"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "unrecorded",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-10-29",
+ "end": "2026-10-29",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 14,
+ "id": "netsurf-manuelbv-0014"
+}

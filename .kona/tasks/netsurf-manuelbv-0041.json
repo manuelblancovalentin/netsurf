@@ -1,0 +1,44 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Paper 1: check of the noise-plus-events model on 18 held-out checkpoints",
+ "summary": "Paper 1: check of the noise-plus-events model on 18 held-out checkpoints",
+ "notes": "Code on branch paper1-runR-v2-validated (5fd310c: runG_blur_confirm.py, runG_blurconf_analyze.py with tests); analysis output paper1_blurconf_analysis_v1 written 2026-11-15; every criterion met on 18 of 18 checkpoints. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "high",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
+ "summaryTags": [
+  "paper1",
+  "model-check"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-11-15",
+ "end": "2026-11-15",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 41,
+ "id": "netsurf-manuelbv-0041"
+}

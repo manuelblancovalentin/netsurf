@@ -1,0 +1,44 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "M9: MLPerf Tiny TFLite fault adapter and static estimators (ResNet-8)",
+ "summary": "M9: MLPerf Tiny TFLite fault adapter and static estimators (ResNet-8)",
+ "notes": "Delivered on v2: d5abe87 to 1a7e374 (exact TFLite adapter, reference assets, backend conformance, static susceptibility validation). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "canonical v2",
+ "milestone": "M9",
+ "summaryTags": [
+  "benchmarks",
+  "mlperf-tiny"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "unrecorded",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-10-28",
+ "end": "2026-10-28",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 12,
+ "id": "netsurf-manuelbv-0012"
+}

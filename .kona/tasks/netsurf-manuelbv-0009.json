@@ -1,0 +1,43 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Structured pruning research infrastructure",
+ "summary": "Structured pruning research infrastructure",
+ "notes": "Delivered on v2: 8c719a9, 25746f1 (infrastructure and scientific contracts, docs/PRUNING.md). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "canonical v2",
+ "milestone": "",
+ "summaryTags": [
+  "framework"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "unrecorded",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-10-27",
+ "end": "2026-10-27",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 9,
+ "id": "netsurf-manuelbv-0009"
+}

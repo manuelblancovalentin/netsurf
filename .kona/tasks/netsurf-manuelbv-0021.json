@@ -1,0 +1,43 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "M9.10: interaction attribution evidence and publication priorities",
+ "summary": "M9.10: interaction attribution evidence and publication priorities",
+ "notes": "On branch m910-interaction-attribution (6 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "research branch",
+ "milestone": "M9.10",
+ "summaryTags": [
+  "conditional"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "unrecorded",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-10-31",
+ "end": "2026-11-01",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 21,
+ "id": "netsurf-manuelbv-0021"
+}

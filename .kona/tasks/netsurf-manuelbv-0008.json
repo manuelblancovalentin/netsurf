@@ -1,0 +1,43 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "M4.4: controlled factorized guidance ablations and batch progress",
+ "summary": "M4.4: controlled factorized guidance ablations and batch progress",
+ "notes": "Delivered on v2: 99137b9, 821caf6, ded4f85, 0afb3d2, 8696698, 8cf0eab, 6fb5c3b, e771f9a (ablations, fairness and timing contracts, queue progress, gradient tracing cache). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "canonical v2",
+ "milestone": "M4.4",
+ "summaryTags": [
+  "conditional"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "unrecorded",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-10-27",
+ "end": "2026-10-27",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 8,
+ "id": "netsurf-manuelbv-0008"
+}

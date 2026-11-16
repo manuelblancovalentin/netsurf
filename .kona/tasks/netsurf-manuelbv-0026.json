@@ -1,0 +1,43 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "W8A8 wide-BER stress campaigns with a live monitor",
+ "summary": "W8A8 wide-BER stress campaigns with a live monitor",
+ "notes": "On branch m12-w8a8-ber-stress (41 commits, not merged). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "research branch",
+ "milestone": "M12",
+ "summaryTags": [
+  "w8a8"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "unrecorded",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-11-02",
+ "end": "2026-11-09",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 26,
+ "id": "netsurf-manuelbv-0026"
+}

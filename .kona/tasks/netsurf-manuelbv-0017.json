@@ -1,0 +1,43 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "M9.6: frozen cross-pool campaign and protocol",
+ "summary": "M9.6: frozen cross-pool campaign and protocol",
+ "notes": "Delivered on v2: 39620e9, 4d646a8 (docs/M96_CROSS_POOL_PROTOCOL.md, benchmark expansion gates). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "canonical v2",
+ "milestone": "M9.6",
+ "summaryTags": [
+  "conditional"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "unrecorded",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-10-30",
+ "end": "2026-10-30",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 17,
+ "id": "netsurf-manuelbv-0017"
+}

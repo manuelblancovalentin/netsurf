@@ -1,0 +1,44 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "M9.7: paper-form FKeras baseline and joint KWS multi-BER campaign",
+ "summary": "M9.7: paper-form FKeras baseline and joint KWS multi-BER campaign",
+ "notes": "Delivered on v2: 81d7cd9, 220e14a, 5c28521, ee71581, 060667e and merges b051986, e3209f7 (docs M97_*). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "canonical v2",
+ "milestone": "M9.7",
+ "summaryTags": [
+  "fkeras",
+  "benchmarks"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "unrecorded",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-10-30",
+ "end": "2026-10-31",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 18,
+ "id": "netsurf-manuelbv-0018"
+}

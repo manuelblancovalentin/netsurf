@@ -1,0 +1,47 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Paper 1 Run T addendum T4: language models to 16 fault draws",
+ "summary": "Paper 1 Run T addendum T4: language models to 16 fault draws",
+ "notes": "Addendum 6f61b21 and analysis runT_analyze_lm_v2.py (712ab83, tests pass) committed before any added draw. 224 jobs on kona from 2026-11-16 12:23; a recovery pass reruns jobs stopped by the host's earlyoom; the analysis runs once when all 224 finish.",
+ "status": "doing",
+ "priority": "high",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
+ "summaryTags": [
+  "paper1",
+  "transformers"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-11-16",
+ "end": "",
+ "completed": "",
+ "percent": null,
+ "dependencies": [
+  "netsurf-manuelbv-0043",
+  "netsurf-manuelbv-0042"
+ ],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "doing"
+  }
+ ],
+ "number": 44,
+ "id": "netsurf-manuelbv-0044"
+}

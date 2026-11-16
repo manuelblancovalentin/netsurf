@@ -1,0 +1,47 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Paper 1 draft v18: figure-first rewrite on the failing-protection results",
+ "summary": "Paper 1 draft v18: figure-first rewrite on the failing-protection results",
+ "notes": "Commit 6bd2dc6 on paper1-tecs-revision-v1; delivery folder workspace/paper1_review/delivery_v18_figures_first (PDF, Overleaf zip, SHA256SUMS). Main text 15 pages; Okabe-Ito palette. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "high",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
+ "summaryTags": [
+  "paper1",
+  "manuscript"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-11-16",
+ "end": "2026-11-16",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [
+  "netsurf-manuelbv-0042",
+  "netsurf-manuelbv-0041"
+ ],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 45,
+ "id": "netsurf-manuelbv-0045"
+}

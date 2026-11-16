@@ -1,0 +1,45 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Paper 1 Run R: fault-rate study, switch prediction and rate-aware masks",
+ "summary": "Paper 1 Run R: fault-rate study, switch prediction and rate-aware masks",
+ "notes": "On branch paper1-runR-rate-aware (38 commits; Claude trailer on 34). Stage analyses committed before outcomes. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
+ "summaryTags": [
+  "paper1",
+  "resnet8",
+  "dscnn"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-11-04",
+ "end": "2026-11-12",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 40,
+ "id": "netsurf-manuelbv-0040"
+}

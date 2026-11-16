@@ -32,3 +32,14 @@ natural-fault, conditional-background, protection-budget, and replication
 uncertainty separately. Polar and factorized Kronecker interactions are
 proposal diagnostics, not accepted protection theories; candidate marginals
 are not exact swap effects; small-pool optima are not whole-network optima.
+
+## Task log (kona standard)
+`kona-task` is installed at `/usr/local/bin/kona-task`, which may not be on an agent's PATH.
+
+This project keeps its tasks as files, one per task, in `.kona/tasks/` of your own copy of the project. You write them as you work, so nobody has to type them into the website later. The website reads them.
+
+* Start of any piece of work that is more than a few minutes: `kona-task new --title "<one line>" --status doing --commit`. Use `--depends <id>` when it waits for another task, `--end YYYY-MM-DD` when it has a due date, `--tag`, `--stage`, `--target`, `--action`, `--lane`, `--milestone` with the words this project already uses (look at `kona-task list` and at older task files first; do not invent new words when one fits).
+* When its state changes: `kona-task set <id> --status blocked|doing|done [--percent N] --commit`. Say what blocked it in `--notes`. Mark `done` only when the result exists on disk and you looked at it; write what you verified in `--notes`.
+* Never edit another person's task files, never write outside `.kona/tasks/`, never put a secret, a password, a license server, a private path or another person's data in a task. The id is `<project>-<login>-<number>` and the command makes it: do not choose or rename ids by hand.
+* Commit the task files together with the work they describe (`--commit` does it for the task file; never push unless the owner asks). Run `kona-task check` before you finish: it must print `0 problems`.
+* If the command is missing, say so; do not make task files by hand.

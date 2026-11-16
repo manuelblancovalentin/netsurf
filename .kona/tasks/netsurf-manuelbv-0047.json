@@ -1,0 +1,46 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Paper 1: choose the title",
+ "summary": "Paper 1: choose the title",
+ "notes": "The manuscript still carries a red working title; options were proposed with draft v18.",
+ "status": "todo",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
+ "summaryTags": [
+  "paper1",
+  "manuscript"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "human",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "",
+ "end": "",
+ "completed": "",
+ "percent": null,
+ "dependencies": [
+  "netsurf-manuelbv-0045"
+ ],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "todo"
+  }
+ ],
+ "number": 47,
+ "id": "netsurf-manuelbv-0047"
+}

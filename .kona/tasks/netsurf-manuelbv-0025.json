@@ -1,0 +1,44 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Full-population W8A8 FKeras feasibility gate",
+ "summary": "Full-population W8A8 FKeras feasibility gate",
+ "notes": "On branch codex/w8a8-fkeras-feasibility (36 commits, not merged). The gate is prepared there; the FKeras masks used in the paper were built later (see the language-model FKeras task). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "research branch",
+ "milestone": "M12",
+ "summaryTags": [
+  "fkeras",
+  "w8a8"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "codex",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-11-02",
+ "end": "2026-11-04",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 25,
+ "id": "netsurf-manuelbv-0025"
+}

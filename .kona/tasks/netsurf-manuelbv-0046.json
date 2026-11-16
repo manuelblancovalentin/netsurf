@@ -1,0 +1,47 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Paper 1: update language-model results with the 16-draw analysis",
+ "summary": "Paper 1: update language-model results with the 16-draw analysis",
+ "notes": "Replace the descriptive language-model statements in Sections 7.1, 7.3 and the appendix with the T4 analysis.",
+ "status": "todo",
+ "priority": "high",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
+ "summaryTags": [
+  "paper1",
+  "manuscript"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "",
+ "end": "",
+ "completed": "",
+ "percent": null,
+ "dependencies": [
+  "netsurf-manuelbv-0044",
+  "netsurf-manuelbv-0045"
+ ],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "todo"
+  }
+ ],
+ "number": 46,
+ "id": "netsurf-manuelbv-0046"
+}

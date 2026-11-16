@@ -1,0 +1,43 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "M2: modern benchmark fault-injection workflows",
+ "summary": "M2: modern benchmark fault-injection workflows",
+ "notes": "Delivered on v2: 17ee465, 39a7a61, 424312f, 424acc0, 90a4594 (modern benchmark workflows, deterministic TF evaluation, validation status). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "canonical v2",
+ "milestone": "M2",
+ "summaryTags": [
+  "framework"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "unrecorded",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-10-22",
+ "end": "2026-10-22",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 3,
+ "id": "netsurf-manuelbv-0003"
+}

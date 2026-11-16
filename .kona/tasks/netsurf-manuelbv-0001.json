@@ -1,0 +1,43 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "M0: canonical side-effect-free netsurf package and migration record",
+ "summary": "M0: canonical side-effect-free netsurf package and migration record",
+ "notes": "Delivered on v2: commits 0da6a93, c92606e, cf5b455 (package, migration and reproducibility documents, legacy kept out of root). Agent not recorded in the commits. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "canonical v2",
+ "milestone": "M0",
+ "summaryTags": [
+  "framework"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "unrecorded",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-10-22",
+ "end": "2026-10-22",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 1,
+ "id": "netsurf-manuelbv-0001"
+}

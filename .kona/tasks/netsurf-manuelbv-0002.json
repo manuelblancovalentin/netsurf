@@ -1,0 +1,43 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "M1/M1.5: versioned experiment engine and self-service workflows",
+ "summary": "M1/M1.5: versioned experiment engine and self-service workflows",
+ "notes": "Delivered on v2: 18849a2, e08f95a, 3a91e61, 795d7de (reproducibility characterization, experiment framework, workflow docs, milestone routed through the engine). The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "status": "done",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "canonical v2",
+ "milestone": "M1.5",
+ "summaryTags": [
+  "framework"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "unrecorded",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-10-22",
+ "end": "2026-10-22",
+ "completed": "2026-11-16",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 2,
+ "id": "netsurf-manuelbv-0002"
+}
