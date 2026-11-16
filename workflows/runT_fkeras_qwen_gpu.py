@@ -299,7 +299,7 @@ def main():
         log(stage="masks", share=share)
     np.savez_compressed(a.out / "fkeras_masks.npz", **masks)
     (a.out / "fkeras.json").write_text(json.dumps(dict(
-        target="qwen3_0_6b_int8", calibration_targets=count, windows=len(W), seconds=round(time.time() - t0, 1),
+        target=meta.get("target", "qwen3_0_6b_int8"), calibration_targets=count, windows=len(W), seconds=round(time.time() - t0, 1),
         device=device, gpu=torch.cuda.get_device_name(0) if device == "cuda" else None,
         torch=torch.__version__, eigensolver=diag,
         options=FK_OPTIONS, seed=FK_SEED, tokens_sha256=meta["token_ids_sha256"],
