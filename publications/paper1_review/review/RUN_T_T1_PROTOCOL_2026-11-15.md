@@ -91,3 +91,46 @@ every condition with its own cost.
   |---|---|
   | 216 MLP jobs | a few seconds |
   | 24 VWW jobs | set by the timing smoke, recorded in the run registry before launch |
+
+## Addendum T1b (15 November 2026, frozen before any T1b outcome; code 09edb1a)
+
+The researcher's go-ahead: "Yes, go for it."
+
+**Code** (branch `paper1-runR-v2-validated`, commit 09edb1a):
+- `workflows/runT_fkeras_masks.py` (sha256 `ab168521…`) and `netsurf/tflite_graph_continuous.py` (`ee36ed0c…`):
+  FKeras for jet, MNIST and VWW. Hessian of the continuous float64 companion (no activation rounding), checked
+  against finite differences in `tests/test_tflite_graph_continuous.py`. Same solver, options and seed as the
+  engine's FKeras.
+- `workflows/runT_engine.py` (`3089222c…`): ResNet-8 and DS-CNN through their engine adapters.
+
+**Calibration:** FKeras uses the same 1,024 calibration inputs as the gradient rankings, so it is not handicapped by a
+smaller set.
+
+**Arms added:**
+- For the T1a checkpoints: `tmr_fkeras@<share>` and `tmr_fkeras_weighted@<share>`, on the same fault fields, written
+  as `results_fkeras.csv`.
+- For ResNet-8 and DS-CNN, every arm: abs and pos (the saved 1,024-input masks), abs64, msb, fkeras,
+  fkeras_weighted, jump and random.
+
+**Cohort:** 6 replications × 4 draws per checkpoint.
+- ResNet-8: pinned replications 1–6; the eight others 0–5, except retrained seed 7102, which uses 0, 1, 2, 3, 5, 6
+  (its replication 4 was excluded in Run Q).
+- DS-CNN: replications 0–5 (800-clip windows).
+
+**Smokes,** read for run time and clean accuracy only:
+- FKeras masks for jet-e1 and vww, replication 5 (eigen-solver converged in 25 products; 1 s and 3 min);
+- DS-CNN replication 5 and retrained seed 7101 replication 5, one rate, written to scratch (3.6 s per evaluation
+  under load).
+
+**Analysis:** `runT_analyze.py` unchanged. For the T1a checkpoints, rerun once with `--suffix _fkeras` after every
+FKeras job has ended; for ResNet-8 and DS-CNN, run once on their outputs. Both are written to new folders.
+
+**Cost:**
+
+| Jobs | Number | Time per job | Total |
+|---|---|---|---|
+| FKeras masks | 60 | under 4 min | — |
+| FKeras arms on T1a | 240 | about 10 min for VWW, seconds otherwise | — |
+| ResNet-8 and DS-CNN engine jobs | 240 | 39 conditions × 8 rates, 20–40 min each | about 120 core-hours |
+
+All on kona, 24 at a time. ToyCar is still to be added (it needs AUC scoring).
