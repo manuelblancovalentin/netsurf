@@ -95,3 +95,29 @@ Total: roughly 300–550 core-hours, one to two days of kona if nothing else run
 3. ResNet-8: pinned and under-trained.
 4. Draws: 24 for the TFLite models, 8 for ToyCar and the transformers.
 5. Pythia is included (three language models, not two).
+
+## Amendment A1 (15 November 2026, the researcher's instructions; nothing launched yet)
+
+1. **As many models as we can.** Run T covers every checkpoint we hold, 24 in all: jet MLP (5 epochs), MNIST MLP
+   (4 epochs), ResNet-8 (9 checkpoints), DS-CNN, VWW, ToyCar, DistilBERT, Pythia-160M and Qwen3-0.6B. This replaces
+   defaults 2 and 3 of Section 7.
+2. **Use Quest to cut the wall time.** What a GPU can and cannot do here:
+   - **TFLite models:** the faulted runs use the TFLite reference kernels, which run on CPUs only. Quest helps by
+     running hundreds of tasks at once (CPU job arrays), not by GPU. About 250–300 core-hours, one to two hours of
+     wall time once the jobs start.
+   - **Language models:** the W8A8 executable multiplies INT8 matrices with a CPU-only operator
+     (`torch._int_mm`, `kona_assets/int8_torch.py`). A GPU run needs a second, exact path (64-bit floating-point
+     products, which are exact for sums of this size) that must first reproduce the CPU executable bit for bit on
+     clean and faulted checks. The models, masks and sentences must also be copied to Quest.
+   - **Hessians for FKeras:** well suited to a GPU.
+   So: T1 on Quest CPU arrays; T2 and T3 on Quest GPUs after the exact-path check passes. If the check fails on a
+   model, that model runs on kona's CPUs.
+3. **FKeras, as published and as coded.** The FKeras paper (Section 3.1; our hashed copy, sha256 `bb327b55…`) ranks
+   weights by the Hessian score, then orders bits tier by tier: "we rank all of the MSB's by the weight sensitivity
+   score, then the second MSB's, and so on". It also says this "is not ideal" and that mixing bits of different
+   weights is future work. The FKeras source has a second function, `rank_bits`, which scores a bit by the weight's
+   score times its power of two and so does mix tiers. Run T adds that as a separate arm, `fkeras_weighted`, if the
+   function is present at the pinned commit (to be checked; the local copy examined is not the pinned file). The
+   published tier-first order stays the arm named FKeras.
+4. **The ideal-protection grid stays in the draft for now** and is removed once the non-ideal results exist for
+   every model. The conclusions are re-derived from the non-ideal results, not assumed.
