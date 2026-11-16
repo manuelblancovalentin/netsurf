@@ -149,6 +149,12 @@ VWW & 84.0 & 83.9 & 83.9 & 83.9 & 60.0 & 26 & $-0.01$ to $0.00$ & 0 / 0\\\bottom
 \end{figure}
 
 \begin{figure}[h]
+\centering\includegraphics[width=\linewidth]{tecs_runT_125}
+\caption{As Fig.~\ref{fig:runT}, at 12.5\% extra storage: triplication of 6.25\% of the bits by the absolute gradient, FKeras as published (its Hessian order chooses which half of the sign tier to protect) and MSB-first (storage order), SEC-DED over 64 bits, ABFT and no protection.}\label{fig:runT-125}
+\Description{Accuracy against bit-error probability for mechanisms at 12.5 percent extra storage.}
+\end{figure}
+
+\begin{figure}[h]
 \centering\includegraphics[width=\linewidth]{tecs_runT_all}
 \caption{Run T, every finished TFLite checkpoint: triplication of the top 12.5\% of bits by each ranking (25\% extra storage) against SEC-DED over 32 bits, ABFT and no protection; mean over 24 fault draws, every stored bit allowed to fail.}\label{fig:runT-all}
 \Description{Small multiples of accuracy against bit-error probability for all rankings and mechanisms on each checkpoint.}

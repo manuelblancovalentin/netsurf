@@ -103,23 +103,27 @@ def main():
         if r:
             done[cid] = r
     sel = [(c, t) for c, t in MAIN if c in done]
-    fig, axs = plt.subplots(2, len(sel), figsize=(3.1 * len(sel), 5.6), squeeze=False)
-    for j, (cid, title) in enumerate(sel):
-        data, clean, unit = done[cid]
-        for i, (row, conds) in enumerate(ROWS.items()):
-            ax = axs[i, j]
+    for tag, (row, conds) in zip(("main", "125"), list(ROWS.items())[::-1]):
+        ncol = 3
+        nrow = int(np.ceil(len(sel) / ncol))
+        fig, axs = plt.subplots(nrow, ncol, figsize=(10.5, 3.0 * nrow + 0.6), squeeze=False)
+        for k, (cid, title) in enumerate(sel):
+            data, clean, unit = done[cid]
+            ax = axs[k // ncol, k % ncol]
             panel(ax, data, clean, unit, conds)
-            C.title(ax, f"{title}" if i == 0 else "")
-            if j == 0:
-                ax.set_ylabel(f"{row}\n{unit}")
-            if i == 1:
+            C.title(ax, title)
+            ax.set_ylabel(unit, fontsize=8)
+            if k // ncol == nrow - 1:
                 ax.set_xlabel("bit-error probability p")
-    for i, (row, conds) in enumerate(ROWS.items()):
-        h, l = axs[i, 0].get_legend_handles_labels()
-        axs[i, -1].legend(h, l, fontsize=6.5, loc="center left", bbox_to_anchor=(1.02, 0.5), frameon=False)
-    fig.tight_layout()
-    for ext in ("pdf", "png"):
-        fig.savefig(C.ROOT / "figures" / f"tecs_runT_main.{ext}", bbox_inches="tight", **({"dpi": 200} if ext == "png" else {}))
+        for k in range(len(sel), nrow * ncol):
+            axs[k // ncol, k % ncol].axis("off")
+        h, l = axs[0, 0].get_legend_handles_labels()
+        fig.legend(h, l, fontsize=8, loc="lower center", ncol=4, frameon=False, bbox_to_anchor=(0.5, -0.01))
+        fig.tight_layout(rect=(0, 0.07 if nrow > 1 else 0.12, 1, 1))
+        name = "tecs_runT_main" if tag == "main" else "tecs_runT_125"
+        for ext in ("pdf", "png"):
+            fig.savefig(C.ROOT / "figures" / f"{name}.{ext}", bbox_inches="tight", **({"dpi": 200} if ext == "png" else {}))
+        plt.close(fig)
     # appendix: every finished TFLite checkpoint, all rankings at 25% extra storage
     ids = sorted(p.name for p in TFL.iterdir() if p.is_dir())
     allc = [(c, load_tflite(c, inputs)) for c in ids]
