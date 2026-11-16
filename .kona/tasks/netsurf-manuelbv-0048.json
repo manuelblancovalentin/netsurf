@@ -1,12 +1,14 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0048",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 48,
  "label": "",
  "title": "Paper 1: tie per-bit protection value to AVF in the theory section",
  "summary": "",
- "notes": "Requested by the owner after draft v18: the paper cited AVF only as motivation. Builds on: netsurf-manuelbv-0045 (draft v18 text).",
- "status": "doing",
+ "notes": "Requested by the owner after draft v18: the paper cited AVF only as motivation. Delivered: paragraph 'Relation to the architectural vulnerability factor' in Section 5 (commit d5beeee on paper1-tecs-revision-v1); PDF rebuilt with no undefined references, main text still 15 pages; delivery folder workspace/paper1_review/delivery_v18_1_avf. Builds on: netsurf-manuelbv-0045 (draft v18 text).",
+ "status": "done",
  "priority": "medium",
  "stage": "",
  "target": "",
@@ -25,8 +27,8 @@
  "created": "2026-11-16",
  "updated": "2026-11-16",
  "start": "2026-11-16",
- "end": "",
- "completed": "",
+ "end": "2026-11-16",
+ "completed": "2026-11-16",
  "percent": null,
  "dependencies": [
   "netsurf-manuelbv-0045"
@@ -39,8 +41,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "doing"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,status,end,completed",
+   "to": "Requested by the owner after draft v18: the paper cited AVF "
   }
- ],
- "number": 48,
- "id": "netsurf-manuelbv-0048"
+ ]
 }
