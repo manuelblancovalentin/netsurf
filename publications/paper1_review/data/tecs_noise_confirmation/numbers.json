@@ -1,0 +1,66 @@
+{
+ "verdict": {
+  "checkpoints": 18,
+  "G0": 18,
+  "C1": 18,
+  "C3": 18,
+  "C3_by_family": {
+   "resnet8": 8,
+   "others": 10
+  },
+  "C2": {
+   "resnet8": {
+    "counted": 173,
+    "agree": 171,
+    "share": 0.9884393063583815,
+    "holds": true
+   },
+   "others": {
+    "counted": 270,
+    "agree": 266,
+    "share": 0.9851851851851852,
+    "holds": true
+   }
+  },
+  "outcome": "CONFIRMED"
+ },
+ "usable_cells": 2130,
+ "hybrid_error_range": [
+  0.08,
+  0.5
+ ],
+ "gauss_error_range": [
+  0.09,
+  0.7
+ ],
+ "mean_error_range": [
+  0.16,
+  1.97
+ ],
+ "replay_error_range": [
+  0.0,
+  0.13
+ ],
+ "hybrid_better_than_gauss": 18,
+ "hybrid_worst_cell": 5.52,
+ "regimes": {
+  "undertrained_e100": "two regimes",
+  "pruned_s07": "two regimes",
+  "pruned_s05": "two regimes",
+  "retrained_seed7101": "two regimes",
+  "retrained_seed7102": "two regimes",
+  "retrained_seed7103": "two regimes",
+  "retrained_seed7104": "two regimes",
+  "retrained_seed7105": "two regimes",
+  "jet-e1": "one regime",
+  "jet-e3": "one regime",
+  "jet-e10": "one regime",
+  "jet-e30": "one regime",
+  "jet-e100": "one regime",
+  "mnist-e1": "one regime",
+  "mnist-e3": "one regime",
+  "mnist-e10": "one regime",
+  "mnist-e30": "one regime",
+  "vww": "one regime"
+ }
+}
