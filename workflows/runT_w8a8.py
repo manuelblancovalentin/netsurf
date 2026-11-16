@@ -107,12 +107,17 @@ def main():
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--only", nargs="*", default=None, help="smoke runs: evaluate only these conditions")
+    ap.add_argument("--extra-masks", type=Path, default=None, help="npz of packed masks <arm>@<share>: triplication arms only")
+    ap.add_argument("--arms-tag", default="")
     a = ap.parse_args()
     if a.out == OUT and a.only:
         raise SystemExit("--only is for smoke runs outside the Run T output")
     out = a.out / a.target / f"draw{a.draw}" / f"ber{a.ber_index}"
     out.mkdir(parents=True, exist_ok=True)
-    if (out / "results.csv").exists() or (out / "DONE").exists():
+    sfx = f"_{a.arms_tag}" if a.arms_tag else ""
+    if bool(a.extra_masks) != bool(a.arms_tag):
+        raise SystemExit("--extra-masks and --arms-tag go together")
+    if (out / f"results{sfx}.csv").exists() or (out / f"DONE{sfx}").exists():
         raise SystemExit("write-once: results exist")
     t0 = time.time()
     plan, adapter, evaluate = setup(a.target, a.threads)
@@ -151,6 +156,13 @@ def main():
     for name, mask in ranked.items():
         share = float(name.split("@")[1])
         conds.append((f"tmr_{name}", lambda mask=mask: N.tmr(raw, voted, mask), share, N.storage_cost("tmr", share=share)))
+    if a.extra_masks:                                   # added arms on the same fault fields: triplication only
+        z = np.load(a.extra_masks)
+        conds = []
+        for name in z.files:
+            mask = np.asarray(z[name], dtype=np.uint8); share = float(name.split("@")[1])
+            assert mask.shape == (codes,)
+            conds.append((f"tmr_{name}", lambda mask=mask: N.tmr(raw, voted, mask), share, N.storage_cost("tmr", share=share)))
     if a.only:
         conds = [c for c in conds if c[0] in a.only]
     rows = []
@@ -175,9 +187,9 @@ def main():
     after = hashlib.sha256(b"".join(v.tobytes() for v in views)).hexdigest()
     if after != clean_hash:
         raise SystemExit("stored INT8 codes were not restored")
-    with open(out / "results.csv", "x", newline="") as fh:
+    with open(out / f"results{sfx}.csv", "x", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
-    (out / "DONE").write_text(json.dumps(dict(seconds=round(time.time() - t0), evaluations=len(rows), clean=clean,
+    (out / f"DONE{sfx}").write_text(json.dumps(dict(seconds=round(time.time() - t0), evaluations=len(rows), clean=clean,
                                               clean_codes_sha256=clean_hash, threads=a.threads, executable_source=PINNED,
                                               masks_sha256={k: hashlib.sha256(v.tobytes()).hexdigest()[:16] for k, v in ranked.items()})))
 
