@@ -1,0 +1,139 @@
+# Post-M9.2 exploratory held-out-input sensitivity check: four independent random masks,
+# eight held-out fault schedules per replication and BER; compare all policies
+# at every BER, including both interior budgets and zero/full controls.
+# The BER grid was chosen after the M9.1 pilot; do not claim confirmatory status.
+schema_version = "3.3.0"
+scientific_protocol = "multi-coverage-protection/v1"
+
+[experiment]
+name = "m92_resnet8_static_test1000_v1"
+description = "Post-M9.2 exploratory evaluation-input sensitivity: original static ranking policies on 1000 ordinary CIFAR-10 test examples across the complete existing BER grid."
+objective = "Re-evaluate the frozen M9.2 exposure-response protocol on a larger, different CIFAR-10 test slice while holding ranking and fault seeds constant for controlled comparison; not independent-model confirmation."
+
+[benchmark]
+adapter = "mlperf_tiny_ic_int8_v1"
+id = "mlperf_tiny_ic_resnet8_int8_v1"
+checkpoint = "/ml/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4/benchmark/training/image_classification/trained_models/pretrainedResnet_quant.tflite"
+dataset = "/ml/datasets/cifar10/cifar-10-python.tar.gz"
+asset_lock = "/projects/kona-assets/manuelbv/locks/mlperf-tiny/ic.lock.json"
+inference_backend = "tensorflow_lite_builtin_ref_v1"
+split = "test"
+quantization = "tflite_affine_int8"
+quantization_backend = "tflite_affine_integer_v1"
+injectable_parameters = ["kernels"]
+
+[samples]
+ranking_count = 64
+empirical_count = 1
+evaluation_count = 1000
+require_disjoint = true
+
+[candidates]
+strategy = "uniform"
+count = 1
+seed = 922101
+score_quantiles = 1
+
+[[estimators]]
+name = "random"
+implementation_version = "seeded-uniform-score/v1"
+result_name = "random_reference"
+seed = 922102
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "relative-word-bit-index/v1"
+result_name = "s2_msb_first"
+
+[[estimators]]
+name = "numerical_bit_jump"
+implementation_version = "absolute-affine-xor-jump/v1"
+result_name = "s3_numerical_jump"
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+result_name = "s4_gradient_delta"
+
+[[estimators]]
+name = "per_sample_first_order_magnitude"
+implementation_version = "mean-absolute-per-example-gradient-times-exact-delta/v1"
+result_name = "s5_per_example_absolute"
+
+[[estimators]]
+name = "per_sample_positive_damage"
+implementation_version = "mean-positive-per-example-gradient-times-exact-delta/v1"
+result_name = "s6_per_example_positive"
+
+[[policies]]
+name = "random_global"
+estimator = "random_reference"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "msb_global"
+estimator = "s2_msb_first"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "numerical_jump_global"
+estimator = "s3_numerical_jump"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "gradient_global"
+estimator = "s4_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "per_example_absolute_global"
+estimator = "s5_per_example_absolute"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "per_example_positive_global"
+estimator = "s6_per_example_positive"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[protection]
+# Zero and full protection are generated once as explicit controls. Listing
+# only interior budgets avoids duplicate policy-specific 0% and 100% masks.
+coverages = [0.125, 0.25]
+probabilities = [0.00001, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1]
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.00001
+
+[execution]
+# Identical M9.2 seeds intentionally give the same mask and fault-field identities for
+# a controlled evaluation-set sensitivity comparison, not an independent fault replication.
+# Four mask replications times eight schedules gives 32 held-out paired fault
+# realizations without pretending that the four random masks are 32 masks.
+trials = 8
+confidence = 0.95
+fault_seed = 922201
+permutation_seed = 922301
+
+[replications]
+count = 4
+candidate_seed_stride = 0
+hutchinson_seed_stride = 0
+sample_offset_stride = 0
+fault_seed_stride = 100003
+estimator_seed_stride = 1009
+
+[output]
+root = ""
+report = true
+plots = false

@@ -1,0 +1,130 @@
+{
+  "new_inferences": 0,
+  "products": [
+    {
+      "artifact": "overleaf/tables/heldout.tex",
+      "recipe": "Saved equal-pool means and marginal t intervals; no re-pooling across arms or metrics.",
+      "sources": [
+        "M910/aggregate_summary.json"
+      ]
+    },
+    {
+      "artifact": "overleaf/tables/reversals.tex",
+      "recipe": "Sum strict reversals and comparable pairs, diagnostic tolerance 1e-12. Shared pairs are not independent trials.",
+      "sources": [
+        "M910/scientific_payload.json:campaigns[].pools[]"
+      ]
+    },
+    {
+      "artifact": "overleaf/tables/attribution.tex",
+      "recipe": "Equal-pool averages of signed selected-minus-isolated selection components; closure checked.",
+      "sources": [
+        "M910/scientific_payload.json:campaigns[].pools[].selection_attribution"
+      ]
+    },
+    {
+      "artifact": "overleaf/figures/heldout_pool_effects.pdf",
+      "recipe": "Byte-identical finalized offline figure; original source inventory verified.",
+      "sources": [
+        "M910/heldout_pool_effects.pdf"
+      ]
+    },
+    {
+      "artifact": "overleaf/figures/selection_attribution.pdf",
+      "recipe": "Byte-identical finalized offline figure; original source inventory verified.",
+      "sources": [
+        "M910/selection_attribution.pdf"
+      ]
+    },
+    {
+      "artifact": "overleaf/figures/selection_margin_stability.pdf",
+      "recipe": "Byte-identical finalized offline figure; original source inventory verified.",
+      "sources": [
+        "M910/selection_margin_stability.pdf"
+      ]
+    },
+    {
+      "artifact": "overleaf/figures/toycar_resolution.pdf",
+      "recipe": "Byte-identical finalized offline figure; original source inventory verified.",
+      "sources": [
+        "M910/toycar_resolution.pdf"
+      ]
+    },
+    {
+      "artifact": "overleaf/tables/approximation.tex",
+      "recipe": "Mean of per-pool max absolute errors and finite-selection-field regrets. Not held-out regret.",
+      "sources": [
+        "M11_reaudit/scientific_payload.json:campaigns"
+      ]
+    },
+    {
+      "artifact": "overleaf/tables/oracle.tex",
+      "recipe": "Bounded two-input engineering validation only. Times include controls, not process startup.",
+      "sources": [
+        "M11_oracle/scientific_payload.json:rows[method=outside]"
+      ]
+    },
+    {
+      "artifact": "overleaf/tables/conditional_ranks.tex",
+      "recipe": "Saved point rank associations, not independent-pair statistical tests.",
+      "sources": [
+        "M952/summary.json:rank_comparisons"
+      ]
+    },
+    {
+      "artifact": "overleaf/figures/heldout_pool_effects_paper.pdf",
+      "recipe": "All pools and three contrasts, saved marginal paired-field 95% intervals; six panels with independent risk scales. No aggregate pool interval is plotted. Layout-only replot, original figure retained.",
+      "sources": [
+        "M910/scientific_payload.json:campaigns[].pools[].final_comparisons.comparisons[].mean_effect"
+      ]
+    },
+    {
+      "artifact": "overleaf/figures/conditional_damage.pdf",
+      "recipe": "All ten test candidates at each BER; saved field-level marginal 95% t intervals. Labels index canonical candidate order.",
+      "sources": [
+        "M952/summary.json:conditional_estimates"
+      ]
+    },
+    {
+      "artifact": "overleaf/tables/frozen_replication.tex",
+      "recipe": "All 256 fields retained; fixed exploratory pool and masks.",
+      "sources": [
+        "M957/summary.json:replication_analysis.comparisons"
+      ]
+    },
+    {
+      "artifact": "overleaf/tables/fkeras_masks.tex",
+      "recipe": "Exact saved set symmetric differences, not ranks inferred from score correlations.",
+      "sources": [
+        "FKeras/summary.json:mask_equivalence"
+      ]
+    },
+    {
+      "artifact": "overleaf/tables/static_rank_validation.tex",
+      "recipe": "Saved 320-candidate, balanced-stratum metrics against positive loss damage. ToyCar target is reconstruction MSE, not ROC-AUC. S5/S6 share gradient computation and duplicated runtime must not be summed.",
+      "sources": [
+        "emp_resnet/summary.json",
+        "emp_kws/summary.json",
+        "emp_toycar/summary.json"
+      ]
+    },
+    {
+      "artifact": "overleaf/tables/static_comparison.tex",
+      "recipe": "All two interior budgets at BER .01; flip sign and reverse endpoints when saved comparison is MSB minus S5. Accuracy and AUC are distinct task metrics. Preserve original within-BER/metric multiplicity families.",
+      "sources": [
+        "static_resnet/measurements/paired_comparisons.csv",
+        "static_kws/measurements/paired_comparisons.csv",
+        "static_toycar/measurements/paired_comparisons.csv"
+      ]
+    },
+    {
+      "artifact": "overleaf/tables/costs.tex",
+      "recipe": "Sum saved engine wall times across pools. These are not concurrent elapsed campaign times or machine-independent speedups.",
+      "sources": [
+        "M910/costs.json"
+      ]
+    }
+  ],
+  "schema_version": "1.0.0",
+  "sources": "sources.json"
+}

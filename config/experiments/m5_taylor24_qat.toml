@@ -1,0 +1,46 @@
+schema_version = "5.0.0"
+scientific_protocol = "structured-hidden-neuron-pruning/v1"
+
+[experiment]
+name = "m5_taylor24_qat"
+description = "Grouped Taylor 32->24, followed by three QAT epochs"
+
+[source]
+adapter = "mnist_quantized"
+checkpoint = "../../workspace/benchmarks/mnist_quantized/checkpoint.npz"
+dataset = "/ml/datasets/mnist/mnist.npz"
+quantization = "q<6,2,1>"
+
+[calibration]
+sample_count = 512
+sample_offset = 0
+
+[pruning]
+method = "grouped_taylor"
+schedule = "target_widths"
+iterations = 1
+step_fraction = 0.149
+target_widths = [24]
+magnitude_norm = "l1"
+
+[reliability]
+susceptibility_estimator = "first_order_gradient_delta"
+susceptibility_reduction = "mean"
+clean_weight = 1.0
+susceptibility_weight = 1.0
+cost_weight = 0.0
+
+[fine_tuning]
+enabled = true
+mode = "quantization_aware"
+epochs_per_stage = 3
+batch_size = 128
+learning_rate = 0.001
+training_samples = 30000
+clean_loss_weight = 1.0
+fault_loss_weight = 0.0
+fault_probability = 0.001
+seed = 20261027
+
+[output]
+checkpoint = "../../workspace/benchmarks/m5_taylor24_qat/checkpoint.npz"

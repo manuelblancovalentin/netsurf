@@ -1,0 +1,182 @@
+[
+  {
+    "campaign": "m96_kws_cross_pool_k6",
+    "ci": [
+      -0.0003806773653228919,
+      -0.00013181402785630183
+    ],
+    "contrast": "restricted_selected_vs_original_s5",
+    "count": 12,
+    "mean": -0.0002562456965895969
+  },
+  {
+    "campaign": "m96_kws_cross_pool_k6",
+    "ci": [
+      -0.00040781647304443086,
+      2.9442938666667093e-06
+    ],
+    "contrast": "restricted_selected_vs_exact_isolated",
+    "count": 12,
+    "mean": -0.0002024360895888821
+  },
+  {
+    "campaign": "m96_kws_cross_pool_k6",
+    "ci": [
+      -0.0003002794456375044,
+      0.00019337920394115892
+    ],
+    "contrast": "exact_isolated_vs_original_s5",
+    "count": 12,
+    "mean": -5.3450120848172755e-05
+  },
+  {
+    "campaign": "m97_kws_multiber_ber_0p001",
+    "ci": [
+      -3.193963616945211e-05,
+      -7.454169754151352e-06
+    ],
+    "contrast": "restricted_selected_vs_original_s5",
+    "count": 12,
+    "mean": -1.9696902961801734e-05
+  },
+  {
+    "campaign": "m97_kws_multiber_ber_0p001",
+    "ci": [
+      -7.67165264223763e-06,
+      6.991999001007628e-06
+    ],
+    "contrast": "restricted_selected_vs_exact_isolated",
+    "count": 12,
+    "mean": -3.3982682061500124e-07
+  },
+  {
+    "campaign": "m97_kws_multiber_ber_0p001",
+    "ci": [
+      -3.360588075455836e-05,
+      -5.108356861773717e-06
+    ],
+    "contrast": "exact_isolated_vs_original_s5",
+    "count": 12,
+    "mean": -1.9357118808166038e-05
+  },
+  {
+    "campaign": "m97_kws_multiber_ber_0p003",
+    "ci": [
+      -0.00010427798243843341,
+      -2.9824366347165634e-05
+    ],
+    "contrast": "restricted_selected_vs_original_s5",
+    "count": 12,
+    "mean": -6.705117439279952e-05
+  },
+  {
+    "campaign": "m97_kws_multiber_ber_0p003",
+    "ci": [
+      -3.9982765540639816e-05,
+      1.0959649438398226e-05
+    ],
+    "contrast": "restricted_selected_vs_exact_isolated",
+    "count": 12,
+    "mean": -1.4511558051120793e-05
+  },
+  {
+    "campaign": "m97_kws_multiber_ber_0p003",
+    "ci": [
+      -0.00010021060266806147,
+      -4.700451922534767e-06
+    ],
+    "contrast": "exact_isolated_vs_original_s5",
+    "count": 12,
+    "mean": -5.2455527295298115e-05
+  },
+  {
+    "campaign": "m97_kws_multiber_ber_0p01",
+    "ci": [
+      -0.00047114840053422933,
+      -0.00012814031123167601
+    ],
+    "contrast": "restricted_selected_vs_original_s5",
+    "count": 12,
+    "mean": -0.00029964435588295267
+  },
+  {
+    "campaign": "m97_kws_multiber_ber_0p01",
+    "ci": [
+      -0.00028880439658849743,
+      4.323466703294029e-05
+    ],
+    "contrast": "restricted_selected_vs_exact_isolated",
+    "count": 12,
+    "mean": -0.00012278486477777857
+  },
+  {
+    "campaign": "m97_kws_multiber_ber_0p01",
+    "ci": [
+      -0.00042801248794251535,
+      6.513753561337193e-05
+    ],
+    "contrast": "exact_isolated_vs_original_s5",
+    "count": 12,
+    "mean": -0.00018143747616457173
+  },
+  {
+    "campaign": "m98_resnet8_cross_pool_k6_v1",
+    "ci": [
+      -0.0005507505378296654,
+      0.0005051809066800694
+    ],
+    "contrast": "restricted_selected_vs_original_s5",
+    "count": 4,
+    "mean": -2.278481557479796e-05
+  },
+  {
+    "campaign": "m98_resnet8_cross_pool_k6_v1",
+    "ci": [
+      -0.0001681506607655138,
+      0.00038977175618905405
+    ],
+    "contrast": "restricted_selected_vs_exact_isolated",
+    "count": 4,
+    "mean": 0.00011081054771177012
+  },
+  {
+    "campaign": "m98_resnet8_cross_pool_k6_v1",
+    "ci": [
+      -0.0005119415194429468,
+      0.0002444299920783674
+    ],
+    "contrast": "exact_isolated_vs_original_s5",
+    "count": 4,
+    "mean": -0.0001337557636822897
+  },
+  {
+    "campaign": "m99_toycar_cross_pool_k6_ber001",
+    "ci": [
+      -1.8817576185196464e-06,
+      7.153079657418651e-07
+    ],
+    "contrast": "restricted_selected_vs_original_s5",
+    "count": 4,
+    "mean": -5.832248263888907e-07
+  },
+  {
+    "campaign": "m99_toycar_cross_pool_k6_ber001",
+    "ci": [
+      -9.955901596201653e-06,
+      2.4170311318423884e-05
+    ],
+    "contrast": "restricted_selected_vs_exact_isolated",
+    "count": 4,
+    "mean": 7.107204861111116e-06
+  },
+  {
+    "campaign": "m99_toycar_cross_pool_k6_ber001",
+    "ci": [
+      -2.487262945599033e-05,
+      9.437516608768093e-06
+    ],
+    "contrast": "exact_isolated_vs_original_s5",
+    "count": 4,
+    "mean": -7.717556423611118e-06
+  }
+]

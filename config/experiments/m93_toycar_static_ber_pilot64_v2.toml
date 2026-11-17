@@ -1,0 +1,138 @@
+# Uses canonical resolved checkpoint path from successful M9.3 ToyCar estimator bundle.
+# ToyCar anomaly-detection static-protection exploratory screening pilot.
+# File ROC-AUC is the primary task metric; reconstruction MSE is secondary.
+# 4 BERs, 2 replications x 4 paired schedules, 64 held-out files,
+# 12.5%/25% masks plus 0%/100% controls; no conditional mask optimization.
+# Not a preregistered confirmatory study; do not claim physical upset rates.
+schema_version = "3.4.0"
+scientific_protocol = "multi-coverage-protection/v1"
+
+[experiment]
+name = "m93_toycar_static_ber_pilot64_v2"
+description = "ToyCar exploratory static protection: four logical BERs, 64 labeled evaluation files, 2 replications x 4 paired fields per BER, six estimator policies plus zero/full controls."
+objective = "Measure multi-fault ToyCar file ROC-AUC and reconstruction-MSE protection effects using identical paired fields across masks; screen useful BER regimes before a powered cross-benchmark study."
+
+[benchmark]
+adapter = "mlperf_tiny_ad_int8_v1"
+id = "mlperf_tiny_ad_toycar_int8_v1"
+checkpoint = "/mnt/raid0/ml/models/models--mlcommons--tiny/blobs/87cf24194ef93d1d9b11a591d805526b98008e351655d29883c825c9c106ba24"
+dataset = "/ml/datasets/dcase2020-toycar"
+asset_lock = "/projects/kona-assets/manuelbv/locks/mlperf-tiny/ad.lock.json"
+inference_backend = "tensorflow_lite_builtin_ref_v1"
+split = "official_248_files"
+quantization = "tflite_affine_int8"
+quantization_backend = "tflite_affine_integer_v1"
+injectable_parameters = ["kernels"]
+
+[samples]
+ranking_count = 16
+empirical_count = 2
+evaluation_count = 64
+require_disjoint = true
+
+[candidates]
+strategy = "uniform"
+count = 1
+seed = 935101
+score_quantiles = 1
+
+[[estimators]]
+name = "random"
+implementation_version = "seeded-uniform-score/v1"
+result_name = "random_reference"
+seed = 935102
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "relative-word-bit-index/v1"
+result_name = "s2_msb_first"
+
+[[estimators]]
+name = "numerical_bit_jump"
+implementation_version = "absolute-affine-xor-jump/v1"
+result_name = "s3_numerical_jump"
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+result_name = "s4_gradient_delta"
+
+[[estimators]]
+name = "per_sample_first_order_magnitude"
+implementation_version = "mean-absolute-per-example-gradient-times-exact-delta/v1"
+result_name = "s5_per_example_absolute"
+
+[[estimators]]
+name = "per_sample_positive_damage"
+implementation_version = "mean-positive-per-example-gradient-times-exact-delta/v1"
+result_name = "s6_per_example_positive"
+
+[[policies]]
+name = "random_global"
+estimator = "random_reference"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "msb_global"
+estimator = "s2_msb_first"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "numerical_jump_global"
+estimator = "s3_numerical_jump"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "gradient_global"
+estimator = "s4_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "per_example_absolute_global"
+estimator = "s5_per_example_absolute"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "per_example_positive_global"
+estimator = "s6_per_example_positive"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[protection]
+# Zero/full controls generated once; interior budget policies are evaluated at 12.5/25%.
+coverages = [0.125, 0.25]
+probabilities = [0.00001, 0.0001, 0.001, 0.01]
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.00001
+
+[execution]
+# Two random-mask replicates and 4 paired schedules/BER: 8 matched fields per BER.
+# S2-S6 masks are fixed across replications; do not treat 8 fields as independently trained masks.
+trials = 4
+confidence = 0.95
+fault_seed = 935201
+permutation_seed = 935301
+
+[replications]
+count = 2
+candidate_seed_stride = 0
+hutchinson_seed_stride = 0
+sample_offset_stride = 0
+fault_seed_stride = 100003
+estimator_seed_stride = 1009
+
+[output]
+root = ""
+report = true
+plots = false

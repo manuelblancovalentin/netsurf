@@ -1,0 +1,24 @@
+\documentclass[manuscript,screen,review]{acmart}
+\acmJournal{TECS}
+\setcopyright{none}
+\settopmatter{printacmref=false}
+\input{include/preamble}
+\input{include/metadata}
+\begin{document}
+\begin{abstract}
+Selective protection of quantized neural networks often assigns a fixed score to each stored parameter bit. We investigate when isolated encoded-bit sensitivity is informative about protection value under simultaneous independent Bernoulli faults. We formulate exact task risk on fault sets and connect protection benefit to conditional probability-space derivatives, using established multilinear and Boolean-function foundations. An exact response-table decomposition separates clean isolated effects, outside-background conditioning, and interactions among candidate bits. Experiments use frozen INT8 TensorFlow Lite reference execution on keyword spotting, ResNet-8 image classification, and ToyCar anomaly detection, with complete-file ROC-AUC for the latter. An exploratory frozen-mask replication resolves a small conditional-selection benefit, but the selected-versus-exact-isolated intervals span zero in all six subsequent cross-pool campaign/BER arms. Across their 56 pool/BER conditions, outside-conditioned additive predictions reverse far fewer mask orderings than clean isolated predictions; this is selection-data attribution, not proof of held-out optimizer superiority. We also audit gradient proxies and two distinct FKeras scoring forms, identifying budgets at which strict bit-tier rankings yield identical masks. A sharp bounded-risk remainder inequality and finite-field regret bound characterize an outside-conditioned singleton approximation, while bounded numerical checks expose both its usefulness and its limitations. The contribution is a reproducible account of context dependence, approximation error, decision uncertainty, and computational cost, not a universal protection optimizer or a physical mitigation implementation.
+\end{abstract}
+\maketitle
+\input{sections/01_introduction}
+\input{sections/02_related_work}
+\input{sections/03_fault_model}
+\input{sections/04_susceptibility}
+\input{sections/05_protection_allocation}
+\input{sections/06_experimental_setup}
+\input{sections/07_results}
+\input{sections/08_discussion}
+\input{sections/09_conclusion}
+\input{sections/10_mathematical_appendix}
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+\end{document}

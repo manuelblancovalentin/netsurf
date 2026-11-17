@@ -1,0 +1,86 @@
+# Research-authored, NOT YET validated against Kona's live NetSuRF parser.
+# Must run TensorFlow 2.14.1 BUILTIN_REF, no delegates, one thread.
+schema_version = "3.1.0"
+scientific_protocol = "multi-coverage-protection/v1"
+
+[experiment]
+name = "m8_resnet8_kernel_static_smoke"
+description = "Bounded reference-backend MLPerf Tiny ResNet-8 kernel-only INT8 exact-storage fault smoke."
+objective = "Test paired persistent random/MSB protection, zero/full controls and exact fault accounting on official CIFAR-10 images."
+
+[benchmark]
+adapter = "mlperf_tiny_ic_int8_v1"
+id = "mlperf_tiny_ic_resnet8_int8_v1"
+checkpoint = "/ml/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4/benchmark/training/image_classification/trained_models/pretrainedResnet_quant.tflite"
+dataset = "/ml/datasets/cifar10/cifar-10-python.tar.gz"
+asset_lock = "/projects/kona-assets/manuelbv/locks/mlperf-tiny/ic.lock.json"
+inference_backend = "tensorflow_lite_builtin_ref_v1"
+split = "official_subset_200"
+quantization = "tflite_affine_int8"
+quantization_backend = "tflite_affine_integer_v1"
+injectable_parameters = ["kernels"]
+
+[samples]
+ranking_count = 16
+empirical_count = 8
+evaluation_count = 32
+require_disjoint = true
+
+[candidates]
+strategy = "uniform"
+count = 16
+seed = 800101
+score_quantiles = 4
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "relative-word-bit-index/v1"
+result_name = "msb_first"
+
+[[estimators]]
+name = "random"
+implementation_version = "seeded-uniform-score/v1"
+result_name = "random"
+seed = 800102
+
+[[policies]]
+name = "msb_global"
+estimator = "msb_first"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "random_global"
+estimator = "random"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[protection]
+coverages = [0.0, 0.10, 1.0]
+probabilities = [0.00001, 0.0001]
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.00001
+
+[execution]
+trials = 4
+confidence = 0.95
+fault_seed = 800201
+permutation_seed = 800301
+
+[replications]
+count = 1
+candidate_seed_stride = 0
+hutchinson_seed_stride = 0
+sample_offset_stride = 0
+fault_seed_stride = 0
+
+[output]
+root = ""
+report = true
+plots = false

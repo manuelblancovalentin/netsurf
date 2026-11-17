@@ -1,0 +1,685 @@
+{
+  "campaigns": [
+    {
+      "campaign_sha256": "46674ad4f90e8bc49fcee3ef826bbb57130005f239d192700cd09d8f106d3ff3",
+      "logical_ber": 0.01,
+      "name": "m96_kws_cross_pool_k6",
+      "operation_plan": {
+        "analytical_mask_integrations_total": 5760,
+        "candidate_states_per_field": 64,
+        "eligible_masks_per_pool": 15,
+        "final_clip_inferences_upper_bound_total": 9437184,
+        "final_fields_per_pool": 128,
+        "final_state_requests_upper_bound_per_pool": 1536,
+        "note": "Final upper bound assumes two swaps for each of three contrasts. Frozen paths and exact schedule reuse reduce actual work; 16 reference clips per adapter load are additional.",
+        "pools": 12,
+        "response_table_evaluations_total": 24576,
+        "selection_clip_inferences_total": 1578240,
+        "selection_fields_per_pool": 32,
+        "selection_state_requests_per_pool": 2055
+      },
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/campaign.json",
+      "purpose": "confirmation",
+      "risk_metric": "categorical_crossentropy",
+      "statistical_plan": {
+        "diagnostics": "pool bootstrap; field bootstrap conditional on pools/inputs; shared-input bootstrap conditional on pools/fields; crossed pool/input/field bootstrap as an approximate sensitivity diagnostic",
+        "no_adaptation": "all pools retained; no response-dependent resampling, stopping, field-count change or candidate screening",
+        "primary": "restricted_selected_vs_original_s5",
+        "primary_ci": "Student-t on equally weighted pool means conditional on shared fixed inputs and selection data",
+        "principal_unit": "probability-sampled candidate pool; inputs shared; fields independent within pool",
+        "secondary": [
+          "restricted_selected_vs_exact_isolated",
+          "exact_isolated_vs_original_s5"
+        ],
+        "secondary_multiplicity": "Holm across two cross-pool tests; Bonferroni 97.5% secondary CIs"
+      }
+    },
+    {
+      "campaign_sha256": "1c9e2182a8363a3a232f929b5e3649cebb2389c80c10994b8012743931098eeb",
+      "logical_ber": 0.001,
+      "name": "m97_kws_multiber_ber_0p001",
+      "operation_plan": {
+        "analytical_mask_integrations_total": 5760,
+        "candidate_states_per_field": 64,
+        "eligible_masks_per_pool": 15,
+        "final_clip_inferences_upper_bound_total": 9437184,
+        "final_fields_per_pool": 128,
+        "final_state_requests_upper_bound_per_pool": 1536,
+        "note": "Final upper bound assumes two swaps for each of three contrasts. Frozen paths and exact schedule reuse reduce actual work; 16 reference clips per adapter load are additional.",
+        "pools": 12,
+        "response_table_evaluations_total": 24576,
+        "selection_clip_inferences_total": 1578240,
+        "selection_fields_per_pool": 32,
+        "selection_state_requests_per_pool": 2055
+      },
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/campaign.json",
+      "purpose": "confirmation",
+      "risk_metric": "categorical_crossentropy",
+      "statistical_plan": {
+        "diagnostics": "pool bootstrap; field bootstrap conditional on pools/inputs; shared-input bootstrap conditional on pools/fields; crossed pool/input/field bootstrap as an approximate sensitivity diagnostic",
+        "no_adaptation": "all pools retained; no response-dependent resampling, stopping, field-count change or candidate screening",
+        "primary": "restricted_selected_vs_original_s5",
+        "primary_ci": "Student-t on equally weighted pool means conditional on shared fixed inputs and selection data",
+        "principal_unit": "probability-sampled candidate pool; inputs shared; fields independent within pool",
+        "secondary": [
+          "restricted_selected_vs_exact_isolated",
+          "exact_isolated_vs_original_s5"
+        ],
+        "secondary_multiplicity": "Holm across two cross-pool tests; Bonferroni 97.5% secondary CIs"
+      }
+    },
+    {
+      "campaign_sha256": "c634785e4fd1c51a2e37a60baf05fd1473e427c24b2ecbb5b3731116f23a3249",
+      "logical_ber": 0.003,
+      "name": "m97_kws_multiber_ber_0p003",
+      "operation_plan": {
+        "analytical_mask_integrations_total": 5760,
+        "candidate_states_per_field": 64,
+        "eligible_masks_per_pool": 15,
+        "final_clip_inferences_upper_bound_total": 9437184,
+        "final_fields_per_pool": 128,
+        "final_state_requests_upper_bound_per_pool": 1536,
+        "note": "Final upper bound assumes two swaps for each of three contrasts. Frozen paths and exact schedule reuse reduce actual work; 16 reference clips per adapter load are additional.",
+        "pools": 12,
+        "response_table_evaluations_total": 24576,
+        "selection_clip_inferences_total": 1578240,
+        "selection_fields_per_pool": 32,
+        "selection_state_requests_per_pool": 2055
+      },
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/campaign.json",
+      "purpose": "confirmation",
+      "risk_metric": "categorical_crossentropy",
+      "statistical_plan": {
+        "diagnostics": "pool bootstrap; field bootstrap conditional on pools/inputs; shared-input bootstrap conditional on pools/fields; crossed pool/input/field bootstrap as an approximate sensitivity diagnostic",
+        "no_adaptation": "all pools retained; no response-dependent resampling, stopping, field-count change or candidate screening",
+        "primary": "restricted_selected_vs_original_s5",
+        "primary_ci": "Student-t on equally weighted pool means conditional on shared fixed inputs and selection data",
+        "principal_unit": "probability-sampled candidate pool; inputs shared; fields independent within pool",
+        "secondary": [
+          "restricted_selected_vs_exact_isolated",
+          "exact_isolated_vs_original_s5"
+        ],
+        "secondary_multiplicity": "Holm across two cross-pool tests; Bonferroni 97.5% secondary CIs"
+      }
+    },
+    {
+      "campaign_sha256": "b69204d4e36c88bc87b0e81d9e526d2467194d78e2ef0732c17b45a32d588fff",
+      "logical_ber": 0.01,
+      "name": "m97_kws_multiber_ber_0p01",
+      "operation_plan": {
+        "analytical_mask_integrations_total": 5760,
+        "candidate_states_per_field": 64,
+        "eligible_masks_per_pool": 15,
+        "final_clip_inferences_upper_bound_total": 9437184,
+        "final_fields_per_pool": 128,
+        "final_state_requests_upper_bound_per_pool": 1536,
+        "note": "Final upper bound assumes two swaps for each of three contrasts. Frozen paths and exact schedule reuse reduce actual work; 16 reference clips per adapter load are additional.",
+        "pools": 12,
+        "response_table_evaluations_total": 24576,
+        "selection_clip_inferences_total": 1578240,
+        "selection_fields_per_pool": 32,
+        "selection_state_requests_per_pool": 2055
+      },
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/campaign.json",
+      "purpose": "confirmation",
+      "risk_metric": "categorical_crossentropy",
+      "statistical_plan": {
+        "diagnostics": "pool bootstrap; field bootstrap conditional on pools/inputs; shared-input bootstrap conditional on pools/fields; crossed pool/input/field bootstrap as an approximate sensitivity diagnostic",
+        "no_adaptation": "all pools retained; no response-dependent resampling, stopping, field-count change or candidate screening",
+        "primary": "restricted_selected_vs_original_s5",
+        "primary_ci": "Student-t on equally weighted pool means conditional on shared fixed inputs and selection data",
+        "principal_unit": "probability-sampled candidate pool; inputs shared; fields independent within pool",
+        "secondary": [
+          "restricted_selected_vs_exact_isolated",
+          "exact_isolated_vs_original_s5"
+        ],
+        "secondary_multiplicity": "Holm across two cross-pool tests; Bonferroni 97.5% secondary CIs"
+      }
+    },
+    {
+      "campaign_sha256": "5bee01e08717c06535142e6ec44e52cb2327dd427af828c7f2fd4045c32bf1da",
+      "logical_ber": 0.01,
+      "name": "m98_resnet8_cross_pool_k6_v1",
+      "operation_plan": {
+        "analytical_mask_integrations_total": 480,
+        "candidate_states_per_field": 64,
+        "eligible_masks_per_pool": 15,
+        "final_clip_inferences_upper_bound_total": 196608,
+        "final_fields_per_pool": 32,
+        "final_state_requests_upper_bound_per_pool": 384,
+        "note": "Final bound: two swaps \u00d7 two states \u00d7 three contrasts per field; 200 already exposed clean reference inputs per adapter load are additional. Clip-inference fields count images for ResNet-8; no model inference during freeze.",
+        "pools": 4,
+        "response_table_evaluations_total": 2048,
+        "selection_clip_inferences_total": 66432,
+        "selection_fields_per_pool": 8,
+        "selection_state_requests_per_pool": 519
+      },
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m98/workspace/runs/m98_resnet8_cross_pool_k6_v1/campaign.json",
+      "purpose": "confirmation",
+      "risk_metric": "categorical_crossentropy",
+      "statistical_plan": {
+        "diagnostics": "pool bootstrap; field bootstrap conditional on pools/inputs; shared-input bootstrap conditional on pools/fields; crossed pool/input/field bootstrap as an approximate sensitivity diagnostic",
+        "no_adaptation": "all pools retained; no response-dependent resampling, stopping, field-count change or candidate screening",
+        "primary": "restricted_selected_vs_original_s5",
+        "primary_ci": "Student-t on equally weighted pool means conditional on shared fixed inputs and selection data",
+        "principal_unit": "probability-sampled candidate pool; inputs shared; fields independent within pool",
+        "secondary": [
+          "restricted_selected_vs_exact_isolated",
+          "exact_isolated_vs_original_s5"
+        ],
+        "secondary_multiplicity": "Holm across two cross-pool tests; Bonferroni 97.5% secondary CIs"
+      }
+    },
+    {
+      "campaign_sha256": "1a5965251494a108e0903f99a629df2b236480dae4a1aad242d96c83a3e4f802",
+      "logical_ber": 0.001,
+      "name": "m99_toycar_cross_pool_k6_ber001",
+      "operation_plan": {
+        "analytical_mask_integrations_total": 480,
+        "candidate_states_per_field": 64,
+        "clean_cohort_evaluations_per_phase_per_pool": 1,
+        "conformance_files_per_load": 2,
+        "conformance_windows_all_phases": 3136,
+        "conformance_windows_per_load": 392,
+        "eligible_masks_per_pool": 15,
+        "final_fields_per_pool": 32,
+        "final_files_upper_bound_total": 73920,
+        "final_state_requests_upper_bound_per_pool": 384,
+        "final_window_inferences_upper_bound_total": 14488320,
+        "note": "All 196 windows per file. One extra clean cohort per phase/pool; 392 conformance windows per adapter load. No final file access during freeze/selection.",
+        "pools": 4,
+        "response_table_evaluations_total": 2048,
+        "selection_fields_per_pool": 8,
+        "selection_files_total": 49920,
+        "selection_state_requests_per_pool": 519,
+        "selection_window_inferences_total": 9784320
+      },
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m99-toycar-conditional/workspace/runs/m99_toycar_production_plan_v1/campaign.json",
+      "purpose": "confirmation",
+      "risk_metric": "one_minus_file_roc_auc",
+      "statistical_plan": {
+        "diagnostics": "field and pool uncertainty only; no additive input or comparison-pair bootstrap",
+        "input_population_uncertainty": "not estimated; requires stratified complete-file resampling and recomputation of every paired AUC",
+        "no_adaptation": "all pools retained; no response-dependent resampling, stopping, field-count change or candidate screening",
+        "primary": "restricted_selected_vs_original_s5",
+        "primary_ci": "Student-t on equally weighted pool means conditional on shared fixed inputs and selection data",
+        "principal_unit": "candidate pool; independent whole fault fields nested within pools; complete fixed cohort shared",
+        "secondary": [
+          "restricted_selected_vs_exact_isolated",
+          "exact_isolated_vs_original_s5"
+        ],
+        "secondary_multiplicity": "Holm across two cross-pool tests; Bonferroni 97.5% secondary CIs"
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "campaign": "m96_kws_cross_pool_k6",
+      "comparison": "restricted_selected_vs_original_s5",
+      "pool_summary": {
+        "confidence_interval": [
+          -0.0003806773653228919,
+          -0.00013181402785630183
+        ],
+        "count": 12,
+        "degenerate_empirical_variance": false,
+        "maximum": -3.0409765954044968e-05,
+        "mean": -0.0002562456965895969,
+        "median": -0.00024502149147502056,
+        "minimum": -0.0006366900545301789,
+        "standard_deviation": 0.00019584136796967167,
+        "standard_error": 5.653453325787725e-05,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 0
+      },
+      "risk_metric": "categorical_crossentropy",
+      "sign_counts": [
+        12,
+        0,
+        0
+      ]
+    },
+    {
+      "campaign": "m96_kws_cross_pool_k6",
+      "comparison": "restricted_selected_vs_exact_isolated",
+      "pool_summary": {
+        "confidence_interval": [
+          -0.00040781647304443086,
+          2.9442938666667093e-06
+        ],
+        "count": 12,
+        "degenerate_empirical_variance": false,
+        "maximum": 0.0001073153386914678,
+        "mean": -0.0002024360895888821,
+        "median": -2.0591134741969897e-05,
+        "minimum": -0.0007635194130852542,
+        "standard_deviation": 0.00032324548613328955,
+        "standard_error": 9.331293421669309e-05,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 3
+      },
+      "risk_metric": "categorical_crossentropy",
+      "sign_counts": [
+        7,
+        3,
+        2
+      ]
+    },
+    {
+      "campaign": "m96_kws_cross_pool_k6",
+      "comparison": "exact_isolated_vs_original_s5",
+      "pool_summary": {
+        "confidence_interval": [
+          -0.00030027944563750447,
+          0.00019337920394115897
+        ],
+        "count": 12,
+        "degenerate_empirical_variance": false,
+        "maximum": 0.0007331096471312093,
+        "mean": -5.3450120848172755e-05,
+        "median": -0.00012602908756659527,
+        "minimum": -0.0005376348318451708,
+        "standard_deviation": 0.00038848143012035815,
+        "standard_error": 0.0001121449291275798,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 1
+      },
+      "risk_metric": "categorical_crossentropy",
+      "sign_counts": [
+        8,
+        1,
+        3
+      ]
+    },
+    {
+      "campaign": "m97_kws_multiber_ber_0p001",
+      "comparison": "restricted_selected_vs_original_s5",
+      "pool_summary": {
+        "confidence_interval": [
+          -3.193963616945211e-05,
+          -7.45416975415135e-06
+        ],
+        "count": 12,
+        "degenerate_empirical_variance": false,
+        "maximum": 0.0,
+        "mean": -1.969690296180173e-05,
+        "median": -1.3356974972546465e-05,
+        "minimum": -5.100817896116244e-05,
+        "standard_deviation": 1.9268676884925723e-05,
+        "standard_error": 5.5623878932198935e-06,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 2
+      },
+      "risk_metric": "categorical_crossentropy",
+      "sign_counts": [
+        10,
+        2,
+        0
+      ]
+    },
+    {
+      "campaign": "m97_kws_multiber_ber_0p001",
+      "comparison": "restricted_selected_vs_exact_isolated",
+      "pool_summary": {
+        "confidence_interval": [
+          -7.67165264223763e-06,
+          6.991999001007627e-06
+        ],
+        "count": 12,
+        "degenerate_empirical_variance": false,
+        "maximum": 2.4693516880225404e-05,
+        "mean": -3.3982682061500124e-07,
+        "median": 0.0,
+        "minimum": -2.8562026635682563e-05,
+        "standard_deviation": 1.1539464295858395e-05,
+        "standard_error": 3.33115640875896e-06,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 5
+      },
+      "risk_metric": "categorical_crossentropy",
+      "sign_counts": [
+        3,
+        5,
+        4
+      ]
+    },
+    {
+      "campaign": "m97_kws_multiber_ber_0p001",
+      "comparison": "exact_isolated_vs_original_s5",
+      "pool_summary": {
+        "confidence_interval": [
+          -3.360588075455836e-05,
+          -5.108356861773717e-06
+        ],
+        "count": 12,
+        "degenerate_empirical_variance": false,
+        "maximum": 2.8562026635682563e-05,
+        "mean": -1.9357118808166038e-05,
+        "median": -1.6721556666386453e-05,
+        "minimum": -5.100817896116244e-05,
+        "standard_deviation": 2.2425939150882746e-05,
+        "standard_error": 6.473811002796161e-06,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 0
+      },
+      "risk_metric": "categorical_crossentropy",
+      "sign_counts": [
+        11,
+        0,
+        1
+      ]
+    },
+    {
+      "campaign": "m97_kws_multiber_ber_0p003",
+      "comparison": "restricted_selected_vs_original_s5",
+      "pool_summary": {
+        "confidence_interval": [
+          -0.0001042779824384334,
+          -2.982436634716564e-05
+        ],
+        "count": 12,
+        "degenerate_empirical_variance": false,
+        "maximum": 1.2846674145465035e-06,
+        "mean": -6.705117439279952e-05,
+        "median": -6.100197148018175e-05,
+        "minimum": -0.00016809114574924992,
+        "standard_deviation": 5.859078389784977e-05,
+        "standard_error": 1.691370242772738e-05,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 2
+      },
+      "risk_metric": "categorical_crossentropy",
+      "sign_counts": [
+        9,
+        2,
+        1
+      ]
+    },
+    {
+      "campaign": "m97_kws_multiber_ber_0p003",
+      "comparison": "restricted_selected_vs_exact_isolated",
+      "pool_summary": {
+        "confidence_interval": [
+          -3.998276554063981e-05,
+          1.0959649438398228e-05
+        ],
+        "count": 12,
+        "degenerate_empirical_variance": false,
+        "maximum": 2.802178750389976e-05,
+        "mean": -1.4511558051120792e-05,
+        "median": 0.0,
+        "minimum": -0.00013341521559212272,
+        "standard_deviation": 4.0088798690618165e-05,
+        "standard_error": 1.1572639357758558e-05,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 5
+      },
+      "risk_metric": "categorical_crossentropy",
+      "sign_counts": [
+        5,
+        5,
+        2
+      ]
+    },
+    {
+      "campaign": "m97_kws_multiber_ber_0p003",
+      "comparison": "exact_isolated_vs_original_s5",
+      "pool_summary": {
+        "confidence_interval": [
+          -0.00010021060266806148,
+          -4.700451922534773e-06
+        ],
+        "count": 12,
+        "degenerate_empirical_variance": false,
+        "maximum": 0.00013333698088576192,
+        "mean": -5.245552729529813e-05,
+        "median": -4.993831550993694e-05,
+        "minimum": -0.00014226066447523464,
+        "standard_deviation": 7.516108546725824e-05,
+        "standard_error": 2.169713646355301e-05,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 0
+      },
+      "risk_metric": "categorical_crossentropy",
+      "sign_counts": [
+        10,
+        0,
+        2
+      ]
+    },
+    {
+      "campaign": "m97_kws_multiber_ber_0p01",
+      "comparison": "restricted_selected_vs_original_s5",
+      "pool_summary": {
+        "confidence_interval": [
+          -0.00047114840053422933,
+          -0.00012814031123167601
+        ],
+        "count": 12,
+        "degenerate_empirical_variance": false,
+        "maximum": 1.1509683367166065e-05,
+        "mean": -0.00029964435588295267,
+        "median": -0.00021221677929066383,
+        "minimum": -0.000722485490244431,
+        "standard_deviation": 0.00026992796173801057,
+        "standard_error": 7.792149068562371e-05,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 2
+      },
+      "risk_metric": "categorical_crossentropy",
+      "sign_counts": [
+        9,
+        2,
+        1
+      ]
+    },
+    {
+      "campaign": "m97_kws_multiber_ber_0p01",
+      "comparison": "restricted_selected_vs_exact_isolated",
+      "pool_summary": {
+        "confidence_interval": [
+          -0.00028880439658849743,
+          4.323466703294026e-05
+        ],
+        "count": 12,
+        "degenerate_empirical_variance": false,
+        "maximum": 7.591798690935252e-05,
+        "mean": -0.00012278486477777857,
+        "median": -9.207844283232094e-06,
+        "minimum": -0.0008363241080395655,
+        "standard_deviation": 0.00026129595906315884,
+        "standard_error": 7.54296461516381e-05,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 4
+      },
+      "risk_metric": "categorical_crossentropy",
+      "sign_counts": [
+        6,
+        4,
+        2
+      ]
+    },
+    {
+      "campaign": "m97_kws_multiber_ber_0p01",
+      "comparison": "exact_isolated_vs_original_s5",
+      "pool_summary": {
+        "confidence_interval": [
+          -0.00042801248794251546,
+          6.513753561337198e-05
+        ],
+        "count": 12,
+        "degenerate_empirical_variance": false,
+        "maximum": 0.0008166131154605974,
+        "mean": -0.00018143747616457173,
+        "median": -0.0001796530248894244,
+        "minimum": -0.000722485490244431,
+        "standard_deviation": 0.0003880811702142609,
+        "standard_error": 0.00011202938404531426,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 0
+      },
+      "risk_metric": "categorical_crossentropy",
+      "sign_counts": [
+        10,
+        0,
+        2
+      ]
+    },
+    {
+      "campaign": "m98_resnet8_cross_pool_k6_v1",
+      "comparison": "restricted_selected_vs_original_s5",
+      "pool_summary": {
+        "confidence_interval": [
+          -0.0005507505378296654,
+          0.0005051809066800694
+        ],
+        "count": 4,
+        "degenerate_empirical_variance": false,
+        "maximum": 0.00033146514691326343,
+        "mean": -2.278481557479796e-05,
+        "median": 2.3374705303498775e-05,
+        "minimum": -0.0004693538198194528,
+        "standard_deviation": 0.0003317986678224885,
+        "standard_error": 0.00016589933391124425,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 1
+      },
+      "risk_metric": "categorical_crossentropy",
+      "sign_counts": [
+        1,
+        1,
+        2
+      ]
+    },
+    {
+      "campaign": "m98_resnet8_cross_pool_k6_v1",
+      "comparison": "restricted_selected_vs_exact_isolated",
+      "pool_summary": {
+        "confidence_interval": [
+          -0.0001681506607655138,
+          0.00038977175618905405
+        ],
+        "count": 4,
+        "degenerate_empirical_variance": false,
+        "maximum": 0.00033146514691326343,
+        "mean": 0.00011081054771177012,
+        "median": 8.492260766820968e-05,
+        "minimum": -5.806817140260232e-05,
+        "standard_deviation": 0.00017531243685974158,
+        "standard_error": 8.765621842987079e-05,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 0
+      },
+      "risk_metric": "categorical_crossentropy",
+      "sign_counts": [
+        1,
+        0,
+        3
+      ]
+    },
+    {
+      "campaign": "m98_resnet8_cross_pool_k6_v1",
+      "comparison": "exact_isolated_vs_original_s5",
+      "pool_summary": {
+        "confidence_interval": [
+          -0.0005119415194429468,
+          0.0002444299920783674
+        ],
+        "count": 4,
+        "degenerate_empirical_variance": false,
+        "maximum": 5.806817140260232e-05,
+        "mean": -0.0001337557636822897,
+        "median": -6.040019610335126e-05,
+        "minimum": -0.00047229083392505867,
+        "standard_deviation": 0.0002376698423051274,
+        "standard_error": 0.0001188349211525637,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 1
+      },
+      "risk_metric": "categorical_crossentropy",
+      "sign_counts": [
+        2,
+        1,
+        1
+      ]
+    },
+    {
+      "campaign": "m99_toycar_cross_pool_k6_ber001",
+      "comparison": "restricted_selected_vs_original_s5",
+      "pool_summary": {
+        "confidence_interval": [
+          -1.8817576185196464e-06,
+          7.153079657418651e-07
+        ],
+        "count": 4,
+        "degenerate_empirical_variance": false,
+        "maximum": 0.0,
+        "mean": -5.832248263888907e-07,
+        "median": -2.712673611111132e-07,
+        "minimum": -1.7903645833333358e-06,
+        "standard_deviation": 8.160595136985317e-07,
+        "standard_error": 4.0802975684926583e-07,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 1
+      },
+      "risk_metric": "one_minus_file_roc_auc",
+      "sign_counts": [
+        3,
+        1,
+        0
+      ]
+    },
+    {
+      "campaign": "m99_toycar_cross_pool_k6_ber001",
+      "comparison": "restricted_selected_vs_exact_isolated",
+      "pool_summary": {
+        "confidence_interval": [
+          -9.955901596201653e-06,
+          2.4170311318423884e-05
+        ],
+        "count": 4,
+        "degenerate_empirical_variance": false,
+        "maximum": 2.256944444444443e-05,
+        "mean": 7.107204861111116e-06,
+        "median": 3.0381944444444515e-06,
+        "minimum": -2.170138888888708e-07,
+        "standard_deviation": 1.0723264319642077e-05,
+        "standard_error": 5.361632159821038e-06,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 0
+      },
+      "risk_metric": "one_minus_file_roc_auc",
+      "sign_counts": [
+        2,
+        0,
+        2
+      ]
+    },
+    {
+      "campaign": "m99_toycar_cross_pool_k6_ber001",
+      "comparison": "exact_isolated_vs_original_s5",
+      "pool_summary": {
+        "confidence_interval": [
+          -2.487262945599033e-05,
+          9.437516608768093e-06
+        ],
+        "count": 4,
+        "degenerate_empirical_variance": false,
+        "maximum": 5.4253472222206436e-08,
+        "mean": -7.717556423611118e-06,
+        "median": -4.014756944444452e-06,
+        "minimum": -2.2894965277777768e-05,
+        "standard_deviation": 1.0781060471560651e-05,
+        "standard_error": 5.390530235780326e-06,
+        "uncertainty": "whole-unit t approximation conditional on fixed cohort; zero empirical variance does not establish population equivalence",
+        "zero_count": 0
+      },
+      "risk_metric": "one_minus_file_roc_auc",
+      "sign_counts": [
+        3,
+        0,
+        1
+      ]
+    }
+  ]
+}

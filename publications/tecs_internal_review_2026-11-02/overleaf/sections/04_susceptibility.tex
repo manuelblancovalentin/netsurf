@@ -1,0 +1,45 @@
+\section{From Isolated Sensitivity to Conditional Vulnerability}\label{sec:susceptibility}
+\subsection{Fault-set and probability-space objects}
+The exact isolated effect is $I_b=R(\{b\})-R(\varnothing)$. Define anchored coefficients
+\begin{equation}\label{eq:mobius}
+I_S=\sum_{T\subseteq S}(-1)^{|S|-|T|}R(T),\qquad R(A)=\sum_{S\subseteq A}I_S.
+\end{equation}
+In particular $I_{bc}=R(\{b,c\})-R(\{b\})-R(\{c\})+R(\varnothing)$. These are finite differences of exact executable risk, not a Taylor expansion.
+
+For independent coordinate probabilities $\mathbf q$, the multilinear extension is
+\begin{equation}\label{eq:multi-extension}
+F(\mathbf q)=\E_{Z\sim\mathbf q}R(Z)=\sum_{S\subseteq\bits}I_S\prod_{b\in S}q_b.
+\end{equation}
+Conditioning on coordinate $b$ gives
+\begin{equation}\label{eq:prob-gradient}
+V_b(\mathbf q_{-b})=\partial_b F(\mathbf q)=\E_G[R(G\cup\{b\})-R(G)],
+\end{equation}
+where $G$ excludes $b$ and follows the other coordinate probabilities. This first probability derivative contains every interaction order involving $b$: $I_b+\sum_{c\ne b}q_cI_{bc}+\cdots$. For $b\ne c$, $\partial_{bc}F$ is the corresponding background-averaged four-state finite difference; $\partial_{bb}F=0$. No differentiability of integer inference is assumed. These identities follow from established multilinear theory, not a new neural-network calculus~\cite{odonnell2014analysis,rauzy2022reliability}.
+
+Set $q_b=0$ on $P$ and $p$ otherwise. For $b\notin P$, multi-affinity gives the exact benefit
+\begin{equation}\label{eq:protection-benefit}
+J_p(P)-J_p(P\cup\{b\})=p V_b(p,P).
+\end{equation}
+Thus isolated damage is the zero-background limit, not the general finite-BER protection value. $V_b$ is signed; it is not the absolute Boolean influence sometimes used to measure sensitivity without direction.
+
+\subsection{Static estimators and their distinct objectives}\label{sec:estimators}
+For the companion's per-input loss $\ell_x$, write $z_b(x)=\partial\ell_x/\partial w_b\,\delta_b$. Our static definitions are:
+\begin{align}
+S2_b&=j_b \quad\text{(descending word-relative significance)},\nonumber\\
+S3_b&=|\delta_b|,\qquad
+S4_b=|\E_x z_b(x)|,\label{eq:static}\\
+S5_b&=\E_x|z_b(x)|,\qquad
+S6_b=\E_x\max(0,z_b(x)).\nonumber
+\end{align}
+S4 saves the signed prediction $\E z$ separately but ranks its magnitude. S5 targets absolute per-input sensitivity; S6 targets positive first-order per-input changes. Neither is an exact prediction of positive aggregate risk damage. Random uses a recorded seed. All methods use the same eligible population and deterministic tie rules; estimator score, ordering policy, mask selection, and mitigation remain separate.
+
+For $S5_b>0$, directional coherence $C_b=\E z_b/S5_b$ satisfies $S6_b=S5_b(1+C_b)/2$. This is an algebraic identity when the same contributions are aggregated. Separate float32 reductions can differ numerically; it is not sound to infer coherence from incompatible transformed scores. Task alignment also matters: KWS/ResNet companions use a classification loss, while ToyCar gradients use reconstruction MSE, not differentiable AUC.
+
+The companions preserve kernel-variable identities and exact affine bit jumps but use straight-through activation requantization. Their derivatives are hypotheses about exact integer faults, not derivatives of the discrete program. Forward discrepancies, saturation, large sign-bit perturbations, and changed fault context can invalidate local approximations. Exact isolated effects and protection outcomes always use the authoritative backend.
+
+\subsection{Faithful scope of the FKeras baseline}
+The printed FKeras parameter vector is $h=\sum_{i=1}^k\lambda_i(v_i^\top\theta)v_i$~\cite{weng2024fkeras}. We record that signed vector and use $|h|$ within significance tiers. The pinned repository's \texttt{sum} strategy instead gives $\sum_i|\lambda_i^2(v_i^\top\theta)v_i|$~\cite{fkerasSource}. Multiplying the vector by its eigenvalue before both the dot product and final product introduces the square; componentwise magnitudes precede summation. With one nonzero eigenpair the magnitude rankings are proportional, but multiple eigenpairs can change weighting and cancellation. Both variants are reported; neither is selected for favorable outcomes.
+
+For KWS we use a separately identified float64 continuous companion with decoded kernels, fixed decoded biases, and no activation requantization. Deterministic symmetric Lanczos targets signed eigenvalues of largest magnitude, retaining negative values. Orthogonality, symmetry, normalized residuals, dense small-network references, and finite-difference Hessian-vector products are checked. This reproduces the scoring forms on validated eigenpairs, not the upstream eigensolver's every numerical behavior or the original QKeras experiments. It is also a different surrogate from S4--S6.
+
+FKeras remains tier-first, with sensitivity only within a tier. For homogeneous INT8 storage, 12.5\% protection selects every sign bit and 25\% selects every sign and bit-6 position. These masks must equal corrected MSB-first regardless of parameter sensitivity. Partial-tier budgets can distinguish them. A continuous weight Hessian can contain cross-parameter interactions, but this projected score does not condition on the current protection mask or Bernoulli background. We do not characterize it as a diagonal Hessian or as a full conditional oracle.

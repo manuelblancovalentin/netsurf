@@ -1,0 +1,99 @@
+schema_version = "3.1.0"
+scientific_protocol = "multi-coverage-protection/v1"
+
+[experiment]
+name = "m6_mnist_lite_static_ranking_smoke"
+description = "Inference-only static ranker smoke on the accepted hybrid MNIST-lite exact kernel/bias six-bit benchmark."
+objective = "Test matched persistent XOR fault evaluation across MSB, signed first-order, per-example absolute, and per-example positive damage rankings."
+
+[benchmark]
+adapter = "mnist_lite_exact_kb_v1"
+id = "mnist_lite_exact_kb_v1"
+checkpoint = "/ml/experiments/netsurf/legacy/benchmarks/mnist_fnn_lite/q6_2_1/pruned_0.125_159569_qflatten_dense10u_qapplyalpha_quantized_relu_dense10u_qsoftmax/models/pruned_0.125_159569_qflatten_dense10u_qapplyalpha_quantized_relu_dense10u_qsoftmax.20250414_152629.keras"
+dataset = "/ml/datasets/mnist/mnist.npz"
+split = "v2_identity_gate_disjoint_partitions"
+quantization = "q<6,2,1>"
+quantization_backend = "netsurf_bitcodec_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 128
+empirical_count = 32
+evaluation_count = 256
+require_disjoint = true
+
+[candidates]
+strategy = "uniform"
+count = 64
+seed = 600100
+score_quantiles = 4
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "encoded-bit-index/v1"
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+
+[[estimators]]
+name = "per_sample_first_order_magnitude"
+implementation_version = "mean-absolute-per-example-gradient-times-exact-delta/v1"
+
+[[estimators]]
+name = "per_sample_positive_damage"
+implementation_version = "mean-positive-per-example-gradient-times-exact-delta/v1"
+
+[[policies]]
+name = "msb_first_global"
+estimator = "msb_first"
+priority = ["bit_significance_desc", "canonical"]
+prespecified = true
+
+[[policies]]
+name = "first_order_global"
+estimator = "first_order_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "per_sample_magnitude_global"
+estimator = "per_sample_first_order_magnitude"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "per_sample_positive_global"
+estimator = "per_sample_positive_damage"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[protection]
+coverages = [0.05, 0.10, 0.16666666666666666]
+probabilities = [0.0001, 0.001, 0.01]
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.001
+
+[execution]
+trials = 8
+confidence = 0.95
+fault_seed = 600200
+permutation_seed = 600300
+
+[replications]
+count = 1
+candidate_seed_stride = 0
+hutchinson_seed_stride = 0
+sample_offset_stride = 0
+fault_seed_stride = 0
+
+[output]
+root = ""
+report = true
+plots = true

@@ -1,0 +1,43 @@
+\appendix
+\section{Proofs and Spectral Interpretation}\label{app:math}
+\subsection{Probability derivatives and paired swaps}
+Expanding $R(Z)=\sum_S I_S\prod_{b\in S}Z_b$ and taking expectations proves Eq.~\eqref{eq:multi-extension}. Differentiating gives
+\[
+\partial_bF=\sum_{S\ni b}I_S\prod_{c\in S\setminus\{b\}}q_c,\qquad
+\partial_{bc}F=\sum_{S\supseteq\{b,c\}}I_S\prod_{j\in S\setminus\{b,c\}}q_j.
+\]
+Conditioning on forced states proves the finite-difference interpretations. For a swap, $a$ is forced clean under $P$ and $b$ is Bernoulli; the roles reverse under $P'$. The common $(1-p)R(G)$ contribution cancels, giving Eq.~\eqref{eq:swap}. Multi-step paths telescope in expectation; their within-field covariance must be retained. No smoothness or additivity over inputs is used.
+
+\subsection{Sharp remainder bound}
+For $t=|A|\ge2$, let
+\[
+r_G(A)=h_G(A)+(t-1)h_G(\varnothing)-\sum_{b\in A}h_G(\{b\}).
+\]
+Each of the positive and negative groups lies in $[0,tL]$, so $|r_G(A)|\le tL$. The remainder vanishes for $t=0,1$. With $T\sim{\rm Binomial}(m,p)$,
+\[
+|\E r_G(A)|\le L\E[T\mathbf1\{T\ge2\}]
+=Lmp[1-(1-p)^{m-1}].
+\]
+The empty-$L$, singleton-zero, multi-fault-$L$ construction attains equality. The risk bound concerns the true response; clipping the additive approximation would change the stated object. For heterogeneous independent probabilities the same proof gives $L\sum_b p_b[1-\prod_{j\ne b}(1-p_j)]$. Correlated laws require their actual moments, not substitution into the binomial expression.
+
+If $|J(Q)-A(Q)|\le\epsilon$ uniformly over legal masks, $A(Q_A)\le A(Q_*)$ implies $J(Q_A)-J(Q_*)\le2\epsilon$, capped by $L$. For independent outside fields, each $d_b^G\in[-L,L]$. Hoeffding plus a union bound yields $\max_b|\widehat d_b-\E d_b|\le t$ with probability $1-\alpha$, with $t$ as in Section~\ref{sec:bounds}~\cite{hoeffding1963}. Two equal-size masks differ in at most $2\min(r,K-r)$ positions, and the shared intercept cancels. This proves Eq.~\eqref{eq:samplebound} without assuming independent responses across bits.
+
+If every contextual mixed difference is bounded by $\kappa_{bc}$, sequentially adding elements of $A$ and telescoping each marginal back to the empty state bounds $|r_G(A)|$ by $\sum_{b<c\in A}\kappa_{bc}$. Independent inclusion gives $p^2\sum_{b<c\in U}\kappa_{bc}$. A maximum measured on finitely many outside fields is not a global $\kappa$. The pure third-order function has zero clean singleton and pair coefficients, demonstrating why pair checks only at the origin cannot certify all orders.
+
+\subsection{An exact higher-order failure case}
+For $K=6,r=2,p=.5$, let $h(A)=\mathbf1\{\{3,4,5\}\subseteq A\}$ with indices $0,\ldots,5$. Every singleton score is zero. Stable additive ties protecting $\{0,1\}$ leave risk $p^3=.125$; any legal mask protecting bit 3 attains zero risk. This analytic falsifier is neither a model measurement nor evidence that the small-$p$ empirical approximation fails similarly.
+
+\subsection{Optional global and biased spectra}
+For fixed numerical metadata, inputs and backend, let $H(u)$ be risk as a function of the full encoded configuration $u\in\{0,1\}^N$, and let $u_0$ be the trained code. With Walsh characters $\chi_S(u)=(-1)^{\sum_{b\in S}u_b}$,
+\[
+F(\mathbf q;u_0)=\sum_S\widehat H(S)\chi_S(u_0)\prod_{b\in S}(1-2q_b),\qquad
+J_p(P;u_0)=\sum_S\widehat H(S)\chi_S(u_0)(1-2p)^{|S\setminus P|}.
+\]
+These established identities~\cite{odonnell2014analysis} retain every order; computing the whole spectrum is infeasible here and was not attempted. Translating the encoded origin changes Walsh signs but not uniform spectral energy. The local biased spectrum need not be invariant.
+
+For $0<p<1$, define $\phi_S(Z)=\prod_{b\in S}(Z_b-p)/\sqrt{p(1-p)}$ and $\widehat R_p(S)=\E[R(Z)\phi_S(Z)]$. Parseval gives $\operatorname{Var}(R)=\sum_{S\ne\varnothing}\widehat R_p(S)^2$, while
+\[
+\widehat R_p(\{b\})=\sqrt{p(1-p)}
+\bigl(\E[R\mid Z_b=1]-\E[R\mid Z_b=0]\bigr).
+\]
+Spectral energy describes squared variation, whereas protection decisions depend on signed, support-specific terms. Large higher-order energy does not by itself imply large mask regret. No full-network spectral result or spectral optimizer is claimed.

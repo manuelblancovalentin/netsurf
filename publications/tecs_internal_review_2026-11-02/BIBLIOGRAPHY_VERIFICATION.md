@@ -1,0 +1,27 @@
+# Bibliography verification
+
+Checked for this internal-review draft on 2 November 2026. The 11 entries below are cited in the manuscript. Publication type and methodological scope are kept separate from the correctness of a paper's reported findings. This is not a claim to have independently reproduced the external studies.
+
+| BibTeX key | Verified source | Status and use |
+|---|---|---|
+| banbury2021mlperf | [NeurIPS Datasets and Benchmarks paper](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/da4fb5c6e93e74d3df8527599fa62642-Paper-round1.pdf) | Peer-reviewed 2021 benchmark paper. Author list checked against the paper, not an abbreviated search index. Supports benchmark origin, not the identity or numerical performance of our particular local assets. |
+| mlcommons2026tiny | [Pinned official repository](https://github.com/mlcommons/tiny/tree/4addd0fa08d216e20637637874e084895f289da4) | Software/source artifact. Immutable commit is specified; local checkpoint and preprocessing identities are independently bound by NetSuRF manifests. The citation's 2026 year denotes the source used in this work, not the original benchmark paper date. |
+| weng2024fkeras | [Author-hosted FKeras paper](https://kastner.ucsd.edu/wp-content/uploads/2024/05/admin/jats24-fkeras.pdf), [publisher DOI](https://doi.org/10.1145/3665334) | ACM Journal on Autonomous Transportation Systems, 2024, volume 1, issue 3, article 15. Printed formula and tier ordering checked against the paper. Publisher access was restricted in this session; author full text and DOI metadata were used. |
+| fkerasSource | [Pinned source file](https://github.com/KastnerRG/fkeras/blob/68e775c77670c9a1aab4e1b5295b523347d97013/fkeras/metrics/hessian.py) | Software, not a second paper. Local pinned source inspected. The effective sum strategy differs from the printed scoring formula; no accusation about all possible upstream settings is made. |
+| weng2026priorifi | [Author-hosted PrioriFI paper](https://kastner.ucsd.edu/wp-content/uploads/2026/05/admin/asplos2026-priorifi.pdf), [publisher DOI](https://doi.org/10.1145/3779212.3790204) | ASPLOS 2026 conference paper. Supports prior art on informed/feedback-guided injection. No unexecuted NetSuRF efficacy comparison against PrioriFI is asserted. Publisher DOI page was inaccessible through the browsing tool; author paper supplies the methodology. |
+| catalan2025redundancy | [Publisher article](https://link.springer.com/article/10.1007/s11227-024-06693-7) | Journal of Supercomputing article, 2025 volume year, DOI registered with 2024 suffix. Stored-bit redundancy/protection differs from ideal logical suppression. The DOI year is not substituted for the publication year. |
+| yu2023cola | [Official PMLR proceedings](https://proceedings.mlr.press/v202/yu23a.html) | ICML 2023, PMLR volume 202, pages 40277–40289. Correlated feature errors and coding/architecture co-design are not the same object as anchored encoded-bit interactions. |
+| alobaidi2026selectiveeccdataset | [Zenodo record](https://zenodo.org/records/23054820), DOI 10.5281/zenodo.23054820 | Public dataset/companion release, version v1, record publication date 30 September 2026. Record creation/modification dates are separately 5 October 2026. Authors, title and dataset status verified. Peer-reviewed acceptance of the accompanying Learned or Ranked? manuscript is not established. The source snapshot and methods are relevant prior art regardless. |
+| odonnell2014analysis | [Cambridge book](https://www.cambridge.org/core/books/analysis-of-boolean-functions/B05A66E4DCC778E02B84C16376F4D1FD), DOI 10.1017/CBO9781139814782 | Published mathematical reference, 2014. Boolean/Fourier foundations are attributed, not claimed as new NetSuRF discoveries. |
+| rauzy2022reliability | [Author/association-hosted book](https://www.altarica-association.org/members/arauzy/Publications/pdf/Rauzy2022-MBREBook.pdf) | Model-Based Reliability Engineering: An Introduction from First Principles, AltaRica Association, 2022, ISBN 978-82-692273-2-1. Used for reliability-importance foundations, not a new neural-network algorithm. |
+| hoeffding1963 | [Publisher DOI](https://doi.org/10.1080/01621459.1963.10500830), [university-hosted full text](https://www.cs.rpi.edu/academics/courses/spring06/random/hoefding.pdf) | JASA 58(301), 13–30, 1963. The finite-field bound uses independent bounded field observations and a union bound; it does not require independent bit responses within a field. |
+
+## Scope of verification
+
+The bibliography contains no invented DOI, no claimed publication venue for the Zenodo manuscript, and no claim that numerical agreement proves another study's scientific conclusions. Unused references from the older draft are not carried into the working bibliography; they remain in the unchanged source ZIP.
+
+ACM-generated bibliography and all citation keys are checked during the local LaTeX build. Journal submission requirements, coauthorship, acknowledgment and release permissions remain author decisions.
+
+## Citation locations
+
+Sections 1–2 establish related work and novelty boundaries; Section 4 cites the FKeras paper and pinned implementation separately; Section 6 identifies MLPerf and official assets; Appendix A cites Boolean analysis and Hoeffding. The Zenodo dataset is cited in Sections 1–2 with its qualified status. External sources do not serve as substitutes for hashed NetSuRF measurements.

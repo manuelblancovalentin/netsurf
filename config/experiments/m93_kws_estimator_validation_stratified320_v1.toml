@@ -1,0 +1,100 @@
+# Prespecified M9.3 DS-CNN susceptibility-validation study. Stratified
+# candidate evidence is not a whole-network susceptibility estimate.
+# Exact fault measurements use pinned TFLite BUILTIN_REF; the companion
+# provides gradients only. Require disjoint ranking, empirical, and final
+# evaluation sample identities; confirm the actual partitions in the run.
+schema_version = "3.4.0"
+scientific_protocol = "estimator-validation/v1"
+policies = []
+
+[experiment]
+name = "m93_kws_estimator_validation_stratified320_v1"
+description = "Prespecified 320-candidate INT8 DS-CNN keyword-spotting kernel-bit study: four bits per tensor-by-bit-position stratum."
+objective = "Test exact TFLite isolated-bit damage prediction on a held-out KWS subset with separate ranking, empirical and evaluation samples; no whole-network claims."
+
+[benchmark]
+adapter = "mlperf_tiny_kws_int8_v1"
+id = "mlperf_tiny_kws_dscnn_int8_v1"
+checkpoint = "/ml/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4/benchmark/training/keyword_spotting/trained_models/kws_ref_model.tflite"
+dataset = "/ml/datasets/speech_commands/0.0.3"
+asset_lock = "/projects/kona-assets/manuelbv/locks/mlperf-tiny/kws.lock.json"
+inference_backend = "tensorflow_lite_builtin_ref_v1"
+split = "official_subset_1000"
+quantization = "tflite_affine_int8"
+quantization_backend = "tflite_affine_integer_v1"
+injectable_parameters = ["kernels"]
+
+[samples]
+ranking_count = 64
+empirical_count = 64
+evaluation_count = 200
+require_disjoint = true
+
+[candidates]
+strategy = "stratified"
+count = 320
+seed = 931101
+# No score_estimator is supplied. score_quantiles=1 makes the 80 strata the
+# Cartesian product of ten kernel tensors and eight stored bit positions.
+score_quantiles = 1
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "relative-word-bit-index/v1"
+result_name = "s2_msb_first"
+
+[[estimators]]
+name = "numerical_bit_jump"
+implementation_version = "absolute-affine-xor-jump/v1"
+result_name = "s3_numerical_jump"
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+result_name = "s4_gradient_delta"
+
+[[estimators]]
+name = "per_sample_first_order_magnitude"
+implementation_version = "mean-absolute-per-example-gradient-times-exact-delta/v1"
+result_name = "s5_per_example_absolute"
+
+[[estimators]]
+name = "per_sample_positive_damage"
+implementation_version = "mean-positive-per-example-gradient-times-exact-delta/v1"
+result_name = "s6_per_example_positive"
+
+[[estimators]]
+name = "random"
+implementation_version = "seeded-uniform-score/v1"
+result_name = "random_reference"
+seed = 931102
+
+[protection]
+coverages = []
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.0001
+
+[execution]
+trials = 1
+confidence = 0.95
+fault_seed = 931201
+permutation_seed = 931301
+
+[replications]
+count = 1
+candidate_seed_stride = 0
+hutchinson_seed_stride = 0
+sample_offset_stride = 0
+fault_seed_stride = 0
+estimator_seed_stride = 0
+
+[output]
+root = ""
+report = true
+plots = false

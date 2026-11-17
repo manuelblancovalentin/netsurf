@@ -1,0 +1,47 @@
+\section{Experimental Protocol}\label{sec:experiments}
+\subsection{Frozen models and exact execution}
+Table~\ref{tab:models} identifies the three kernel-only populations. The models and preprocessing descend from pinned MLPerf Tiny assets~\cite{banbury2021mlperf,mlcommons2026tiny}, not newly trained checkpoints. Authoritative inference is TensorFlow Lite 2.14.1, \texttt{BUILTIN\_REF}, one inference thread, no delegates. Locks bind model bytes, dataset identities, ordered inputs, scales, zero points, and clean-reference digests. Optimized kernels are not silently substituted. ToyCar preprocessing additionally preserves the validated two-thread BLAS reduction contract; this is separate from single-threaded TFLite execution.
+\begin{table}[t]
+\caption{Frozen model populations and task risk. Hash prefixes identify full SHA-256 values in the evidence manifest. All other state is nonfaultable.}\label{tab:models}
+\centering\small
+\begin{tabular}{lrrll}\toprule
+Model & INT8 kernel words & Eligible bits & Risk & Model SHA prefix\\\midrule
+DS-CNN KWS &22,016&176,128&CE&\texttt{aeea43680070}\\
+ResNet-8 &77,360&618,880&CE&\texttt{3c002613d1b2}\\
+ToyCar AD &264,192&2,113,536&$1-\AUC$&\texttt{87cf24194ef9}\\\bottomrule
+\end{tabular}
+\end{table}
+
+KWS uses the pinned Speech Commands TFDS ordering, round-robin blocks of 16, waveform normalization, and the official MFCC pipeline. CIFAR-10 inputs preserve frozen indices and quantized preprocessing. ToyCar uses the official mel-power pipeline, five-frame concatenation and 196 reconstruction windows per selected complete file. Its score is the pinned mean reconstruction error against the float-domain target, not a newly normalized loss. Gradients use normal training data; labeled final cohorts do not train a ranking surrogate.
+
+\subsection{Study lineage and partitions}
+We use stable study identifiers to bind manuscript claims to finalized artifacts, not as independent statistical replications. \evidence{M9.5.2} evaluates ten explicitly chosen KWS bits on 256 training clips and 512 test clips, with 64 and 128 independent backgrounds respectively at each BER. The pool is descriptive, not a uniform sample. \evidence{M9.5.7} fixes an exploratory eight-bit pool and previously selected masks, then evaluates 256 new master fields on 256 clips (original test indices 3194--3449). Earlier conditional outcomes influenced the pool lineage; independent final fields do not erase that selection history.
+
+The later campaigns sample six-bit pools, with two bits uniformly drawn from the source S5-protected population and four from its complement. Each pool has exactly two protected positions and 15 legal masks. This is a probability-sampled \emph{status-stratified pool design}, not six uniform whole-network bits. Source S5 protects 12.5\% of all eligible kernel bits, and $P_{\rm out}$ is held fixed while two positions are exchanged. All planned pools are retained, including identical-mask and adverse cases.
+\begin{table}[t]
+\caption{Completed restricted campaigns. Selection and final counts are independent outside/master fields per pool. Inputs are fixed within an arm. A and B denote different KWS cohort windows, not different checkpoints.}\label{tab:design}
+\centering\small
+\begin{tabular}{llrrrrl}\toprule
+Evidence & Model/arm & $p$ & Pools & Fields sel./final & Inputs sel./final & Risk\\\midrule
+M9.6 &KWS A&.01&12&32/128&64/512 clips&CE\\
+M9.7 &KWS B&.001&12&32/128&64/512 clips&CE\\
+M9.7 &KWS B&.003&12&32/128&64/512 clips&CE\\
+M9.7 &KWS B&.01&12&32/128&64/512 clips&CE\\
+M9.8 &ResNet-8&.01&4&8/32&32/128 images&CE\\
+M9.9 &ToyCar&.001&4&8/32&24/48 files&$1-\AUC$\\\bottomrule
+\end{tabular}
+\end{table}
+
+KWS A selection/final indices are 2088--2151/3450--3961; KWS B uses 2152--2215/3962--4473. The same twelve candidate pools recur across these arms, so 48 KWS pool/BER records are not 48 independently sampled pools. ResNet uses 1024--1055/3225--3352. ToyCar selection comprises normal files 64--75 and anomalous files 204--215; final uses normal 76--99 and anomalous 216--239. These are source indices, with exact file IDs and order in manifests. Disjoint source windows do not establish identical class or device distributions.
+
+The frozen protocol separates calibration, selection-only execution, sealed masks, and final-only comparisons. Exposure ledgers reject known reused confirmation windows. The ToyCar retrospective ledger records fault-outcome exposure for 200 of 248 official files and clean inference on all files; only 40 normal and eight anomalous files remain without recorded fault outcomes. Its completed study is consequently exploratory evidence on an already extensively examined dataset, not external confirmation. Undocumented manual or failed jobs cannot be excluded by a finalized-bundle ledger.
+
+\subsection{Statistics and decision units}
+Whole fault fields are independent Monte Carlo units conditional on model, masks, and inputs. Paths, candidate pairs, and policies sharing a field are not independent trials. Final comparisons are target-minus-baseline risk; negative favors the target. Pool-level summaries equally weight pool means, with marginal Student-$t$ intervals using pools as units. These intervals are descriptive conditional approximations, particularly with four pools, not input-population guarantees or robust proofs under unseen heavy tails.
+
+The original protocols preserve different comparison families. M9.5.7 has one primary selected-minus-S5 comparison and two Holm-adjusted secondary comparisons. M9.6/M9.8/M9.9 similarly distinguish the primary comparison from two secondary pool-level contrasts. The M9.7 joint protocol has two primary across-BER contrast changes and a nine-test within-BER secondary family, with Holm adjustment and separately saved simultaneous intervals. The marginal intervals shown here do not replace those families, and their overlap is not a significance test. New M9.10 attribution and input-resampling analyses are explicitly exploratory. Stratified complete-file resampling recomputes ToyCar AUC; neither windows nor normal/anomalous pairs are resampled as independent files.
+
+Static empirical validation uses 320 bits: four per tensor-by-bit-position stratum across ten kernels. Recorded inclusion probabilities differ by tensor size. Correlations and top-$k$ recall describe this balanced sampled set, not an unbiased whole-network top-$k$ population. Fixed-mask fault replications are distinct from independent random-mask seeds. The later exact response-table analysis does not change any earlier estimator, mask, cohort, seed, or raw measurement.
+
+\subsection{Integrity and analysis provenance}
+The publication package records full paths, SHA-256 identities, source revisions, artifact selectors, and figure/table derivations. Source payloads and consumed artifacts are checked before use; large unused prediction tables are not claimed to have been rehashed in this manuscript pass. The M9.10 derivation originally verified complete source inventories and every exact response state; its finalized derived files and all 112 selection/final payload identities are independently checked again here. No model inference, mask generation, training, or scientific rerun was performed to author this draft. The M11 planned large-scale studies are not empirical evidence.

@@ -1,0 +1,22 @@
+{
+  "analytical_counterexample_checks": "PASS, exact rational arithmetic",
+  "canonical_payload_verification": "PASS in prepare_evidence.py",
+  "cited_bibliography_entries": 11,
+  "claim_count": 24,
+  "consumed_source_files_unchanged": 583,
+  "display_count": 17,
+  "independently_recomputed_pool_contrasts": 18,
+  "manuscript_source": "user-supplied Overleaf ZIP, not older repository manuscript",
+  "new_model_inferences": 0,
+  "original_overleaf_sha256": "3d8fba9df4891bd05792b9a8157712c30fc6dd837526dc7c13e9e2a4ed84a5f6",
+  "overfull_boxes_or_oversized_floats": 0,
+  "remaining_build_warnings": [
+    "ACM reference block suppressed for internal review",
+    "CCS concepts not supplied in original author metadata",
+    "nonfatal underfull typography"
+  ],
+  "sharp_bound_attainment_checks": "PASS, exact rational arithmetic for m=2..8 at three probabilities",
+  "source_bundle_count": 125,
+  "source_scope": "consumed inventories only; unused multi-GB prediction records not rehashed",
+  "undefined_citations_or_references": 0
+}

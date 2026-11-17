@@ -1,0 +1,352 @@
+{
+  "displays": [
+    {
+      "artifact": "overleaf/sections/06_experimental_setup.tex",
+      "generated_product": null,
+      "label": "tab:models",
+      "number": "1",
+      "page": "8",
+      "recipe": "Frozen model identity and kernel word counts from source campaign manifests; bits = 8 \u00d7 kernel words.",
+      "sha256": "d39c393dba1b56607db717ff35a6ace69d3e9ddf9d53bd4f0e683acc6fd5bad3",
+      "source_keys": [
+        "M910"
+      ],
+      "source_payload_sha256": {
+        "M910": "cb9099abed7a74c06dcae1c96a8f1122c3a8efdb6527e1a28475560601399ace"
+      }
+    },
+    {
+      "artifact": "overleaf/sections/06_experimental_setup.tex",
+      "generated_product": null,
+      "label": "tab:design",
+      "number": "2",
+      "page": "9",
+      "recipe": "All six completed campaign designs; no selected-pool exclusion.",
+      "sha256": "d39c393dba1b56607db717ff35a6ace69d3e9ddf9d53bd4f0e683acc6fd5bad3",
+      "source_keys": [
+        "M910"
+      ],
+      "source_payload_sha256": {
+        "M910": "cb9099abed7a74c06dcae1c96a8f1122c3a8efdb6527e1a28475560601399ace"
+      }
+    },
+    {
+      "artifact": "overleaf/tables/static_rank_validation.tex",
+      "generated_product": {
+        "artifact": "overleaf/tables/static_rank_validation.tex",
+        "recipe": "Saved 320-candidate, balanced-stratum metrics against positive loss damage. ToyCar target is reconstruction MSE, not ROC-AUC. S5/S6 share gradient computation and duplicated runtime must not be summed.",
+        "sources": [
+          "emp_resnet/summary.json",
+          "emp_kws/summary.json",
+          "emp_toycar/summary.json"
+        ]
+      },
+      "label": "tab:static-validation",
+      "number": "3",
+      "page": "10",
+      "recipe": "Saved balanced candidate statistics, three-decimal rounding.",
+      "sha256": "03af90bf8eece03ace3297b2fa618b068c0073b8607c3eedcff49b9b706ed18b",
+      "source_keys": [
+        "emp_resnet",
+        "emp_kws",
+        "emp_toycar"
+      ],
+      "source_payload_sha256": {
+        "emp_kws": "aba8b17abd5457dc22527be76728dd1b40524444fda1f0cc09a273c3d5876fde",
+        "emp_resnet": "c38df68e491f5bdc96b99ac11343fa2688d3c3bc17c12ec1dd3a31d04c41d4c5",
+        "emp_toycar": "08e13ca8e4edc532b50fece43a4c5cd9134e631455ae5f27a466d8e793cf76ec"
+      }
+    },
+    {
+      "artifact": "overleaf/tables/static_comparison.tex",
+      "generated_product": {
+        "artifact": "overleaf/tables/static_comparison.tex",
+        "recipe": "All two interior budgets at BER .01; flip sign and reverse endpoints when saved comparison is MSB minus S5. Accuracy and AUC are distinct task metrics. Preserve original within-BER/metric multiplicity families.",
+        "sources": [
+          "static_resnet/measurements/paired_comparisons.csv",
+          "static_kws/measurements/paired_comparisons.csv",
+          "static_toycar/measurements/paired_comparisons.csv"
+        ]
+      },
+      "label": "tab:static-protection",
+      "number": "4",
+      "page": "11",
+      "recipe": "All interior budgets at .01; metric-specific effects; CI reversed when sign reversed.",
+      "sha256": "89c3ca8ba3791b8a870b65acff312854021494e9c0b2dcb291edee68c3ef3024",
+      "source_keys": [
+        "static_resnet",
+        "static_kws",
+        "static_toycar"
+      ],
+      "source_payload_sha256": {
+        "static_kws": "b7b725fd1c196f2d5896b67aba34dfe8aa864b8308875df098d48be6135975e0",
+        "static_resnet": "3ed95baa04ede8047f5b5eb04f9024f2e5f856c39abcc84b2ca1fb894b22db32",
+        "static_toycar": "5d9c1eaa69e24b5f2139b7bf69ae0d775cc8727d458d0b66c5cfe897ab44b554"
+      }
+    },
+    {
+      "artifact": "overleaf/tables/fkeras_masks.tex",
+      "generated_product": {
+        "artifact": "overleaf/tables/fkeras_masks.tex",
+        "recipe": "Exact saved set symmetric differences, not ranks inferred from score correlations.",
+        "sources": [
+          "FKeras/summary.json:mask_equivalence"
+        ]
+      },
+      "label": "tab:fkeras",
+      "number": "5",
+      "page": "11",
+      "recipe": "Saved exact mask symmetric differences.",
+      "sha256": "d8440c8410c89c3d365ae3dc1ddacf03dd0e147e839d83151f4d5d866615799d",
+      "source_keys": [
+        "FKeras"
+      ],
+      "source_payload_sha256": {
+        "FKeras": "2db342a2f4cb38cf553124cb10eba115d566255d84afec6b9e82d97a14e29b5e"
+      }
+    },
+    {
+      "artifact": "overleaf/tables/conditional_ranks.tex",
+      "generated_product": {
+        "artifact": "overleaf/tables/conditional_ranks.tex",
+        "recipe": "Saved point rank associations, not independent-pair statistical tests.",
+        "sources": [
+          "M952/summary.json:rank_comparisons"
+        ]
+      },
+      "label": "tab:conditional-ranks",
+      "number": "6",
+      "page": "11",
+      "recipe": "All train/test BER rows, no bit filtering.",
+      "sha256": "2bf24dd14e3d635274a788dc5abe40c0e89614a25280198ccf3b45a0affd2143",
+      "source_keys": [
+        "M952"
+      ],
+      "source_payload_sha256": {
+        "M952": "c4a74199474175fbcccc7e451f047fdb020026e2d25410875500503aaf7b0233"
+      }
+    },
+    {
+      "artifact": "overleaf/tables/frozen_replication.tex",
+      "generated_product": {
+        "artifact": "overleaf/tables/frozen_replication.tex",
+        "recipe": "All 256 fields retained; fixed exploratory pool and masks.",
+        "sources": [
+          "M957/summary.json:replication_analysis.comparisons"
+        ]
+      },
+      "label": "tab:replication",
+      "number": "7",
+      "page": "12",
+      "recipe": "Saved signed mean, interval, favorable-field count.",
+      "sha256": "c4c6e8b1feddaa17c36d4b602729899e95c488a1cabf9fc5030baf2940ed2c63",
+      "source_keys": [
+        "M957"
+      ],
+      "source_payload_sha256": {
+        "M957": "fc33c74c598eebff8ae2fe24493cfb2af0b2686f54bb1c2bb9ef30bb4b3cdbfa"
+      }
+    },
+    {
+      "artifact": "overleaf/tables/heldout.tex",
+      "generated_product": {
+        "artifact": "overleaf/tables/heldout.tex",
+        "recipe": "Saved equal-pool means and marginal t intervals; no re-pooling across arms or metrics.",
+        "sources": [
+          "M910/aggregate_summary.json"
+        ]
+      },
+      "label": "tab:heldout",
+      "number": "8",
+      "page": "13",
+      "recipe": "All six arms and two principal contrasts; equal-pool means.",
+      "sha256": "b10efb500bbc08a4db1369355932e6a6530f5fd829f3daca69e78687cd8af945",
+      "source_keys": [
+        "M910"
+      ],
+      "source_payload_sha256": {
+        "M910": "cb9099abed7a74c06dcae1c96a8f1122c3a8efdb6527e1a28475560601399ace"
+      }
+    },
+    {
+      "artifact": "overleaf/tables/reversals.tex",
+      "generated_product": {
+        "artifact": "overleaf/tables/reversals.tex",
+        "recipe": "Sum strict reversals and comparable pairs, diagnostic tolerance 1e-12. Shared pairs are not independent trials.",
+        "sources": [
+          "M910/scientific_payload.json:campaigns[].pools[]"
+        ]
+      },
+      "label": "tab:reversals",
+      "number": "9",
+      "page": "13",
+      "recipe": "Counts summed over all pools, diagnostic tolerance retained.",
+      "sha256": "fbf701e36b576a8e737f477f17251709b15122bd43fe2d655209f1d8a331c89c",
+      "source_keys": [
+        "M910"
+      ],
+      "source_payload_sha256": {
+        "M910": "cb9099abed7a74c06dcae1c96a8f1122c3a8efdb6527e1a28475560601399ace"
+      }
+    },
+    {
+      "artifact": "overleaf/tables/attribution.tex",
+      "generated_product": {
+        "artifact": "overleaf/tables/attribution.tex",
+        "recipe": "Equal-pool averages of signed selected-minus-isolated selection components; closure checked.",
+        "sources": [
+          "M910/scientific_payload.json:campaigns[].pools[].selection_attribution"
+        ]
+      },
+      "label": "tab:attribution",
+      "number": "10",
+      "page": "13",
+      "recipe": "Equal-pool signed selection attribution; closure checked.",
+      "sha256": "3cc345398110d09e783652d8f551a3f5837f358c721f69f5bb9b2b142486538d",
+      "source_keys": [
+        "M910"
+      ],
+      "source_payload_sha256": {
+        "M910": "cb9099abed7a74c06dcae1c96a8f1122c3a8efdb6527e1a28475560601399ace"
+      }
+    },
+    {
+      "artifact": "overleaf/tables/approximation.tex",
+      "generated_product": {
+        "artifact": "overleaf/tables/approximation.tex",
+        "recipe": "Mean of per-pool max absolute errors and finite-selection-field regrets. Not held-out regret.",
+        "sources": [
+          "M11_reaudit/scientific_payload.json:campaigns"
+        ]
+      },
+      "label": "tab:approximation",
+      "number": "11",
+      "page": "15",
+      "recipe": "Saved mean errors and same-selection-field regrets.",
+      "sha256": "4a6207d7c74b11364d135e605be28fdd9cb321e92ac48cca62480f0d6c14a15c",
+      "source_keys": [
+        "M11_reaudit"
+      ],
+      "source_payload_sha256": {
+        "M11_reaudit": "55d02a91f9d1382ae41b8a4484531795e9fcaecbebd694a59cad7bd9c5670aa7"
+      }
+    },
+    {
+      "artifact": "overleaf/tables/oracle.tex",
+      "generated_product": {
+        "artifact": "overleaf/tables/oracle.tex",
+        "recipe": "Bounded two-input engineering validation only. Times include controls, not process startup.",
+        "sources": [
+          "M11_oracle/scientific_payload.json:rows[method=outside]"
+        ]
+      },
+      "label": "tab:oracle",
+      "number": "12",
+      "page": "16",
+      "recipe": "All bounded outside-method oracle rows.",
+      "sha256": "02a827aa3d6baaaef9a1576cddd5c87b328895aa338b25207c3fdb9004071763",
+      "source_keys": [
+        "M11_oracle"
+      ],
+      "source_payload_sha256": {
+        "M11_oracle": "cbb6e36fc7c3ab8b3b733468587aab2317af23b0649efd4cc1f62cb9201ffe4b"
+      }
+    },
+    {
+      "artifact": "overleaf/tables/costs.tex",
+      "generated_product": {
+        "artifact": "overleaf/tables/costs.tex",
+        "recipe": "Sum saved engine wall times across pools. These are not concurrent elapsed campaign times or machine-independent speedups.",
+        "sources": [
+          "M910/costs.json"
+        ]
+      },
+      "label": "tab:costs",
+      "number": "13",
+      "page": "16",
+      "recipe": "Sum source engine wall times across pools, rounded to seconds.",
+      "sha256": "0fc9002ca27f4cba29722045ce2b7163e2786135964009667c90215f09cd071c",
+      "source_keys": [
+        "M910"
+      ],
+      "source_payload_sha256": {
+        "M910": "cb9099abed7a74c06dcae1c96a8f1122c3a8efdb6527e1a28475560601399ace"
+      }
+    },
+    {
+      "artifact": "overleaf/sections/05_protection_allocation.tex",
+      "generated_product": null,
+      "label": "fig:counterexample",
+      "number": "1",
+      "page": "6",
+      "recipe": "Analytical polynomial curves from Equation counterexample. No experimental observations.",
+      "sha256": "e8d8242d8023c1035d337cbe7d2b21bb60c6c9da98805e9666c4034ee54fa47d",
+      "source_keys": [],
+      "source_payload_sha256": {}
+    },
+    {
+      "artifact": "overleaf/figures/conditional_damage.pdf",
+      "generated_product": {
+        "artifact": "overleaf/figures/conditional_damage.pdf",
+        "recipe": "All ten test candidates at each BER; saved field-level marginal 95% t intervals. Labels index canonical candidate order.",
+        "sources": [
+          "M952/summary.json:conditional_estimates"
+        ]
+      },
+      "label": "fig:conditional",
+      "number": "2",
+      "page": "12",
+      "recipe": "All ten test candidates, two BERs, saved conditional means and marginal field intervals; isolated x axis in 1e-3 nats/clip.",
+      "sha256": "2cc8259d407d88d0266a85e05561cbab05ded76009ccd4a9481044b1a3d2b89b",
+      "source_keys": [
+        "M952"
+      ],
+      "source_payload_sha256": {
+        "M952": "c4a74199474175fbcccc7e451f047fdb020026e2d25410875500503aaf7b0233"
+      }
+    },
+    {
+      "artifact": "overleaf/figures/heldout_pool_effects_paper.pdf",
+      "generated_product": {
+        "artifact": "overleaf/figures/heldout_pool_effects_paper.pdf",
+        "recipe": "All pools and three contrasts, saved marginal paired-field 95% intervals; six panels with independent risk scales. No aggregate pool interval is plotted. Layout-only replot, original figure retained.",
+        "sources": [
+          "M910/scientific_payload.json:campaigns[].pools[].final_comparisons.comparisons[].mean_effect"
+        ]
+      },
+      "label": "fig:heldout",
+      "number": "3",
+      "page": "14",
+      "recipe": "Six panels; every pool and all three saved contrasts; marginal paired-field intervals, no aggregate CI.",
+      "sha256": "f169d050c3e74b522cbba13a8dfa6242b8e7fbf20cd676c5c5ba474256d41f9b",
+      "source_keys": [
+        "M910"
+      ],
+      "source_payload_sha256": {
+        "M910": "cb9099abed7a74c06dcae1c96a8f1122c3a8efdb6527e1a28475560601399ace"
+      }
+    },
+    {
+      "artifact": "overleaf/figures/toycar_resolution.pdf",
+      "generated_product": {
+        "artifact": "overleaf/figures/toycar_resolution.pdf",
+        "recipe": "Byte-identical finalized offline figure; original source inventory verified.",
+        "sources": [
+          "M910/toycar_resolution.pdf"
+        ]
+      },
+      "label": "fig:toycar",
+      "number": "4",
+      "page": "15",
+      "recipe": "Byte-identical finalized figure: empty-candidate cohort AUC CDF and changed forced-state fractions.",
+      "sha256": "5cb4df104d1656e3e595ea8cc7f8366b1cd8697020f787656465a8fcf00c06fa",
+      "source_keys": [
+        "M910"
+      ],
+      "source_payload_sha256": {
+        "M910": "cb9099abed7a74c06dcae1c96a8f1122c3a8efdb6527e1a28475560601399ace"
+      }
+    }
+  ],
+  "schema_version": "1.0.0"
+}

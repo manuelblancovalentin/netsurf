@@ -1,0 +1,28 @@
+\section{Exact Encoded-Bit Fault Model}\label{sec:fault}
+\subsection{Storage and executable identity}
+The eligible population $\bits=\{1,\ldots,N\}$ consists of allocated INT8 kernel bits. A bit identity contains the TFLite tensor, C-order word index, and bit position $j\in\{0,\ldots,7\}$. Kernels include depthwise and pointwise convolutions where present. INT32 biases, activation buffers, quantization metadata, code, and control state are excluded. A stored zero remains eligible; it is not a physically removed connection.
+
+For affine decoding $w=s(q-z)$, let $a_j$ be bit $j$ of the two's-complement code. Its exact numerical displacement is
+\begin{equation}\label{eq:xor-delta}
+\delta_b=\begin{cases}s(1-2a_j)2^j,&j<7,\\-s(1-2a_7)2^7,&j=7.\end{cases}
+\end{equation}
+The scale $s$ follows the actual per-tensor or per-channel metadata; the zero point cancels in this difference. Faults XOR the stored codes used by authoritative inference, not floating-point shadow weights. Several distinct bits in one word compose by XOR, including sign changes. Exact baseline bytes are restored after each evaluated fault state.
+
+\subsection{Risk and evaluation unit}
+For a fixed input cohort $\mathcal D$, $R_{\mathcal D}(A)$ is the scalar risk of the executable with exactly $A$ flipped; we omit $\mathcal D$ when fixed. Classification risk is mean categorical cross-entropy from decoded integer-softmax probabilities, with true-class probability floored at $10^{-12}$, in nats per input. Accuracy is a separate descriptive endpoint. The clipping bounds this recorded risk by $L=-\log(10^{-12})$, not the unbounded cross-entropy of arbitrary continuous logits.
+
+ToyCar risk is $1-\AUC$ on complete files. Let $s_f(A)$ be the pinned score obtained by aggregating all reconstruction windows of file $f$, and let $\mathcal F_+,\mathcal F_-$ denote anomalous and normal files. Then
+\begin{equation}\label{eq:auc}
+\AUC(A)=\frac{1}{|\mathcal F_+||\mathcal F_-|}\sum_{u\in\mathcal F_+}\sum_{v\in\mathcal F_-}
+\left[\mathbf1\{s_u(A)>s_v(A)\}+\tfrac12\mathbf1\{s_u(A)=s_v(A)\}\right].
+\end{equation}
+One fault configuration persists across every window and file in the cohort. AUC is neither a window loss nor an average of per-file AUCs. Comparing normal/anomalous pairs does not make those pairs independent observations. ToyCar has $0\le R\le1$.
+
+\subsection{Fault law and protection}
+Let $Z\subseteq\bits$ include each bit independently with probability $p$. The fault field is persistent for one whole evaluation trial, then replaced independently. A fixed protected set $P$ applies ideal event suppression: only $Z\setminus P$ is executed. Thus
+\begin{equation}\label{eq:expected-risk}
+J_p(P)=\E_Z R(Z\setminus P).
+\end{equation}
+The budget in our comparisons is an \emph{exact cardinality} $|P|=B$. For nonmonotone risk, this is different from an at-most-$B$ budget: suppressing a beneficial fault can increase risk. No negative effect is clipped away.
+
+All policies at a condition share proposed fields; proposed events equal applied plus suppressed events. With $B$ protected bits, the expectations are $Np$ proposed and $(N-B)p$ applied flips. Equal BER therefore does not match fault multiplicity across different model sizes. This law is a logical stress model, not a calibrated SEU rate, storage-occupancy model, or radiation cross section. Correlated/fixed-count faults and physical ECC decoding do not automatically obey the same protection coupling.

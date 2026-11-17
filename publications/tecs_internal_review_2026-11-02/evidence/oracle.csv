@@ -1,0 +1,6 @@
+model,K,fields,max error,selection regret,reversals,evaluation seconds
+KWS,6,2,$2.679\times10^{-8}$,0,0,1.82
+KWS,8,1,$1.617\times10^{-7}$,$3.577\times10^{-8}$,3,3.67
+KWS,12,1,$2.760\times10^{-6}$,0,769,58.29
+ResNet-8,6,2,$8.610\times10^{-7}$,0,0,5.37
+ToyCar,6,2,0,0,0,20.90

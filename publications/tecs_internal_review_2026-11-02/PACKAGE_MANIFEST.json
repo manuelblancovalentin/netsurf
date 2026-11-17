@@ -1,0 +1,192 @@
+{
+  "files": {
+    "ADVERSARIAL_REVIEW.md": {
+      "bytes": 14387,
+      "sha256": "9f42333b9ba61aa26f2e3a41a17a0b0e0eba997cb46a5bbb7067969d2164e007"
+    },
+    "BIBLIOGRAPHY_VERIFICATION.md": {
+      "bytes": 5446,
+      "sha256": "9209da097b36bf8627527ad82b998c4385b546b35a68d4e5f203c8f010be6ff1"
+    },
+    "NetSuRF_TECS_internal_review.pdf": {
+      "bytes": 642125,
+      "sha256": "3e7035f3e43d259f2577221e33c8d800d721b9ff8374812c2749869eb4688094"
+    },
+    "NetSuRF_TECS_overleaf.zip": {
+      "bytes": 187195,
+      "sha256": "1367604a65730854a021645178e5744fa36132aae7649edc59fb686019dc0a4e"
+    },
+    "README.md": {
+      "bytes": 4692,
+      "sha256": "3fab98fdf1a586b9a0604c98f1890a1dd557289023abe75c2ce0f3723f6e9b09"
+    },
+    "complete_review.py": {
+      "bytes": 15586,
+      "sha256": "02d1f6a51c5d55c39807e6fc226ae91adfbca0b8e4553cc0eb0ab60c0c88aad7"
+    },
+    "evidence/CLAIM_EVIDENCE.csv": {
+      "bytes": 7931,
+      "sha256": "4b4d7439b49b540c12b9596687a4125b7baf44ca71cf871b5b833d864ac8986b"
+    },
+    "evidence/DISPLAY_PROVENANCE.json": {
+      "bytes": 13562,
+      "sha256": "9f276d6ad9e5f450f982cb86632fc96a836e5ff59b0307e44a6b40c57945d0b9"
+    },
+    "evidence/FINAL_VALIDATION.json": {
+      "bytes": 1034,
+      "sha256": "c168b0c646387115522cbcbab6a7dbd9f75f6075bbe4d813504b989482291708"
+    },
+    "evidence/approximation.csv": {
+      "bytes": 420,
+      "sha256": "4783874aedd8598dce535aa48331f6d3b67623de8f33b965f0b40aac69c8ae47"
+    },
+    "evidence/attribution.csv": {
+      "bytes": 636,
+      "sha256": "e884e90200b5deeb4af9bd3c5c17170458e38d14a9282f3a0bc7f22d4849e4fd"
+    },
+    "evidence/campaign_summary.json": {
+      "bytes": 28537,
+      "sha256": "c009d17540130e3a4412f53cd5836159c3eb406b4b4f46a7cdc1106ec459d8bb"
+    },
+    "evidence/conditional_ranks.csv": {
+      "bytes": 170,
+      "sha256": "0a6abf8f9b2190cf02ef35eb7c937f74376f21e1c8cffbd918af8510aa1c6b54"
+    },
+    "evidence/costs.csv": {
+      "bytes": 183,
+      "sha256": "4599b751283613d3fe5e45697b4c6089082a7fdd4aac08372f7adf1303fa4b32"
+    },
+    "evidence/figure_table_provenance.json": {
+      "bytes": 5024,
+      "sha256": "fe0528d6028e0ef6c1bf710b93a92adc808fcdbcb091db72c8d1f191852657f5"
+    },
+    "evidence/fkeras_masks.csv": {
+      "bytes": 147,
+      "sha256": "8f19b5ad305ab812db9d4a498234254bd5d6f9753985ade3e555df03e4e8be81"
+    },
+    "evidence/fkeras_numerics.json": {
+      "bytes": 1316579,
+      "sha256": "27e5bdf9976ea215863c0b2e2ee170d183f196516db9f04e33392d08c9e6be1d"
+    },
+    "evidence/fkeras_timings.json": {
+      "bytes": 791,
+      "sha256": "cd63942cc1351a36f96c8e7a5285e8de6b81e325f2a32515ccab1bad70516cf5"
+    },
+    "evidence/frozen_replication.csv": {
+      "bytes": 310,
+      "sha256": "7b0e1df9fef7eda8805f47122757e032021e7dccd6374e37914a17df996e035e"
+    },
+    "evidence/heldout.csv": {
+      "bytes": 1145,
+      "sha256": "e78e37f343e0fe304f24362cc28ea98b9303aa24d208cc04c97ff58f3feb7208"
+    },
+    "evidence/heldout_pool_effects.csv": {
+      "bytes": 27758,
+      "sha256": "46cdae5820c69b93a3dde1fb25706abd1b897fff6b41108c56bec313884b5594"
+    },
+    "evidence/independent_pool_summary_check.json": {
+      "bytes": 4301,
+      "sha256": "93c8172ab8a9db5f1b1f0a326b670efbf78d8ae6b65bb088b0a1def840810d32"
+    },
+    "evidence/oracle.csv": {
+      "bytes": 280,
+      "sha256": "2b93bf12484a4cd4c555644136a7517dacb5990016bac27f172f811ed96ac20e"
+    },
+    "evidence/paper_numeric_inputs.json": {
+      "bytes": 1156300,
+      "sha256": "93dee7e86767485f76eef11ab8d551be6a171cccc9bf3a5e889f3ad05261a3ff"
+    },
+    "evidence/reversals.csv": {
+      "bytes": 211,
+      "sha256": "0bbdb7d4a3683f33a27064cc86f14da2b77060ad2fbc7a1ca1620aaf4d63c463"
+    },
+    "evidence/source_revisions.json": {
+      "bytes": 72782,
+      "sha256": "d93dad97b23ed81fefa403d32ffa4fcc564d414c0266213d16c8ff214721c619"
+    },
+    "evidence/sources.json": {
+      "bytes": 514063,
+      "sha256": "6c012ea943892a9a1e6af132ae0f6bf10870c078936c36d86ea3eb487de47077"
+    },
+    "evidence/static_comparison.csv": {
+      "bytes": 394,
+      "sha256": "2e6e066c53d9b28ef66a7e567cfd077169d25e88c1d84f7dab51f766dd9f6db0"
+    },
+    "evidence/static_kws_all_paired.csv": {
+      "bytes": 259536,
+      "sha256": "11593b53abf4601b88b7358b4cba56e141ed33d23490da22bb96993b71556370"
+    },
+    "evidence/static_rank_validation.csv": {
+      "bytes": 805,
+      "sha256": "8f146fe3e47917b113d41dc8168fc1af2498a427b643b4191e3f273ebe6ebe24"
+    },
+    "evidence/static_resnet_all_paired.csv": {
+      "bytes": 260503,
+      "sha256": "b07f6e1f5d4c1e5208aa7dd492e3abb1dcc258934c1e62f0d548b1397fa336de"
+    },
+    "evidence/static_s5_msb.json": {
+      "bytes": 72839,
+      "sha256": "85296308db70c84ce6408c1ead2ad350dc6f44de31353d35457c14d22bbfca7c"
+    },
+    "evidence/static_toycar_all_paired.csv": {
+      "bytes": 118969,
+      "sha256": "7394dcf8b6648ca56115dcade12d36af3a6a05555d1945d7938a33d23d547ab8"
+    },
+    "evidence/verification_summary.json": {
+      "bytes": 391,
+      "sha256": "63f678a661c1b048af06452ae7704a3f569bf6a7ce91795a8e6533c2b7444bd0"
+    },
+    "original_overleaf.zip": {
+      "bytes": 48511,
+      "sha256": "3d8fba9df4891bd05792b9a8157712c30fc6dd837526dc7c13e9e2a4ed84a5f6"
+    },
+    "package_review.py": {
+      "bytes": 2813,
+      "sha256": "36ef30ec7a641c566a7c4c0ff176b31589790fa6312cf48043a9e1a2ab8a534f"
+    },
+    "prepare_evidence.py": {
+      "bytes": 20269,
+      "sha256": "8ea00d147ecb44566e4f82cafa2b86d014b042a7e594f47c938da9f8f1b53a5b"
+    }
+  },
+  "new_model_inferences": 0,
+  "overleaf_files": {
+    "DRAFT_DECISIONS_AND_EVIDENCE.md": "a76a7e3638c0a631afd84a6f872e1f5a56f738c56c46ce35761e441d58e1f561",
+    "README.md": "eacb667e63590d0705e2c2a450e01a81b03fa74d1d3ef08ea4d8089cf0b7e1b3",
+    "figures/conditional_damage.pdf": "2cc8259d407d88d0266a85e05561cbab05ded76009ccd4a9481044b1a3d2b89b",
+    "figures/heldout_pool_effects.pdf": "ef9f70579f80dbd3acbb09d5a102bad8865853d9a65d3ef18cc1ea68b2c43f2f",
+    "figures/heldout_pool_effects_paper.pdf": "f169d050c3e74b522cbba13a8dfa6242b8e7fbf20cd676c5c5ba474256d41f9b",
+    "figures/selection_attribution.pdf": "cd3141eb9c196e8fe62a4535101211c307f7443b40f25da2437e664edb1882d6",
+    "figures/selection_margin_stability.pdf": "67146d61df056ca251524197a0a0304397a0f0f5a0676902fb44e4ea235959f8",
+    "figures/toycar_resolution.pdf": "5cb4df104d1656e3e595ea8cc7f8366b1cd8697020f787656465a8fcf00c06fa",
+    "include/metadata.tex": "7cea8ce48cb0b59874c409326c3ae4b1f38371aaa321724a822172d6b10c3f2e",
+    "include/preamble.tex": "a24f1a895608b4cb1e003845923cd8de4212cd57a114c41b8c62e8b3975495f6",
+    "main.tex": "5c7a184ecb31856b9290c27cf4d8d2106686beecb7b3bf4e46cc9a1118575839",
+    "references.bib": "846977620481dbba45e67e5023c72fc574eac7b1732be8a2b6e62ad78a86686e",
+    "sections/01_introduction.tex": "8eb054259ea59ad5943a86339f8dbd7aceaa65b4fe555b180eec78cc16b7ca4c",
+    "sections/02_related_work.tex": "cdc81f5aa97b1dbf20f499aa1f35cf11228ff3cf514a0816be250688e12ab242",
+    "sections/03_fault_model.tex": "c2b5d9755bde5d88cb78d245b1d4dbdddd5c4558c7861d95341162ed850d44ea",
+    "sections/04_susceptibility.tex": "d3e2d43e6766c89cb0a740e6768e0bdac339420d181a25150ce4f1c5045d73fb",
+    "sections/05_protection_allocation.tex": "e8d8242d8023c1035d337cbe7d2b21bb60c6c9da98805e9666c4034ee54fa47d",
+    "sections/06_experimental_setup.tex": "d39c393dba1b56607db717ff35a6ace69d3e9ddf9d53bd4f0e683acc6fd5bad3",
+    "sections/07_results.tex": "71493e7d076d475963a71246c1aee9ebe34eaf45cd63865b8856e10aae36c67c",
+    "sections/08_discussion.tex": "0e528be29794af18e505854ba8709237622b3fa68dd5d308ddf9ff3fad68473a",
+    "sections/09_conclusion.tex": "e094a2be27a5cef521eb65fea0d4f86e569b83f9705e477800a3fb426d15bb80",
+    "sections/10_mathematical_appendix.tex": "cff3c25b187a16985d66ce4c776f7bc180649b634cc6ad8fa70fbd33b137a4bd",
+    "tables/approximation.tex": "4a6207d7c74b11364d135e605be28fdd9cb321e92ac48cca62480f0d6c14a15c",
+    "tables/attribution.tex": "3cc345398110d09e783652d8f551a3f5837f358c721f69f5bb9b2b142486538d",
+    "tables/conditional_ranks.tex": "2bf24dd14e3d635274a788dc5abe40c0e89614a25280198ccf3b45a0affd2143",
+    "tables/costs.tex": "0fc9002ca27f4cba29722045ce2b7163e2786135964009667c90215f09cd071c",
+    "tables/fkeras_masks.tex": "d8440c8410c89c3d365ae3dc1ddacf03dd0e147e839d83151f4d5d866615799d",
+    "tables/frozen_replication.tex": "c4c6e8b1feddaa17c36d4b602729899e95c488a1cabf9fc5030baf2940ed2c63",
+    "tables/heldout.tex": "b10efb500bbc08a4db1369355932e6a6530f5fd829f3daca69e78687cd8af945",
+    "tables/oracle.tex": "02a827aa3d6baaaef9a1576cddd5c87b328895aa338b25207c3fdb9004071763",
+    "tables/reversals.tex": "fbf701e36b576a8e737f477f17251709b15122bd43fe2d655209f1d8a331c89c",
+    "tables/static_comparison.tex": "89c3ca8ba3791b8a870b65acff312854021494e9c0b2dcb291edee68c3ef3024",
+    "tables/static_rank_validation.tex": "03af90bf8eece03ace3297b2fa618b068c0073b8607c3eedcff49b9b706ed18b"
+  },
+  "purpose": "complete ACM TECS internal review draft, not journal submission",
+  "schema_version": "1.0.0",
+  "scientific_source_changes": 0,
+  "title": "Beyond Isolated Bit Sensitivity: Conditional Fault Vulnerability and Protection-Allocation Limits in Quantized Neural Networks"
+}

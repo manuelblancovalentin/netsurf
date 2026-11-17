@@ -1,0 +1,8 @@
+{
+  "all_passed": true,
+  "bundles": 125,
+  "historical_selection_final_bundles": 112,
+  "new_model_inferences": 0,
+  "scope": "All derived attribution and cited conditional bundles; historical campaign payloads/manifests/checksum identities; only cited measurement files of very large static bundles. No claim of rehashing unused multi-GB prediction tables.",
+  "source_files_written": 0
+}

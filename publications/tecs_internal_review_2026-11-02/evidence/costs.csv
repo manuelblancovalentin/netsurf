@@ -1,0 +1,7 @@
+campaign,BER,selection seconds,final seconds
+KWS A,0.01,5840,7462
+KWS B,0.001,5162,7990
+KWS B,0.003,5315,8287
+KWS B,0.01,5965,8762
+ResNet-8,0.01,771,476
+ToyCar,0.001,1552,1067

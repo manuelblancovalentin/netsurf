@@ -1,0 +1,136 @@
+# M9.3 DS-CNN keyword spotting, end-to-end static protection engineering smoke.
+# 200 held-out test clips, one paired fault field at BER=0.03, six policies
+# plus zero/full controls. No inferential claims or mask optimization.
+schema_version = "3.4.0"
+scientific_protocol = "multi-coverage-protection/v1"
+
+[experiment]
+name = "m93_kws_static_ber003_smoke200_v1"
+description = "Bounded engineering smoke: 200 DS-CNN KWS clips, BER 0.03, all ranking policies, 12.5% and 25% ideal protection plus zero/full controls."
+objective = "Confirm end-to-end study-bundle finalization and valid fault-field accounting with all static policies before a costly complete exploratory sweep; not publication evidence."
+
+[benchmark]
+adapter = "mlperf_tiny_kws_int8_v1"
+id = "mlperf_tiny_kws_dscnn_int8_v1"
+checkpoint = "/ml/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4/benchmark/training/keyword_spotting/trained_models/kws_ref_model.tflite"
+dataset = "/ml/datasets/speech_commands/0.0.3"
+asset_lock = "/projects/kona-assets/manuelbv/locks/mlperf-tiny/kws.lock.json"
+inference_backend = "tensorflow_lite_builtin_ref_v1"
+split = "official_subset_1000"
+quantization = "tflite_affine_int8"
+quantization_backend = "tflite_affine_integer_v1"
+injectable_parameters = ["kernels"]
+
+[samples]
+ranking_count = 64
+empirical_count = 1
+evaluation_count = 200
+require_disjoint = true
+
+[candidates]
+strategy = "uniform"
+count = 1
+seed = 934101
+score_quantiles = 1
+
+[[estimators]]
+name = "random"
+implementation_version = "seeded-uniform-score/v1"
+result_name = "random_reference"
+seed = 934102
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "relative-word-bit-index/v1"
+result_name = "s2_msb_first"
+
+[[estimators]]
+name = "numerical_bit_jump"
+implementation_version = "absolute-affine-xor-jump/v1"
+result_name = "s3_numerical_jump"
+
+[[estimators]]
+name = "first_order_gradient_delta"
+implementation_version = "signed-gradient-times-exact-delta/v2"
+result_name = "s4_gradient_delta"
+
+[[estimators]]
+name = "per_sample_first_order_magnitude"
+implementation_version = "mean-absolute-per-example-gradient-times-exact-delta/v1"
+result_name = "s5_per_example_absolute"
+
+[[estimators]]
+name = "per_sample_positive_damage"
+implementation_version = "mean-positive-per-example-gradient-times-exact-delta/v1"
+result_name = "s6_per_example_positive"
+
+[[policies]]
+name = "random_global"
+estimator = "random_reference"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "msb_global"
+estimator = "s2_msb_first"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "numerical_jump_global"
+estimator = "s3_numerical_jump"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "gradient_global"
+estimator = "s4_gradient_delta"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "per_example_absolute_global"
+estimator = "s5_per_example_absolute"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "per_example_positive_global"
+estimator = "s6_per_example_positive"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[protection]
+# Zero and full protection are generated once as explicit controls. Listing
+# only interior budgets avoids duplicate policy-specific 0% and 100% masks.
+coverages = [0.125, 0.25]
+probabilities = [0.03]
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.03
+
+[execution]
+# One smoke replicate x one paired fault field for end-to-end verification.
+# Seeds match full sweep for controlled mask/field provenance, not inference.
+trials = 1
+confidence = 0.95
+fault_seed = 934201
+permutation_seed = 934301
+
+[replications]
+count = 1
+candidate_seed_stride = 0
+hutchinson_seed_stride = 0
+sample_offset_stride = 0
+fault_seed_stride = 100003
+estimator_seed_stride = 1009
+
+[output]
+root = ""
+report = true
+plots = false

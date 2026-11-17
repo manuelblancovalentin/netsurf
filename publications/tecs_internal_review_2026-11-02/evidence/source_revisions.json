@@ -1,0 +1,1127 @@
+[
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": true,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97/workspace/runs/m97_kws_fkeras_protection_smoke/20261031T204633.165614Z-ec595393",
+    "payload_sha256": "2db342a2f4cb38cf553124cb10eba115d566255d84afec6b9e82d97a14e29b5e",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "f611f143103921a3e64bfe253ef392f395993132970ff2498f7e7c9c1d1c3b99",
+    "source_key": "FKeras"
+  },
+  {
+    "commit": "65bb127f5d72cc079b8d4d23fdbfa8efdb5819c0",
+    "dirty": true,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m11-conditional-scaling/workspace/runs/m11_oracle_analysis_v2",
+    "payload_sha256": "cbb6e36fc7c3ab8b3b733468587aab2317af23b0649efd4cc1f62cb9201ffe4b",
+    "scope": "all inventoried files",
+    "source_fingerprint_sha256": "d84b3c1a0df91967b1c80dc294a67d1b7201e1ec5e09c5d7468c8b8c8a4bb5a3",
+    "source_key": "M11_oracle"
+  },
+  {
+    "commit": "10cb2f24d273cdba9c7a99e32ae207b278238f51",
+    "dirty": true,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m11-conditional-scaling/workspace/runs/m11_historical_reaudit",
+    "payload_sha256": "55d02a91f9d1382ae41b8a4484531795e9fcaecbebd694a59cad7bd9c5670aa7",
+    "scope": "all inventoried files",
+    "source_fingerprint_sha256": "04a381bce70eca68c843d6bfea1ad55396e67e1a91639ff09fd2929b4efefadf",
+    "source_key": "M11_reaudit"
+  },
+  {
+    "commit": "f2d8254ae7fc0fae4a3c59d239b6008182db5114",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m910-interaction-attribution/workspace/runs/m910_production_attribution_committed",
+    "payload_sha256": "cb9099abed7a74c06dcae1c96a8f1122c3a8efdb6527e1a28475560601399ace",
+    "scope": "all inventoried files",
+    "source_fingerprint_sha256": "53975d004f6f5e984df6f88e6a919da9b596abc09f2c927247e7e64073ec1735",
+    "source_key": "M910"
+  },
+  {
+    "commit": "031c307413d6436a09a4714fd300d46fddfe8f51",
+    "dirty": true,
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m952_kws_input_stability_v1/20261030T070657.805986Z-d1906079",
+    "payload_sha256": "c4a74199474175fbcccc7e451f047fdb020026e2d25410875500503aaf7b0233",
+    "scope": "all inventoried files",
+    "source_fingerprint_sha256": "7e37c58bbc4ecd8812566eead0b4190bb77d8fcc8e751640803b5f3eef4cc32a",
+    "source_key": "M952"
+  },
+  {
+    "commit": "e0ddf3a3cb0f68e6de84c1e4fc9f95ffb0cf88e1",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m957/workspace/runs/m957_kws_frozen_replication_k8_v1/20261030T184931.331632Z-27c6efd5",
+    "payload_sha256": "fc33c74c598eebff8ae2fe24493cfb2af0b2686f54bb1c2bb9ef30bb4b3cdbfa",
+    "scope": "all inventoried files",
+    "source_fingerprint_sha256": "0b2a5de1e4d15c26731b0377e2c3f31bbe4d0500d0ab64159c02910a76ddb301",
+    "source_key": "M957"
+  },
+  {
+    "commit": null,
+    "dirty": null,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m910-interaction-attribution/workspace/runs/m910_toycar_exposure_v1",
+    "payload_sha256": "dc9cd42a58ccfd4d99ed0a502344f47c5ad1e39faf2a124470a37a7b363b8154",
+    "scope": "all inventoried files; this ledger format has a FINALIZED payload receipt rather than a separate manifest",
+    "source_fingerprint_sha256": null,
+    "source_key": "ToyCar_exposure"
+  },
+  {
+    "commit": "e65a5f2895dbc7445b61ab6655ec80e05287a2fa",
+    "dirty": true,
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_estimator_validation_stratified320_v1/20261029T172802.081387Z-f3ebf3fe",
+    "payload_sha256": "aba8b17abd5457dc22527be76728dd1b40524444fda1f0cc09a273c3d5876fde",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "e543e2e6dfc49799c8330e163313ab4209d4840dfb5a42eaa4cce6447dd23ffb",
+    "source_key": "emp_kws"
+  },
+  {
+    "commit": "f72d37e7da6ce52956450196a708a716c6af1459",
+    "dirty": true,
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m91_resnet8_estimator_validation_stratified320_v1/20261029T014136.049835Z-c23f1d77",
+    "payload_sha256": "c38df68e491f5bdc96b99ac11343fa2688d3c3bc17c12ec1dd3a31d04c41d4c5",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "7b4b66896fdc9678a59ed372c136912c9ec996c2999539a2e0b7706f76046575",
+    "source_key": "emp_resnet"
+  },
+  {
+    "commit": "e65a5f2895dbc7445b61ab6655ec80e05287a2fa",
+    "dirty": true,
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_estimator_validation_stratified320_v1/20261029T181531.665041Z-bbb64f74",
+    "payload_sha256": "08e13ca8e4edc532b50fece43a4c5cd9134e631455ae5f27a466d8e793cf76ec",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "e84c2a89ccb8328083ced74acc8f6d8ec0de7d3f9249cab0952f9c5bfcce0f12",
+    "source_key": "emp_toycar"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_000_final/20261031T160555.619517Z-e09643f9",
+    "payload_sha256": "0497a3486c4aef1a5c5c6bcb46ea4f383e44f4fdd88daa29cbceb47f83c88204",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_000_final"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_000_selection/20261031T054923.340433Z-45b47b97",
+    "payload_sha256": "df6d2ecde873cc5248e60b8402a50b1c1ad05bc97809c2cc624a5d9e9aa3491c",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_000_selection"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_001_final/20261031T161354.118521Z-09f5e8b5",
+    "payload_sha256": "913608151593578a5b22adad8e9988c262482c49bc2fbc3ecb1edbb57e081e42",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_001_final"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_001_selection/20261031T055732.456597Z-25436a01",
+    "payload_sha256": "4ec89a2536b863d61b90112e761e0ab9dcd6ce13d601bec67ab30daaecd5e957",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_001_selection"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_002_final/20261031T162530.465532Z-3558c578",
+    "payload_sha256": "ac97760b280715a7ff2484942537d29fc2ae3de7596697f50f28b67883ffdf5a",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_002_final"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_002_selection/20261031T060546.876845Z-a3d933c2",
+    "payload_sha256": "51a23789976312e368855f6eb7fe019171904ed3619cb758d824e37da2fc5df9",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_002_selection"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_003_final/20261031T163333.543475Z-d1c7ece5",
+    "payload_sha256": "577156eb0369f920bc74adcdf57270efaddfd8549198f1e325070952b19fb09b",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_003_final"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_003_selection/20261031T061359.151781Z-db3d6dbd",
+    "payload_sha256": "5358c6f50b7a1dadc69dbc5bdea451259743d09431440ef0f89152d938c21fa6",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_003_selection"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_004_final/20261031T164500.232300Z-6eaeeee3",
+    "payload_sha256": "4e116c12ff7613792ffeff3c1281c7ab972ba30189a3ab57bd8ed1bd64a7a4aa",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_004_final"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_004_selection/20261031T062222.033342Z-c6a2aae1",
+    "payload_sha256": "66bde6c88721d9eecc97895708cd21da1dddfd1e87232e294af769717c9484ac",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_004_selection"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_005_final/20261031T165301.074675Z-29b04674",
+    "payload_sha256": "4bd0444aaabe0157282eafdc062c514597e4260dca959618152720549886a4c9",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_005_final"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_005_selection/20261031T063030.386164Z-2646274f",
+    "payload_sha256": "c34fad1b5a5aa2cdbbdb857483608279aab4173d73b746133011edd997442bcc",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_005_selection"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_006_final/20261031T170722.876159Z-7ba27a8d",
+    "payload_sha256": "9de7ad0e8723c87c44cfb3c0be111b6fbdddc69f2b7f33a6efcbaa5a5883905c",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_006_final"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_006_selection/20261031T063838.182854Z-93acb292",
+    "payload_sha256": "5b0a5cf359e9b75e4f1cded47185d145022c70095ab4a0032ddb54099d939462",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_006_selection"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_007_final/20261031T171843.258187Z-71ef3038",
+    "payload_sha256": "f3344ffa31224f5bc027825fa21595b9a23811d3b4295eb746b6924c88325416",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_007_final"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_007_selection/20261031T064649.100720Z-4781b825",
+    "payload_sha256": "8898c3a32bab69248a7a2266f83a26e613c103f1d699824d8c5636fca8d3c1e7",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_007_selection"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_008_final/20261031T173018.247530Z-ab0539d5",
+    "payload_sha256": "f389c4c7b4130a6ec0f745225af0ff9361dc2a43cb1b0ab7d360f80499f60514",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_008_final"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_008_selection/20261031T065459.283433Z-77931221",
+    "payload_sha256": "a8753b5cb9d7f90ecb8e46f278575075809c6ae965e883b82d6d55e516245c0f",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_008_selection"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_009_final/20261031T173819.760073Z-45190fcb",
+    "payload_sha256": "d13181e70a5424b845e1b791e686543c7c09abfdc86c1bb3a7d1112cd8511a44",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_009_final"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_009_selection/20261031T070309.734952Z-6aecd98a",
+    "payload_sha256": "949ee8d787de4c40d1ee60018fdd566a9caf45f118a9d13fefd963bd7347a527",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_009_selection"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_010_final/20261031T174946.005023Z-556221bd",
+    "payload_sha256": "bbac91195736d4b3a4c5aa3f09211f012a7025b5555026c57131f11e0b56631b",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_010_final"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_010_selection/20261031T071120.227353Z-4bd25f89",
+    "payload_sha256": "7c9cdb025f502c4bfeb7aad4aed55589d26dee6d2e8e99dbae619606df36014a",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_010_selection"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_011_final/20261031T180102.254528Z-3150d539",
+    "payload_sha256": "b0db3a6d398061c7755e2cf510cdd8164d3941d88e4c313b20899628df008140",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_011_final"
+  },
+  {
+    "commit": "4d646a83014bd7a0aed11045bf9f3456e341ee56",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/runs/m96_kws_cross_pool_k6_pool_011_selection/20261031T071930.171589Z-0adcf5b7",
+    "payload_sha256": "9137c6c663fd6466925e523bec18af9dccf2dcab8eada313f0681382f2374064",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "8498380d0b7731846d43139766eaf607a7cf6511f96bed9c9cb7c738d095efbc",
+    "source_key": "pool_011_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_000_final/20261101T022413.485565Z-705aa19d",
+    "payload_sha256": "c841dea2e5be07041516857ec2265d4dd9a84f2e1e7c18c82c6da2e8d474e166",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_012_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_000_selection/20261031T213556.526709Z-5cfe6883",
+    "payload_sha256": "0483c220893905dfcc7db8262dc5e919bf7562cb585ac0bb86191b1e1af57a14",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_012_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_001_final/20261101T023517.913915Z-00a4ef65",
+    "payload_sha256": "037738426968b94cdc1db015cf1fafbf9a314d07bd11bafda0a1095533403fca",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_013_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_001_selection/20261031T214318.539082Z-34368732",
+    "payload_sha256": "a3305eee23de38a012b95fb79558644b7e1f083319cd028da5128a38cb07b525",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_013_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_002_final/20261101T024925.434071Z-8b2f5df7",
+    "payload_sha256": "3262eb494904259269df2c9d972e66b2e73bcebcb181fd271957727de650c787",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_014_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_002_selection/20261031T215038.225044Z-8075bbd0",
+    "payload_sha256": "a56b63fc933336d76b3184678a378e4e55819a5711c66841d88178e230c3bd0c",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_014_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_003_final/20261101T025729.231138Z-8e105cee",
+    "payload_sha256": "2eb13273cd428bee9ae3df1147f96046907e213b6bcf1e727e2cd8bd406c0a54",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_015_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_003_selection/20261031T215756.620283Z-ec6adca3",
+    "payload_sha256": "e5b9e948bba89d09a2af5b21fe9ac69ee65a97b646e98755a192d680ca462baa",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_015_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_004_final/20261101T030835.310391Z-132b737a",
+    "payload_sha256": "85daec8aa1de1fca01a96c91e5bb90244e81b9546aba35212cc4873f3aad7ae8",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_016_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_004_selection/20261031T220519.088824Z-93354919",
+    "payload_sha256": "ef9fa22f665ef2eb1a12c29123c96426aa07a0958794d72bc8846dc0d039e273",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_016_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_005_final/20261101T031939.327069Z-32321881",
+    "payload_sha256": "d259ad7704051b2fcc0a304d256d22b79064dd32d5ec9f35e4bd09aad712b4a1",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_017_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_005_selection/20261031T221238.935899Z-f4055f56",
+    "payload_sha256": "ad610088c42a5f54e4dd490f7de630c3312b0adf872fc8b7aae41b72b2ae3d1f",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_017_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_006_final/20261101T032740.815251Z-3f5a10ea",
+    "payload_sha256": "cabecaf2197ddf480d449fb6e8a12314df995e98596e594956005951bca97555",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_018_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_006_selection/20261031T221957.661113Z-8fc33231",
+    "payload_sha256": "9d669d8539342dfd531c6fbe966e72cec81c85dd10ce9225d2700d8b1e6edb7a",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_018_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_007_final/20261101T033843.302241Z-2f9f6dc8",
+    "payload_sha256": "c8564163e2fc72f0cd745d1aab2a4f63f7b310b0f17423bb59a20b60e9e6c407",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_019_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_007_selection/20261031T222721.703068Z-c0f9ace2",
+    "payload_sha256": "bda176bed2cf7e1afc7999094a879146ed551d6704d5d5a266b1e1033ae1d105",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_019_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_008_final/20261101T035251.889823Z-9fe0cc67",
+    "payload_sha256": "20268f873aa1f52464424fa7e182b63322940beb9941139ddb77cb248c75f5ff",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_020_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_008_selection/20261031T223455.040492Z-e824abd2",
+    "payload_sha256": "0e725c4f8f2ece96397f627b27a9c1a559957c05f22bb55c28160cbc528de670",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_020_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_009_final/20261101T040709.191952Z-e9756d70",
+    "payload_sha256": "b404475fdf92fdbd13a84dfc6ad968dbf46f7a6554b7e1880ff1e9da726abda4",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_021_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_009_selection/20261031T224217.826661Z-03b3ee48",
+    "payload_sha256": "7889234790567951467611802e37e371c5e77da482b471642e1704d2a26679c1",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_021_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_010_final/20261101T041818.212196Z-3316b550",
+    "payload_sha256": "4fe3d4be3e878ecf2082490e4c7e86b0886592a831e0fb8e341ee7574210908d",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_022_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_010_selection/20261031T224940.719805Z-62c2c650",
+    "payload_sha256": "4da8ec83ec7a25fb0181e7d2230ff56e1acbaeaab4b99f44eec850c40defca59",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_022_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_011_final/20261101T042621.916586Z-a33ac596",
+    "payload_sha256": "073cadf9843e3cadf74e7c3ea51aa16b0cc24d21a299b3261b05c02e916ef503",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_023_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/runs/m97_kws_multiber_ber_0p001_pool_011_selection/20261031T225701.725372Z-7f928294",
+    "payload_sha256": "e5cae9cf4f1ab8fcc038c0820d0de825fdd466f83a2adce8ef4b2688fee264a8",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_023_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_000_final/20261101T044400.168027Z-ed9cc840",
+    "payload_sha256": "0a9821ca1904ae71c0e43c663f6080d6eedc2cc421e24e89a551c0b1dc157ba3",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_024_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_000_selection/20261031T230436.527276Z-b14e4086",
+    "payload_sha256": "bc4f4cc7d0c06ae331fad24d2f2b53e8282b87b33240a8fbaa5afd2fa8280f70",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_024_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_001_final/20261101T045208.386660Z-4fd30b4d",
+    "payload_sha256": "ce705b2141ca4b4a8cd83a44934fc91a4c9e11aae2ee4cf59731b70070f92943",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_025_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_001_selection/20261031T231204.645950Z-b765e23b",
+    "payload_sha256": "dc76962e2158f468915b3de34c642934273f783dc06ed5115ddbf77901106646",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_025_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_002_final/20261101T050630.897133Z-53681edc",
+    "payload_sha256": "81cae88274eea99f78b03aeef9994e4ad0e3f390d2bce968f5153df4a4e37a60",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_026_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_002_selection/20261031T231938.484924Z-75459edf",
+    "payload_sha256": "2dc5173c7b1b1858a8a10f4970900b2ff8da245ed48eb70e7e3d78d7f568dbf2",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_026_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_003_final/20261101T051443.536215Z-95dffd1c",
+    "payload_sha256": "f1d7a36ee0734de65d52049873fe3760f28281447a0f08019f535cc6611deeb6",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_027_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_003_selection/20261031T232714.537242Z-a906c5e0",
+    "payload_sha256": "aad0cdb0e8b679b060ceb6e658e63eb36569c80fadfcc0778e1c7ca4d08a854d",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_027_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_004_final/20261101T052252.956153Z-6c515fbc",
+    "payload_sha256": "0ce37e0b175e8795ee1b941872824e0c49f7839a464ae54256d334195386d097",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_028_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_004_selection/20261031T233451.256006Z-6bda6b70",
+    "payload_sha256": "a1da0c884bed48f1d01fc2e1b44e11ea036485625e5af77fe16f7928bc0b07ca",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_028_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_005_final/20261101T053406.077290Z-4fbe2fd7",
+    "payload_sha256": "89786c2868be56dd96b0dff06d7ab287ad3e6493c38520178616260f2472e646",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_029_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_005_selection/20261031T234228.448628Z-333f989e",
+    "payload_sha256": "c7b7e4da8244ed939070c4fa42701bd9cc3d5bd421a32ccd3889c1f3fb3a6789",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_029_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_006_final/20261101T054214.067780Z-a97567fc",
+    "payload_sha256": "d1b3800ad0787e1e86f074118cc29ad589e3aaebd7eb60556cbf27afd523b2ee",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_030_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_006_selection/20261031T235004.209313Z-a2487105",
+    "payload_sha256": "cff7ce64bdf809e35698581e06a387f7969dfcaf22649dc0f0f37592107610b2",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_030_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_007_final/20261101T055642.437435Z-a722ca51",
+    "payload_sha256": "71dac57631697abca8070262c730d95f1178a195a73118bb3a2a7ae4c646e982",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_031_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_007_selection/20261031T235742.345076Z-f0b8093c",
+    "payload_sha256": "0e5571b41582391b24afe5302cd6e874dbbfdc5034e08873f0b9f0594fc25ce9",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_031_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_008_final/20261101T061105.457006Z-1300bfac",
+    "payload_sha256": "f09f8ddb45346f1b5c719010150300970768c73ef97a46784e99186f9c91d8a4",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_032_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_008_selection/20261101T000514.044214Z-edf88d64",
+    "payload_sha256": "d60b42b49d53d2d1a200ba4f2b0efe96d8faa656d0c26136bf3d881586eb5a74",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_032_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_009_final/20261101T062826.779144Z-9c220878",
+    "payload_sha256": "a1c579ad6e33673c34a5c6a1eb969ecd5dbc4ca26ce621d20b39b92c99ed7863",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_033_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_009_selection/20261101T001244.306080Z-1a06ffe1",
+    "payload_sha256": "315e4ac79640b855b90fd5e19c5e807cdd3dde96107b04be62369ee9d092e800",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_033_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_010_final/20261101T063641.615972Z-39fcb6de",
+    "payload_sha256": "38ce6d7dfc959a88c9e71786e02e2f7ac74d8a9738174695fdd6fbef19e0953f",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_034_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_010_selection/20261101T002021.383062Z-6e29a202",
+    "payload_sha256": "666d1a5ed55465572d28c530b9396fc2bb5c9faebac85446fe6bcbe3be07dea4",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_034_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_011_final/20261101T064809.226706Z-bf74484d",
+    "payload_sha256": "26f653c24e5b63e0e6a9ac1428af3a9734bcbe907ca18355eb3a3d7ad56f6ecb",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_035_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/runs/m97_kws_multiber_ber_0p003_pool_011_selection/20261101T002756.729041Z-655eed08",
+    "payload_sha256": "798728b46448657865a8e5d1201b1138c2ed51a4d722c32734c68cacebe5ed30",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_035_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_000_final/20261101T070642.921622Z-8ca113fd",
+    "payload_sha256": "f02a807c9f516ff11bfeaae789b36ee39767310f9fd3e142de87eb8eb92d062f",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_036_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_000_selection/20261101T003621.201686Z-c7658d55",
+    "payload_sha256": "13190209c9dc01447aa36b82b96d43bee603a26c873e773fec192bb4eb8ec586",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_036_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_001_final/20261101T071857.772346Z-35b79adb",
+    "payload_sha256": "fdce7fdfc8141d7878b0900ea1f1874d5351961afa8646e43c375473e9073f94",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_037_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_001_selection/20261101T004446.596815Z-5ffe510d",
+    "payload_sha256": "975707a1c62a98b17c2663ebe6b7c1323a3f391fdf76f83c60de85bb60de6d31",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_037_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_002_final/20261101T073407.481008Z-e549970a",
+    "payload_sha256": "cc116ef8bacfdf962dd724635772d2b655e60e145f2a61abab83e832e034d660",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_038_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_002_selection/20261101T005315.051675Z-1ebef658",
+    "payload_sha256": "7a157991bf2a00f7649344dd247181d7e3e1bac62b3d3bc1c225531dec99d48a",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_038_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_003_final/20261101T074241.391203Z-928f7546",
+    "payload_sha256": "b33caf5b070c18f50f4356d2d43f6371f88b9be4aaf5027880a9da468345773d",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_039_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_003_selection/20261101T010151.212807Z-ac89fa88",
+    "payload_sha256": "a025e22b326e37124b66c6421c956b412c1272415548a2ed9c0c1da15fa3045a",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_039_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_004_final/20261101T075810.237230Z-f39e63ae",
+    "payload_sha256": "5a5ecaf28ff799561e3fc24155d76da60605ba56e12c4ff641007ca59c9f81d2",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_040_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_004_selection/20261101T011013.758309Z-4976d3ab",
+    "payload_sha256": "cf0a524116c5afe50d1416cbc07efa9e3f1d094a9fed1d8705cf1aa884de3169",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_040_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_005_final/20261101T080645.903058Z-86db1056",
+    "payload_sha256": "1abde2ac97cae82c429a3a9e11306fa8e862521a2b78b94643dd7481ed781c2b",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_041_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_005_selection/20261101T011851.913854Z-9a5775b4",
+    "payload_sha256": "cb43e2404fc04217c4259d12bf74fb37d4d896c12d8974fb24802b4584de812c",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_041_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_006_final/20261101T081523.729017Z-f9148737",
+    "payload_sha256": "94ffddcc30032f46b357c3f2d989c05393f488d7dccdd38dbae18c107d7ed741",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_042_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_006_selection/20261101T012727.771976Z-2c534167",
+    "payload_sha256": "54b854defa51dd63c513af7f295fcae569eb2740f6486dd2d9cd94ade1fada39",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_042_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_007_final/20261101T082401.986518Z-e396fa8e",
+    "payload_sha256": "777f442933c5ecb7f77478e4cd1aa7834f6baa15b5339d63315aa1c81c613add",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_043_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_007_selection/20261101T013601.787833Z-f786ce6f",
+    "payload_sha256": "0afc9b31a6d639c5082de260c4aa490994e3ee46df7bcd36ca7d2345e3906f61",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_043_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_008_final/20261101T083930.625981Z-f06bfbf5",
+    "payload_sha256": "dced2a57e73ee7f5ab06ffe7144e498a29437ef7fea7884aa564b408a571556d",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_044_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_008_selection/20261101T014434.751063Z-c7b2d3a9",
+    "payload_sha256": "59745596db4fb7cabedc344e9edbf27255ba440cadc3dbb13bcf2adcc02bdbc3",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_044_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_009_final/20261101T085436.215522Z-96874ee3",
+    "payload_sha256": "f6c72cf9849365a85246c8ffbe50146e0b796dfddea78edef67830a75c09d866",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_045_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_009_selection/20261101T015303.274729Z-14a66a4c",
+    "payload_sha256": "10c411cd43a651769c163134f3b712f41023151850ec3e446c94fc0951f5b5e5",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_045_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_010_final/20261101T090646.056188Z-980218de",
+    "payload_sha256": "cd1bd7a9e1cb562ce56a0f7becc11aea1362dbc2cf9ac9256012d7a251d11b74",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_046_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_010_selection/20261101T020131.620596Z-5c2c3cc5",
+    "payload_sha256": "e26862f9269a526bf7c55097aff08d31bad9315545a27ac527ea7c1e0aed62fa",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_046_selection"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_011_final/20261101T091849.180416Z-995243df",
+    "payload_sha256": "a5dbbe221584c64c36166c24993ce95d64071642b69b2e16a4ae98f403f25b38",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_047_final"
+  },
+  {
+    "commit": "220e14a33d70d7d7ff0c33124f9270f102442e40",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/runs/m97_kws_multiber_ber_0p01_pool_011_selection/20261101T020953.661509Z-6c4fb28d",
+    "payload_sha256": "aff60a3f3e78750c68c12a2fe9cc61f554f8bab5891eac1eddd464f280531828",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d6712c41162bb1f02276b6f2c0c3dd94f6a60d5405e73700939d2ea7e1ef08d5",
+    "source_key": "pool_047_selection"
+  },
+  {
+    "commit": "6b184e0867f8c51799bb0a588c9d3f2171f6b5ed",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m98/workspace/runs/m98_resnet8_cross_pool_k6_v1/runs/m98_resnet8_cross_pool_k6_v1_pool_000_final/20261102T012428.066306Z-4196c87e",
+    "payload_sha256": "cdafc95df83fba6b493d92df0725f91c381a4d8f195c1f3690700e52e9f1ce9d",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d34d512b7e069043b1cd589eb2dfad41215132bb769d554120d130881f614f09",
+    "source_key": "pool_048_final"
+  },
+  {
+    "commit": "6b184e0867f8c51799bb0a588c9d3f2171f6b5ed",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m98/workspace/runs/m98_resnet8_cross_pool_k6_v1/runs/m98_resnet8_cross_pool_k6_v1_pool_000_selection/20261102T011205.283561Z-b19d392a",
+    "payload_sha256": "6c330166018ba81fa8696950c3c83e9d47c1eb1cd50aa0a0e39ad73da01cf9d1",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d34d512b7e069043b1cd589eb2dfad41215132bb769d554120d130881f614f09",
+    "source_key": "pool_048_selection"
+  },
+  {
+    "commit": "6b184e0867f8c51799bb0a588c9d3f2171f6b5ed",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m98/workspace/runs/m98_resnet8_cross_pool_k6_v1/runs/m98_resnet8_cross_pool_k6_v1_pool_001_final/20261102T012607.104104Z-021734f6",
+    "payload_sha256": "457e8104b2adedc000c479debff8b2d508709292ede24dcbf3f16e4c9ab8caa2",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d34d512b7e069043b1cd589eb2dfad41215132bb769d554120d130881f614f09",
+    "source_key": "pool_049_final"
+  },
+  {
+    "commit": "6b184e0867f8c51799bb0a588c9d3f2171f6b5ed",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m98/workspace/runs/m98_resnet8_cross_pool_k6_v1/runs/m98_resnet8_cross_pool_k6_v1_pool_001_selection/20261102T011522.520964Z-a52765b8",
+    "payload_sha256": "6e6b2e5ad7f9f4135533c5cbd53d5cb15bad62e9ad36545ddd03d6ea1d2bc646",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d34d512b7e069043b1cd589eb2dfad41215132bb769d554120d130881f614f09",
+    "source_key": "pool_049_selection"
+  },
+  {
+    "commit": "6b184e0867f8c51799bb0a588c9d3f2171f6b5ed",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m98/workspace/runs/m98_resnet8_cross_pool_k6_v1/runs/m98_resnet8_cross_pool_k6_v1_pool_002_final/20261102T012747.253276Z-5b15424f",
+    "payload_sha256": "bb1f436206034351828e5e03278b5fc8e5a13902ef954ca9cfbe2de4f7e73bfc",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d34d512b7e069043b1cd589eb2dfad41215132bb769d554120d130881f614f09",
+    "source_key": "pool_050_final"
+  },
+  {
+    "commit": "6b184e0867f8c51799bb0a588c9d3f2171f6b5ed",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m98/workspace/runs/m98_resnet8_cross_pool_k6_v1/runs/m98_resnet8_cross_pool_k6_v1_pool_002_selection/20261102T011839.253365Z-31466962",
+    "payload_sha256": "dfe9e68b508c28037b95f1e661a8b298c7c0ba492aaa8d5f92474fff51effdc0",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d34d512b7e069043b1cd589eb2dfad41215132bb769d554120d130881f614f09",
+    "source_key": "pool_050_selection"
+  },
+  {
+    "commit": "6b184e0867f8c51799bb0a588c9d3f2171f6b5ed",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m98/workspace/runs/m98_resnet8_cross_pool_k6_v1/runs/m98_resnet8_cross_pool_k6_v1_pool_003_final/20261102T013038.224899Z-c69c9558",
+    "payload_sha256": "bd153fb234ad3cce9dd8e3d097f7fa987cbbbaf306371cea30521afc33764bf9",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d34d512b7e069043b1cd589eb2dfad41215132bb769d554120d130881f614f09",
+    "source_key": "pool_051_final"
+  },
+  {
+    "commit": "6b184e0867f8c51799bb0a588c9d3f2171f6b5ed",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m98/workspace/runs/m98_resnet8_cross_pool_k6_v1/runs/m98_resnet8_cross_pool_k6_v1_pool_003_selection/20261102T012155.863985Z-07b48bf7",
+    "payload_sha256": "a3f0d0b9ad936251abc00a753e55408f2bd208bd59ddbb281f1cee7913800e81",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "d34d512b7e069043b1cd589eb2dfad41215132bb769d554120d130881f614f09",
+    "source_key": "pool_051_selection"
+  },
+  {
+    "commit": "c6bf8cab2a87526a6385026ee5592242033f4687",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m99-toycar-conditional/workspace/runs/m99_toycar_production_plan_v1/runs/m99_toycar_cross_pool_k6_ber001_pool_000_final/20261102T032917.809606Z-ddb5c4d9",
+    "payload_sha256": "a12db431e75d5a6250b6b0584ac8a4f69f26a1fe5725012aa9da1b36932f55a9",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "24a2323a479fe6137f21e6e1e509d10d356a3f931dce23b12aa98d180345646c",
+    "source_key": "pool_052_final"
+  },
+  {
+    "commit": "c6bf8cab2a87526a6385026ee5592242033f4687",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m99-toycar-conditional/workspace/runs/m99_toycar_production_plan_v1/runs/m99_toycar_cross_pool_k6_ber001_pool_000_selection/20261102T030206.074903Z-f146cfa2",
+    "payload_sha256": "7b93008dbc4a2d35ac92316aa19d914a9c02c6a52b81fde06e78f4e0edfb6988",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "24a2323a479fe6137f21e6e1e509d10d356a3f931dce23b12aa98d180345646c",
+    "source_key": "pool_052_selection"
+  },
+  {
+    "commit": "c6bf8cab2a87526a6385026ee5592242033f4687",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m99-toycar-conditional/workspace/runs/m99_toycar_production_plan_v1/runs/m99_toycar_cross_pool_k6_ber001_pool_001_final/20261102T033433.878090Z-94c723c9",
+    "payload_sha256": "a1388ac91b890a069ff588ffadfd5f4d611686e32734b6de7a8e8f8914409634",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "24a2323a479fe6137f21e6e1e509d10d356a3f931dce23b12aa98d180345646c",
+    "source_key": "pool_053_final"
+  },
+  {
+    "commit": "c6bf8cab2a87526a6385026ee5592242033f4687",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m99-toycar-conditional/workspace/runs/m99_toycar_production_plan_v1/runs/m99_toycar_cross_pool_k6_ber001_pool_001_selection/20261102T030826.917284Z-9fe22ac4",
+    "payload_sha256": "81ec930b7daa4c72c4c855689b3b6d39b6ce8d7bf298b1fb076a553466c43341",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "24a2323a479fe6137f21e6e1e509d10d356a3f931dce23b12aa98d180345646c",
+    "source_key": "pool_053_selection"
+  },
+  {
+    "commit": "c6bf8cab2a87526a6385026ee5592242033f4687",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m99-toycar-conditional/workspace/runs/m99_toycar_production_plan_v1/runs/m99_toycar_cross_pool_k6_ber001_pool_002_final/20261102T033836.128771Z-c7b2d7a0",
+    "payload_sha256": "b081fa7c1c3b2aa7f0a38cf78223b12d59f3fd96ee153fbe5d86d3bee30fd4c1",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "24a2323a479fe6137f21e6e1e509d10d356a3f931dce23b12aa98d180345646c",
+    "source_key": "pool_054_final"
+  },
+  {
+    "commit": "c6bf8cab2a87526a6385026ee5592242033f4687",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m99-toycar-conditional/workspace/runs/m99_toycar_production_plan_v1/runs/m99_toycar_cross_pool_k6_ber001_pool_002_selection/20261102T031516.333617Z-5158b8f7",
+    "payload_sha256": "58d6bd4d0c159f865361c82d107ddeb1ccdf7b29d27abc0ced4ef18e961ab0d6",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "24a2323a479fe6137f21e6e1e509d10d356a3f931dce23b12aa98d180345646c",
+    "source_key": "pool_054_selection"
+  },
+  {
+    "commit": "c6bf8cab2a87526a6385026ee5592242033f4687",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m99-toycar-conditional/workspace/runs/m99_toycar_production_plan_v1/runs/m99_toycar_cross_pool_k6_ber001_pool_003_final/20261102T034157.169788Z-6aee57a2",
+    "payload_sha256": "9459071127b734fa7c472d10931be4047590600154c4e8ab06153fea11d46530",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "24a2323a479fe6137f21e6e1e509d10d356a3f931dce23b12aa98d180345646c",
+    "source_key": "pool_055_final"
+  },
+  {
+    "commit": "c6bf8cab2a87526a6385026ee5592242033f4687",
+    "dirty": false,
+    "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m99-toycar-conditional/workspace/runs/m99_toycar_production_plan_v1/runs/m99_toycar_cross_pool_k6_ber001_pool_003_selection/20261102T032203.495145Z-4b466886",
+    "payload_sha256": "b4d570bbee15aa525855d7a982be2a3d97ce21e8f589dc1c5209f7951023543b",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "24a2323a479fe6137f21e6e1e509d10d356a3f931dce23b12aa98d180345646c",
+    "source_key": "pool_055_selection"
+  },
+  {
+    "commit": "e65a5f2895dbc7445b61ab6655ec80e05287a2fa",
+    "dirty": true,
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_static_ber_sweep1000_v1/20261029T183410.488907Z-32c31070",
+    "payload_sha256": "b7b725fd1c196f2d5896b67aba34dfe8aa864b8308875df098d48be6135975e0",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "e84c2a89ccb8328083ced74acc8f6d8ec0de7d3f9249cab0952f9c5bfcce0f12",
+    "source_key": "static_kws"
+  },
+  {
+    "commit": "1a7e374ed90b8ff4ce4fbe780262ff452f46d790",
+    "dirty": true,
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m92_resnet8_static_test1000_v1/20261029T084524.633748Z-f0bcc564",
+    "payload_sha256": "3ed95baa04ede8047f5b5eb04f9024f2e5f856c39abcc84b2ca1fb894b22db32",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "f1f7d5ce7d6b9717d946c9decf6c843d62aeb181b7f26d5921c36c1819514852",
+    "source_key": "static_resnet"
+  },
+  {
+    "commit": "2e255dddf956a474781a7b727f5a8af5113f72bc",
+    "dirty": true,
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_static_ber_pilot64_parallel_repair_v1/20261029T234704.724222Z-3913968c",
+    "payload_sha256": "5d9c1eaa69e24b5f2139b7bf69ae0d775cc8727d458d0b66c5cfe897ab44b554",
+    "scope": "payload, manifest and explicitly consumed files",
+    "source_fingerprint_sha256": "a6f77eb5af47c4e4692c2194afd1862b3c5fe5c53282342b401728349b6b0dc8",
+    "source_key": "static_toycar"
+  }
+]

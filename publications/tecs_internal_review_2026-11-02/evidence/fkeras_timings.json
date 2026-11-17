@@ -1,0 +1,23 @@
+{
+  "execution": {
+    "available_cpus": 80,
+    "coordinator_elapsed_seconds": 61.475024458020926,
+    "coordinator_peak_rss_mb": 962.40625,
+    "effective_workers": 1,
+    "maximum_completed_child_rss_mb": 337.5,
+    "oversubscription_prevented": true,
+    "parallel_boundary": "sequential single replication",
+    "process_start_method": "none_sequential_reference",
+    "requested_workers": 1,
+    "scientific_task_order": "canonical_logical_identity",
+    "threads_per_worker": 1
+  },
+  "score_seconds": {
+    "first_order_gradient_delta": 0.3543175649829209,
+    "fkeras_paper": 1.1246962919831276,
+    "fkeras_repository": 1.1246962919831276,
+    "msb_first": 0.0,
+    "per_sample_first_order_magnitude": 3.5615331241860986,
+    "per_sample_positive_damage": 3.5615331241860986
+  }
+}
