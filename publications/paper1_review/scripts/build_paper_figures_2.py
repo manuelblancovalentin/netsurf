@@ -140,9 +140,10 @@ def model_check():
 def no_static():
     s1 = [r for r in C.rows(C.RC / "stage1_cells.csv") if r["usable"] == "True" and float(r["budget"]) >= 0.0625]
     s4 = [r for r in C.rows(C.RC / "stage4_switch_cells.csv") if r["usable"] == "True"]
-    fig = plt.figure(figsize=(12.2, 3.9))
-    gs = fig.add_gridspec(1, 4, width_ratios=[1.5, 1, 1, 1], wspace=0.38)
-    ax = fig.add_subplot(gs[0])
+    fig = plt.figure(figsize=(7.6, 6.9))
+    gs = fig.add_gridspec(2, 2, wspace=0.32, hspace=0.36)
+    cells = [gs[0, 0], gs[0, 1], gs[1, 0], gs[1, 1]]
+    ax = fig.add_subplot(cells[0])
     x = np.array([float(r["ber"]) / float(r["p_star"]) for r in s1]); y = -np.array([float(r["diff"]) for r in s1])
     ax.scatter(x, y, s=9, color=S.OI["orange"], alpha=0.3, lw=0, label=f"ResNet-8, 9 checkpoints ({len(x)} conditions)")
     edges = np.logspace(np.log10(x.min()), np.log10(x.max()), 14)
@@ -161,11 +162,11 @@ def no_static():
     S.shade(ax, "y", label_better="absolute gradient better", label_worse="positive gradient better")
     ax.set_xlabel("fault rate / predicted switch rate")
     ax.set_ylabel("absolute minus positive gradient (points)")
-    ax.set_title("(a) ResNet-8 and DS-CNN, rate rescaled", loc="left")
-    ax.legend(fontsize=6.6, loc="upper left", bbox_to_anchor=(0, 0.93))
+    ax.set_title("(a) ResNet-8 and DS-CNN", loc="left")
+    ax.legend(fontsize=7, loc="upper left", bbox_to_anchor=(0, 0.92))
     OUT["no_static"] = dict(resnet8_cells=len(x), kws_cells=len(x4))
     for k, cid in enumerate(("distilbert_sst2_int8", "pythia160m_int8", "qwen3_0_6b_int8")):
-        ax = fig.add_subplot(gs[k + 1])
+        ax = fig.add_subplot(cells[k + 1])
         vals, clean, unit, lower = P.per_draw(cid)
         sign = -1 if lower else 1
         bers = sorted({b for (c, b) in vals if c == "unprotected"})
@@ -185,13 +186,15 @@ def no_static():
         ax.set_xlim(1e-4 * 0.7, 1e-1 * 1.4)
         lo_, hi_ = ax.get_ylim()
         ax.set_ylim(lo_, hi_)
-        S.shade(ax, "y", labels=(k == 0), label_better="better than no protection", label_worse="worse than no protection")
+        S.shade(ax, "y", label_better="better than no protection", label_worse="worse than no protection", fontsize=7)
         ax.set_xlabel("bit-error probability")
         ax.set_ylabel("accuracy gained (points)" if not lower else "loss reduced (nats/token)")
         ax.set_title(f"({'bcd'[k]}) {P.NAMES[cid]}", loc="left")
-        if k == 2:
-            ax.legend(fontsize=6.6, loc="upper left")
         OUT["no_static"][cid] = dict(bers=bers, gain_over_none=rec)
+    h, l = ax.get_legend_handles_labels()
+    fig.legend(h, l, loc="lower center", ncol=4, fontsize=7.5, bbox_to_anchor=(0.5, -0.005),
+               title="(b-d) 12.5% of the bits triplicated by", title_fontsize=7.5)
+    fig.subplots_adjust(left=0.09, right=0.98, top=0.95, bottom=0.12)
     save(fig, "fig_no_static")
 
 
