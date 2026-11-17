@@ -29,7 +29,7 @@
  "start": "2026-11-16",
  "end": "",
  "completed": "",
- "percent": null,
+ "percent": 78,
  "dependencies": [
   "netsurf-manuelbv-0042",
   "netsurf-manuelbv-0043"
@@ -48,6 +48,12 @@
    "by": "manuelbv",
    "field": "notes,dependencies",
    "to": "Addendum 6f61b21 and analysis runT_analyze_lm_v2.py (712ab83"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "percent",
+   "to": "78"
   }
  ]
 }
