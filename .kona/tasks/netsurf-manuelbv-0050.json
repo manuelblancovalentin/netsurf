@@ -1,12 +1,14 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0050",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 50,
  "label": "",
  "title": "Paper 1: concept diagram for the noise-plus-events model and drift/spread",
  "summary": "",
- "notes": "Requested by the owner: a schematic of Sections 5.2-5.3 (bit flips, Gaussian background, individual top-bit events, regimes along the fault rate). Shown to the owner before it goes into the text. Builds on: netsurf-manuelbv-0041 (the model and its check); netsurf-manuelbv-0049 (current text).",
- "status": "doing",
+ "notes": "Requested by the owner: a schematic of Sections 5.2-5.3. Draft shown first (8b2e1a3); owner chose to keep panel (e) as the events-vs-background crossover. Placed as Fig. 2 in Section 5 (commit be8936d), caption states it differs from the ranking switch p*. Verified: PDF and standalone Overleaf zip build with no undefined references. Delivery folder workspace/paper1_review/delivery_v20_concept_figure. Builds on: netsurf-manuelbv-0041 (the model and its check); netsurf-manuelbv-0049 (current text).",
+ "status": "done",
  "priority": "medium",
  "stage": "",
  "target": "",
@@ -26,8 +28,8 @@
  "created": "2026-11-16",
  "updated": "2026-11-16",
  "start": "2026-11-16",
- "end": "",
- "completed": "",
+ "end": "2026-11-16",
+ "completed": "2026-11-16",
  "percent": null,
  "dependencies": [
   "netsurf-manuelbv-0041",
@@ -41,8 +43,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "doing"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,status,end,completed",
+   "to": "Requested by the owner: a schematic of Sections 5.2-5.3. Dra"
   }
- ],
- "number": 50,
- "id": "netsurf-manuelbv-0050"
+ ]
 }
