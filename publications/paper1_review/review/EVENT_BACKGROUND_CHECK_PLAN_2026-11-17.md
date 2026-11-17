@@ -77,3 +77,24 @@ Nothing else changes: same fields, seeds, masks, rates, statistics and statement
 their outputs from the first launch (script hash recorded in their DONE files); the three are run with the amended
 script. No statistic of any layer had been read when this was written; only job exit codes and the three error
 messages.
+
+## Outcome (2026-11-17)
+
+Analysis `workspace/runs/paper1_event_background_analysis_v1` (statements.json). Figure layer: kernel 0015, 576 weights
+per neuron.
+
+1. *They grow together:* fails as written. The measured share stays within 0.02 on 7 of 17 layer-mask pairs
+   (including both masks of the figure layer: 0.934-0.940 and 0.902-0.913). The exact share varies by at most 0.008
+   on every pair; the measured excursions are at sparse rates where 500 fields hold few or no events.
+2. *Number of events* (figure layer, no protection): 0.012 per neuron at 1e-5, 1.15 at 1e-3, 11.5 at 1e-2, 115 at
+   1e-1. Counts were recorded up to 60 per neuron, so means above 40 are the expected values.
+3. *One event stands out:* holds on 14 of 17 pairs. Fails under the mask on the three layers with 144 weights per
+   neuron, where most top bits are protected and the remaining events are still rare when the background has grown
+   to the size of one event (medians 2.2, 1.3, 1.3).
+4. *Bell curve:* the gap of the event part falls with the rate on all 17 pairs; on the figure layer without
+   protection it is 0.004 at 1e-1 (limit 0.05): holds.
+
+Not anticipated: the background is as far from normal as the events at sparse rates (gap 0.48 at 1e-5, 0.26 at 1e-3
+on the figure layer); the total is close to normal only from about 1e-2.
+
+Written into the paper as Appendix E, "Events and background at one layer", and into the caption of Fig. 2.
