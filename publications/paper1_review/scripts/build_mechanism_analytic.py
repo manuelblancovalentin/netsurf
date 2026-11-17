@@ -56,11 +56,12 @@ def panel_a(ax):
     for m, ls in ((64, "-."), (1024, ":")):
         ax.plot(P, [A.abft_residual(p, m) for p in P], color=ABFT, lw=2, ls=ls, label=f"ABFT, {m} weights per channel ({A.abft_cost(m):.1%})")
     ax.set_xscale("log"); ax.set_yscale("log")
-    ax.set_ylim(1e-20, 0.2)
+    ax.set_ylim(1e-34, 0.5)
+    ax.set_yticks([1e-30, 1e-24, 1e-18, 1e-12, 1e-6, 1])
     ax.set_xlabel("bit-error probability p")
     ax.set_ylabel("residual error of one protected bit")
     ax.set_title("(a) error left after the mechanism acts", loc="left")
-    ax.legend(fontsize=6.6, loc="lower right")
+    ax.legend(fontsize=6.4, loc="lower right", ncol=1)
 
 
 def panel_b(ax):
@@ -70,14 +71,15 @@ def panel_b(ax):
         ax.plot(xs, ys, ls, color=MR[3], marker=mk, ms=4.5, lw=1.6)
         for n, x, y in zip((1, 2, 3, 4), xs, ys):
             if p == 1e-3:
-                ax.annotate(label_mr(n), (x, y), xytext=(4, 2), textcoords="offset points", fontsize=6.3, color=MR[3])
+                ax.annotate(label_mr(n), (x, y), xytext=(-6, 0), textcoords="offset points", fontsize=6.3, color=MR[3],
+                            ha="right", va="center")
         xs = [A.code_cost(64, t) for t in (1, 2, 3)]
         ys = [A.code_residual(p, 64, t) for t in (1, 2, 3)]
         ax.plot(xs, ys, ls, color=CODE[2], marker=mk, ms=4.5, lw=1.6)
         if p == 1e-3:
             for t, x, y in zip((1, 2, 3), xs, ys):
-                ax.annotate(label_code(t).split(",")[0].replace("3-error-correcting", "3EC"), (x, y), xytext=(4, 2),
-                            textcoords="offset points", fontsize=6.3, color=CODE[2])
+                ax.annotate(label_code(t).split(",")[0].replace("3-error-correcting", "3EC"), (x, y), xytext=(-6, 0),
+                            textcoords="offset points", fontsize=6.3, color=CODE[2], ha="right", va="center")
         xs = [A.code_cost(k) for k in (64, 32, 16, 8)]
         ys = [A.code_residual(p, k) for k in (64, 32, 16, 8)]
         ax.plot(xs, ys, ls, color=CODE[1], marker=mk, ms=4, lw=1.2, alpha=0.9)
@@ -86,7 +88,10 @@ def panel_b(ax):
         ys = [A.abft_residual(p, m) for m in ms_]
         ax.plot(xs, ys, ls, color=ABFT, marker=mk, ms=4, lw=1.4)
         ax.axhline(p, color=S.NONE, lw=1, ls=ls, alpha=0.8)
-        ax.text(1.1e-3, p * 1.4, f"no protection, p = {p:g}", fontsize=6.3, color=S.INK2)
+        if p == 1e-2:
+            ax.text(11, p * 1.35, f"no protection, p = {p:g}", fontsize=6.3, color=S.INK2, ha="right", va="bottom")
+        else:
+            ax.text(1.1e-3, p / 1.5, f"no protection, p = {p:g}", fontsize=6.3, color=S.INK2, ha="left", va="top")
     ax.set_xscale("log"); ax.set_yscale("log")
     ax.set_xlim(1e-3, 12); ax.set_ylim(1e-14, 0.05)
     ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:.1%}" if v < 0.01 else f"{v:.0%}"))
@@ -109,14 +114,14 @@ def panel_c(ax):
                                   (lambda p: A.code_residual(p, 64, 2), CODE[2], "--", "DEC-TED, 64 bits")):
             ax.plot(P, [res(p) * bits for p in P], ls, color=col, lw=lw, alpha=0.95 if lw > 2 else 0.6,
                     label=f"{lab}" if lw > 2 else None)
-    ax.axhline(1, color=S.INK, lw=0.8)
-    ax.text(1.2e-5, 2.2, "one residual fault per network", fontsize=6.5, color=S.INK)
+    ax.axhline(1, color=S.INK, lw=0.8, label="one residual fault per network")
     ax.set_xscale("log"); ax.set_yscale("log")
-    ax.set_ylim(1e-10, 1e9)
+    ax.set_ylim(1e-10, 1e16)
+    ax.set_yticks([1e-9, 1e-6, 1e-3, 1, 1e3, 1e6, 1e9])
     ax.set_xlabel("bit-error probability p")
     ax.set_ylabel("expected residual faulty bits\n(every bit protected)")
     ax.set_title("(c) small (thin) vs large (thick) network", loc="left")
-    ax.legend(fontsize=6.6, loc="lower right")
+    ax.legend(fontsize=6.4, loc="upper left", ncol=2, columnspacing=1.0)
 
 
 def panel_d(ax):
@@ -130,14 +135,16 @@ def panel_d(ax):
             ax.step(rates, ys, where="post", color=col, ls=styles[name], lw=1.8)
             OUT["needed"][f"{fam}/{name}"] = dict(rates=rates.tolist(), extra_storage=ys)
     ax.set_xscale("log"); ax.set_yscale("log")
+    ax.set_ylim(0.004, 40)
     ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:.0%}"))
     ax.set_xlabel("bit-error probability p")
     ax.set_ylabel("extra storage needed for\nfewer than one residual fault")
     ax.set_title("(d) redundancy needed", loc="left")
+    ax.text(1.2e-5, 14, "(2n+1)-way redundancy", fontsize=6.6, color=MR[3], va="bottom")
+    ax.text(1.2e-5, 0.085, "error-correcting code, 64 bits", fontsize=6.6, color=CODE[2], va="top")
     from matplotlib.lines import Line2D
-    h = [Line2D([], [], color=MR[3], lw=1.8), Line2D([], [], color=CODE[2], lw=1.8)] + \
-        [Line2D([], [], color=S.INK2, lw=1.6, ls=styles[n]) for n in NETS]
-    ax.legend(h, ["(2n+1)-MR", "t-error-correcting code, 64 bits"] + list(NETS), fontsize=6.4, loc="upper left")
+    h = [Line2D([], [], color=S.INK2, lw=1.6, ls=styles[n]) for n in NETS]
+    ax.legend(h, [n.replace(" (", "\n(") for n in NETS], fontsize=6.2, loc="lower right", handlelength=2.2)
 
 
 def main():
