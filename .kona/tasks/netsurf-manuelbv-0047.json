@@ -7,8 +7,8 @@
  "label": "",
  "title": "Paper 1: choose the title",
  "summary": "Paper 1: choose the title",
- "notes": "The manuscript still carries a red working title; options were proposed with draft v18. Builds on: netsurf-manuelbv-0045 (title chosen for the v18 story).",
- "status": "todo",
+ "notes": "Owner chose the title on 2026-11-17: A Bit More Than Noise: Statistical Fault Analysis for Budgeted Protection in Quantized Neural Networks. Written into the manuscript in commit 2ac8642 (netsurf-manuelbv-0052).",
+ "status": "done",
  "priority": "medium",
  "stage": "",
  "target": "",
@@ -25,11 +25,11 @@
  ],
  "agent": "human",
  "created": "2026-11-16",
- "updated": "2026-11-16",
+ "updated": "2026-11-17",
  "start": "",
  "end": "",
- "completed": "",
- "percent": null,
+ "completed": "2026-11-17",
+ "percent": 100,
  "dependencies": [
   "netsurf-manuelbv-0045"
  ],
@@ -47,6 +47,12 @@
    "by": "manuelbv",
    "field": "notes",
    "to": "The manuscript still carries a red working title; options we"
+  },
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "notes,status,completed,percent",
+   "to": "Owner chose the title on 2026-11-17: A Bit More Than Noise: "
   }
  ]
 }
