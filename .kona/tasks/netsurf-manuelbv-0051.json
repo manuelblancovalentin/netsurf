@@ -1,0 +1,41 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Adversarial review of draft v26 and evidence-aligned title recommendations",
+ "summary": "",
+ "notes": "",
+ "status": "doing",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "",
+ "milestone": "",
+ "summaryTags": [],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "human",
+ "created": "2026-11-17",
+ "updated": "2026-11-17",
+ "start": "",
+ "end": "",
+ "completed": "",
+ "percent": null,
+ "dependencies": [],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "doing"
+  }
+ ],
+ "number": 51,
+ "id": "netsurf-manuelbv-0051"
+}
