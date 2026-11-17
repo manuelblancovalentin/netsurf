@@ -60,3 +60,20 @@ chunk of fields.
 Nine processes (one per layer), four threads each, under 4 GB each, about 20 to 40 minutes on the shared server.
 Output (write-once): `workspace/runs/paper1_event_background_v1/layer<k>/`; log
 `workspace/runs/paper1_event_background_logs/run.log`.
+
+## Amendment 1 (2026-11-17, during the run, before any result was read)
+
+Three of the nine jobs stopped at the reconstruction check before drawing any fault: the second convolution of the
+first block and the two 1 x 1 shortcut convolutions (kernels 0010, 0013, 0016). The executable computes the residual
+addition that follows each of them in place, so the tensor that should hold the convolution's output holds the
+result of the addition instead, and the check compared against the wrong values. The inputs of these three layers
+are intact (each is also the input or the checked output of a layer that passed).
+
+Change, for these three layers only: the reconstruction is checked on the output of the following addition. The
+recomputed convolution output, clipped to the range its tensor can represent, is added to the other branch's stored
+output and clipped to the range of the addition's output; it must agree with the executable within one step of the
+convolution output plus one step of the addition output on at least 99.9% of the outputs that are not saturated.
+Nothing else changes: same fields, seeds, masks, rates, statistics and statements. The six layers that passed keep
+their outputs from the first launch (script hash recorded in their DONE files); the three are run with the amended
+script. No statistic of any layer had been read when this was written; only job exit codes and the three error
+messages.
