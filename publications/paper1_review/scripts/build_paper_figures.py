@@ -31,6 +31,18 @@ import paper_style as S  # noqa: E402
 
 TFL = C.RUNS / "paper1_runT_tflite_v1"
 LM = C.RUNS / "paper1_runT_w8a8_v1"
+LM_MORE = C.RUNS / "paper1_runT_w8a8_more_v1"          # addendum T4: draws 8-15 (Qwen3 4-15)
+LM_ANALYSES = ("paper1_runT_t2_lm_analysis_v1", "paper1_runT_t4_lm_analysis_dbpy_v1", "paper1_runT_t4_lm_analysis_v1")
+
+
+def sixteen():
+    """Language models whose 16-draw analysis exists: their added draws are used everywhere."""
+    out = set()
+    for a in LM_ANALYSES[1:]:
+        f = C.RUNS / a / "summary.json"
+        if f.exists():
+            out |= set(json.loads(f.read_text())["targets"])
+    return out
 OUT = C.ROOT / "data/tecs_paper_figures"
 ANALYSES = ("paper1_runT_t1a_analysis_v1", "paper1_runT_t1b_fkeras_analysis_v1", "paper1_runT_t1b_engine_analysis_v1",
             "paper1_runT_t3_toycar_analysis_v1")
@@ -61,7 +73,9 @@ def per_draw(cid):
     vals, clean = defaultdict(dict), []
     if cid in LMS:
         metric, scale, unit = LMS[cid]
-        for d in sorted((LM / cid).glob("draw*/ber*")):
+        dirs = sorted((LM / cid).glob("draw*/ber*")) + (sorted((LM_MORE / cid).glob("draw*/ber*")) if cid in sixteen() else [])
+        for d in dirs:
+            assert (d / "DONE").exists() and (d / "DONE_fkeras").exists(), d
             dr = int(d.parent.name[4:])
             for f in sorted(d.glob("results*.csv")):
                 for r in csv.DictReader(open(f)):
@@ -79,7 +93,9 @@ def per_draw(cid):
 
 def tolerated():
     tol = {}
-    for a in ANALYSES + ("paper1_runT_t2_lm_analysis_v1",):
+    for a in ANALYSES + LM_ANALYSES:
+        if not (C.RUNS / a / "summary.json").exists():
+            continue
         s = json.loads((C.RUNS / a / "summary.json").read_text())
         for cid, v in s.get("checkpoints", s.get("targets", {})).items():
             tol.setdefault(cid, {}).update(v["tolerated"])
