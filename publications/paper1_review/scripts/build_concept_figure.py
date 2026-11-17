@@ -6,8 +6,9 @@
   (b) what the faults do to that weight: a Gaussian with an exact mean (drift) and spread, plus rare discrete jumps
   (c) the two terms of Eq. (two-term): a mask that ignores the sign of a flip pays spread only; a mask that keeps the
       helpful flips gains from drift at low rate and pays its square at high rate; the curves cross at p*
-  (d-f) one pre-activation under faults at three rates: few events and little background (single flips decide), the two
-      comparable, background swallowing the events
+  (d-f) one pre-activation under faults at three rates.  Background and event variances both grow like p(1-p), so
+      neither overtakes the other; what changes is the number of events reaching the neuron: one (it stands out),
+      several, many (their sum is itself bell-shaped).  A sketch, not a measurement.
 """
 from __future__ import annotations
 
@@ -104,14 +105,21 @@ def two_terms(ax):
     ax.set_title("(c) drift vs spread", loc="left", fontsize=8.5)
 
 
-def regime(ax, sd, events, title, note):
+def regime(ax, sd, events, title, note, envelope=None):
     x = np.linspace(-11, 11, 1200)
     g = np.exp(-0.5 * (x / sd) ** 2)
     ax.fill_between(x, g, color=NOISE, alpha=0.45, lw=0)
     ax.plot(x, g, color=NOISE_D, lw=1.2)
-    for pos in events:
-        ax.vlines(pos, 0, 0.55, color=EVENT, lw=2.2)
-        ax.plot([pos], [0.55], "o", color=EVENT, ms=4)
+    if envelope:                               # many events: stems under a bell-shaped envelope (their sum)
+        e = 0.62 * np.exp(-0.5 * (x / envelope) ** 2)
+        ax.plot(x, e, color=EVENT, lw=1.3, ls="--")
+        for pos in events:
+            h = 0.62 * np.exp(-0.5 * (pos / envelope) ** 2)
+            ax.vlines(pos, 0, h, color=EVENT, lw=1.3, alpha=0.9)
+    else:
+        for pos in events:
+            ax.vlines(pos, 0, 0.55, color=EVENT, lw=2.2)
+            ax.plot([pos], [0.55], "o", color=EVENT, ms=4)
     ax.axvline(0, color=S.INK2, lw=0.6, ls=":")
     ax.set_ylim(0, 1.55); ax.set_xlim(-11, 11)
     ax.set_yticks([]); ax.set_xticks([])
@@ -129,16 +137,17 @@ def main():
     one_weight(fig.add_subplot(gs[0, 1]))
     two_terms(fig.add_subplot(gs[0, 2]))
     axs = [fig.add_subplot(gs[1, i]) for i in range(3)]
-    regime(axs[0], 0.35, [6.5], "(d) sparse faults", "the background is narrow:\na single top-bit flip decides")
-    regime(axs[1], 2.4, [-6.0, 5.5], "(e) turning point", "background as wide as\none event: both matter")
-    regime(axs[2], 6.5, [-7.5, -3.0, 2.0, 4.5, 8.0], "(f) dense faults", "the background swallows\nthe events: the sum decides")
+    regime(axs[0], 0.35, [6.5], "(d) sparse faults", "one top-bit flip reaches the neuron:\nit stands out and decides")
+    regime(axs[1], 0.9, [-6.0, 4.5, 7.5], "(e) more faults", "several events:\nstill few enough to count")
+    many = np.linspace(-9.5, 9.5, 27) + 0.25 * np.sin(np.arange(27) * 2.1)
+    regime(axs[2], 1.9, many, "(f) dense faults", "many events: their sum\nis also close to a bell curve", envelope=4.6)
     arr = FancyArrowPatch((0.12, 0.035), (0.9, 0.035), transform=fig.transFigure, arrowstyle="-|>", mutation_scale=12,
                           color=S.INK2, lw=1.2)
     fig.patches.append(arr)
-    fig.text(0.51, 0.005, "fault rate grows: background width grows like the square root of the rate, drift like the rate",
+    fig.text(0.51, 0.005, "fault rate grows: background and events grow together; what changes is how many events reach one neuron",
              ha="center", fontsize=6.8, color=S.INK2)
     h = [Rectangle((0, 0), 1, 1, fc=NOISE, alpha=0.6), matplotlib.lines.Line2D([], [], color=EVENT, lw=2.4, marker="o", ms=4)]
-    fig.legend(h, ["Gaussian background from bits 0-5 (exact mean and variance)", "individual flips of bits 6-7"],
+    fig.legend(h, ["Gaussian background from bits 0-5 (exact mean and variance)", "flips of bits 6-7 (events; dashed: their sum)"],
                loc="upper center", ncol=2, fontsize=7, bbox_to_anchor=(0.5, 1.01))
     fig.subplots_adjust(left=0.04, right=0.98, top=0.9, bottom=0.12)
     for ext in ("pdf", "png"):

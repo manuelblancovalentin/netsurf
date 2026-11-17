@@ -1,0 +1,183 @@
+{
+ "studies": {
+  "main_comparison": {
+   "Jet MLP": {
+    "jobs": 240,
+    "units_per_job": 156.0,
+    "median_job_seconds": 3.5,
+    "seconds_per_unit": 0.022382478632478633,
+    "total_hours": 0.23277777777777778
+   },
+   "MNIST MLP": {
+    "jobs": 192,
+    "units_per_job": 156.0,
+    "median_job_seconds": 6.0,
+    "seconds_per_unit": 0.043569711538461536,
+    "total_hours": 0.3625
+   },
+   "VWW MobileNet": {
+    "jobs": 48,
+    "units_per_job": 156.0,
+    "median_job_seconds": 1224.5,
+    "seconds_per_unit": 8.42227564102564,
+    "total_hours": 17.518333333333334
+   },
+   "ResNet-8": {
+    "jobs": 216,
+    "units_per_job": 312.0,
+    "median_job_seconds": 4445.0,
+    "seconds_per_unit": 12.82070572174739,
+    "total_hours": 240.0036111111111
+   },
+   "DS-CNN": {
+    "jobs": 24,
+    "units_per_job": 312.0,
+    "median_job_seconds": 897.5,
+    "seconds_per_unit": 2.8657852564102564,
+    "total_hours": 5.960833333333333
+   },
+   "ToyCar": {
+    "jobs": 8,
+    "units_per_job": 312.0,
+    "median_job_seconds": 1189.0,
+    "seconds_per_unit": 3.816105769230769,
+    "total_hours": 2.6458333333333335
+   },
+   "DistilBERT": {
+    "jobs": 256,
+    "units_per_job": 19.5,
+    "median_job_seconds": 714.5,
+    "seconds_per_unit": 42.81290064102564,
+    "total_hours": 59.367222222222225
+   },
+   "Pythia-160M": {
+    "jobs": 256,
+    "units_per_job": 19.5,
+    "median_job_seconds": 458.0,
+    "seconds_per_unit": 21.23838141025641,
+    "total_hours": 29.450555555555557
+   },
+   "Qwen3-0.6B": {
+    "jobs": 256,
+    "units_per_job": 19.5,
+    "median_job_seconds": 1345.0,
+    "seconds_per_unit": 67.12860576923077,
+    "total_hours": 93.085
+   }
+  },
+  "fault_rate_study": {
+   "Jet MLP": {
+    "jobs": 240,
+    "units_per_job": 78.0,
+    "median_job_seconds": 1.0,
+    "seconds_per_unit": 0.01517094017094017,
+    "total_hours": 0.07888888888888888
+   },
+   "MNIST MLP": {
+    "jobs": 240,
+    "units_per_job": 78.0,
+    "median_job_seconds": 3.0,
+    "seconds_per_unit": 0.03621794871794872,
+    "total_hours": 0.18833333333333332
+   },
+   "VWW MobileNet": {
+    "jobs": 48,
+    "units_per_job": 78.0,
+    "median_job_seconds": 598.0,
+    "seconds_per_unit": 7.657051282051282,
+    "total_hours": 7.963333333333333
+   },
+   "ResNet-8": {
+    "jobs": 576,
+    "units_per_job": 192.0,
+    "median_job_seconds": 2275.0,
+    "seconds_per_unit": 12.052056206597221,
+    "total_hours": 370.2391666666667
+   },
+   "DS-CNN": {
+    "jobs": 48,
+    "units_per_job": 288.0,
+    "median_job_seconds": 1646.0,
+    "seconds_per_unit": 5.385199652777778,
+    "total_hours": 20.679166666666667
+   }
+  },
+  "model_check": {
+   "Jet MLP": {
+    "jobs": 25,
+    "units_per_job": 900.0,
+    "median_job_seconds": 14.2,
+    "seconds_per_unit": 0.017071111111111113,
+    "total_hours": 0.10669444444444445
+   },
+   "MNIST MLP": {
+    "jobs": 20,
+    "units_per_job": 900.0,
+    "median_job_seconds": 9.649999999999999,
+    "seconds_per_unit": 0.01151111111111111,
+    "total_hours": 0.057555555555555554
+   },
+   "VWW MobileNet": {
+    "jobs": 5,
+    "units_per_job": 900.0,
+    "median_job_seconds": 1520.6,
+    "seconds_per_unit": 1.682488888888889,
+    "total_hours": 2.103111111111111
+   },
+   "ResNet-8": {
+    "jobs": 32,
+    "units_per_job": 600.0,
+    "median_job_seconds": 512.05,
+    "seconds_per_unit": 0.9013385416666665,
+    "total_hours": 4.807138888888888
+   }
+  }
+ },
+ "fkeras_score_builds": {
+  "Jet MLP": {
+   "builds": 30,
+   "median_seconds": 1.4,
+   "device": [
+    "cpu"
+   ]
+  },
+  "MNIST MLP": {
+   "builds": 24,
+   "median_seconds": 1.9,
+   "device": [
+    "cpu"
+   ]
+  },
+  "VWW MobileNet": {
+   "builds": 6,
+   "median_seconds": 296.29999999999995,
+   "device": [
+    "cpu"
+   ]
+  },
+  "DistilBERT": {
+   "builds": 1,
+   "median_seconds": 4073.0,
+   "device": [
+    "cpu"
+   ]
+  },
+  "Pythia-160M": {
+   "builds": 1,
+   "median_seconds": 393.2,
+   "device": [
+    "cuda"
+   ]
+  },
+  "Qwen3-0.6B": {
+   "builds": 1,
+   "median_seconds": 2479.6,
+   "device": [
+    "cuda"
+   ]
+  }
+ },
+ "records_sha256": "a71474b8ce6b629af2557053be2d484d32852a661b79d53df699b9f5d1a278b2",
+ "script_sha256": "4244d032665700d2cb953dfb82e73009c6224d9e5846dfeadfbc8dc4e9adb8d8",
+ "note": "wall-clock seconds of concurrent jobs on a shared CPU server; unit = evaluation (main comparison, fault-rate study) or network pass (model check)"
+}
