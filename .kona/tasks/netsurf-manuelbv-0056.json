@@ -1,0 +1,48 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Paper 1: corrections to the events check after the v29 review (draft v30)",
+ "summary": "",
+ "notes": "The external review of draft v29 found three errors in the events check (netsurf-manuelbv-0053), all confirmed in the code: the sampled share is a ratio of the two parts' second moments, not a fraction of the total's; expected flip counts were extrapolated from samples; the distance from normal is read at bin edges, too coarse to name 1e-2 as a threshold. Fixed: exact unprotected-bit counts and exact event variance fraction computed without drawing faults (workflows/event_background_exact.py, run folder paper1_event_background_exact_v1, registry entry 84; built-in check that the unprotected fraction equals 20480/21845 on every layer); figure, appendix text and plan record corrected; Fig. 2 says a single event can dominate the change of a neuron's input. Paper worktree commit 12ba3ee. Verified: PDF (40 pages) and standalone Overleaf zip build with no undefined references; looked at the rebuilt figure. Not done: the review's proposal to reword the headline claim (Section 7.2 heading and introduction claim) is left for the owner to decide. Delivery folder workspace/paper1_review/delivery_v30_events_corrections.",
+ "status": "done",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
+ "summaryTags": [
+  "paper1",
+  "manuscript",
+  "review"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-17",
+ "updated": "2026-11-17",
+ "start": "2026-11-17",
+ "end": "",
+ "completed": "2026-11-17",
+ "percent": null,
+ "dependencies": [
+  "netsurf-manuelbv-0054",
+  "netsurf-manuelbv-0053"
+ ],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 56,
+ "id": "netsurf-manuelbv-0056"
+}
