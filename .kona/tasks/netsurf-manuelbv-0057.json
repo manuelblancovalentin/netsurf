@@ -1,0 +1,46 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Paper 1: final consistency pass, headline claim reworded, figures spread through the main text (draft v31)",
+ "summary": "",
+ "notes": "Requested by the owner: reword the headline claim as a prediction claim, re-read everything for consistency and for the strongest claims the evidence supports, and distribute the figures evenly in the main text.",
+ "status": "doing",
+ "priority": "high",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
+ "summaryTags": [
+  "paper1",
+  "manuscript"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-17",
+ "updated": "2026-11-17",
+ "start": "2026-11-17",
+ "end": "",
+ "completed": "",
+ "percent": null,
+ "dependencies": [
+  "netsurf-manuelbv-0056"
+ ],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "doing"
+  }
+ ],
+ "number": 57,
+ "id": "netsurf-manuelbv-0057"
+}
