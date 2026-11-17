@@ -248,3 +248,9 @@ that the planned tests can resolve; it is a disclosed second look, with the stop
   conditions, 4 threads per job. Started at 10 jobs at a time; stopped after 3 minutes, before any output, because the Qwen3 jobs hold 35 to 45 GB each; restarted as two pools, at most 6 Qwen3 jobs and 5 DistilBERT/Pythia jobs at once (44 of 80 cores, about 330 GB peak). Measured job times:
   DistilBERT 33 min, Pythia 13 min, Qwen3 46 min (base plus FKeras), about 123 job-hours, roughly 12 to 14 hours of wall
   time. Progress log `paper1_runT_w8a8_logs/more.log`, registry entry 80.
+- **Note (2026-11-16 19:27), early per-model run:** DistilBERT and Pythia finished all 16 draws (64/64 standard and
+  FKeras jobs each) while Qwen3 was still running. At the owner's request, `runT_analyze_lm_v2.py` (unchanged, same seed)
+  is run now with `--targets distilbert_sst2_int8 pythia160m_int8` into `workspace/runs/paper1_runT_t4_lm_analysis_dbpy_v1`.
+  Each model is its own Holm family and the sign-flip matrix is reseeded per model, so these numbers are identical to
+  those of the final three-model run, which still runs once after all 224 jobs; the final run is checked to reproduce them.
+  Nothing about Qwen3 depends on these results: its draws were fixed at 16 in advance.
