@@ -1,12 +1,14 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0051",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 51,
  "label": "",
  "title": "Adversarial review of draft v26 and evidence-aligned title recommendations",
- "summary": "",
- "notes": "",
- "status": "doing",
+ "summary": "Completed v26 adversarial manuscript review and title shortlist; substantive clarification still needed before submission.",
+ "notes": "Read all 38 PDF pages and appendices, inspected Figures 2, 5 and 8, compared the v22 review, and checked selected analysis code, saved validation summary and frozen confirmation plan. Reviewed PDF SHA256: 5f37d7150a251b381ca1f1e5b4734dd304fabd60ed7ffd122027d24d68c2299e. Improvements: explicit Gaussian and Fisher approximations, full-grid sensitivity check, method-neutral operating point, tier-mixing baseline, DeepVigor discussion, no unmeasured speedup claim in results. Remaining findings: schematic event/background crossover is not an empirically established physical transition; Gaussian-only agrees on 436/443 mask signs versus hybrid 437/443; frozen plan says measured target summaries were already read, unlike blanket manuscript prospective wording; Eq1 requires ideal suppression or factor p minus residual probability for TMR; signed task-risk differences are not AVF probabilities; use fixed full-grid correction as primary and label sampled regime classification accurately; distinguish the close cost-matched INT8 benchmark in reference 3; mechanism thresholds are point estimates on a coarse grid; remove unproved cheap-objective and universal-ranking language. Suggested titles: The Many-Bit Problem: A Statistical Model of Faults in Quantized Neural Networks; When Bits Add Up: Modeling Faults and Protection in Quantized Neural Networks. No inference, source data, database or manuscript changed. This was not a full archival audit.",
+ "status": "done",
  "priority": "medium",
  "stage": "",
  "target": "",
@@ -23,8 +25,8 @@
  "updated": "2026-11-17",
  "start": "",
  "end": "",
- "completed": "",
- "percent": null,
+ "completed": "2026-11-17",
+ "percent": 100,
  "dependencies": [],
  "links": {},
  "updated_by": "manuelbv",
@@ -34,8 +36,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "doing"
+  },
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "summary,notes,status,completed,percent",
+   "to": "Completed v26 adversarial manuscript review and title shortl"
   }
- ],
- "number": 51,
- "id": "netsurf-manuelbv-0051"
+ ]
 }
