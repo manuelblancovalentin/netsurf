@@ -52,7 +52,7 @@ def main():
         w = csv.DictWriter(fh, fieldnames=list(out[0])); w.writeheader(); w.writerows(out)
     summ = dict(rows=len(rows), tflite_mismatches_vs_runT=int(mismatch),
                 max_abs_diff=float(max(abs(o["diff"]) for o in out)),
-                max_abs_diff_up_to_3e-3=float(max(abs(o["diff"]) for o in out if o["ber"] <= 3e-3)),
+                max_abs_diff_up_to_3e_3=float(max(abs(o["diff"]) for o in out if o["ber"] <= 3e-3)),
                 rate_checkpoint_cells_with_order_change=int(order_changes),
                 inputs_sha256=hashlib.sha256(b"".join(f.read_bytes() for f in files)).hexdigest(),
                 script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
