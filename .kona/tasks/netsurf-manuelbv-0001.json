@@ -1,43 +1,50 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0001",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 1,
  "label": "",
- "title": "M0: canonical side-effect-free netsurf package and migration record",
- "summary": "M0: canonical side-effect-free netsurf package and migration record",
- "notes": "Delivered on v2: commits 0da6a93, c92606e, cf5b455 (package, migration and reproducibility documents, legacy kept out of root). Agent not recorded in the commits. The completed field is the date this task was recorded (2026-11-16), not the finish date; the finish date is end.",
+ "title": "Review draft v22 against rejected TCAD paper and TECS contribution",
+ "summary": "",
+ "notes": "Read v22 including appendices and the rejected TCAD manuscript and embedded reviews; inspected key figures and verified TECS scope and relevant primary literature. Saved and reread docs/PAPER_V22_REVIEW_2026-11-17.md on the isolated review branch, local commit 7116e31. Compared contributions and documented seven revision priorities. Manuscript and experimental evidence unchanged; no campaigns launched.",
  "status": "done",
  "priority": "medium",
  "stage": "",
  "target": "",
  "action": "",
- "lane": "canonical v2",
- "milestone": "M0",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
  "summaryTags": [
-  "framework"
+  "paper1",
+  "manuscript"
  ],
  "timeline": true,
  "owners": [
   "manuelbv"
  ],
- "agent": "unrecorded",
- "created": "2026-11-16",
- "updated": "2026-11-16",
- "start": "2026-10-22",
- "end": "2026-10-22",
- "completed": "2026-11-16",
- "percent": null,
+ "agent": "human",
+ "created": "2026-11-17",
+ "updated": "2026-11-17",
+ "start": "",
+ "end": "",
+ "completed": "2026-11-17",
+ "percent": 100,
  "dependencies": [],
  "links": {},
  "updated_by": "manuelbv",
  "history": [
   {
-   "time": "2026-11-16",
+   "time": "2026-11-17",
    "by": "manuelbv",
    "field": "created",
-   "to": "done"
+   "to": "doing"
+  },
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "notes,status,completed,percent",
+   "to": "Read v22 including appendices and the rejected TCAD manuscri"
   }
- ],
- "number": 1,
- "id": "netsurf-manuelbv-0001"
+ ]
 }
