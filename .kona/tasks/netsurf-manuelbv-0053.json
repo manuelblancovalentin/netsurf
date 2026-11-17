@@ -1,0 +1,47 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Paper 1: measured check of the events-versus-background sketch (Fig. 2 d-f)",
+ "summary": "",
+ "notes": "Requested by the owner after draft v27: back the sketch in Fig. 2 (d-f) with a measurement on one model. Plan frozen before the run in the paper worktree (review/EVENT_BACKGROUND_CHECK_PLAN_2026-11-17.md). Created because the v26 review (netsurf-manuelbv-0051) asked for a direct measurement of the event/background picture.",
+ "status": "doing",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
+ "summaryTags": [
+  "paper1",
+  "experiment",
+  "figure"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-17",
+ "updated": "2026-11-17",
+ "start": "2026-11-17",
+ "end": "",
+ "completed": "",
+ "percent": null,
+ "dependencies": [
+  "netsurf-manuelbv-0052"
+ ],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "doing"
+  }
+ ],
+ "number": 53,
+ "id": "netsurf-manuelbv-0053"
+}
