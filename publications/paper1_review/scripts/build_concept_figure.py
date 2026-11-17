@@ -6,7 +6,8 @@
   (b) what the faults do to that weight: a Gaussian with an exact mean (drift) and spread, plus rare discrete jumps
   (c) the two terms of Eq. (two-term): a mask that ignores the sign of a flip pays spread only; a mask that keeps the
       helpful flips gains from drift at low rate and pays its square at high rate; the curves cross at p*
-  (d-f) one pre-activation under faults at three rates.  Background and event variances both grow like p(1-p), so
+  (d-f) one pre-activation under faults at three rates; in (d, e) the actual low-bit jumps are drawn as stems and the
+      surrogate's Gaussian as a dashed outline, because the measured low-bit change is not bell-shaped at sparse rates.  Background and event variances both grow like p(1-p), so
       neither overtakes the other; what changes is the number of events reaching the neuron: one (it stands out),
       several, many (their sum is itself bell-shaped).  A sketch, not a measurement.
 """
@@ -105,11 +106,18 @@ def two_terms(ax):
     ax.set_title("(c) drift vs spread", loc="left", fontsize=8.5)
 
 
-def regime(ax, sd, events, title, note, envelope=None):
+def regime(ax, sd, events, title, note, envelope=None, low=None):
+    """One neuron at one rate.  `low`: (position, height) of the actual low-bit jumps, drawn as stems, with the surrogate's
+    Gaussian of the same mean and variance as a dashed outline; without `low` the low bits are already bell-shaped."""
     x = np.linspace(-11, 11, 1200)
     g = np.exp(-0.5 * (x / sd) ** 2)
-    ax.fill_between(x, g, color=NOISE, alpha=0.45, lw=0)
-    ax.plot(x, g, color=NOISE_D, lw=1.2)
+    if low is None:
+        ax.fill_between(x, g, color=NOISE, alpha=0.45, lw=0)
+        ax.plot(x, g, color=NOISE_D, lw=1.2)
+    else:
+        ax.plot(x, 0.8 * g, color=NOISE_D, lw=1.0, ls="--")
+        for pos, h in low:
+            ax.vlines(pos, 0, h, color=NOISE_D, lw=1.6)
     if envelope:                               # many events: stems under a bell-shaped envelope (their sum)
         e = 0.62 * np.exp(-0.5 * (x / envelope) ** 2)
         ax.plot(x, e, color=EVENT, lw=1.3, ls="--")
@@ -131,25 +139,30 @@ def regime(ax, sd, events, title, note, envelope=None):
 
 
 def main():
-    fig = plt.figure(figsize=(7.2, 5.0))
+    fig = plt.figure(figsize=(7.2, 5.2))
     gs = fig.add_gridspec(2, 3, height_ratios=(1, 0.95), hspace=0.5, wspace=0.28)
     word(fig.add_subplot(gs[0, 0]))
     one_weight(fig.add_subplot(gs[0, 1]))
     two_terms(fig.add_subplot(gs[0, 2]))
     axs = [fig.add_subplot(gs[1, i]) for i in range(3)]
-    regime(axs[0], 0.35, [6.5], "(d) sparse faults", "one top-bit flip reaches the neuron:\nit stands out and decides")
-    regime(axs[1], 0.9, [-6.0, 4.5, 7.5], "(e) more faults", "several events:\nstill few enough to count")
+    regime(axs[0], 0.7, [6.5], "(d) sparse faults", "almost nothing flips: one top-bit flip\nstands out and decides",
+           low=[(0.0, 1.0), (-1.4, 0.16), (1.1, 0.2)])
+    regime(axs[1], 1.1, [-6.0, 4.5, 7.5], "(e) more faults", "a few flips of each kind:\nstill few enough to count",
+           low=[(0.0, 0.62), (-2.1, 0.12), (-1.4, 0.24), (-0.7, 0.4), (0.6, 0.44), (1.2, 0.3), (1.9, 0.17), (2.7, 0.08)])
     many = np.linspace(-9.5, 9.5, 27) + 0.25 * np.sin(np.arange(27) * 2.1)
-    regime(axs[2], 1.9, many, "(f) dense faults", "many events: their sum\nis also close to a bell curve", envelope=4.6)
+    regime(axs[2], 1.9, many, "(f) dense faults", "many flips of each kind:\nboth sums are close to bell curves", envelope=4.6)
     arr = FancyArrowPatch((0.12, 0.035), (0.9, 0.035), transform=fig.transFigure, arrowstyle="-|>", mutation_scale=12,
                           color=S.INK2, lw=1.2)
     fig.patches.append(arr)
-    fig.text(0.51, 0.005, "fault rate grows: background and events grow together; what changes is how many events reach one neuron",
+    fig.text(0.51, 0.005, "fault rate grows: background and events grow together; what changes is how many flips reach one neuron",
              ha="center", fontsize=6.8, color=S.INK2)
-    h = [Rectangle((0, 0), 1, 1, fc=NOISE, alpha=0.6), matplotlib.lines.Line2D([], [], color=EVENT, lw=2.4, marker="o", ms=4)]
-    fig.legend(h, ["Gaussian background from bits 0-5 (exact mean and variance)", "flips of bits 6-7 (events; dashed: their sum)"],
-               loc="upper center", ncol=2, fontsize=7, bbox_to_anchor=(0.5, 1.01))
-    fig.subplots_adjust(left=0.04, right=0.98, top=0.9, bottom=0.12)
+    L2 = matplotlib.lines.Line2D
+    h = [Rectangle((0, 0), 1, 1, fc=NOISE, alpha=0.6), L2([], [], color=NOISE_D, lw=1.6),
+         L2([], [], color=NOISE_D, lw=1.0, ls="--"), L2([], [], color=EVENT, lw=2.4, marker="o", ms=4)]
+    fig.legend(h, ["bits 0-5 as a Gaussian (exact mean, variance)", "actual low-bit jumps", "same Gaussian, where it is not the shape",
+                   "flips of bits 6-7 (dashed: their sum)"],
+               loc="upper center", ncol=2, fontsize=6.6, bbox_to_anchor=(0.5, 0.995), columnspacing=2.0, handlelength=1.8)
+    fig.subplots_adjust(left=0.04, right=0.98, top=0.865, bottom=0.12)
     for ext in ("pdf", "png"):
         fig.savefig(ROOT / "figures" / f"fig_concept_model.{ext}", **({"dpi": 220} if ext == "png" else {}))
 
