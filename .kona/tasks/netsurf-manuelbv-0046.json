@@ -5,9 +5,9 @@
  "scope": "manuelbv",
  "number": 46,
  "label": "",
- "title": "Paper 1: update language-model results with the 16-draw analysis",
+ "title": "Paper 1: update Qwen3 results with the 16-draw analysis",
  "summary": "Paper 1: update language-model results with the 16-draw analysis",
- "notes": "Replace the descriptive language-model statements in Sections 7.1, 7.3 and the appendix with the T4 analysis. Builds on: netsurf-manuelbv-0044 (needs the 16-draw analysis); netsurf-manuelbv-0045 (edits draft v18).",
+ "notes": "DistilBERT and Pythia were done in netsurf-manuelbv-0049; what remains is Qwen3 (figures, Sections 6-8, tab:contrastslm, red markers) and the check that the final three-model analysis reproduces the early DistilBERT/Pythia numbers. Builds on: netsurf-manuelbv-0044 (16-draw runs); netsurf-manuelbv-0049 (DistilBERT and Pythia update).",
  "status": "todo",
  "priority": "high",
  "stage": "",
@@ -32,7 +32,7 @@
  "percent": null,
  "dependencies": [
   "netsurf-manuelbv-0044",
-  "netsurf-manuelbv-0045"
+  "netsurf-manuelbv-0049"
  ],
  "links": {},
  "updated_by": "manuelbv",
@@ -48,6 +48,12 @@
    "by": "manuelbv",
    "field": "notes",
    "to": "Replace the descriptive language-model statements in Section"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "title,notes,dependencies",
+   "to": "Paper 1: update Qwen3 results with the 16-draw analysis"
   }
  ]
 }
