@@ -34,6 +34,7 @@ S.apply()
 ROOT = HERE.parent
 RUNS = HERE.parents[2] / "workspace" / "runs"
 AN, RUN = RUNS / "paper1_event_background_analysis_v1", RUNS / "paper1_event_background_v1"
+EXACT = RUNS / "paper1_event_background_exact_v1" / "exact.json"
 NOISE, NOISE_D, EVENT = S.OI["sky"], "#2b7fb8", S.OI["orange"]
 MASKS = (("unprotected", "no protection", "-"), ("abs@0.125", "12.5% protected", "--"))
 
@@ -52,13 +53,14 @@ def main():
     rates = [float(r["ber"]) for r in un]
     ev = [float(r["events_mean"]) for r in un]
     shown = [0, int(np.argmin(np.abs(np.array(ev) - 1.0))), len(un) - 1]
-    # The run recorded flip counts up to 60 per neuron.  The mean count is exactly (unprotected bits in the fan-in) x p,
-    # so the number of bits is taken from the rate 3e-3, where no count is near 60, and the mean is shown as measured
-    # only where it is below 40.
-    ref = rates.index(3e-3)
+    # The run recorded flip counts up to 60 per neuron.  The expected count is exactly (unprotected bits among one
+    # neuron's weights) x p, with the number of bits counted from the mask (event_background_exact.py); the sampled mean
+    # is shown only where the expected count is below 40.
+    EX = {r["mask"]: r for r in json.loads(EXACT.read_text()) if r["layer"] == L}
+    BITS = dict(events_mean="unprotected_top_bits_per_neuron", lowflips_mean="unprotected_low_bits_per_neuron")
 
     def expected(rows_, key):
-        return [float(rows_[ref][key]) / rates[ref] * q for q in rates]
+        return [EX[rows_[0]["mask"]][BITS[key]] * q for q in rates]
     Hf = RUN / f"layer{L}" / "histograms.npz"
     H = np.load(Hf)
     edges = H["edges"]
@@ -101,11 +103,11 @@ def main():
         y = [float(r["event_share_measured"]) for r in by[m]]
         if max(y) > 0:
             ax.plot(rates, y, ls, color=EVENT, lw=1.8, marker="o", ms=3.5, label=lab)
-            ax.plot(rates, [float(r["event_share_exact"]) for r in by[m]], ":", color=S.INK2, lw=1.0)
+            ax.axhline(EX[m]["event_variance_fraction"], color=S.INK2, lw=1.0, ls=":")
     ax.set_xscale("log"); ax.set_ylim(0, 1.05)
-    ax.set_xlabel("bit-error probability $p$", fontsize=7); ax.set_ylabel("share of the change due to events", fontsize=7)
+    ax.set_xlabel("bit-error probability $p$", fontsize=7); ax.set_ylabel("events' second moment\n/ (events' + background's)", fontsize=7)
     ax.set_title("(e) they grow together", loc="left", fontsize=8.5)
-    ax.legend(fontsize=6.0, loc="lower left", title="measured (dotted: exact)", title_fontsize=6.0)
+    ax.legend(fontsize=6.0, loc="lower left", title="sampled (dotted: exact fraction\nof the variance)", title_fontsize=6.0)
     ax = axs[1, 2]
     for key, col, lab in (("ks_top", EVENT, "events"), ("ks_low", NOISE_D, "background"), ("ks_sum", S.INK, "total")):
         ax.plot(rates, [float(r[key]) for r in un], "-", color=col, lw=1.8, marker="o", ms=3.5, label=lab)
@@ -114,18 +116,20 @@ def main():
     ax.set_xlabel("bit-error probability $p$", fontsize=7); ax.set_ylabel("largest gap from a normal distribution", fontsize=7)
     ax.set_title("(f) distance from a bell curve", loc="left", fontsize=8.5)
     ax.legend(fontsize=6.3, loc="lower left")
-    ax.text(1.2e-5, st["thresholds"]["ks_limit"] * 0.86, "limit fixed in advance", fontsize=5.8, color=S.INK2, va="top")
+    ax.text(1.2e-5, st["thresholds"]["ks_limit"] * 0.86, "limit fixed in advance for $p=10^{-1}$", fontsize=5.8, color=S.INK2, va="top")
     fig.tight_layout(h_pad=1.4, w_pad=1.0, rect=(0, 0, 1, 0.955))
     fig.legend(*hl, loc="upper center", ncol=2, fontsize=7, bbox_to_anchor=(0.5, 1.0), frameon=False)
     for ext in ("pdf", "png"):
         fig.savefig(ROOT / "figures" / f"fig_event_background.{ext}", bbox_inches="tight", **({"dpi": 220} if ext == "png" else {}))
     out = dict(figure_layer=L, layer=[x for x in st["layers"] if x["layer"] == L][0], shown_rates=[rates[i] for i in shown],
                rows={m: by[m] for m, _, _ in MASKS},
-               expected_events_mean={m: expected(by[m], "events_mean") for m, _, _ in MASKS}, statements=st["statements"], thresholds=st["thresholds"],
+               expected_events_mean={m: expected(by[m], "events_mean") for m, _, _ in MASKS},
+               exact=json.loads(EXACT.read_text()), statements=st["statements"], thresholds=st["thresholds"],
                layers=st["layers"],
                inputs_sha256=dict(statements=hashlib.sha256((AN / "statements.json").read_bytes()).hexdigest(),
                                   summary=hashlib.sha256((AN / "summary.csv").read_bytes()).hexdigest(),
-                                  histograms=hashlib.sha256(Hf.read_bytes()).hexdigest()))
+                                  histograms=hashlib.sha256(Hf.read_bytes()).hexdigest(),
+                                  exact=hashlib.sha256(EXACT.read_bytes()).hexdigest()))
     (ROOT / "data" / "tecs_event_background.json").write_text(json.dumps(out, indent=1) + "\n")
 
 

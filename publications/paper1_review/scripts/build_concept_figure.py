@@ -145,7 +145,7 @@ def main():
     one_weight(fig.add_subplot(gs[0, 1]))
     two_terms(fig.add_subplot(gs[0, 2]))
     axs = [fig.add_subplot(gs[1, i]) for i in range(3)]
-    regime(axs[0], 0.7, [6.5], "(d) sparse faults", "almost nothing flips: one top-bit flip\nstands out and decides",
+    regime(axs[0], 0.7, [6.5], "(d) sparse faults", "almost nothing flips: one top-bit flip\ndominates the change",
            low=[(0.0, 1.0), (-1.4, 0.16), (1.1, 0.2)])
     regime(axs[1], 1.1, [-6.0, 4.5, 7.5], "(e) more faults", "a few flips of each kind:\nstill few enough to count",
            low=[(0.0, 0.62), (-2.1, 0.12), (-1.4, 0.24), (-0.7, 0.4), (0.6, 0.44), (1.2, 0.3), (1.9, 0.17), (2.7, 0.08)])

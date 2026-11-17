@@ -478,26 +478,190 @@
  },
  "expected_events_mean": {
   "unprotected": [
-   0.011524583333333333,
-   0.11524583333333333,
-   0.3457374999999999,
-   1.1524583333333334,
-   3.457375,
-   11.524583333333332,
-   34.57375,
-   115.24583333333334
+   0.01152,
+   0.11520000000000001,
+   0.34559999999999996,
+   1.1520000000000001,
+   3.456,
+   11.52,
+   34.56,
+   115.2
   ],
   "abs@0.125": [
-   0.009272187500000001,
-   0.09272187500000001,
-   0.27816562499999997,
-   0.92721875,
-   2.78165625,
-   9.2721875,
-   27.8165625,
-   92.72187500000001
+   0.00934046875,
+   0.0934046875,
+   0.28021406249999997,
+   0.934046875,
+   2.8021406250000003,
+   9.34046875,
+   28.02140625,
+   93.40468750000001
   ]
  },
+ "exact": [
+  {
+   "layer": 0,
+   "kernel": "tflite_tensor_0008/kernel",
+   "fan_in": 27,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 54.0,
+   "unprotected_low_bits_per_neuron": 162.0,
+   "event_variance_fraction": 0.9375143053330283
+  },
+  {
+   "layer": 0,
+   "kernel": "tflite_tensor_0008/kernel",
+   "fan_in": 27,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 0.0,
+   "unprotected_low_bits_per_neuron": 78.0,
+   "event_variance_fraction": 0.0
+  },
+  {
+   "layer": 1,
+   "kernel": "tflite_tensor_0009/kernel",
+   "fan_in": 144,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 288.0,
+   "unprotected_low_bits_per_neuron": 864.0,
+   "event_variance_fraction": 0.937514305333028
+  },
+  {
+   "layer": 1,
+   "kernel": "tflite_tensor_0009/kernel",
+   "fan_in": 144,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 31.3125,
+   "unprotected_low_bits_per_neuron": 717.5,
+   "event_variance_fraction": 0.3023870791046367
+  },
+  {
+   "layer": 2,
+   "kernel": "tflite_tensor_0010/kernel",
+   "fan_in": 144,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 288.0,
+   "unprotected_low_bits_per_neuron": 864.0,
+   "event_variance_fraction": 0.9375143053330282
+  },
+  {
+   "layer": 2,
+   "kernel": "tflite_tensor_0010/kernel",
+   "fan_in": 144,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 7.6875,
+   "unprotected_low_bits_per_neuron": 738.25,
+   "event_variance_fraction": 0.1247293294456856
+  },
+  {
+   "layer": 3,
+   "kernel": "tflite_tensor_0011/kernel",
+   "fan_in": 144,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 288.0,
+   "unprotected_low_bits_per_neuron": 864.0,
+   "event_variance_fraction": 0.9375143053330282
+  },
+  {
+   "layer": 3,
+   "kernel": "tflite_tensor_0011/kernel",
+   "fan_in": 144,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 5.625,
+   "unprotected_low_bits_per_neuron": 781.09375,
+   "event_variance_fraction": 0.10948983922561502
+  },
+  {
+   "layer": 4,
+   "kernel": "tflite_tensor_0012/kernel",
+   "fan_in": 288,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 576.0,
+   "unprotected_low_bits_per_neuron": 1728.0,
+   "event_variance_fraction": 0.9375143053330282
+  },
+  {
+   "layer": 4,
+   "kernel": "tflite_tensor_0012/kernel",
+   "fan_in": 288,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 88.09375,
+   "unprotected_low_bits_per_neuron": 1692.0,
+   "event_variance_fraction": 0.45109347847065967
+  },
+  {
+   "layer": 5,
+   "kernel": "tflite_tensor_0013/kernel",
+   "fan_in": 16,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 32.0,
+   "unprotected_low_bits_per_neuron": 96.0,
+   "event_variance_fraction": 0.9375143053330282
+  },
+  {
+   "layer": 5,
+   "kernel": "tflite_tensor_0013/kernel",
+   "fan_in": 16,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 6.15625,
+   "unprotected_low_bits_per_neuron": 92.5,
+   "event_variance_fraction": 0.4454939502478993
+  },
+  {
+   "layer": 6,
+   "kernel": "tflite_tensor_0014/kernel",
+   "fan_in": 288,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 576.0,
+   "unprotected_low_bits_per_neuron": 1728.0,
+   "event_variance_fraction": 0.9375143053330282
+  },
+  {
+   "layer": 6,
+   "kernel": "tflite_tensor_0014/kernel",
+   "fan_in": 288,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 338.53125,
+   "unprotected_low_bits_per_neuron": 1726.5,
+   "event_variance_fraction": 0.8271744617138279
+  },
+  {
+   "layer": 7,
+   "kernel": "tflite_tensor_0015/kernel",
+   "fan_in": 576,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 1152.0,
+   "unprotected_low_bits_per_neuron": 3456.0,
+   "event_variance_fraction": 0.9375143053330282
+  },
+  {
+   "layer": 7,
+   "kernel": "tflite_tensor_0015/kernel",
+   "fan_in": 576,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 934.046875,
+   "unprotected_low_bits_per_neuron": 3455.953125,
+   "event_variance_fraction": 0.9037509080959442
+  },
+  {
+   "layer": 8,
+   "kernel": "tflite_tensor_0016/kernel",
+   "fan_in": 32,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 64.0,
+   "unprotected_low_bits_per_neuron": 192.0,
+   "event_variance_fraction": 0.9375143053330282
+  },
+  {
+   "layer": 8,
+   "kernel": "tflite_tensor_0016/kernel",
+   "fan_in": 32,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 41.265625,
+   "unprotected_low_bits_per_neuron": 191.875,
+   "event_variance_fraction": 0.8347561519538779
+  }
+ ],
  "statements": {
   "grow_together": {
    "per_layer_mask": {
@@ -1278,6 +1442,7 @@
  "inputs_sha256": {
   "statements": "1b18b85aafc1747221bbe35c010841869b4b8e9d9140b3a6a373125623735254",
   "summary": "3593bc473f8b4aefa5aa068481056d7e21479412f9f315e6da6deaf82102fdeb",
-  "histograms": "7c7f8148ace26ebcca8f630988ad1a28fc4497100a43337e37aec07d1a3162df"
+  "histograms": "7c7f8148ace26ebcca8f630988ad1a28fc4497100a43337e37aec07d1a3162df",
+  "exact": "86f3736c2b0082df809457bd89cdbf33f4d7dc9fbc5fea574eb4133b34b913aa"
  }
 }

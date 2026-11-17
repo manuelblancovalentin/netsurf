@@ -98,3 +98,15 @@ Not anticipated: the background is as far from normal as the events at sparse ra
 on the figure layer); the total is close to normal only from about 1e-2.
 
 Written into the paper as Appendix E, "Events and background at one layer", and into the caption of Fig. 2.
+
+## Corrections after external review (2026-11-17)
+
+- The sampled "share" of statement 1 is E[T^2] / (E[T^2] + E[L^2]) for the event part T and the low-bit part L. It is
+  not a fraction of E[(T + L)^2], which also contains 2 E[T] E[L]. The paper now names it exactly and gives the
+  events' fraction of the variance, Var(T) / Var(T + L), computed exactly by `workflows/event_background_exact.py`
+  (output `paper1_event_background_exact_v1`): 15/16 on every layer without protection, independent of the rate.
+- The expected flip counts in the figure are now the counted unprotected bits times p (1,152 top bits without
+  protection and 934.05 under the mask on the figure layer), not an extrapolation from sampled counts.
+- The distance from a normal distribution is read at histogram bin edges 0.05 standard deviations apart, which
+  resolves it to within 0.02 at most. The paper no longer names 1e-2 as the rate at which the total becomes normal.
+  Statement 4 (0.004 against 0.05 at 1e-1) is not affected.
