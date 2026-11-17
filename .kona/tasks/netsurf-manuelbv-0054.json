@@ -1,0 +1,47 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Paper 1: concept panels (d-f) redrawn after the measured check (draft v29)",
+ "summary": "",
+ "notes": "Requested by the owner after the measured check (netsurf-manuelbv-0053) showed that the low-bit change is not bell-shaped at sparse rates. Panels (d, e) now draw the actual low-bit jumps as stems with the surrogate's Gaussian as a dashed outline; caption shortened. Paper worktree commit 21674b9. Verified: PDF and standalone Overleaf zip build with no undefined references; looked at page 9. Delivery folder workspace/paper1_review/delivery_v29_concept_redrawn.",
+ "status": "done",
+ "priority": "low",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
+ "summaryTags": [
+  "paper1",
+  "manuscript",
+  "figure"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-17",
+ "updated": "2026-11-17",
+ "start": "2026-11-17",
+ "end": "",
+ "completed": "2026-11-17",
+ "percent": null,
+ "dependencies": [
+  "netsurf-manuelbv-0053"
+ ],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 54,
+ "id": "netsurf-manuelbv-0054"
+}
