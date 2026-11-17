@@ -65,6 +65,7 @@ HEAD = ["jet-e30", "mnist-e30", "vww", "dscnn", "resnet8-pinned", "distilbert_ss
 GRID = [1e-5, 1e-4, 3e-4, 1e-3, 3e-3, 1e-2, 3e-2, 1e-1]
 SHARES = (0.0625, 0.125, 0.1875, 0.25)
 FK, FKW = S.FK, S.FKW
+GAIN, GAIN_TINT = S.OI["orange"], "#fbecd0"           # the gain annotation: a colour no curve uses here
 S.apply()
 
 
@@ -136,14 +137,14 @@ def headline(tol, data, record):
         ax.plot([12.5], [fort], "s", color=S.INK, ms=6, mec="white", mew=0.8, zorder=5, label="FORTUNE (all sign bits)")
         gain = [(a - b) * (-1 if lower else 1) for a, b in zip(rec["abs"], rec["msb"])]
         k = int(np.argmax(gain))
-        ax.plot([x[k]], [rec["abs"][k]], "o", color=S.ABS, ms=8, mec="white", mew=1.2, zorder=6,
-                label="largest gain over MSB-first (arrow)")
+        ax.plot([x[k]], [rec["abs"][k]], "o", color=S.ABS, ms=8, mec="white", mew=1.2, zorder=6)
+        ax.plot([], [], ls="none", marker=r"$\updownarrow$", ms=11, color=GAIN, label="largest gain over MSB-first")
         lo_k, hi_k = sorted((rec["abs"][k], rec["msb"][k]))
         ax.annotate("", xy=(x[k], rec["abs"][k]), xytext=(x[k], rec["msb"][k]), zorder=7,
-                    arrowprops=dict(arrowstyle="<->", color=S.INK, lw=1.1, shrinkA=5, shrinkB=5, mutation_scale=9))
+                    arrowprops=dict(arrowstyle="<->", color=GAIN, lw=1.8, shrinkA=5, shrinkB=5, mutation_scale=11))
         txt = (f"+{gain[k]:.1f} points" if not lower else f"{gain[k]:.2f} nats/token lower loss") + f"\nat {x[k]:g}% of bits"
         ax.text(0.97, 0.05, txt, transform=ax.transAxes, ha="right", va="bottom", fontsize=7.5, color=S.INK,
-                fontweight="bold", bbox=dict(boxstyle="round,pad=0.25", fc=S.BETTER, ec="none", alpha=0.12))
+                fontweight="bold", bbox=dict(boxstyle="round,pad=0.3", fc=GAIN_TINT, ec=GAIN, lw=0.9))
         ax.set_title(NAMES[cid], loc="left")
         ax.set_title(f"p = {p:g}", loc="right", fontsize=7.5, color=C.INK2)
         ax.set_xticks(x, ["6.25", "12.5", "18.75", "25"])
