@@ -137,9 +137,10 @@ def headline(tol, data, record):
         gain = [(a - b) * (-1 if lower else 1) for a, b in zip(rec["abs"], rec["msb"])]
         k = int(np.argmax(gain))
         ax.plot([x[k]], [rec["abs"][k]], "o", color=S.ABS, ms=8, mec="white", mew=1.2, zorder=6,
-                label="largest gain over MSB-first")
+                label="largest gain over MSB-first (arrow)")
         lo_k, hi_k = sorted((rec["abs"][k], rec["msb"][k]))
-        ax.fill_between([x[k] - 0.9, x[k] + 0.9], lo_k, hi_k, color=S.BETTER, alpha=0.16, lw=0, zorder=1)
+        ax.annotate("", xy=(x[k], rec["abs"][k]), xytext=(x[k], rec["msb"][k]), zorder=7,
+                    arrowprops=dict(arrowstyle="<->", color=S.INK, lw=1.1, shrinkA=5, shrinkB=5, mutation_scale=9))
         txt = (f"+{gain[k]:.1f} points" if not lower else f"{gain[k]:.2f} nats/token lower loss") + f"\nat {x[k]:g}% of bits"
         ax.text(0.97, 0.05, txt, transform=ax.transAxes, ha="right", va="bottom", fontsize=7.5, color=S.INK,
                 fontweight="bold", bbox=dict(boxstyle="round,pad=0.25", fc=S.BETTER, ec="none", alpha=0.12))

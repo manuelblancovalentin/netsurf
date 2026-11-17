@@ -4,7 +4,7 @@ Figure~\ref{fig:headline} shows, for eight models, task quality against the shar
 
 \begin{figure}[tbp]
 \centering\includegraphics[width=\linewidth]{fig_headline}
-\caption{Task quality against the share of bits that are triplicated, with every stored bit, copies included, allowed to fail. Each panel uses the densest grid bit-error probability $p$ at which the 12.5\% absolute-gradient mask keeps its model usable (within 5 points, or 0.5 nats per token, of clean). Lines: means over fault fields (24 for the TFLite models, 16 for DistilBERT and Pythia, \pending{4 for Qwen3}), bands one standard error. The black square is FORTUNE, which triplicates every sign bit; at 12.5\% MSB-first and FKeras select the same mask. The shaded bar and the box mark the largest gain of the absolute gradient over MSB-first. Loss axes are inverted so that up is better in every panel.}\label{fig:headline}
+\caption{Task quality against the share of bits that are triplicated, with every stored bit, copies included, allowed to fail. Each panel uses the densest grid bit-error probability $p$ at which the 12.5\% absolute-gradient mask keeps its model usable (within 5 points, or 0.5 nats per token, of clean). Lines: means over fault fields (24 for the TFLite models, 16 for DistilBERT and Pythia, \pending{4 for Qwen3}), bands one standard error. The black square is FORTUNE, which triplicates every sign bit; at 12.5\% MSB-first and FKeras select the same mask. The arrow and the box mark the largest gain of the absolute gradient over MSB-first. Loss axes are inverted so that up is better in every panel.}\label{fig:headline}
 \Description{Eight panels of accuracy or loss against protected share for the absolute gradient, FKeras and MSB-first rankings.}
 \end{figure}
 
