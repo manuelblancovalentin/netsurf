@@ -1,12 +1,14 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0052",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 52,
  "label": "",
  "title": "Paper 1: apply the v26 review fixes and add a runtime table (draft v27)",
  "summary": "",
- "notes": "Requested by the owner after reading the v26 review (netsurf-manuelbv-0051): apply all its points and report runtimes in the appendix.",
- "status": "doing",
+ "notes": "Applied the v26 review points (netsurf-manuelbv-0051) in paper worktree commit 2ac8642: concept figure panels (d-f) redrawn (events grow in number; the background does not overtake them); model-check timeline disclosed in Section 6.2, Appendix C and Limits; Eq. 1 labelled ideal suppression with the general form; AVF as analogue; four overstated sentences softened; reference [3] positioned from its public release; Thales/HarDNN labelled as derived. Kept the pre-specified usability-filtered tests as primary (whole-grid stays the sensitivity analysis). Added a run-time table (Appendix C, Table 4) from the jobs' completion records via scripts/build_runtime_table.py and data/tecs_runtimes.json. Title set by the owner; acknowledgement block removed at the owner's request. Verified: PDF (39 pages) and the standalone Overleaf zip build with no undefined references; looked at pages 9 and 26. Delivery folder workspace/paper1_review/delivery_v27_review_fixes_runtimes.",
+ "status": "done",
  "priority": "high",
  "stage": "",
  "target": "",
@@ -27,8 +29,8 @@
  "updated": "2026-11-17",
  "start": "2026-11-17",
  "end": "",
- "completed": "",
- "percent": null,
+ "completed": "2026-11-17",
+ "percent": 100,
  "dependencies": [
   "netsurf-manuelbv-0051",
   "netsurf-manuelbv-0046"
@@ -41,8 +43,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "doing"
+  },
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "notes,status,completed,percent",
+   "to": "Applied the v26 review points (netsurf-manuelbv-0051) in pap"
   }
- ],
- "number": 52,
- "id": "netsurf-manuelbv-0052"
+ ]
 }
