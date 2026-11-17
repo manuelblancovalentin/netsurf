@@ -1,12 +1,14 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0049",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 49,
  "label": "",
  "title": "Paper 1: DistilBERT and Pythia 16-draw results into figures, text, tables and appendices",
  "summary": "",
- "notes": "Requested by the owner after the early T4 analysis of DistilBERT and Pythia (paper1_runT_t4_lm_analysis_dbpy_v1). Qwen3 stays at 4 draws until its runs finish (task 0046). Builds on: netsurf-manuelbv-0044 (16-draw runs and early analysis); netsurf-manuelbv-0048 (current text, v18.1).",
- "status": "doing",
+ "notes": "Requested by the owner after the early T4 analysis. Delivered (commit f628619 on paper1-tecs-revision-v1): figures rebuilt with 16 draws for DistilBERT and Pythia; Sections 6, 7, 8 and appendices updated (new table tab:contrastslm, drift-table accuracies over 16 fields, addendum disclosed); 'resolved' renamed 'confirmed'. Verified: PDF builds with no undefined references; headline gains 18.2 points (DistilBERT) and 1.22 nats/token (Pythia) read from data/tecs_paper_figures. Delivery folder workspace/paper1_review/delivery_v19_lm16_distilbert_pythia. Builds on: netsurf-manuelbv-0044 (16-draw runs and early analysis); netsurf-manuelbv-0048 (current text, v18.1).",
+ "status": "done",
  "priority": "high",
  "stage": "",
  "target": "",
@@ -25,8 +27,8 @@
  "created": "2026-11-16",
  "updated": "2026-11-16",
  "start": "2026-11-16",
- "end": "",
- "completed": "",
+ "end": "2026-11-16",
+ "completed": "2026-11-16",
  "percent": null,
  "dependencies": [
   "netsurf-manuelbv-0044",
@@ -40,8 +42,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "doing"
+  },
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "notes,status,end,completed",
+   "to": "Requested by the owner after the early T4 analysis. Delivere"
   }
- ],
- "number": 49,
- "id": "netsurf-manuelbv-0049"
+ ]
 }
