@@ -180,13 +180,17 @@ def summary(tol, data, record):
             ax = axs[row, j]
             for y, cid in zip(ys, ids):
                 vals, clean, unit, lower = data[cid]
-                p = tol[cid]["tmr_abs@0.125"]
-                A, B = vals[(f"tmr_abs@{share}", p)], vals[(f"tmr_{right}@{share}", p)]
-                d = np.array([A[u] - B[u] for u in sorted(A)]) * (-1 if lower else 1)
-                m, lo, hi = ci(d)
-                ax.plot([lo, hi], [y, y], color=col, lw=1.8, alpha=0.75, solid_capstyle="round")
-                ax.plot([m], [y], "o", color=col, ms=4.8, mec="white", mew=0.6, zorder=3)
-                record.setdefault(cid, {})[f"abs_minus_{right}@{share}"] = [round(m, 3), round(lo, 3), round(hi, 3)]
+                tn = tol[cid]["unprotected"]
+                p_neutral = GRID[GRID.index(tn) + 1] if tn is not None else GRID[0]   # first rate where no protection fails
+                for p, dy, filled, key in ((tol[cid]["tmr_abs@0.125"], 0.17, True, ""), (p_neutral, -0.17, False, "_neutral")):
+                    A, B = vals[(f"tmr_abs@{share}", p)], vals[(f"tmr_{right}@{share}", p)]
+                    d = np.array([A[u] - B[u] for u in sorted(A)]) * (-1 if lower else 1)
+                    m, lo, hi = ci(d)
+                    ax.plot([lo, hi], [y + dy, y + dy], color=col, lw=1.6, alpha=0.75 if filled else 0.45, solid_capstyle="round")
+                    ax.plot([m], [y + dy], "o", ms=4.6, zorder=3, **(dict(color=col, mec="white", mew=0.6) if filled else
+                                                                      dict(mfc="white", mec=col, mew=1.2)))
+                    record.setdefault(cid, {})[f"abs_minus_{right}@{share}{key}"] = [round(m, 3), round(lo, 3), round(hi, 3)]
+                record[cid]["ber"], record[cid]["ber_neutral"] = tol[cid]["tmr_abs@0.125"], p_neutral
             ax.set_xlim(*xl)
             S.shade(ax, axis="x", labels=(j == 0), label_better="better", label_worse="worse")
             ax.set_ylim(-0.7, len(ids) - 0.3)
@@ -197,6 +201,12 @@ def summary(tol, data, record):
             ax.set_xlabel(xlab, fontsize=7.5)
             ax.grid(axis="y", visible=False)
         axs[row, 0].set_yticks(ys, [NAMES[c] for c in ids], fontsize=7.5)
+    from matplotlib.lines import Line2D
+    h = [Line2D([], [], color=S.INK2, marker="o", ms=5, lw=1.6, mec="white"),
+         Line2D([], [], color=S.INK2, marker="o", ms=5, lw=1.6, mfc="white", alpha=0.7)]
+    fig.legend(h, ["at the densest rate where the absolute-gradient mask keeps the model usable (Fig. 3)",
+                   "at the first rate where the unprotected model is no longer usable (method-neutral)"],
+               loc="lower center", ncol=1, fontsize=7.5, bbox_to_anchor=(0.5, -0.045))
     fig.tight_layout(h_pad=1.2)
     for ext in ("pdf", "png"):
         fig.savefig(C.ROOT / "figures" / f"fig_summary.{ext}", bbox_inches="tight", **({"dpi": 220} if ext == "png" else {}))

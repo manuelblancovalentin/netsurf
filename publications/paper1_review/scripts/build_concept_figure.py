@@ -90,7 +90,7 @@ def two_terms(ax):
     ax.axvspan(ps, p[-1], color=S.BETTER, alpha=S.TINT, lw=0)
     ax.axvline(ps, color=S.INK2, lw=0.8, ls="--")
     kw = dict(transform=ax.transAxes, fontsize=6.2, va="top")
-    ax.text(0.04, 0.97, "absolute gradient:\nspread only", color=S.ABS, **kw)
+    ax.text(0.04, 0.97, "absolute gradient:\nmostly spread", color=S.ABS, **kw)
     ax.text(0.04, 0.80, "positive gradient:\ndrift helps,\nthen hurts", color=S.POS, **kw)
     ax.text(0.60, 0.36, "switch $p^*$", color=S.INK2, **kw)
     ax.text(0.30, 0.03, "positive gradient\nbetter", transform=ax.transAxes, fontsize=6.0, style="italic", color=S.INK2,
