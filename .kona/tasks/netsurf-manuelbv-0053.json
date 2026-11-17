@@ -1,12 +1,14 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0053",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 53,
  "label": "",
  "title": "Paper 1: measured check of the events-versus-background sketch (Fig. 2 d-f)",
  "summary": "",
- "notes": "Requested by the owner after draft v27: back the sketch in Fig. 2 (d-f) with a measurement on one model. Plan frozen before the run in the paper worktree (review/EVENT_BACKGROUND_CHECK_PLAN_2026-11-17.md). Created because the v26 review (netsurf-manuelbv-0051) asked for a direct measurement of the event/background picture.",
- "status": "doing",
+ "notes": "Ran the check on the nine convolution layers of the reference ResNet-8 (500 fields per layer, mask and rate; run folder paper1_event_background_v1, analysis paper1_event_background_analysis_v1, registry entry 83). Plan and one amendment (three layers checked through the residual addition, which TFLite computes in place) were committed before any result was read. Outcome against the four statements fixed in advance: event share constant across rates fails as written (7 of 17 layer-mask pairs within 0.02; exact share constant within 0.008 everywhere; misses are at sparse rates with few sampled events); one event stands out holds on 14 of 17 (fails under the 12.5% mask on the three 144-weight layers); event sum approaches a bell curve holds on all 17 and on the figure layer (gap 0.004 at 1e-1). Not anticipated: the low-bit background is as non-normal as the events at sparse rates; the total is near normal only from about 1e-2. Written into the paper (Appendix E figure, Fig. 2 caption, one sentence of Section 5.2), paper worktree commit 2a73137; code in branch paper1-runR-v2-validated (48b064e, a405bbe, ff8c501) with 7 passing tests. Verified: PDF (40 pages) and standalone Overleaf zip build with no undefined references; looked at page 31. Delivery folder workspace/paper1_review/delivery_v28_event_background.",
+ "status": "done",
  "priority": "medium",
  "stage": "",
  "target": "",
@@ -27,8 +29,8 @@
  "updated": "2026-11-17",
  "start": "2026-11-17",
  "end": "",
- "completed": "",
- "percent": null,
+ "completed": "2026-11-17",
+ "percent": 100,
  "dependencies": [
   "netsurf-manuelbv-0052"
  ],
@@ -40,8 +42,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "doing"
+  },
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "notes,status,completed,percent",
+   "to": "Ran the check on the nine convolution layers of the referenc"
   }
- ],
- "number": 53,
- "id": "netsurf-manuelbv-0053"
+ ]
 }
