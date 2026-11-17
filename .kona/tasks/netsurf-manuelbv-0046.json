@@ -7,8 +7,8 @@
  "label": "",
  "title": "Paper 1: update Qwen3 results with the 16-draw analysis",
  "summary": "Paper 1: update language-model results with the 16-draw analysis",
- "notes": "DistilBERT and Pythia were done in netsurf-manuelbv-0049; what remains is Qwen3 (figures, Sections 6-8, tab:contrastslm, red markers) and the check that the final three-model analysis reproduces the early DistilBERT/Pythia numbers. Builds on: netsurf-manuelbv-0044 (16-draw runs); netsurf-manuelbv-0049 (DistilBERT and Pythia update).",
- "status": "todo",
+ "notes": "Qwen3 16-draw results written into figures, tables and text (paper worktree commit bb74dbc, delivery v22). Verified: PDF and standalone Overleaf zip build with no undefined references. Builds on netsurf-manuelbv-0044.",
+ "status": "done",
  "priority": "high",
  "stage": "",
  "target": "",
@@ -25,11 +25,11 @@
  ],
  "agent": "claude",
  "created": "2026-11-16",
- "updated": "2026-11-16",
+ "updated": "2026-11-17",
  "start": "",
  "end": "",
- "completed": "",
- "percent": null,
+ "completed": "2026-11-17",
+ "percent": 100,
  "dependencies": [
   "netsurf-manuelbv-0044",
   "netsurf-manuelbv-0049"
@@ -54,6 +54,12 @@
    "by": "manuelbv",
    "field": "title,notes,dependencies",
    "to": "Paper 1: update Qwen3 results with the 16-draw analysis"
+  },
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "notes,status,completed,percent",
+   "to": "Qwen3 16-draw results written into figures, tables and text "
   }
  ]
 }
