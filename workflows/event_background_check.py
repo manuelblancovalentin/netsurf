@@ -61,8 +61,17 @@ def layers_of(it):
         stride = int(round(hin / hout))
         if -(-hin // stride) != hout:
             raise SystemExit(f"layer {det[w]['name']}: padding is not SAME")
-        out.append(dict(x=x, w=w, b=b, y=y, stride=stride, name=f"tflite_tensor_{w:04d}/kernel", shape=tuple(int(s) for s in det[w]["shape"])))
+        add = [o for o in it._get_ops_details() if o["op_name"] == "ADD" and y in o["inputs"]]
+        out.append(dict(x=x, w=w, b=b, y=y, stride=stride, name=f"tflite_tensor_{w:04d}/kernel", shape=tuple(int(s) for s in det[w]["shape"]),
+                        add=None if not add else dict(other=[i for i in add[0]["inputs"] if i != y][0], out=add[0]["outputs"][0])))
     return out, det
+
+
+def qrange(det, idx):
+    """(lowest value, highest value, step) that an int8 tensor can represent."""
+    q = det[idx]["quantization_parameters"]
+    step, zp = float(q["scales"][0]), float(q["zero_points"][0])
+    return (-128 - zp) * step, (127 - zp) * step, step
 
 
 def real(it, det, idx):
@@ -100,7 +109,7 @@ def main():
     layers, det = layers_of(it)
     inp = it.get_input_details()[0]
     xs = {L["x"]: [] for L in layers}
-    ys = {L["y"]: [] for L in layers}
+    ys = {k: [] for L in layers for k in ([L["y"]] + ([L["add"]["other"], L["add"]["out"]] if L["add"] else []))}
     for i in range(a.inputs):
         it.set_tensor(inp["index"], np.asarray(xe[i:i + 1]).reshape(inp["shape"]))
         it.invoke()
@@ -139,13 +148,23 @@ def main():
         inside = (yv > lo + step / 2) & (yv < hi - step / 2)
         ok = float(np.mean(np.abs(z - yv)[inside] <= 1.01 * step))
         relu = float(np.mean(z[~inside] <= lo + step)) if (~inside).any() else 0.0
+        checked_on = "output"
+        if ok < 0.999 and L["add"]:                 # plan amendment 1: the following ADD overwrote this output in place
+            alo, ahi, astep = qrange(det, L["add"]["out"])
+            total = np.clip(np.clip(z, lo, hi) + np.stack(ys[L["add"]["other"]]), alo, ahi)
+            av = np.stack(ys[L["add"]["out"]])
+            inside = (av > alo + astep / 2) & (av < ahi - astep / 2)
+            ok = float(np.mean(np.abs(total - av)[inside] <= 1.01 * (step + astep)))
+            relu = float(np.mean(~inside))
+            checked_on = "following addition"
         if ok < 0.999:
-            raise SystemExit(f"{L['name']}: reconstruction matches the executable on only {ok:.4f} of unsaturated outputs")
+            raise SystemExit(f"{L['name']}: reconstruction matches the executable on only {ok:.4f} of unsaturated outputs ({checked_on})")
         zsd = float(z.std())
         record.append(dict(layer=li, kernel=L["name"], shape=L["shape"], stride=L["stride"], fan_in=kh * kw * cin,
-                           reconstruction_within_one_step=ok, unsaturated_share=float(inside.mean()),
+                           reconstruction_within_one_step=ok, reconstruction_checked_on=checked_on, unsaturated_share=float(inside.mean()),
                            clipped_low_share=relu, clean_preactivation_sd=zsd, output_step=step))
-        print(json.dumps(dict(layer=li, kernel=L["name"], fan_in=kh * kw * cin, reconstruction=ok, seconds=round(time.time() - t0))), flush=True)
+        print(json.dumps(dict(layer=li, kernel=L["name"], fan_in=kh * kw * cin, reconstruction=ok, checked_on=checked_on,
+                              seconds=round(time.time() - t0))), flush=True)
         for mi, mask in enumerate(MASKS):
             unprot = ~protected[mask][s:e]
             for p in a.rates:
