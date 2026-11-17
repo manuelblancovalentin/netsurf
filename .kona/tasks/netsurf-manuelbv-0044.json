@@ -7,8 +7,8 @@
  "label": "",
  "title": "Paper 1 Run T addendum T4: language models to 16 fault draws",
  "summary": "Paper 1 Run T addendum T4: language models to 16 fault draws",
- "notes": "Addendum 6f61b21 and analysis runT_analyze_lm_v2.py (712ab83, tests pass) committed before any added draw. 224 jobs on kona from 2026-11-16 12:23; a recovery pass reruns jobs stopped by the host's earlyoom; the analysis runs once when all 224 finish. Builds on: netsurf-manuelbv-0042 (adds draws to the Run T language-model runs); netsurf-manuelbv-0043 (includes the FKeras conditions).",
- "status": "doing",
+ "notes": "All 224 jobs of the 16-draw addendum finished (run folder paper1_runT_w8a8_more_v1; 14 jobs stopped by the memory guard were rerun with their original seeds). Verified: three-model analysis paper1_runT_t4_lm_analysis_v1 exists and reproduces the DistilBERT and Pythia numbers of the earlier two-model analysis exactly.",
+ "status": "done",
  "priority": "high",
  "stage": "",
  "target": "",
@@ -25,11 +25,11 @@
  ],
  "agent": "claude",
  "created": "2026-11-16",
- "updated": "2026-11-16",
+ "updated": "2026-11-17",
  "start": "2026-11-16",
  "end": "",
- "completed": "",
- "percent": 78,
+ "completed": "2026-11-17",
+ "percent": 100,
  "dependencies": [
   "netsurf-manuelbv-0042",
   "netsurf-manuelbv-0043"
@@ -54,6 +54,12 @@
    "by": "manuelbv",
    "field": "percent",
    "to": "78"
+  },
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "notes,status,completed,percent",
+   "to": "All 224 jobs of the 16-draw addendum finished (run folder pa"
   }
  ]
 }
