@@ -1,12 +1,14 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0055",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 55,
  "label": "",
  "title": "Review draft v29 distributional diagnostic and protection implications",
  "summary": "",
- "notes": "",
- "status": "doing",
+ "notes": "Reviewed v29 revised statistical-model claims, Section 7.2, limits, conclusion, Appendix E, frozen diagnostic plan, moment/analysis/figure implementations, and finalized figure-layer results. Verified analysis summary/statements hashes and figure-layer summary/histogram hashes against stored provenance. Findings: sparse-to-dense aggregation is supported, not a takeover of low-bit variance or proof of a protection-ranking transition; task-level surrogate accuracy remains empirical and distinct from distributional fidelity. Main Gaussian-behaviour headings should be qualified. Event-share implementation normalizes separate raw second moments, omitting their cross-mean term from the total; revise definition or use centered variance fraction. Normality distance is a bin-edge CDF discrepancy, so the 0.048 versus 0.05 crossing should not be presented as an exact universal threshold. Figure expected counts are extrapolated from sampled counts rather than computed directly from eligible-bit counts. Conditional scope: nine layers of one checkpoint, fixed clean inputs, ideal protection. No manuscript edits, inference, or new campaigns performed.",
+ "status": "done",
  "priority": "medium",
  "stage": "",
  "target": "",
@@ -23,8 +25,8 @@
  "updated": "2026-11-17",
  "start": "",
  "end": "",
- "completed": "",
- "percent": null,
+ "completed": "2026-11-17",
+ "percent": 100,
  "dependencies": [],
  "links": {},
  "updated_by": "manuelbv",
@@ -34,8 +36,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "doing"
+  },
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "notes,status,completed,percent",
+   "to": "Reviewed v29 revised statistical-model claims, Section 7.2, "
   }
- ],
- "number": 55,
- "id": "netsurf-manuelbv-0055"
+ ]
 }
