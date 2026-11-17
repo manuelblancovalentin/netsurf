@@ -1,0 +1,47 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Paper 1: DistilBERT and Pythia 16-draw results into figures, text, tables and appendices",
+ "summary": "",
+ "notes": "Requested by the owner after the early T4 analysis of DistilBERT and Pythia (paper1_runT_t4_lm_analysis_dbpy_v1). Qwen3 stays at 4 draws until its runs finish (task 0046). Builds on: netsurf-manuelbv-0044 (16-draw runs and early analysis); netsurf-manuelbv-0048 (current text, v18.1).",
+ "status": "doing",
+ "priority": "high",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
+ "summaryTags": [
+  "paper1",
+  "manuscript"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-11-16",
+ "end": "",
+ "completed": "",
+ "percent": null,
+ "dependencies": [
+  "netsurf-manuelbv-0044",
+  "netsurf-manuelbv-0048"
+ ],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "doing"
+  }
+ ],
+ "number": 49,
+ "id": "netsurf-manuelbv-0049"
+}
