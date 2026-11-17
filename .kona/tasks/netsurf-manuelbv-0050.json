@@ -1,0 +1,48 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Paper 1: concept diagram for the noise-plus-events model and drift/spread",
+ "summary": "",
+ "notes": "Requested by the owner: a schematic of Sections 5.2-5.3 (bit flips, Gaussian background, individual top-bit events, regimes along the fault rate). Shown to the owner before it goes into the text. Builds on: netsurf-manuelbv-0041 (the model and its check); netsurf-manuelbv-0049 (current text).",
+ "status": "doing",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
+ "summaryTags": [
+  "paper1",
+  "manuscript",
+  "figure"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-16",
+ "updated": "2026-11-16",
+ "start": "2026-11-16",
+ "end": "",
+ "completed": "",
+ "percent": null,
+ "dependencies": [
+  "netsurf-manuelbv-0041",
+  "netsurf-manuelbv-0049"
+ ],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-16",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "doing"
+  }
+ ],
+ "number": 50,
+ "id": "netsurf-manuelbv-0050"
+}
