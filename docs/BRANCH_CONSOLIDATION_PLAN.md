@@ -550,3 +550,11 @@ Branches after execution: `v2`, `master`, `paper1-tecs-revision-v1`,
 - Pushed to both GitHub remotes: `v2`, all 41 tags, and on `kona` also `main` (= `v2`)
   and the two working Paper 1 branches. The 35 retired branches still exist on `kona`;
   each is at the same commit as its `archive/` tag there, so deleting them loses nothing.
+- **`m12-kws-transition-validation` merged** after the owner's decision: campaign schema
+  version 1.1.0 stays with the capability protocol, and the KWS high-BER request format
+  is now 1.3.0. Saved records are classified by `netsurf.cross_pool.campaign_kind`, which
+  uses the protocol name, so the high-BER campaign frozen on 2026-11-10 (schema 1.1.0,
+  protocol v1) still loads with its own primary comparison. Checked on the seven saved
+  campaigns of the four protocols, and by `tests/test_cross_pool_schema_versions.py`.
+  Full suite on `v2`: 717 passed, 53 skipped, none failed. Branches now: `v2`, `master`,
+  `paper1-tecs-revision-v1`, `paper1-runR-v2-validated`.
