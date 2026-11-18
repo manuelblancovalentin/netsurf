@@ -1,0 +1,46 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Consolidate branches and worktrees into v2, clean up the repository, README with results",
+ "summary": "",
+ "notes": "Requested by the owner on 2026-11-17 after Paper 1 draft v33. Executes docs/BRANCH_CONSOLIDATION_PLAN.md (branch branch-consolidation-plan, bd06434). Phase 0 (annotated tag on every branch tip, provenance tag for the reflog-only commit cccdca8, backup bundle) first; nothing is pushed.",
+ "status": "doing",
+ "priority": "high",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "",
+ "milestone": "",
+ "summaryTags": [
+  "repository",
+  "maintenance"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-17",
+ "updated": "2026-11-17",
+ "start": "2026-11-17",
+ "end": "",
+ "completed": "",
+ "percent": null,
+ "dependencies": [
+  "netsurf-manuelbv-0058"
+ ],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "doing"
+  }
+ ],
+ "number": 59,
+ "id": "netsurf-manuelbv-0059"
+}
