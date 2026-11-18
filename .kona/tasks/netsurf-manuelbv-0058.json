@@ -1,11 +1,13 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0058",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 58,
  "label": "",
  "title": "Paper 1: abstract shortened to 250 words in plain wording; better/worse wording throughout (draft v32)",
  "summary": "",
- "notes": "Requested by the owner: the abstract was 316 words and used wording such as 'confirmed ahead in 222 of the 859 conditions tested and behind in none'. Abstract rewritten in plain words (249 words). 'Ahead/behind' replaced by 'better/worse' in the introduction, results, conclusion and appendix text and table headers (35 places). Paper worktree commit db959b1. Verified: PDF (41 pages) and standalone Overleaf zip build with no undefined references and no overfull boxes; figure cadence unchanged (pages 2 to 20, every second page). Delivery folder workspace/paper1_review/delivery_v32_plain_abstract.",
+ "notes": "Requested by the owner: the abstract was 316 words and used wording such as 'confirmed ahead in 222 of the 859 conditions tested and behind in none'. Abstract rewritten in plain words (249 words). 'Ahead/behind' replaced by 'better/worse' in the introduction, results, conclusion and appendix text and table headers (35 places). Paper worktree commit db959b1. Verified: PDF (41 pages) and standalone Overleaf zip build with no undefined references and no overfull boxes; figure cadence unchanged (pages 2 to 20, every second page). Delivery folder workspace/paper1_review/delivery_v32_plain_abstract. Added at the owner request in the same sitting (commit c5eecdf, delivery folder workspace/paper1_review/delivery_v33_links): cross-references now link on the whole word (122 references converted through two macros in the preamble) and links are drawn with boxed borders; verified on a rendered page and by a standalone build of the zip.",
  "status": "done",
  "priority": "medium",
  "stage": "",
@@ -39,8 +41,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "done"
+  },
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "notes",
+   "to": "Requested by the owner: the abstract was 316 words and used "
   }
- ],
- "number": 58,
- "id": "netsurf-manuelbv-0058"
+ ]
 }
