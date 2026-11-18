@@ -1,0 +1,46 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Paper 1: abstract shortened to 250 words in plain wording; better/worse wording throughout (draft v32)",
+ "summary": "",
+ "notes": "Requested by the owner: the abstract was 316 words and used wording such as 'confirmed ahead in 222 of the 859 conditions tested and behind in none'. Abstract rewritten in plain words (249 words). 'Ahead/behind' replaced by 'better/worse' in the introduction, results, conclusion and appendix text and table headers (35 places). Paper worktree commit db959b1. Verified: PDF (41 pages) and standalone Overleaf zip build with no undefined references and no overfull boxes; figure cadence unchanged (pages 2 to 20, every second page). Delivery folder workspace/paper1_review/delivery_v32_plain_abstract.",
+ "status": "done",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "Paper 1",
+ "milestone": "Paper 1 TECS",
+ "summaryTags": [
+  "paper1",
+  "manuscript"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-17",
+ "updated": "2026-11-17",
+ "start": "2026-11-17",
+ "end": "",
+ "completed": "2026-11-17",
+ "percent": null,
+ "dependencies": [
+  "netsurf-manuelbv-0057"
+ ],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "done"
+  }
+ ],
+ "number": 58,
+ "id": "netsurf-manuelbv-0058"
+}
