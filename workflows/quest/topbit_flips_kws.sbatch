@@ -1,0 +1,47 @@
+#!/bin/bash
+# EXPLORATORY: every top-bit (6, 7) single flip of the DS-CNN, per clip, on one GPU (runR_topbit_flips.py).
+# Phase 1 checks the GPU against the CPU reference (the blur pilot's 800 measured flips) and times one flip;
+# phase 2 measures all 44,032 flips, one output file per layer, restartable.
+# Submit from the Quest login node:   sbatch $HOME/netsurf_site/wt/paper1-runR-v2-validated/workflows/quest/topbit_flips_kws.sbatch
+# Follow progress:                    tail -f $HOME/netsurf_site/logs/topbit_kws_<jobid>.log      and   squeue -u $USER
+#SBATCH --account=p33112
+#SBATCH --partition=gengpu
+#SBATCH --gres=gpu:a100:1
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=32G
+#SBATCH --time=02:00:00
+#SBATCH --job-name=topbit_kws
+#SBATCH --output=/home/mbv6231/netsurf_site/logs/topbit_kws_%j.log
+set -euo pipefail
+SITE=$HOME/netsurf_site
+source $HOME/miniforge3/etc/profile.d/conda.sh
+conda activate netsurf-gpu
+export NETSURF_SITE_DATA=$SITE/data NETSURF_SITE_WT=$SITE/wt NETSURF_SITE_LOCKS=$SITE/locks
+export TF_DETERMINISTIC_OPS=1 TF_CPP_MIN_LOG_LEVEL=2 PYTHONUNBUFFERED=1
+# A100s run float32 convolutions and matrix products in TF32 (10-bit mantissa) by default; that moves activations across
+# INT8 rounding steps (job 8664433: GPU-CPU differences about 40% of a typical flip effect). Force full float32.
+export NVIDIA_TF32_OVERRIDE=0
+# PHASES and OUT_NAME can be overridden with sbatch --export=ALL,PHASES=check,OUT_NAME=...
+PHASES=${PHASES:-check measure}
+OUT_NAME=${OUT_NAME:-wt/paper1-tecs-revision-v1/workspace/runs/paper1_topbit_flips_kws_v2}
+# CUDA 11.8 libraries come from the nvidia-* pip packages of the environment, including nvidia-cuda-nvrtc-cu11==11.8.89
+# (cuDNN 8.7 compiles convolution kernels at run time and opens the unversioned libnvrtc.so, which the package does not
+# ship, so a link to libnvrtc.so.11.2 is kept in $SITE/libshim)
+NV=$(python -c "import nvidia; print(list(nvidia.__path__)[0])")
+mkdir -p $SITE/libshim && ln -sfn $NV/cuda_nvrtc/lib/libnvrtc.so.11.2 $SITE/libshim/libnvrtc.so
+export LD_LIBRARY_PATH=$SITE/libshim:$(ls -d $NV/*/lib | tr '\n' ':')${LD_LIBRARY_PATH:-}
+echo "job $SLURM_JOB_ID on $(hostname) at $(date)"
+nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
+# fail within seconds if TensorFlow sees no GPU or cuDNN cannot run a convolution
+python -c "import tensorflow as tf; g = tf.config.list_physical_devices('GPU'); print('TensorFlow GPUs:', g); assert g, 'no GPU visible to TensorFlow'; y = tf.nn.conv2d(tf.ones((1, 8, 8, 4)), tf.ones((3, 3, 4, 2)), 1, 'SAME'); print('GPU convolution ok', float(tf.reduce_sum(y)))"
+cd $SITE/wt/paper1-runR-v2-validated/workflows
+# compute nodes have no git: record the exact code by hash instead
+sha256sum runR_topbit_flips.py site_paths.py runR_kws.py quest/topbit_flips_kws.sbatch
+OUT=$SITE/$OUT_NAME
+echo "TF32 override: $NVIDIA_TF32_OVERRIDE; phases: $PHASES; output: $OUT"
+for phase in $PHASES; do
+  python runR_topbit_flips.py $phase --out $OUT --threads 4 --log-every 1000
+done
+echo "finished at $(date)"

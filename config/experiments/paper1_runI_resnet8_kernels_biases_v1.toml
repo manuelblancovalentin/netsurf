@@ -1,0 +1,96 @@
+schema_version = "3.6.0"
+scientific_protocol = "multi-coverage-protection/v1"
+
+[experiment]
+name = "paper1_runI_resnet8_kernels_biases_v1"
+description = "Run I: stored-bit faults on INT8 kernels and INT32 fused biases together (629,952 bits; biases are 11,072 of them). Three data-free rankings (random, significance-first, numerical jump) on six 1000-image CIFAR-10 test windows with new fault fields. The windows were used by Run A; no data-dependent ranking is built."
+objective = "Measure how much unprotected bias bits change task quality relative to the kernel-only population of the main study, and how the data-free rankings allocate protection when biases are eligible. Gradient rankings are not included because the engine validates its gradient companion for INT8 kernels only. Exploratory; conditional on one frozen checkpoint; ideal logical suppression."
+
+[benchmark]
+adapter = "mlperf_tiny_ic_int8_v1"
+id = "mlperf_tiny_ic_resnet8_int8_v1"
+checkpoint = "/data/models/models--mlcommons--tiny/blobs/3c002613d1b2475eb51dd78dfb85a546c8ae658dee71cf6ade43b022fe205415"
+dataset = "/data/datasets/cifar10/cifar-10-python.tar.gz"
+asset_lock = "/projects/kona-assets/manuelbv/locks/mlperf-tiny/ic.lock.json"
+inference_backend = "tensorflow_lite_builtin_ref_v1"
+split = "test"
+quantization = "tflite_affine_int8"
+quantization_backend = "tflite_affine_integer_v1"
+injectable_parameters = ["kernels", "biases"]
+
+[samples]
+ranking_count = 64
+empirical_count = 1
+evaluation_count = 1000
+require_disjoint = true
+
+[candidates]
+strategy = "uniform"
+count = 1
+seed = 3121101
+score_quantiles = 1
+
+[[estimators]]
+name = "random"
+implementation_version = "seeded-uniform-score/v1"
+result_name = "random_reference"
+seed = 5129102
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "relative-word-bit-index/v1"
+result_name = "s2_msb_first"
+
+[[estimators]]
+name = "numerical_bit_jump"
+implementation_version = "absolute-affine-xor-jump/v1"
+result_name = "s3_numerical_jump"
+
+[[policies]]
+name = "random_global"
+estimator = "random_reference"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "msb_global"
+estimator = "s2_msb_first"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "numerical_jump_global"
+estimator = "s3_numerical_jump"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[protection]
+coverages = [0.0625, 0.125, 0.1875, 0.25]
+probabilities = [0.00001, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1]
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.00001
+
+[execution]
+trials = 4
+confidence = 0.95
+fault_seed = 5129201
+permutation_seed = 5129301
+
+[replications]
+count = 6
+candidate_seed_stride = 0
+hutchinson_seed_stride = 0
+sample_offset_stride = 1000
+fault_seed_stride = 100003
+estimator_seed_stride = 1009
+
+[output]
+root = ""
+report = true
+plots = false
