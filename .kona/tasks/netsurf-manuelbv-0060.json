@@ -1,0 +1,46 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Repository follow-ups: skip tests without local plans, redact private paths, remove leftovers, push to GitHub",
+ "summary": "",
+ "notes": "Requested by the owner after the consolidation (netsurf-manuelbv-0059).",
+ "status": "doing",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "",
+ "milestone": "",
+ "summaryTags": [
+  "repository",
+  "maintenance"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-17",
+ "updated": "2026-11-17",
+ "start": "2026-11-17",
+ "end": "",
+ "completed": "",
+ "percent": null,
+ "dependencies": [
+  "netsurf-manuelbv-0059"
+ ],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "doing"
+  }
+ ],
+ "number": 60,
+ "id": "netsurf-manuelbv-0060"
+}
