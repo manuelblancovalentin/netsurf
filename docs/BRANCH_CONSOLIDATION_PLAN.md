@@ -1,8 +1,7 @@
 # Branch and worktree consolidation plan
 
-Status: **proposal, waiting for the owner's written approval.** Nothing in this
-plan has been run. No branch, tag, worktree, remote or file outside this
-document was changed while writing it.
+Status: **executed on 2026-11-17** at the owner's request, with the departures listed in
+section 7. Sections 1 to 6 are the plan as written before execution; nothing was pushed.
 
 Audit date: 2026-11-17, repository `/projects/netsurf/manuelbv` on `v2` at
 `db5e2f7`.
@@ -487,3 +486,51 @@ registry and manuscript sources, `/proc/*/cwd` for running processes, and
 bound: an output that names its commit in a file not covered by that scan is
 not listed, but such a commit is still protected because Phase 0 tags every
 branch tip.
+
+## 7. Execution record (2026-11-17)
+
+Owner's decisions: merge the two Paper 1 branches into `v2` now and keep both as
+working branches; keep `m12-priorifi-probing` and `paper1-expanded-benchmarks` as
+tags only; keep the retired worktree folders registered (Phase 5 not run).
+
+- **Phase 0 and 1.** 36 `archive/<branch>` tags, `provenance/numpy-pgcs-exact-cccdca8`,
+  two `snapshot/…/2026-11-17` tags, `paper1/delivery-v33` (the delivered draft), and
+  the bundle `workspace/git_backups/netsurf-refs-2026-11-17.bundle` (verified;
+  SHA-256 `0782e764d9a0ee577e2de44c35cf7fbfe91b5b966292d768c239f6c57f73e02f`).
+  Checks passed.
+- **Phase 2.** The 26 merged or superseded branches of sections 3.1 and 3.2 were
+  retired with `retire`, and the two tag-only branches the same way. Every folder
+  is detached at its tag; no file moved.
+- **Phase 3 and 4 together**, on a temporary branch `integration/consolidation`,
+  merged with `--no-ff` in this order: this plan, `m11-conditional-scaling`,
+  `m12-reliability-database`, `m12-pythia-wide-confirm`, `m12-pythia-recovery`,
+  `codex/w8a8-fkeras-feasibility`, `pythia-bf16-storage`, `m12-priorifi-crossbench`,
+  `paper1-runR-v2-validated`, `paper1-tecs-revision-v1`, `paper-v22-review-20261117`.
+  One conflict, in `netsurf/benchmarks/capabilities.py`: `m11` had verified
+  conditional protection for ResNet-8 and ToyCar and `m12-priorifi-crossbench` the
+  continuous Hessian for the same two; both are kept, with `m11`'s ToyCar blocker
+  for conditional risk and the cross-benchmark branch's ToyCar caveat for the
+  Hessian objective. `v2` was then fast-forwarded and the eight merged tips retired.
+- **Not merged: `m12-kws-transition-validation`.** It conflicts with `m11` in
+  `netsurf/cross_pool.py` and `netsurf/cross_pool_analysis.py`, and the conflict is
+  not mechanical: both branches use campaign schema version `1.1.0`, `m11` for the
+  protocol `capability-cross-pool/v2` (any fault rate, primary comparison
+  `restricted_selected_vs_original_s5`) and the KWS branch for
+  `cross-pool-frozen-protection/v1` at fault rates 0.05 and 0.075 with primary
+  comparison `restricted_selected_vs_exact_isolated`. Saved campaign records can be
+  told apart by their protocol field; a request file cannot. The branch stays, with
+  its worktree and its tag `archive/m12-kws-transition-validation`, until the owner
+  decides which protocol keeps the number.
+- **Tests** (`python -m pytest -q`, netsurf environment): on the merged `v2`,
+  701 passed, 47 skipped, 6 failed. The six
+  (`tests/test_w8a8_concurrent_v2.py`, `tests/test_w8a8_lm_concurrent_v2.py`) read
+  `workspace/plans/*_w8a8_reliability_v1/plan.json`, which is an ignored run output
+  of the `transformer-integration` folder; they fail the same way on their own
+  branch (`archive/m12-pythia-wide-confirm`). No test fails because of a merge.
+- **Left as they are:** `master`; the two working Paper 1 branches and their
+  folders; every retired folder with its run outputs; the idle tmux server in
+  `w8a8-ber-stress`; the untracked `repo.second-clone-20261117/`; every branch on
+  the two GitHub remotes.
+
+Branches after execution: `v2`, `master`, `paper1-tecs-revision-v1`,
+`paper1-runR-v2-validated`, `m12-kws-transition-validation`.
