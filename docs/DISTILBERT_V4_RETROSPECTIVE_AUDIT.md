@@ -69,7 +69,7 @@ There are three unresolved explanations: (1) isolated score error from just 32 t
 Source commit `0bd4bb7` ran eleven requests (352 clip inferences) on the **previously fault-exposed** validation engineering indices 0–31, using a single disputed bit, `classifier.weight[0]#b30`, selected after reviewing the v4 masks. Four fresh BER-16/1024 outside fields used seeds 881001–881004 and held every other fault fixed while that bit was toggled. The isolated bit effect on this cohort was −0.0030844 nats. The four conditional bit effects were −0.0033447, −0.0032654, −0.0030865 and −0.0031815 nats, yielding interaction differences of approximately −0.0002603, −0.0001810, −0.0000020 and −0.0000971 nats. No sign reversal appeared in these four fields. This tiny diagnostic neither explains nor negates the v4 high-BER gap: it uses another cohort, another field family, and one post-hoc chosen bit. It does demonstrate that a paired counterfactual can measure a conditional effect without attributing a multi-fault association to a specific bit by assumption. The immutable engineering bundle payload SHA-256 is `cb6e44b1a357f29c892c771b89351ef0a7be08f4215ad646592208594c6ab043`; complete ZIP SHA-256 is `05745258a227994fcffd00f821e22c934011b8c7111b02f3ddca8c4ff69c91f1`. All file checksums, the final marker and ZIP CRC passed.
 
 ```sh
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_v4_disputed_bit_engineering_v1/complete.zip ~/Downloads/distilbert_v4_disputed_bit_engineering_v1_complete.zip
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_v4_disputed_bit_engineering_v1/complete.zip ~/Downloads/distilbert_v4_disputed_bit_engineering_v1_complete.zip
 ```
 
 ## Frozen independent replication
@@ -85,15 +85,15 @@ This plan is **frozen but unexecuted**. Neither selection nor final inference ha
 The following is the complete prospective one-shot command. It validates the frozen source and READY snapshot, runs selection, seals all masks, runs final paired fields, saves a concise analysis summary with detailed JSON in the bundle, exports complete/compact ZIPs, and prints exact Mac copy commands. It is documented here and **has not been executed**.
 
 ```sh
-/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/scripts/run_distilbert_replication_once.sh \
-  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/config/experiments/distilbert_sst2_validation_replication_v1.json \
-  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/plans/distilbert_sst2_validation_replication_v1/NETSURF_ASSET_READINESS.json \
-  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_validation_replication_v1_run1 \
+<repo>/workspace/implementation-worktrees/transformer-integration/scripts/run_distilbert_replication_once.sh \
+  <repo>/workspace/implementation-worktrees/transformer-integration/config/experiments/distilbert_sst2_validation_replication_v1.json \
+  <repo>/workspace/implementation-worktrees/transformer-integration/workspace/plans/distilbert_sst2_validation_replication_v1/NETSURF_ASSET_READINESS.json \
+  <repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_validation_replication_v1_run1 \
   kona
 ```
 
 After successful finalization, the generated `mac_scp_commands.txt` under the export directory gives the exact host path. Its intended complete-evidence command is:
 
 ```sh
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_validation_replication_v1_run1_export/complete.zip ~/Downloads/complete.zip
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_validation_replication_v1_run1_export/complete.zip ~/Downloads/complete.zip
 ```

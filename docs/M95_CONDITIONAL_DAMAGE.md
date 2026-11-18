@@ -21,11 +21,11 @@ sampling, model training, or physical-radiation uncertainty.
 Schema `6.0.0` is deliberately separate from protection schemas. The CLI is:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional validate \
+<assets>/.venv-mlperf/bin/python -m netsurf conditional validate \
   config/examples/m95_kws_conditional_smoke.toml --resolved
 
 NETSURF_WORKSPACE=/path/to/workspace \
-  /projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional run \
+  <assets>/.venv-mlperf/bin/python -m netsurf conditional run \
   config/examples/m95_kws_conditional_smoke.toml
 ```
 

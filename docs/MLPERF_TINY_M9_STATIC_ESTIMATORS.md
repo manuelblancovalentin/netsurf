@@ -140,13 +140,13 @@ command.
 Use the pinned TensorFlow 2.14 environment for scientific execution:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf validate \
+<assets>/.venv-mlperf/bin/python -m netsurf validate \
   config/experiments/m9_resnet8_static_estimator_validation_v1.toml --resolved
 
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf run \
+<assets>/.venv-mlperf/bin/python -m netsurf run \
   config/experiments/m9_resnet8_static_estimator_validation_v1.toml
 
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf run \
+<assets>/.venv-mlperf/bin/python -m netsurf run \
   config/experiments/m9_resnet8_static_protection_smoke_v1.toml
 ```
 

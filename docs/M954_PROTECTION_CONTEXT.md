@@ -125,14 +125,14 @@ probability correction.
 Validate the retained no-context K=8 control:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional validate \
+<assets>/.venv-mlperf/bin/python -m netsurf conditional validate \
   config/examples/m954_kws_restricted_k8_control.toml --resolved
 ```
 
 Validate the verified S5 12.5%-context K=8 exchange study:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional validate \
+<assets>/.venv-mlperf/bin/python -m netsurf conditional validate \
   config/examples/m954_kws_s5_context_k8.toml --resolved
 ```
 
@@ -140,7 +140,7 @@ After reviewing resolved counts, run either configuration from this worktree:
 
 ```bash
 NETSURF_WORKSPACE="$PWD/workspace" \
-  /projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional run \
+  <assets>/.venv-mlperf/bin/python -m netsurf conditional run \
   config/examples/m954_kws_s5_context_k8.toml
 ```
 

@@ -20,7 +20,7 @@
   environment is Python 3.11.17, for which TensorFlow 2.11 wheels do not exist.
   Do not declare a newer TensorFlow equivalent until the payload is compared.
 - `proj` shell integration and Lmod function are not initialized in the execution shell, but the private metadata profile is valid.
-- Wolf exists at `/home/manuelbv/wolf` commit `a3f967b` on `multibackend` with two unrelated modified TSMC28 templates. It is not on PATH. No NetSuRF Wolf manifest has been created yet.
+- Wolf exists at `<home>/wolf` commit `a3f967b` on `multibackend` with two unrelated modified TSMC28 templates. It is not on PATH. No NetSuRF Wolf manifest has been created yet.
 - Wolf provides numbered immutable ASIC runs and provenance, but not a general ML dependency solver, sweep scheduler, or content-addressed stage cache.
 - ToyCar preprocessing requires librosa, which is not installed in every
   NetSuRF Python environment. The validated pinned reference environment has it;

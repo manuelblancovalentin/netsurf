@@ -33,13 +33,13 @@ The new `netsurf/equal_compute_kws_campaign.py` source enforces fixed seeds, mas
 After M11 ends and the researcher approves the foreground resource envelope, the single command is:
 
 ```sh
-/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/scripts/run_kws_equal_compute_once.sh /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/plans/kws_equal_compute_prospective_v1/plan.json /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/kws_equal_compute_prospective_v1_run1
+<repo>/workspace/implementation-worktrees/transformer-integration/scripts/run_kws_equal_compute_once.sh <repo>/workspace/implementation-worktrees/transformer-integration/workspace/plans/kws_equal_compute_prospective_v1/plan.json <repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/kws_equal_compute_prospective_v1_run1
 ```
 
 It validates the frozen plan and exposure ledger, completes selection, seals every mask, evaluates the 128 independent final fields, aggregates offline, writes a complete evidence ZIP and prints the exact Mac command. Provision about **3 foreground hours and at least 2 GiB RAM** using the earlier M9.6 reference measurement, then revisit that envelope if the first prespecified selection member is slower; do not alter fields, pools or hypotheses after final effects. The intended Mac download path after successful export is:
 
 ```sh
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/kws_equal_compute_prospective_v1_run1_export/complete.zip ~/Downloads/kws_equal_compute_prospective_v1_complete.zip
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/kws_equal_compute_prospective_v1_run1_export/complete.zip ~/Downloads/kws_equal_compute_prospective_v1_complete.zip
 ```
 
 ### Finalized retrospective receipt
@@ -47,5 +47,5 @@ scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transform
 The read-only exercise finalized at `workspace/runs/m96_equal_query_retrospective_v1`, payload digest `6f9cd8ddf789676a5f6d04adda09a38e3b2222cfec02c1c5c989bf8c430b8262`, derived-only ZIP SHA-256 `ea58381c127785e0830f2606fe83c9bb77baa831049026788a1993e45c97b1c3`. Its file checksums, `FINALIZED` digest and ZIP CRC were verified. A separate self-contained export copies and verifies all twelve immutable M9.6 selection payloads, exact mask-response tables, checksums, receipts, the source campaign manifest, and the derived result; its complete ZIP SHA-256 is `fbe2c39ac3860bfddfd50040e5b8d4458ef3a7c0708389ef40051a3502635f29`. Neither archive modifies M9.6 source evidence. The source commit recorded in the derived payload is `fa03377`. Relative to the original S5 mask on the 16 held-out background fields, mean pool differences for random search at seeds 901/902/903 were about −0.0000680, −0.0000668, and −0.0000442 nats; for greedy swap, −0.0001375, −0.0001610, and −0.0001145 nats. Greedy improved 9, 9 and 8 of 12 pools; these are descriptive outcomes on historically available tables, with shared input clips and no prospective final exposure. They cannot establish independent generalization or a publication effect.
 
 ```sh
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/m96_equal_query_retrospective_v1_selfcontained_export/complete.zip ~/Downloads/m96_equal_query_retrospective_v1_selfcontained_complete.zip
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/m96_equal_query_retrospective_v1_selfcontained_export/complete.zip ~/Downloads/m96_equal_query_retrospective_v1_selfcontained_complete.zip
 ```

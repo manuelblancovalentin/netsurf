@@ -4,7 +4,7 @@
 
 Branch/worktree: `m910-interaction-attribution`, based exactly on M99
 `c6bf8cab2a87526a6385026ee5592242033f4687`, at
-`/projects/netsurf/manuelbv/workspace/implementation-worktrees/m910-interaction-attribution`.
+`<repo>/workspace/implementation-worktrees/m910-interaction-attribution`.
 No merge, push, asset-lock change, environment change or new scientific inference.
 Historical bundles remain in their original worktrees. No production campaign
 or new optimizer was run. Existing regression tests may perform their usual
@@ -374,10 +374,10 @@ and execution provenance are separate. A new output directory is mandatory.
 Failure leaves unfinalized diagnostic evidence; no overwrite/resume is implied.
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/m910-interaction-attribution
+cd <repo>/workspace/implementation-worktrees/m910-interaction-attribution
 
 # Offline only; no TensorFlow needed. Use a NEW destination for every derivation.
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf.interaction_attribution \
+<netsurf-env>/bin/python -m netsurf.interaction_attribution \
   --sources config/analysis/m910_sources.json \
   --output workspace/runs/m910_user_analysis \
   --seed 910001 --bootstrap-replicates 500
@@ -386,8 +386,8 @@ cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/m910-interactio
 # campaign family; every specified campaign still requires all its planned pools.
 # --no-plots omits figures, not scientific measurements or provenance checks.
 
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m pytest -q tests/test_m910_attribution.py
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m pytest -q -rs --tb=short
+<netsurf-env>/bin/python -m pytest -q tests/test_m910_attribution.py
+<netsurf-env>/bin/python -m pytest -q -rs --tb=short
 ```
 
 Use the canonical environment's existing NumPy, SciPy and Matplotlib. The pinned
@@ -406,7 +406,7 @@ commit follows it. No other worktree or branch was merged or changed.
 The clean committed-source replay is finalized at:
 
 ```text
-/projects/netsurf/manuelbv/workspace/implementation-worktrees/m910-interaction-attribution/workspace/runs/m910_production_attribution_committed
+<repo>/workspace/implementation-worktrees/m910-interaction-attribution/workspace/runs/m910_production_attribution_committed
 ```
 
 Its scientific payload is **byte-identical** to the preceding complete derivation:
@@ -457,6 +457,6 @@ sha256sum workspace/exports/m910_handoff.zip
 unzip -t workspace/exports/m910_handoff.zip
 
 # Mac: replace KONA_SSH_HOST with your actual configured host/alias.
-scp manuelbv@KONA_SSH_HOST:/projects/netsurf/manuelbv/workspace/implementation-worktrees/m910-interaction-attribution/workspace/exports/m910_handoff.zip ~/Downloads/
+scp <user>@<host>:<repo>/workspace/implementation-worktrees/m910-interaction-attribution/workspace/exports/m910_handoff.zip ~/Downloads/
 shasum -a 256 ~/Downloads/m910_handoff.zip
 ```

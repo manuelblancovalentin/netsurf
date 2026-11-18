@@ -86,9 +86,9 @@ was subsequently renamed `netsurf-legacy`; its current equivalent command is:
 ```bash
 env HOME=/tmp/netsurf_milestone_home CUDA_VISIBLE_DEVICES=-1 \
   TF_DETERMINISTIC_OPS=1 TF_CPP_MIN_LOG_LEVEL=2 \
-  /mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf-legacy/bin/python \
+  <netsurf-legacy-env>/bin/python \
   -m netsurf milestone \
-  --repo /mnt/raid0/asic/projects/NU/netsurf/manuelbv \
+  --repo <repo> \
   --output-root /ml/experiments/netsurf/runs/mnist_lite_milestone/commit-85b00d6 \
   --dataset /ml/datasets/mnist/mnist.npz \
   --samples 256 --ranking-samples 256 --trials 12 \

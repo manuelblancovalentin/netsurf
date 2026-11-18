@@ -51,8 +51,8 @@ PrioriFI protection rule.
 From the isolated implementation worktree, using the existing environment:
 
 ```bash
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m pytest -q tests/test_priorifi.py
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf.priorifi_numpy_reference \
+<netsurf-env>/bin/python -m pytest -q tests/test_priorifi.py
+<netsurf-env>/bin/python -m netsurf.priorifi_numpy_reference \
   --output workspace/runs/priorifi_numpy_reference_engineering_v2
 ```
 

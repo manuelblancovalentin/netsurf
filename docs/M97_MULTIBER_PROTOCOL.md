@@ -21,7 +21,7 @@ Earlier `m97_kws_multiber_v1` is a pre-delivery frozen planning artifact;
 its source evidence is retained and it must not be executed as the study.
 
 The M9.6 source is
-`/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/campaign.json`.
+`<repo>/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/campaign.json`.
 The new code verifies its FROZEN marker, file inventory, all 24 completed
 receipts and scientific bundles before copying pool identities. Candidate
 sampling is never called. The twelve pool identities, including any overlap
@@ -158,15 +158,15 @@ not use modern TF 2.21 to claim equivalent scientific results. Do not run
 these production commands automatically from an agent or background job.
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber
+cd <repo>/workspace/implementation-worktrees/m97_ber
 M97=workspace/runs/m97_kws_multiber_v2/campaign.json
-PY=/projects/kona-assets/manuelbv/.venv-mlperf/bin/python
+PY=<assets>/.venv-mlperf/bin/python
 
 $PY -m netsurf multiber validate "$M97"
 $PY -m netsurf multiber run "$M97" --phase selection
 $PY -m netsurf multiber seal "$M97"
 $PY -m netsurf multiber run "$M97" --phase final
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf multiber aggregate "$M97" \
+<netsurf-env>/bin/python -m netsurf multiber aggregate "$M97" \
   --output workspace/runs/m97_kws_multiber_analysis_v1
 ```
 
@@ -210,7 +210,7 @@ this protocol, the v2 production plan, and the finalized tiny engineering
 evidence. Verify its SHA-256 after transfer.
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber
+cd <repo>/workspace/implementation-worktrees/m97_ber
 mkdir -p workspace/exports
 # Existing handoff bundle can be checked before transfer:
 sha256sum workspace/exports/m97_handoff.zip
@@ -228,17 +228,17 @@ sha256sum workspace/exports/m97_complete_scientific_evidence.zip
 On the Mac, with the researcher's configured SSH alias:
 
 ```bash
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/exports/m97_engineering_evidence.zip .
+scp kona:<repo>/workspace/implementation-worktrees/m97_ber/workspace/exports/m97_engineering_evidence.zip .
 shasum -a 256 m97_engineering_evidence.zip
 unzip -l m97_engineering_evidence.zip
 
 # Source, final frozen plan, and engineering demonstration are available now:
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/exports/m97_handoff.zip .
+scp kona:<repo>/workspace/implementation-worktrees/m97_ber/workspace/exports/m97_handoff.zip .
 shasum -a 256 m97_handoff.zip
 unzip -l m97_handoff.zip
 
 # After production completion:
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/exports/m97_complete_scientific_evidence.zip .
+scp kona:<repo>/workspace/implementation-worktrees/m97_ber/workspace/exports/m97_complete_scientific_evidence.zip .
 shasum -a 256 m97_complete_scientific_evidence.zip
 unzip -l m97_complete_scientific_evidence.zip
 ```

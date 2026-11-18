@@ -15,7 +15,7 @@ but is not required by the software and is not a dependency lock.
 On Kona with `proj`:
 
 ```bash
-cd /home/manuelbv/netsurf
+cd <home>/netsurf
 proj activate netsurf
 python -m pip install -r dependencies/modern-ml-direct.txt
 python -m pip install --no-deps -e .
@@ -341,7 +341,7 @@ recipe above. Do not copy Kona's absolute environment path to another server.
 
 The private `proj` project `netsurf` points to this repository and the dedicated
 Python 3.11.17 environment at
-`/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf`. Proj selects an environment;
+`<netsurf-env>`. Proj selects an environment;
 it is not a dependency lock.
 
 ```bash
@@ -667,11 +667,11 @@ fields, output digests, storage counts, blocked estimators and commands are in
 Run M9 only with the registered TensorFlow 2.14.1 reference environment:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf validate \
+<assets>/.venv-mlperf/bin/python -m netsurf validate \
   config/experiments/m9_resnet8_static_estimator_validation_v1.toml --resolved
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf run \
+<assets>/.venv-mlperf/bin/python -m netsurf run \
   config/experiments/m9_resnet8_static_estimator_validation_v1.toml
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf run \
+<assets>/.venv-mlperf/bin/python -m netsurf run \
   config/experiments/m9_resnet8_static_protection_smoke_v1.toml
 ```
 
@@ -692,7 +692,7 @@ of the bounded regression suite.
 
 ## M9.5.6 separated selection and final evaluation
 
-Use the pinned `/projects/kona-assets/manuelbv/.venv-mlperf/bin/python`, not
+Use the pinned `<assets>/.venv-mlperf/bin/python`, not
 modern TensorFlow, for the two schema-6.4 configurations in `config/examples/`:
 `m956_kws_s5_selection_k8.toml` and `m956_kws_s5_final_k8.toml`.
 Validate through `python -m netsurf conditional validate CONFIG --resolved`.
@@ -721,7 +721,7 @@ The isolated `m96-cross-pool` worktree contains a frozen twelve-pool K=6 KWS pla
 not a completed campaign. Use `python -m netsurf campaign validate MANIFEST`,
 `campaign run MANIFEST --phase selection`, `campaign seal MANIFEST`, then
 `campaign run MANIFEST --phase final`. Authoritative execution requires the
-explicit `/projects/kona-assets/manuelbv/.venv-mlperf/bin/python` interpreter.
+explicit `<assets>/.venv-mlperf/bin/python` interpreter.
 Use canonical Python for offline `campaign aggregate MANIFEST --output NEW`.
 Do not run the production plan as a test. Full foreground commands, hashed
 evidence, operational batching, interrupted-attempt behavior, exposure audit and
@@ -732,7 +732,7 @@ conversion, asset-lock modification or GPU is required.
 
 The isolated `m98-conditional-adapters` worktree provides schema 6.7 / campaign
 1.1 and the frozen four-pool K=6 ResNet plan. It was validated, not executed.
-Use the pinned `/projects/kona-assets/manuelbv/.venv-mlperf/bin/python` for
+Use the pinned `<assets>/.venv-mlperf/bin/python` for
 `campaign validate`, selection, sealing and final evaluation. Canonical Python
 regenerates plots from saved evidence. The original KWS engineering replay
 retains scientific payload
@@ -770,7 +770,7 @@ From the `m910-interaction-attribution` worktree, use the existing canonical
 interpreter and a fresh output directory:
 
 ```bash
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf.interaction_attribution \
+<netsurf-env>/bin/python -m netsurf.interaction_attribution \
   --sources config/analysis/m910_sources.json \
   --output workspace/runs/m910_user_analysis \
   --seed 910001 --bootstrap-replicates 500
@@ -788,7 +788,7 @@ detectability limitations and manuscript-ready figures.
 Use [M11 results and execution instructions](M11_RESULTS_AND_LIMITATIONS.md)
 and [the mathematical contract](M11_THEORY.md) for the independent
 `netsurf scaling` schema-1.0.0 interface. Authoritative inference still requires
-`/projects/kona-assets/manuelbv/.venv-mlperf/bin/python` and its unchanged locked
+`<assets>/.venv-mlperf/bin/python` and its unchanged locked
 assets; plots/tests use the canonical Python3.11 environment. Freeze plans,
 finish and seal every prescribed selection, then evaluate frozen masks with
 independent final fields. Do not launch the expensive exploratory example

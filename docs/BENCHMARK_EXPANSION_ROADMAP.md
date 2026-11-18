@@ -11,7 +11,7 @@ discoverable or silently approve a model conversion.
 ## Audit basis and status vocabulary
 
 Inspected NetSuRF adapters/contracts, shared `/data/models` and `/data/datasets`,
-and `/projects/kona-assets/manuelbv/src/kona_assets/registry/{models,datasets,benchmarks}`
+and `<assets>/src/kona_assets/registry/{models,datasets,benchmarks}`
 plus `locks/mlperf-tiny/`. No downloads, training, package installation, precision
 conversion or new model inference were performed for this roadmap. Private
 user caches were not searched. Registry pins for unacquired models are evidence

@@ -30,12 +30,12 @@ partial artifacts and the final product/archive identities.
 Run the postprocessing-only entry point with the analysis interpreter:
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python \
+cd <repo>/workspace/implementation-worktrees/reliability-db
+<netsurf-env>/bin/python \
   -m workflows.recover_reliability_followup \
   --output workspace/m12_kws_seven_method_followup \
   --sources config/reliability_sources_v1.json \
-  --assets /projects/kona-assets/manuelbv/NETSURF_ASSET_READINESS.json \
+  --assets <assets>/NETSURF_ASSET_READINESS.json \
   --baseline workspace/reliability_database_v3_m12_release
 ```
 

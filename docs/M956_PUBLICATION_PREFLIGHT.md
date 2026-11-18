@@ -185,16 +185,16 @@ a re-audited independent final plan, not patching an old bundle.
 Use this isolated worktree; nothing has been merged into `v2`:
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/m956
+cd <repo>/workspace/implementation-worktrees/m956
 export NETSURF_WORKSPACE="$PWD/workspace"
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional validate \
+<assets>/.venv-mlperf/bin/python -m netsurf conditional validate \
   config/examples/m956_kws_s5_selection_k8.toml --resolved
 ```
 
 After reviewing the 8,201-request plan, run the pilot in tmux yourself:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional run \
+<assets>/.venv-mlperf/bin/python -m netsurf conditional run \
   config/examples/m956_kws_s5_selection_k8.toml
 ```
 
@@ -212,14 +212,14 @@ The final template deliberately contains `REQUIRED_*` placeholders and **fails
 validation until bound**. It never guesses a run path. Then:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional validate \
+<assets>/.venv-mlperf/bin/python -m netsurf conditional validate \
   config/examples/m956_kws_s5_final_k8.toml --resolved
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional run \
+<assets>/.venv-mlperf/bin/python -m netsurf conditional run \
   config/examples/m956_kws_s5_final_k8.toml
 ```
 
 Required baseline: the hash-pinned M93 S5 source bundle
-`/projects/netsurf/manuelbv/workspace/runs/m93_kws_static_ber_sweep1000_v1/20261029T183410.488907Z-32c31070`,
+`<repo>/workspace/runs/m93_kws_static_ber_sweep1000_v1/20261029T183410.488907Z-32c31070`,
 the pinned KWS lock, model and Speech Commands data remain at the locations
 in the TOMLs. Modern TF2.21 is not a replacement for the TF2.14.1 BUILTIN_REF
 interpreter. No packages or toolchains were changed.
@@ -293,8 +293,8 @@ or power calculations. No publication-scale pilot/final run was launched.
 Exact test commands from this worktree:
 
 ```bash
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m pytest -q --tb=short
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m pytest -q \
+<netsurf-env>/bin/python -m pytest -q --tb=short
+<assets>/.venv-mlperf/bin/python -m pytest -q \
   tests/test_m956_preflight.py tests/test_m953_same_distribution.py \
   tests/test_m955_paired_swap.py tests/test_m95_conditional_damage.py \
   tests/test_m95_restricted_subcube.py tests/test_m93_multibench.py

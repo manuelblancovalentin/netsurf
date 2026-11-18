@@ -126,7 +126,7 @@ replaced only by assets that pass the same lock and content hashes):
 | `benchmark.id` | `mlperf_tiny_kws_dscnn_int8_v1` | `mlperf_tiny_ad_toycar_int8_v1` |
 | `benchmark.checkpoint` | `/ml/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4/benchmark/training/keyword_spotting/trained_models/kws_ref_model.tflite` | `/ml/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4/benchmark/training/anomaly_detection/trained_models/ad01_int8.tflite` |
 | `benchmark.dataset` | `/ml/datasets/speech_commands/0.0.3` | `/ml/datasets/dcase2020-toycar` |
-| `benchmark.asset_lock` | `/projects/kona-assets/manuelbv/locks/mlperf-tiny/kws.lock.json` | `/projects/kona-assets/manuelbv/locks/mlperf-tiny/ad.lock.json` |
+| `benchmark.asset_lock` | `<assets>/locks/mlperf-tiny/kws.lock.json` | `<assets>/locks/mlperf-tiny/ad.lock.json` |
 | `benchmark.split` | `official_subset_1000` | `official_248_files` |
 
 Both also require:

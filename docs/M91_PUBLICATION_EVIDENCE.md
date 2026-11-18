@@ -124,16 +124,16 @@ they do not by themselves license a final superiority statement.
 Use the validated interpreter explicitly:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf validate \
+<assets>/.venv-mlperf/bin/python -m netsurf validate \
   config/experiments/m91_resnet8_estimator_validation_stratified320_v1.toml --resolved
 
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf run \
+<assets>/.venv-mlperf/bin/python -m netsurf run \
   config/experiments/m91_resnet8_estimator_validation_stratified320_v1.toml
 
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf validate \
+<assets>/.venv-mlperf/bin/python -m netsurf validate \
   config/experiments/m91_resnet8_static_protection_pilot_v1.toml --resolved
 
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf run \
+<assets>/.venv-mlperf/bin/python -m netsurf run \
   config/experiments/m91_resnet8_static_protection_pilot_v1.toml --workers 4 --threads-per-worker 1
 ```
 

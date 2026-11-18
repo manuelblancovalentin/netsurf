@@ -32,15 +32,15 @@ Run root: `workspace/runs/distilbert_sst2_validation_replication_v1_run1`. Selec
 The exact foreground command used was:
 
 ```sh
-/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/scripts/run_distilbert_replication_once.sh \
-  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/config/experiments/distilbert_sst2_validation_replication_v1.json \
-  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/plans/distilbert_sst2_validation_replication_v1/NETSURF_ASSET_READINESS.json \
-  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_validation_replication_v1_run1 \
+<repo>/workspace/implementation-worktrees/transformer-integration/scripts/run_distilbert_replication_once.sh \
+  <repo>/workspace/implementation-worktrees/transformer-integration/config/experiments/distilbert_sst2_validation_replication_v1.json \
+  <repo>/workspace/implementation-worktrees/transformer-integration/workspace/plans/distilbert_sst2_validation_replication_v1/NETSURF_ASSET_READINESS.json \
+  <repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_validation_replication_v1_run1 \
   kona
 ```
 
 This command is an exact receipt for reproduction on a **new, separately authorized run identity**; the finalized root is write-once and must not be rerun. The existing complete ZIP can be retrieved on a Mac with a unique destination name:
 
 ```sh
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_validation_replication_v1_run1_export/complete.zip ~/Downloads/distilbert_sst2_validation_replication_v1_complete.zip
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_validation_replication_v1_run1_export/complete.zip ~/Downloads/distilbert_sst2_validation_replication_v1_complete.zip
 ```

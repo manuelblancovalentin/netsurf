@@ -112,8 +112,8 @@ Yes, as a narrower paper: a paired, task-level evaluation showing where ranking 
 ## 9. Reproduction commands
 
 ```bash
-PY=/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-tecs-revision-v1
+PY=<netsurf-env>/bin/python
+cd <repo>/workspace/implementation-worktrees/paper1-tecs-revision-v1
 $PY publications/paper1_review/scripts/tecs_grid_audit.py --out workspace/paper1_tecs_revision/NEW_DIR
 $PY publications/paper1_review/scripts/tecs_kws_conditional_audit.py workspace/paper1_tecs_revision/NEW_FILE.json
 $PY publications/paper1_review/scripts/tecs_residual_drift_check.py workspace/paper1_tecs_revision/NEW_FILE.json

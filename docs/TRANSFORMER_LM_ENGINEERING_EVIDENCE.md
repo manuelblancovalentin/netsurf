@@ -41,7 +41,7 @@ The bounded 10-request source script is `scripts/run_transformer_lm_smoke_once.s
 ## Mac export commands
 
 ```sh
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/pythia160m_fp32stored_fp32compute_fault_smoke_v1/complete.zip ~/Downloads/pythia160m_fp32stored_fp32compute_complete.zip
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/pythia160m_bf16stored_fp32compute_fault_smoke_v1/complete.zip ~/Downloads/pythia160m_bf16stored_fp32compute_complete.zip
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/qwen3_0_6b_bf16_fault_smoke_v1/complete.zip ~/Downloads/qwen3_0_6b_bf16_complete.zip
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/pythia160m_fp32stored_fp32compute_fault_smoke_v1/complete.zip ~/Downloads/pythia160m_fp32stored_fp32compute_complete.zip
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/pythia160m_bf16stored_fp32compute_fault_smoke_v1/complete.zip ~/Downloads/pythia160m_bf16stored_fp32compute_complete.zip
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/qwen3_0_6b_bf16_fault_smoke_v1/complete.zip ~/Downloads/qwen3_0_6b_bf16_complete.zip
 ```

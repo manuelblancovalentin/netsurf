@@ -3,7 +3,7 @@
 Status: **executed on 2026-11-17** at the owner's request, with the departures listed in
 section 7. Sections 1 to 6 are the plan as written before execution; nothing was pushed.
 
-Audit date: 2026-11-17, repository `/projects/netsurf/manuelbv` on `v2` at
+Audit date: 2026-11-17, repository `<repo>` on `v2` at
 `db5e2f7`.
 
 ## 1. Findings that change the plan
@@ -36,7 +36,7 @@ Audit date: 2026-11-17, repository `/projects/netsurf/manuelbv` on `v2` at
    (`bb74dbc` vs `76e9270`). This plan does not push and does not delete
    anything on GitHub; remote cleanup is a separate decision (section 6).
 4. **`~/netsurf` is not a separate clone.** It is a symlink to
-   `/projects/netsurf/manuelbv` (created 2026-11-17 00:33). There is only one
+   `<repo>` (created 2026-11-17 00:33). There is only one
    repository; `kona` is the GitHub remote, not a path to this folder.
 5. **`v2` has no tracked modifications.** `git status` on `v2` shows only the
    untracked `repo/`. The dirty handoff state recorded in
@@ -56,7 +56,7 @@ Audit date: 2026-11-17, repository `/projects/netsurf/manuelbv` on `v2` at
 
 ## 2. The `repo/` folder
 
-`/projects/netsurf/manuelbv/repo` appeared on 2026-11-17 at 00:27. It is an
+`<repo>/repo` appeared on 2026-11-17 at 00:27. It is an
 empty clone of `git@github.com:Memik-Lab/netsurf.git`: branch `main`, no
 commits, only a `.git` folder (last modified 01:21). It was cloned one minute
 before the pushes in finding 3, so it does not contain them.
@@ -77,7 +77,7 @@ code; not checked in the browser).
 Options (owner's choice; nothing done):
 
 - **A. Remove the empty clone** (it holds no commits and no files):
-  `rm -rf /projects/netsurf/manuelbv/repo`. `kona-task` then reads
+  `rm -rf <repo>/repo`. `kona-task` then reads
   `.kona/tasks` again. Recommended if the clone was an accident or a test.
 - **B. Adopt the kona layout** (repository at `<your folder>/repo`). This moves
   the whole repository and its 37 worktrees, which breaks the absolute paths
@@ -220,11 +220,11 @@ After all phases:
 
 ### Phase 0 — protect (no deletion; reversible with `git tag -d`)
 
-Run from `/projects/netsurf/manuelbv`. Do this before 2026-11-24 because of
+Run from `<repo>`. Do this before 2026-11-24 because of
 `cccdca8`.
 
 ```bash
-cd /projects/netsurf/manuelbv
+cd <repo>
 
 # 0.1 The reflog-only commit named by workspace/runs/numpy_pgcs_exact
 git tag -a provenance/numpy-pgcs-exact-cccdca8 cccdca8461ffc7526ac5899866213b8f0ebcb8c5 \
@@ -278,16 +278,16 @@ git tag -a snapshot/paper1-tecs-revision-v1/2026-11-17 refs/heads/paper1-tecs-re
   -m "Snapshot of the live TECS revision branch on 2026-11-17; contains the commits named by deliveries v1-v22."
 
 # 0.4 Backup bundle of every branch and tag (git objects total under 100 MB; outside workspace/runs)
-mkdir -p /projects/netsurf/manuelbv/workspace/git_backups
-git bundle create /projects/netsurf/manuelbv/workspace/git_backups/netsurf-refs-2026-11-17.bundle --branches --tags
-git bundle verify /projects/netsurf/manuelbv/workspace/git_backups/netsurf-refs-2026-11-17.bundle
-sha256sum /projects/netsurf/manuelbv/workspace/git_backups/netsurf-refs-2026-11-17.bundle
+mkdir -p <repo>/workspace/git_backups
+git bundle create <repo>/workspace/git_backups/netsurf-refs-2026-11-17.bundle --branches --tags
+git bundle verify <repo>/workspace/git_backups/netsurf-refs-2026-11-17.bundle
+sha256sum <repo>/workspace/git_backups/netsurf-refs-2026-11-17.bundle
 ```
 
 ### Phase 1 — check (read-only)
 
 ```bash
-cd /projects/netsurf/manuelbv
+cd <repo>
 # every branch tip has an identical tag (prints nothing when all is well)
 for b in $(git for-each-ref --format='%(refname:short)' refs/heads | grep -v -x -e v2 -e master -e branch-consolidation-plan); do
   case $b in paper1-tecs-revision-v1|paper1-runR-v2-validated) continue;; esac
@@ -305,8 +305,8 @@ missing or different, if the worktree has changes, or if the branch is not
 contained in `v2` or in the named containing branch.
 
 ```bash
-cd /projects/netsurf/manuelbv
-WT=/projects/netsurf/manuelbv/workspace/implementation-worktrees
+cd <repo>
+WT=<repo>/workspace/implementation-worktrees
 retire() {  # retire <branch> <worktree folder> <branch or ref that must contain it>
   b=$1; w=$WT/$2; keep=$3
   [ "$(git rev-parse -q --verify "archive/$b^{commit}")" = "$(git rev-parse "refs/heads/$b")" ] || { echo "SKIP $b: tag missing or different"; return 1; }
@@ -358,7 +358,7 @@ then fast-forwarded into `v2`. Merge commits (`--no-ff`) keep every original
 commit hash, so every manifest stays valid.
 
 ```bash
-cd /projects/netsurf/manuelbv
+cd <repo>
 git worktree add -b integration/m11-m12 workspace/implementation-worktrees/integration-m11-m12 v2
 cd workspace/implementation-worktrees/integration-m11-m12
 
@@ -382,7 +382,7 @@ plan does not prescribe the resolution. After the owner reviews the
 integration branch:
 
 ```bash
-cd /projects/netsurf/manuelbv               # the v2 checkout; it has no tracked changes
+cd <repo>               # the v2 checkout; it has no tracked changes
 git merge --ff-only integration/m11-m12
 # the merged tips are now contained in v2; retire them with Phase 2's retire (same shell, or define WT and retire again)
 retire m11-conditional-scaling        m11-conditional-scaling   v2
@@ -403,7 +403,7 @@ Not before: another session is editing `paper1-tecs-revision-v1` and task 0044
 is open.
 
 ```bash
-cd /projects/netsurf/manuelbv
+cd <repo>
 # tag each delivery at the commit its README names (v1-v22 so far), e.g.
 git tag -a paper1/delivery-v22 bb74dbc -m "Paper 1 delivery v22 (workspace/paper1_review/delivery_v22_lm_final)"
 git tag -a paper1/tecs-submitted refs/heads/paper1-tecs-revision-v1 -m "Paper 1 TECS revision as submitted"
@@ -430,7 +430,7 @@ checked-out files and run outputs stay; `workspace/*` is ignored by `v2`, so
 they do not show up as untracked files. This is not needed for correctness.
 
 ```bash
-cd /projects/netsurf/manuelbv
+cd <repo>
 for w in m93 toycar-audit m95 m953 m954 m955 m956 m957 m96 m97_ber m97 m97-integration \
          m98 m99-toycar-conditional m910-interaction-attribution kws-ber-transition-pilot \
          transformer-integration w8a8-ber-stress w8a8-followup m12-fkeras-multibench \

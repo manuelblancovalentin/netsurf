@@ -66,10 +66,10 @@ saved paired intervals before making any policy-superiority claim.
 ## Reproduction and preservation
 
 The analysis Python is
-`/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python`.
+`<netsurf-env>/bin/python`.
 To create a **new, nonexisting** derived destination, run
 `scripts/recover_pythia_wide_ber_subset.py` with the source run, new output
-directory and `/projects/kona-assets/manuelbv/NETSURF_ASSET_READINESS.json`.
+directory and `<assets>/NETSURF_ASSET_READINESS.json`.
 Set `PYTHONPATH` to this isolated worktree. The script rejects an existing
 destination and never edits the source.
 

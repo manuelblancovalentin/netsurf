@@ -79,9 +79,9 @@ write-once directory in this worktree. An external foreground timeout bounds
 one model's execution even if a single backend operator stalls:
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-fkeras-feasibility
+cd <repo>/workspace/implementation-worktrees/w8a8-fkeras-feasibility
 timeout --signal=TERM --kill-after=60s 2h \
-  /projects/kona-assets/manuelbv/envs/torch-2.9.1-cpu-py311/bin/python \
+  <assets>/envs/torch-2.9.1-cpu-py311/bin/python \
   scripts/preflight_w8a8_fkeras_full_v1.py distilbert \
   workspace/runs/w8a8_fkeras_distilbert_full_preflight_v1 \
   --max-products 6 --tolerance 0.001 --max-seconds 7200 --max-rss-gib 128

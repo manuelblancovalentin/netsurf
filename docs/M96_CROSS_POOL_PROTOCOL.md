@@ -1,7 +1,7 @@
 # M9.6 — probability-sampled cross-pool protection comparison
 
 Implementation: `m96-cross-pool`, isolated at
-`/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96`, based on
+`<repo>/workspace/implementation-worktrees/m96`, based on
 `e0ddf3a3cb0f68e6de84c1e4fc9f95ffb0cf88e1`. No merge or push. The twelve-pool
 production study has **not run**. Only two small engineering pools used already
 exposed inputs. This is orchestration and analysis of the existing exact selector
@@ -30,8 +30,8 @@ selected exploratory pool**, not one of the twelve new pools.
 |---|---|
 | Checkpoint | `aeea436800704fce17b17292e4412630ad856e9d777c044c64ef748a880bd0ae` |
 | KWS asset-lock file | `09fc5867d721363a0156e2f9f6fdedefe2aa0ae7384cc72396bc594e283bfac7` |
-| Authoritative runtime | `/projects/kona-assets/manuelbv/.venv-mlperf/bin/python`; TF 2.14.1 `BUILTIN_REF` |
-| Source S5 run | `/projects/netsurf/manuelbv/workspace/runs/m93_kws_static_ber_sweep1000_v1/20261029T183410.488907Z-32c31070` |
+| Authoritative runtime | `<assets>/.venv-mlperf/bin/python`; TF 2.14.1 `BUILTIN_REF` |
+| Source S5 run | `<repo>/workspace/runs/m93_kws_static_ber_sweep1000_v1/20261029T183410.488907Z-32c31070` |
 | Source scientific payload | `b7b725fd1c196f2d5896b67aba34dfe8aa864b8308875df098d48be6135975e0` |
 | Source protection artifact file | `2c5753a46bf09cb4f9f90bb73b80245ce70b2f57dfee52bf97c0e191e2e710b9` |
 | Source mask key | `replication_0/per_example_absolute_global@0.125000` |
@@ -225,18 +225,18 @@ environment modification, wrapper or GPU is needed. Modern TF 2.21 is **not**
 the pinned reference backend.
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/m96
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf campaign validate \
+cd <repo>/workspace/implementation-worktrees/m96
+<assets>/.venv-mlperf/bin/python -m netsurf campaign validate \
   workspace/runs/m96_kws_cross_pool_k6_v1/campaign.json
 
 # Researcher starts these production phases after reviewing the cost/protocol:
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf campaign run \
+<assets>/.venv-mlperf/bin/python -m netsurf campaign run \
   workspace/runs/m96_kws_cross_pool_k6_v1/campaign.json --phase selection
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf campaign seal \
+<assets>/.venv-mlperf/bin/python -m netsurf campaign seal \
   workspace/runs/m96_kws_cross_pool_k6_v1/campaign.json
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf campaign run \
+<assets>/.venv-mlperf/bin/python -m netsurf campaign run \
   workspace/runs/m96_kws_cross_pool_k6_v1/campaign.json --phase final
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf campaign aggregate \
+<netsurf-env>/bin/python -m netsurf campaign aggregate \
   workspace/runs/m96_kws_cross_pool_k6_v1/campaign.json \
   --output workspace/runs/m96_kws_cross_pool_analysis_v1
 ```
@@ -314,8 +314,8 @@ Reproduce with fresh pytest temporary directories (pytest clears a reused
 `--basetemp`):
 
 ```bash
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m pytest -q
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m pytest -q \
+<netsurf-env>/bin/python -m pytest -q
+<assets>/.venv-mlperf/bin/python -m pytest -q \
   tests/test_m96_cross_pool.py tests/test_m957_replication.py \
   tests/test_m956_preflight.py tests/test_m953_same_distribution.py \
   tests/test_m955_paired_swap.py tests/test_m95_conditional_damage.py \
@@ -343,7 +343,7 @@ assets or the source S5 bundle. From the Mac, using the researcher's configured
 SSH host alias:
 
 ```bash
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/exports/m96_handoff.zip .
+scp kona:<repo>/workspace/implementation-worktrees/m96/workspace/exports/m96_handoff.zip .
 shasum -a 256 m96_handoff.zip
 unzip -l m96_handoff.zip
 ```

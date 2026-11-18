@@ -55,7 +55,7 @@ The current Kona lock has canonical digest
 whereas the historical source bundle records
 `sha256:9de0816f7973b31febc84d04667068b3ad583ab2cb5d17c0f44da1a2c4ddd3d2`.
 These are **not** represented as the same lock artifact. The `/data` and
-`/mnt/raid0/ml` model paths resolve to the same inode and bytes; the adapter
+`<ml-root>` model paths resolve to the same inode and bytes; the adapter
 accepts only that exact same-file alias and still checks the pinned model
 SHA-256. The gate rederives all current selected clips with the pinned
 preprocessing and compares their label-bound sample hashes to the finalized
@@ -82,12 +82,12 @@ From this implementation worktree, inspect the frozen plan without running
 fault trials:
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m workflows.run_reliability_followup \
+cd <repo>/workspace/implementation-worktrees/reliability-db
+<assets>/.venv-mlperf/bin/python -m workflows.run_reliability_followup \
   --receipt workspace/reliability_database_v3_m12_release/plans/plan_receipt.json \
   --plan kws_partial_tier_fkeras_matched_v1 \
   --sources config/reliability_sources_v1.json \
-  --assets /projects/kona-assets/manuelbv/NETSURF_ASSET_READINESS.json \
+  --assets <assets>/NETSURF_ASSET_READINESS.json \
   --output workspace/m12_kws_seven_method_followup
 ```
 

@@ -3,7 +3,7 @@
 ## Delivery and scientific status
 
 Implementation branch/worktree: `m99-toycar-conditional`, at
-`/projects/netsurf/manuelbv/workspace/implementation-worktrees/m99-toycar-conditional`.
+`<repo>/workspace/implementation-worktrees/m99-toycar-conditional`.
 Base: `m98-conditional-adapters`, `6b184e0867f8c51799bb0a588c9d3f2171f6b5ed`.
 Implementation commit: `8209475` (documentation follows separately).
 No merge, push, installation, retraining, new optimizer, asset replacement or
@@ -34,7 +34,7 @@ The pinned model is
 | Identity | Value |
 |---|---|
 | Model SHA-256 | `87cf24194ef93d1d9b11a591d805526b98008e351655d29883c825c9c106ba24` |
-| Asset lock | `/projects/kona-assets/manuelbv/locks/mlperf-tiny/ad.lock.json` |
+| Asset lock | `<assets>/locks/mlperf-tiny/ad.lock.json` |
 | Lock file SHA-256 | `7fafb690025f40903d92fecbd88adc1c5ebab2bd41626073ed82174d1ce12a84` |
 | Canonical lock digest | `sha256:2e362d617a104ca3749d47e1fd6a24ba0558b2be996bd16fb2fdd3cefa499b8c` |
 | Dataset root | `/data/datasets/dcase2020-toycar` |
@@ -54,7 +54,7 @@ The verified source mask is **replication 0**, selected by prespecified identity
 not by comparing replication performance:
 
 ```text
-/projects/netsurf/manuelbv/workspace/runs/m93_toycar_static_ber_pilot64_parallel_repair_v1/20261029T234704.724222Z-3913968c
+<repo>/workspace/runs/m93_toycar_static_ber_pilot64_parallel_repair_v1/20261029T234704.724222Z-3913968c
 artifact: artifacts/protection_masks.json
 key: replication_0/per_example_absolute_global@0.125000
 artifact SHA-256: 16855e9b4464b4f9b6845d59cd39e0cb1b1949a1e15db8363fa350efb2e23684
@@ -334,24 +334,24 @@ New schema 6.8 keys:
   `final_fields`, `logical_ber`; zero-offset sample counts must match template cohorts.
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/m99-toycar-conditional
+cd <repo>/workspace/implementation-worktrees/m99-toycar-conditional
 
 # Validate frozen plans; no model inference:
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf campaign validate \
+<assets>/.venv-mlperf/bin/python -m netsurf campaign validate \
   workspace/runs/m99_toycar_production_plan_v1/campaign.json
 
 # Metadata-only exposure snapshot into a NEW destination:
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf.toycar_exposure \
+<netsurf-env>/bin/python -m netsurf.toycar_exposure \
   --output workspace/runs/m99_exposure_user
 
 # Researcher launches these deliberately, in tmux/foreground:
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf campaign run \
+<assets>/.venv-mlperf/bin/python -m netsurf campaign run \
   workspace/runs/m99_toycar_production_plan_v1/campaign.json --phase selection
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf campaign seal \
+<assets>/.venv-mlperf/bin/python -m netsurf campaign seal \
   workspace/runs/m99_toycar_production_plan_v1/campaign.json
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf campaign run \
+<assets>/.venv-mlperf/bin/python -m netsurf campaign run \
   workspace/runs/m99_toycar_production_plan_v1/campaign.json --phase final
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf campaign aggregate \
+<netsurf-env>/bin/python -m netsurf campaign aggregate \
   workspace/runs/m99_toycar_production_plan_v1/campaign.json \
   --output workspace/runs/m99_toycar_production_analysis
 ```
@@ -376,8 +376,8 @@ Pinned backend/conditional suite: **139 passed, 5 skipped** (314.78 s).
 Focused post-change pinned checks passed **18 tests** (26.14 s). Exact commands:
 
 ```bash
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m pytest -q -rs --tb=short
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m pytest -q -rs --tb=short \
+<netsurf-env>/bin/python -m pytest -q -rs --tb=short
+<assets>/.venv-mlperf/bin/python -m pytest -q -rs --tb=short \
   tests/test_mlperf_tiny_adapter.py tests/test_m93_multibench.py \
   tests/test_m95_conditional_damage.py tests/test_m95_restricted_subcube.py \
   tests/test_m953_same_distribution.py tests/test_m955_paired_swap.py \
@@ -427,7 +427,7 @@ sha256sum workspace/exports/m99_handoff.zip
 unzip -l workspace/exports/m99_handoff.zip
 
 # Mac: replace KONA_SSH_HOST with your actual configured SSH host/alias
-scp manuelbv@KONA_SSH_HOST:/projects/netsurf/manuelbv/workspace/implementation-worktrees/m99-toycar-conditional/workspace/exports/m99_handoff.zip ~/Downloads/
+scp <user>@<host>:<repo>/workspace/implementation-worktrees/m99-toycar-conditional/workspace/exports/m99_handoff.zip ~/Downloads/
 shasum -a 256 ~/Downloads/m99_handoff.zip
 ```
 

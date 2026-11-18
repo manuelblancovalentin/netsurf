@@ -111,12 +111,12 @@ The plan is at
 `workspace/plans/distilbert_sst2_w8a8_exposure_pilot_v2/` and the unique
 output is `workspace/runs/distilbert_sst2_w8a8_exposure_pilot_v2_run1/` in the
 isolated transformer worktree. The pinned interpreter is
-`/projects/kona-assets/manuelbv/envs/torch-2.9.1-cpu-py311/bin/python`.
+`<assets>/envs/torch-2.9.1-cpu-py311/bin/python`.
 The researcher can run this one foreground command on Kona after approving
 the resource envelope:
 
 ```bash
-/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/scripts/run_distilbert_w8a8_exposure_pilot_v2.sh
+<repo>/workspace/implementation-worktrees/transformer-integration/scripts/run_distilbert_w8a8_exposure_pilot_v2.sh
 ```
 
 The command validates the frozen plan and target-specific READY record, runs
@@ -126,8 +126,8 @@ and complete CRC- and SHA-256-checked ZIP archives. It prints and saves exact
 Mac commands in the sibling export directory:
 
 ```bash
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_w8a8_exposure_pilot_v2_run1_export/compact.zip ~/Downloads/distilbert_w8a8_exposure_pilot_v2_compact.zip
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_w8a8_exposure_pilot_v2_run1_export/complete.zip ~/Downloads/distilbert_w8a8_exposure_pilot_v2_complete.zip
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_w8a8_exposure_pilot_v2_run1_export/compact.zip ~/Downloads/distilbert_w8a8_exposure_pilot_v2_compact.zip
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_w8a8_exposure_pilot_v2_run1_export/complete.zip ~/Downloads/distilbert_w8a8_exposure_pilot_v2_complete.zip
 ```
 
 The complete bundle contains the frozen plan and READY/quantization snapshots,

@@ -1,7 +1,7 @@
 # M97 bounded validation receipts
 
 All paths below are relative to
-`/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97`.
+`<repo>/workspace/implementation-worktrees/m97`.
 Implementation branch: `m97-fkeras-adapters`, base `4d646a83014bd7a0aed11045bf9f3456e341ee56`.
 These are engineering checks, not a publication campaign or evidence of ranker
 superiority. Original asset locks, historical worktrees, finalized bundles and
@@ -48,8 +48,8 @@ still run; the extra independent machine-schema checks require the user to run,
 if desired:
 
 ```bash
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m pip install 'jsonschema>=4.18,<5'
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m pip install 'jsonschema>=4.18,<5'
+<netsurf-env>/bin/python -m pip install 'jsonschema>=4.18,<5'
+<assets>/.venv-mlperf/bin/python -m pip install 'jsonschema>=4.18,<5'
 ```
 
 No installation was performed. Pinned Matplotlib is also absent; installed
@@ -185,7 +185,7 @@ clone. Preserve original relative paths when inspecting bundles.
 To make an alternative complete evidence archive (new destination only):
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/m97
+cd <repo>/workspace/implementation-worktrees/m97
 tar -czf workspace/exports/m97_evidence_copy.tar.gz \
   docs/M97_FKERAS_REPRODUCTION.md docs/M97_BENCHMARK_ADAPTER_STATUS.md docs/M97_VALIDATION_RECEIPTS.md \
   config/examples/m97_kws_fkeras_protection_smoke.toml config/examples/m97_kws_fkeras_empirical_smoke.toml \
@@ -198,8 +198,8 @@ sha256sum workspace/exports/m97_evidence_copy.tar.gz
 On the Mac, using the researcher's existing SSH alias (replace `kona` if needed):
 
 ```bash
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97/workspace/exports/m97_handoff.tar.gz .
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97/workspace/exports/m97_handoff.tar.gz.sha256 .
+scp kona:<repo>/workspace/implementation-worktrees/m97/workspace/exports/m97_handoff.tar.gz .
+scp kona:<repo>/workspace/implementation-worktrees/m97/workspace/exports/m97_handoff.tar.gz.sha256 .
 shasum -a 256 -c m97_handoff.tar.gz.sha256
 mkdir m97_handoff
 tar -xzf m97_handoff.tar.gz -C m97_handoff

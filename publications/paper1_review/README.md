@@ -42,7 +42,7 @@ Related work includes FORTUNE, FKeras, PrioriFI, EISFINN, progressive bit search
 ## Reproduce offline
 
 ~~~bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-complete-review-v1/publications/paper1_review/source
+cd <repo>/workspace/implementation-worktrees/paper1-complete-review-v1/publications/paper1_review/source
 latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex
 ~~~
 

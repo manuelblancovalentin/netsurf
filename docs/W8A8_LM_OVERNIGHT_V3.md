@@ -71,7 +71,7 @@ The active Pythia pane and log can be inspected with:
 
 ```sh
 tmux attach -t netsurf-pythia-w8a8-v3
-tail -f /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/logs/pythia160m_w8a8_reliability_v3_run1.log
+tail -f <repo>/workspace/implementation-worktrees/transformer-integration/workspace/logs/pythia160m_w8a8_reliability_v3_run1.log
 ```
 
 The Pythia wrapper automatically validates, selects, seals, evaluates, analyzes,
@@ -81,10 +81,10 @@ field CSV, loss-versus-BER plot and compact export with this read-only offline
 command (it verifies the completed core before writing a separate report):
 
 ```sh
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration
-/projects/kona-assets/manuelbv/envs/torch-2.9.1-cpu-py311/bin/python scripts/report_lm_w8a8_v3.py \
-  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/plans/pythia160m_w8a8_reliability_v3 \
-  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/pythia160m_w8a8_reliability_v3_run1
+cd <repo>/workspace/implementation-worktrees/transformer-integration
+<assets>/envs/torch-2.9.1-cpu-py311/bin/python scripts/report_lm_w8a8_v3.py \
+  <repo>/workspace/implementation-worktrees/transformer-integration/workspace/plans/pythia160m_w8a8_reliability_v3 \
+  <repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/pythia160m_w8a8_reliability_v3_run1
 ```
 
 After Pythia's core ZIP is finalized and verified, the researcher can launch
@@ -93,24 +93,24 @@ It verifies Pythia finalization, rechecks live Qwen resources, runs the frozen
 Qwen phases, and then creates Qwen's offline CSV/plot/compact export:
 
 ```sh
-tmux new-session -s netsurf-qwen-w8a8-v3 'bash -o pipefail -c "/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/scripts/run_qwen_w8a8_v3_after_pythia.sh 2>&1 | tee /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/logs/qwen3_0_6b_w8a8_reliability_v3_run1.log"'
+tmux new-session -s netsurf-qwen-w8a8-v3 'bash -o pipefail -c "<repo>/workspace/implementation-worktrees/transformer-integration/scripts/run_qwen_w8a8_v3_after_pythia.sh 2>&1 | tee <repo>/workspace/implementation-worktrees/transformer-integration/workspace/logs/qwen3_0_6b_w8a8_reliability_v3_run1.log"'
 ```
 
 Each finalized LM report writes `mac_scp_commands.txt` with exact Mac commands.
 The Pythia destinations, after completion, are:
 
 ```sh
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/pythia160m_w8a8_reliability_v3_run1_export/complete.zip ~/Downloads/pythia160m_int8_w8a8_complete.zip
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/pythia160m_w8a8_reliability_v3_run1_reporting_v3/compact.zip ~/Downloads/pythia160m_int8_w8a8_compact_v3.zip
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/pythia160m_w8a8_reliability_v3_run1_reporting_v3/receipt.json ~/Downloads/pythia160m_int8_w8a8_reporting_receipt_v3.json
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/pythia160m_w8a8_reliability_v3_run1_export/complete.zip ~/Downloads/pythia160m_int8_w8a8_complete.zip
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/pythia160m_w8a8_reliability_v3_run1_reporting_v3/compact.zip ~/Downloads/pythia160m_int8_w8a8_compact_v3.zip
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/pythia160m_w8a8_reliability_v3_run1_reporting_v3/receipt.json ~/Downloads/pythia160m_int8_w8a8_reporting_receipt_v3.json
 ```
 
 The Qwen destinations are:
 
 ```sh
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/qwen3_0_6b_w8a8_reliability_v3_run1_export/complete.zip ~/Downloads/qwen3_0_6b_int8_w8a8_complete.zip
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/qwen3_0_6b_w8a8_reliability_v3_run1_reporting_v3/compact.zip ~/Downloads/qwen3_0_6b_int8_w8a8_compact_v3.zip
-scp kona:/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/qwen3_0_6b_w8a8_reliability_v3_run1_reporting_v3/receipt.json ~/Downloads/qwen3_0_6b_int8_w8a8_reporting_receipt_v3.json
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/qwen3_0_6b_w8a8_reliability_v3_run1_export/complete.zip ~/Downloads/qwen3_0_6b_int8_w8a8_complete.zip
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/qwen3_0_6b_w8a8_reliability_v3_run1_reporting_v3/compact.zip ~/Downloads/qwen3_0_6b_int8_w8a8_compact_v3.zip
+scp kona:<repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/qwen3_0_6b_w8a8_reliability_v3_run1_reporting_v3/receipt.json ~/Downloads/qwen3_0_6b_int8_w8a8_reporting_receipt_v3.json
 ```
 
 These LM export paths are prospective until their `FINALIZED` files exist.

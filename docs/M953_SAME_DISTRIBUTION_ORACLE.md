@@ -71,11 +71,11 @@ so evaluation count alone is not a wall-time estimate.
 ## Commands
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional validate \
+<assets>/.venv-mlperf/bin/python -m netsurf conditional validate \
   config/examples/m953_kws_restricted_k6_smoke.toml --resolved
 
 NETSURF_WORKSPACE="$PWD/workspace" \
-  /projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional run \
+  <assets>/.venv-mlperf/bin/python -m netsurf conditional run \
   config/examples/m953_kws_restricted_k6_smoke.toml
 ```
 
@@ -83,7 +83,7 @@ The K=8 file is a researcher-editable bounded template, not an instruction to
 launch a publication run automatically:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional validate \
+<assets>/.venv-mlperf/bin/python -m netsurf conditional validate \
   config/examples/m953_kws_restricted_k8_template.toml --resolved
 ```
 

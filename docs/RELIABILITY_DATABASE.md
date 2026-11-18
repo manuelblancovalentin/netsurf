@@ -3,8 +3,8 @@
 This is a read-only derived data product. It does **not** execute a model, redraw a fault field, construct a mask, or alter a finalized bundle. Build it with the pinned Python 3.11 `netsurf` interpreter:
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m workflows.build_reliability_database \
+cd <repo>/workspace/implementation-worktrees/reliability-db
+<netsurf-env>/bin/python -m workflows.build_reliability_database \
   --sources config/reliability_sources_v1.json \
   --output workspace/reliability_database_v1_new
 ```

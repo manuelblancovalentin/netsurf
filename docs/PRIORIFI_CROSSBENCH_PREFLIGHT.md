@@ -128,9 +128,9 @@ dominate independently measured damage in general.
 From this isolated worktree, with the existing pinned environment:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf.priorifi_mlperf_engineering --benchmark kws --calibration-count 64 --max-probes 40 --trials 4 --output workspace/runs/<new-kws-receipt>
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf.priorifi_mlperf_engineering --benchmark resnet8 --calibration-count 64 --max-probes 40 --trials 4 --output workspace/runs/<new-resnet-receipt>
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf.priorifi_mlperf_engineering --benchmark toycar --calibration-count 16 --max-probes 40 --trials 4 --output workspace/runs/<new-toycar-receipt>
+<assets>/.venv-mlperf/bin/python -m netsurf.priorifi_mlperf_engineering --benchmark kws --calibration-count 64 --max-probes 40 --trials 4 --output workspace/runs/<new-kws-receipt>
+<assets>/.venv-mlperf/bin/python -m netsurf.priorifi_mlperf_engineering --benchmark resnet8 --calibration-count 64 --max-probes 40 --trials 4 --output workspace/runs/<new-resnet-receipt>
+<assets>/.venv-mlperf/bin/python -m netsurf.priorifi_mlperf_engineering --benchmark toycar --calibration-count 16 --max-probes 40 --trials 4 --output workspace/runs/<new-toycar-receipt>
 ```
 
 The destination must not exist. These commands do not run a publication study.

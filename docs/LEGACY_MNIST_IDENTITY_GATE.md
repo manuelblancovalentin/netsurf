@@ -136,7 +136,7 @@ The dedicated module avoids the canonical CLI's Python 3.11-only dependencies:
 
 ```bash
 proj activate netsurf-legacy
-cd /mnt/raid0/asic/projects/NU/netsurf/manuelbv
+cd <repo>
 PYTHONPATH="$PWD" python -m netsurf.legacy_identity conformance \
   --samples 256 \
   --output workspace/runs/legacy_mnist_identity_gate/<new-run>/conformance.json

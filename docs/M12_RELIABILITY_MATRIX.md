@@ -113,10 +113,10 @@ worker setup and complete matched-run elapsed time remain unmeasured.
 Run the v3 read-only builder with the existing canonical interpreter:
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m workflows.build_reliability_database_v3 \
+cd <repo>/workspace/implementation-worktrees/reliability-db
+<netsurf-env>/bin/python -m workflows.build_reliability_database_v3 \
   --sources config/reliability_sources_v1.json \
-  --assets /projects/kona-assets/manuelbv/NETSURF_ASSET_READINESS.json \
+  --assets <assets>/NETSURF_ASSET_READINESS.json \
   --output workspace/reliability_database_v3_m12_release
 ```
 
@@ -133,7 +133,7 @@ After checking the product, create a separate compact/full ZIP export without
 changing it:
 
 ```bash
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m workflows.export_reliability_database_v3 \
+<netsurf-env>/bin/python -m workflows.export_reliability_database_v3 \
   workspace/reliability_database_v3_m12_release \
   workspace/reliability_database_v3_m12_release_export
 cat workspace/reliability_database_v3_m12_release_export/mac_scp_commands.txt
@@ -142,7 +142,7 @@ cat workspace/reliability_database_v3_m12_release_export/mac_scp_commands.txt
 For a frozen, unexecuted matched plan, use a foreground dry-run first:
 
 ```bash
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m workflows.run_reliability_followup \
+<netsurf-env>/bin/python -m workflows.run_reliability_followup \
   --receipt workspace/reliability_database_v2_primary_final/plans/plan_receipt.json \
   --plan kws_partial_tier_fkeras_matched_v1 \
   --output workspace/m12_kws_followup

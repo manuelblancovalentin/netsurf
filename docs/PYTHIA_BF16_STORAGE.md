@@ -16,7 +16,7 @@ for this change. DistilBERT and M11 processes/worktrees remain untouched.
 
 The first two numbers describe existing asset-validation reports, **not
 finalized NetSuRF protection results or new manuscript effectiveness claims**.
-Reports are under `/projects/kona-assets/manuelbv/validation/netsurf/`, named
+Reports are under `<assets>/validation/netsurf/`, named
 `pythia-160m-final.fp32.test.smoke.json` and
 `pythia-160m-bf16-rne.fp32compute.test.smoke.json`. The latter records all
 288,729 scored test tokens, context 1,024, stride 512, eager CPU execution,
@@ -131,23 +131,23 @@ there is deliberately no production-launch command or automatic fallback.
 ## Reproducible validation commands
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/pythia-bf16-storage
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m pytest -q
-/projects/kona-assets/manuelbv/envs/torch-2.9.1-cpu-py311/bin/python -m unittest -v tests.test_pythia_mixed_runtime
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf.pythia_preflight \
+cd <repo>/workspace/implementation-worktrees/pythia-bf16-storage
+<netsurf-env>/bin/python -m pytest -q
+<assets>/envs/torch-2.9.1-cpu-py311/bin/python -m unittest -v tests.test_pythia_mixed_runtime
+<netsurf-env>/bin/python -m netsurf.pythia_preflight \
   --pin config/pythia_mixed_pin.json \
   --checkpoint /data/models/local--kona-assets--pythia-160m-bf16-rne/snapshots/45c31786f3a41eb04c589fc5895d4b04c13e6e13 \
   --plan config/experiments/pythia_bf16_storage_fp32_prepare_v1.json
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf.pythia_preflight \
+<netsurf-env>/bin/python -m netsurf.pythia_preflight \
   --pin config/pythia_mixed_pin.json \
-  --readiness /projects/kona-assets/manuelbv/NETSURF_ASSET_READINESS.json
+  --readiness <assets>/NETSURF_ASSET_READINESS.json
 ```
 
 The last command currently exits 2 as intended. The preflight never initializes
 a model. Pytest is absent from the pinned torch environment; standard-library
 unittest executes the actual torch synthetic checks without installing anything.
 Optional pytest installation, only if the researcher wants that runner there:
-`/projects/kona-assets/manuelbv/envs/torch-2.9.1-cpu-py311/bin/python -m pip install 'pytest>=7,<9'`.
+`<assets>/envs/torch-2.9.1-cpu-py311/bin/python -m pip install 'pytest>=7,<9'`.
 It is not needed for the provided unittest command and was not performed.
 
 Tests cover every 65,536 BF16 code and all 16 single-bit XOR transitions,

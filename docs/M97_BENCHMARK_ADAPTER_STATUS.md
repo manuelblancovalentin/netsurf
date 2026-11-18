@@ -16,10 +16,10 @@ a delegate, substitutes a dataset, or treats a checkpoint name as conformance.
 ## Interface and validation
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/m97
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf benchmarks capabilities kws_dscnn_int8
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf benchmarks probe kws_dscnn_int8 --output workspace/runs/m97_probe_kws_new
+cd <repo>/workspace/implementation-worktrees/m97
+<netsurf-env>/bin/python -m netsurf benchmarks capabilities
+<netsurf-env>/bin/python -m netsurf benchmarks capabilities kws_dscnn_int8
+<assets>/.venv-mlperf/bin/python -m netsurf benchmarks probe kws_dscnn_int8 --output workspace/runs/m97_probe_kws_new
 ```
 
 Replace the target with any row below. Blocked probes exit with an explicit

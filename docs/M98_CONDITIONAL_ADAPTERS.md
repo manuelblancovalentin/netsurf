@@ -1,7 +1,7 @@
 # M9.8 — ResNet-8 conditional protection and ToyCar task-risk gate
 
 Implementation branch `m98-conditional-adapters`, isolated at
-`/projects/netsurf/manuelbv/workspace/implementation-worktrees/m98`, based on
+`<repo>/workspace/implementation-worktrees/m98`, based on
 consolidated `v2` commit `e3209f7`. No merge, push, asset/environment change,
 FKeras change or publication campaign execution. Existing M97 worktrees and
 their runs are untouched. This extends the existing exact selector; it does
@@ -33,7 +33,7 @@ that the response-table or paired-swap mathematics fails for ROC-AUC.
 - Model: `benchmark/training/image_classification/trained_models/pretrainedResnet_quant.tflite`.
 - Checkpoint SHA-256:
   `3c002613d1b2475eb51dd78dfb85a546c8ae658dee71cf6ade43b022fe205415`.
-- Current IC lock: `/projects/kona-assets/manuelbv/locks/mlperf-tiny/ic.lock.json`.
+- Current IC lock: `<assets>/locks/mlperf-tiny/ic.lock.json`.
   Canonical digest `sha256:d0daf561e681b5a31f23350192c6b5d7041b27024bf054d13a2eb793e581abd9`;
   file SHA-256 `65226641813cf4192d4898293b09d3861a2ccbcae0e4aca04beb3d15bd3bbbc9`.
 - CIFAR archive SHA-256:
@@ -63,7 +63,7 @@ gradient is evaluated during conditional selection/final evaluation.
 
 The source is a real finalized run, not an inferred mask location:
 
-`/projects/netsurf/manuelbv/workspace/runs/m92_resnet8_static_test1000_v1/20261029T084524.633748Z-f0bcc564`
+`<repo>/workspace/runs/m92_resnet8_static_test1000_v1/20261029T084524.633748Z-f0bcc564`
 
 - Source payload:
   `3ed95baa04ede8047f5b5eb04f9024f2e5f856c39abcc84b2ca1fb894b22db32`.
@@ -336,8 +336,8 @@ not new ranking theory, retraining, or a new optimizer.
 Run from the isolated worktree in a foreground tmux session:
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/m98
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf campaign validate \
+cd <repo>/workspace/implementation-worktrees/m98
+<assets>/.venv-mlperf/bin/python -m netsurf campaign validate \
   workspace/runs/m98_resnet8_cross_pool_k6_v1/campaign.json
 ```
 
@@ -345,13 +345,13 @@ Only the researcher starts these production phases after reviewing exposure,
 cost and the modest pilot design:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf campaign run \
+<assets>/.venv-mlperf/bin/python -m netsurf campaign run \
   workspace/runs/m98_resnet8_cross_pool_k6_v1/campaign.json --phase selection
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf campaign seal \
+<assets>/.venv-mlperf/bin/python -m netsurf campaign seal \
   workspace/runs/m98_resnet8_cross_pool_k6_v1/campaign.json
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf campaign run \
+<assets>/.venv-mlperf/bin/python -m netsurf campaign run \
   workspace/runs/m98_resnet8_cross_pool_k6_v1/campaign.json --phase final
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf campaign aggregate \
+<netsurf-env>/bin/python -m netsurf campaign aggregate \
   workspace/runs/m98_resnet8_cross_pool_k6_v1/campaign.json \
   --output workspace/runs/m98_resnet8_production_analysis_v1
 ```
@@ -372,11 +372,11 @@ Direct Python APIs remain `load_conditional`, `execute_conditional_damage`,
 
 ```bash
 # Read-only scientific verification; no model execution:
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf campaign validate \
+<assets>/.venv-mlperf/bin/python -m netsurf campaign validate \
   workspace/runs/m98_resnet8_engineering_v1/campaign.json
 
 # New derived report destination; no TensorFlow evaluation:
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf campaign aggregate \
+<netsurf-env>/bin/python -m netsurf campaign aggregate \
   workspace/runs/m98_resnet8_engineering_v1/campaign.json \
   --output workspace/runs/m98_resnet8_engineering_analysis_user
 ```
@@ -390,7 +390,7 @@ and asset dependencies are referenced, not redistributed.
 ```bash
 sha256sum workspace/exports/m98_handoff.zip
 # On the Mac, replace KONA_SSH_HOST with the actual configured alias:
-scp manuelbv@KONA_SSH_HOST:/projects/netsurf/manuelbv/workspace/implementation-worktrees/m98/workspace/exports/m98_handoff.zip ~/Downloads/
+scp <user>@<host>:<repo>/workspace/implementation-worktrees/m98/workspace/exports/m98_handoff.zip ~/Downloads/
 shasum -a 256 ~/Downloads/m98_handoff.zip
 unzip -l ~/Downloads/m98_handoff.zip
 ```
@@ -415,8 +415,8 @@ ToyCar adapter/conformance tests all ran. Five existing dependency-deprecation
 warnings remain visible. No environment was changed to eliminate warnings.
 
 ```bash
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m pytest -q -rs --tb=short
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m pytest -q -rs --tb=short \
+<netsurf-env>/bin/python -m pytest -q -rs --tb=short
+<assets>/.venv-mlperf/bin/python -m pytest -q -rs --tb=short \
   tests/test_mlperf_tiny_adapter.py tests/test_m93_multibench.py \
   tests/test_m95_conditional_damage.py tests/test_m95_restricted_subcube.py \
   tests/test_m953_same_distribution.py tests/test_m955_paired_swap.py \

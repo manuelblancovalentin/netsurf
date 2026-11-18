@@ -5,8 +5,8 @@ uses, so other projects can use the same assets. NetSuRF keeps its own scientifi
 rankings, protection search, gradient companions); Kona Assets supplies frozen, verified assets and locks.
 
 Rules on the NetSuRF side that matter here: NetSuRF run outputs under
-`/projects/netsurf/manuelbv/workspace/implementation-worktrees/*/workspace/runs/` are write-once evidence; copy from
-them, never move or modify them. Historical folders under `/projects/netsurf/manuelbv/DEPRECATED/` (including
+`<repo>/workspace/implementation-worktrees/*/workspace/runs/` are write-once evidence; copy from
+them, never move or modify them. Historical folders under `<repo>/DEPRECATED/` (including
 `external_links/qkeras`) and `/archive/WSBMR/` are read-only evidence too. Gated or restricted material is not copied
 (see Section 4).
 
@@ -14,7 +14,7 @@ them, never move or modify them. Historical folders under `/projects/netsurf/man
 
 | Asset | How NetSuRF uses it | Kona Assets status |
 |---|---|---|
-| MLPerf Tiny ResNet-8 INT8 (IC) | `/projects/kona-assets/manuelbv/locks/mlperf-tiny/ic.lock.json`; model blob in `/data/models/models--mlcommons--tiny/`; CIFAR-10 at `/data/datasets/cifar10/` | READY |
+| MLPerf Tiny ResNet-8 INT8 (IC) | `<assets>/locks/mlperf-tiny/ic.lock.json`; model blob in `/data/models/models--mlcommons--tiny/`; CIFAR-10 at `/data/datasets/cifar10/` | READY |
 | MLPerf Tiny DS-CNN INT8 (KWS) | `kws.lock.json`; Speech Commands 0.0.3 at `/data/datasets/speech_commands/0.0.3` (train, validation and test shards are all used: train for calibration, validation for predictions, test for evaluation) | READY |
 | MLPerf Tiny ToyCar INT8 (AD) | `ad.lock.json`; `/data/datasets/dcase2020-toycar`, `/data/datasets/toyadmos` | READY |
 | DistilBERT/SST-2, Pythia-160M, Qwen3-0.6B-Base W8A8 executables | built by Kona Assets (commit `1aea52b`), stored as `/data/models/local--kona-assets--*`; datasets `/data/datasets/glue_sst2`, `/data/datasets/wikitext2` | READY in `NETSURF_ASSET_READINESS.json` |
@@ -27,7 +27,7 @@ and its index, reference metrics), so they are verified the same way as the MLPe
 
 Trained by NetSuRF with the MLPerf Tiny reference recipe and converted to INT8 TFLite; all nine ResNet-8 checkpoints
 (pinned plus these eight) carry the paper's main confirmatory results. Paths are relative to
-`/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-tecs-revision-v1/workspace/runs/`:
+`<repo>/workspace/implementation-worktrees/paper1-tecs-revision-v1/workspace/runs/`:
 
 | Checkpoint | Folder | Recipe script |
 |---|---|---|
@@ -57,7 +57,7 @@ it is a real detector-ASIC model and may justify its own paper.
 
 | Model | Where | Notes |
 |---|---|---|
-| ECON-T autoencoder (CMS HGCAL) | `/archive/WSBMR/common/benchmarks/ECONT_AE/6bits_0int/` (`pruned_…` and `non_pruned_4977_conv8f3k2s_flatten_dense16u_dense128u_reshape_conv8f3k2s_conv1f3k1s_sigmoid/`, each with `models/`, `sessions/`, `experiments/`); also `ECONT_AE_old/` | 6-bit QKeras weights, 4,977 parameters. Training data: `/archive/WSBMR/alan/hgcal22data_signal_driven_ttbar_v11.tar.gz`. A related project exists at `/projects/econ-ai-encoder`, which links into a gated folder (`/projects/.gated/fnal/tsmc65/…`): respect its access group and copy nothing from it without its owners' approval. |
+| ECON-T autoencoder (CMS HGCAL) | `/archive/WSBMR/common/benchmarks/ECONT_AE/6bits_0int/` (`pruned_…` and `non_pruned_4977_conv8f3k2s_flatten_dense16u_dense128u_reshape_conv8f3k2s_conv1f3k1s_sigmoid/`, each with `models/`, `sessions/`, `experiments/`); also `ECONT_AE_old/` | 6-bit QKeras weights, 4,977 parameters. Training data: `/archive/WSBMR/alan/hgcal22data_signal_driven_ttbar_v11.tar.gz`. A related project exists at `<other-project>`, which links into a gated folder (`/projects/.gated/fnal/tsmc65/…`): respect its access group and copy nothing from it without its owners' approval. |
 | SmartPixel models | dataset `/data/datasets/SmartPixel/ds8_only` (group-restricted permissions) and `/data/datasets/netsurf-legacy/repository-datasets-2026-10-22/SmartPixel`; legacy loader `DEPRECATED/legacy_source/netsurf/core/datasets.py` class `SmartPixel` | Benchmark names in the legacy code: `smartpixel`, `smartpixeldense`, `smartpixeldenselarge`. Trained checkpoints not yet located; check `/archive/WSBMR/` and the researcher's earlier in-pixel work. |
 | hls4ml MNIST MLP, hls4ml CIFAR-10 | `/archive/WSBMR/common/benchmarks/mnist_hls4ml/`, `cifar10_hls4ml/` | QKeras. |
 | hls4ml jet tagging | data `/data/datasets/JetTagging/` (`hls4ml_LHCjet_30p_train/val`) | Model not yet located in the archive. |

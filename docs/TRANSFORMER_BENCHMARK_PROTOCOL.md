@@ -50,18 +50,18 @@ Earlier frozen plan versions remain preserved. Versions 1–3 were invalidated b
 The committed-source engineering receipt can be verified and exported with one foreground command:
 
 ```bash
-/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/scripts/run_distilbert_engineering_once.sh \
-  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/plans/distilbert_sst2_classifier1024_v4/NETSURF_ASSET_READINESS.json \
-  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_fp32_conformance_v3
+<repo>/workspace/implementation-worktrees/transformer-integration/scripts/run_distilbert_engineering_once.sh \
+  <repo>/workspace/implementation-worktrees/transformer-integration/workspace/plans/distilbert_sst2_classifier1024_v4/NETSURF_ASSET_READINESS.json \
+  <repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_fp32_conformance_v3
 ```
 
 The paired targeted study is deliberately **not running**. Its single foreground Kona command validates the frozen plan, seals every selection member, runs every final member with immutable same-seed resume, aggregates offline, creates CSV/SVG analysis, makes compact and complete ZIPs, and saves/prints exact Mac `scp` commands:
 
 ```bash
-/projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/scripts/run_distilbert_targeted_campaign_once.sh \
-  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/config/experiments/distilbert_sst2_classifier1024_v4.json \
-  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/plans/distilbert_sst2_classifier1024_v4/NETSURF_ASSET_READINESS.json \
-  /projects/netsurf/manuelbv/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_classifier1024_v4
+<repo>/workspace/implementation-worktrees/transformer-integration/scripts/run_distilbert_targeted_campaign_once.sh \
+  <repo>/workspace/implementation-worktrees/transformer-integration/config/experiments/distilbert_sst2_classifier1024_v4.json \
+  <repo>/workspace/implementation-worktrees/transformer-integration/workspace/plans/distilbert_sst2_classifier1024_v4/NETSURF_ASSET_READINESS.json \
+  <repo>/workspace/implementation-worktrees/transformer-integration/workspace/runs/distilbert_sst2_classifier1024_v4
 ```
 
 Selection-only is the same interpreter running `python -m netsurf.transformer_campaign_cli selection PLAN READINESS RUN_ROOT`. The `final` phase refuses to start without a plan-bound seal for all three methods. `aggregate` and `export` work offline on finalized members. A partial member is retained and rejected; no replacement seed or sample identity is silently generated. ZIPs and `mac_scp_commands.txt` appear next to the completed run. The researcher can inspect the plan and cost before starting the long foreground command.

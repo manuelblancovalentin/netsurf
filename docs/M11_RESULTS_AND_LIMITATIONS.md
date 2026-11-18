@@ -1,7 +1,7 @@
 # M11 — Conditional response scaling: evidence and handoff
 
 Date: 2026-11-02. Worktree:
-`/projects/netsurf/manuelbv/workspace/implementation-worktrees/m11-conditional-scaling`.
+`<repo>/workspace/implementation-worktrees/m11-conditional-scaling`.
 Branch `m11-conditional-scaling`, based on
 `10cb2f24d273cdba9c7a99e32ae207b278238f51`. Initial implementation commit:
 `65bb127f5d72cc079b8d4d23fdbfa8efdb5819c0`. Follow-up reporting/provenance changes
@@ -290,33 +290,33 @@ Run from this implementation worktree, not the active canonical research tree.
 No installation, environment modification, background wrapper or automatic merge.
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/m11-conditional-scaling
+cd <repo>/workspace/implementation-worktrees/m11-conditional-scaling
 
 # Fast validation and tests; canonical environment, not authoritative TFLite inference.
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf scaling validate config/examples/m11_kws_ber.toml
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m pytest -q
+<netsurf-env>/bin/python -m netsurf scaling validate config/examples/m11_kws_ber.toml
+<netsurf-env>/bin/python -m pytest -q
 
 # Freeze an edited request to a NEW directory; metadata audit, not inference.
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf scaling freeze config/examples/m11_kws_ber.toml --output workspace/runs/my_m11_plan
+<assets>/.venv-mlperf/bin/python -m netsurf scaling freeze config/examples/m11_kws_ber.toml --output workspace/runs/my_m11_plan
 
 # Explicit single selection case (researcher launches after approving cost).
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf scaling run workspace/runs/my_m11_plan/plan.json --pool k6_seed111101 --arm 0 --phase selection --output workspace/runs/my_m11_selection/k6_seed111101_arm0
+<assets>/.venv-mlperf/bin/python -m netsurf scaling run workspace/runs/my_m11_plan/plan.json --pool k6_seed111101 --arm 0 --phase selection --output workspace/runs/my_m11_selection/k6_seed111101_arm0
 
 # After ALL prescribed cases finish; refuses incomplete/duplicate selections.
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf scaling seal workspace/runs/my_m11_plan/plan.json workspace/runs/my_m11_selection --output workspace/runs/my_m11_registry
+<assets>/.venv-mlperf/bin/python -m netsurf scaling seal workspace/runs/my_m11_plan/plan.json workspace/runs/my_m11_selection --output workspace/runs/my_m11_registry
 
 # Frozen final masks only; does not rerun selection.
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf scaling run workspace/runs/my_m11_plan/plan.json --pool k6_seed111101 --arm 0 --phase final --selection-registry workspace/runs/my_m11_registry/plan.json --output workspace/runs/my_m11_final/k6_seed111101_arm0
+<assets>/.venv-mlperf/bin/python -m netsurf scaling run workspace/runs/my_m11_plan/plan.json --pool k6_seed111101 --arm 0 --phase final --selection-registry workspace/runs/my_m11_registry/plan.json --output workspace/runs/my_m11_final/k6_seed111101_arm0
 
 # After all finals, regenerate a NEW derived analysis without inference.
-MPLCONFIGDIR=workspace/cache/matplotlib /mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf scaling analyze workspace/runs/my_m11_plan/plan.json workspace/runs/my_m11_registry/plan.json workspace/runs/my_m11_final --output workspace/runs/my_m11_analysis
+MPLCONFIGDIR=workspace/cache/matplotlib <netsurf-env>/bin/python -m netsurf scaling analyze workspace/runs/my_m11_plan/plan.json workspace/runs/my_m11_registry/plan.json workspace/runs/my_m11_final --output workspace/runs/my_m11_analysis
 ```
 
 The frozen `operation_counts` list is the authoritative queue. To run every
 case sequentially in foreground, use the shared API, not a new research engine:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python - <<'PY'
+<assets>/.venv-mlperf/bin/python - <<'PY'
 from pathlib import Path
 from netsurf.scaling_study import verify_directory, execute
 root = Path('workspace/runs/my_m11_plan')
@@ -368,7 +368,7 @@ existing optional-integration/environment gates, not newly relaxed checks.
 Pinned regression command:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m pytest -q tests/test_m93_multibench.py tests/test_mlperf_tiny_adapter.py tests/test_m98_conditional_adapters.py tests/test_m99_cohort.py tests/test_m910_attribution.py tests/test_conditional_scaling.py
+<assets>/.venv-mlperf/bin/python -m pytest -q tests/test_m93_multibench.py tests/test_mlperf_tiny_adapter.py tests/test_m98_conditional_adapters.py tests/test_m99_cohort.py tests/test_m910_attribution.py tests/test_conditional_scaling.py
 ```
 
 KWS K32 final scientific digest repeated exactly:
@@ -391,9 +391,9 @@ sha256sum workspace/exports/m11_handoff.zip
 unzip -t workspace/exports/m11_handoff.zip
 
 # To make another archive from the committed source and verified evidence:
-PYTHONPATH=. /mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python workflows/export_m11.py --output workspace/exports/m11_handoff_copy.zip
+PYTHONPATH=. <netsurf-env>/bin/python workflows/export_m11.py --output workspace/exports/m11_handoff_copy.zip
 
 # Mac; replace KONA_SSH_HOST with the researcher's configured SSH hostname.
-scp manuelbv@KONA_SSH_HOST:/projects/netsurf/manuelbv/workspace/implementation-worktrees/m11-conditional-scaling/workspace/exports/m11_handoff.zip ~/Downloads/
+scp <user>@<host>:<repo>/workspace/implementation-worktrees/m11-conditional-scaling/workspace/exports/m11_handoff.zip ~/Downloads/
 shasum -a 256 ~/Downloads/m11_handoff.zip
 ```

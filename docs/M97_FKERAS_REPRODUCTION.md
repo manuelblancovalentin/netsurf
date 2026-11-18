@@ -1,6 +1,6 @@
 # M9.7-A: FKeras reproduction and numerical gate
 
-Implementation worktree: `/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97`,
+Implementation worktree: `<repo>/workspace/implementation-worktrees/m97`,
 branch `m97-fkeras-adapters`, based on canonical `4d646a83014bd7a0aed11045bf9f3456e341ee56`.
 No merge, push, shared-asset edit, training, or publication campaign. All runs here
 are engineering checks using already exposed examples. Historical runs stay in
@@ -192,12 +192,12 @@ service was created.
 ## Kona commands (no installation)
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/m97
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf validate config/examples/m97_kws_fkeras_protection_smoke.toml
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf run config/examples/m97_kws_fkeras_protection_smoke.toml
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf run config/examples/m97_kws_fkeras_empirical_smoke.toml
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m pytest -q
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m pytest -q tests/test_m97_fkeras.py tests/test_m97_capabilities.py tests/test_m97_integration.py
+cd <repo>/workspace/implementation-worktrees/m97
+<assets>/.venv-mlperf/bin/python -m netsurf validate config/examples/m97_kws_fkeras_protection_smoke.toml
+<assets>/.venv-mlperf/bin/python -m netsurf run config/examples/m97_kws_fkeras_protection_smoke.toml
+<assets>/.venv-mlperf/bin/python -m netsurf run config/examples/m97_kws_fkeras_empirical_smoke.toml
+<netsurf-env>/bin/python -m pytest -q
+<assets>/.venv-mlperf/bin/python -m pytest -q tests/test_m97_fkeras.py tests/test_m97_capabilities.py tests/test_m97_integration.py
 ```
 
 The pinned environment has no Matplotlib. Examples set `plots=false` and produce
@@ -205,7 +205,7 @@ immutable reports. Generate figures offline with the already installed canonical
 environment, into a **new** derived destination:
 
 ```bash
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf report RUN_DIRECTORY --output workspace/runs/m97_derived_unique --plots
+<netsurf-env>/bin/python -m netsurf report RUN_DIRECTORY --output workspace/runs/m97_derived_unique --plots
 ```
 
 Replace `RUN_DIRECTORY` with the CLI-returned absolute directory. No TensorFlow

@@ -112,14 +112,14 @@ This is a planning range, not a guaranteed runtime.
 From the M9.5.5 worktree, validate the bounded configuration:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional validate \
+<assets>/.venv-mlperf/bin/python -m netsurf conditional validate \
   config/examples/m955_kws_paired_swap_k6_validation.toml --resolved
 ```
 
 Validate the researcher K=8 configuration:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional validate \
+<assets>/.venv-mlperf/bin/python -m netsurf conditional validate \
   config/examples/m955_kws_s5_context_k8.toml --resolved
 ```
 
@@ -127,7 +127,7 @@ After inspecting resolved counts, run K=8 interactively in tmux:
 
 ```bash
 NETSURF_WORKSPACE="$PWD/workspace" \
-  /projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional run \
+  <assets>/.venv-mlperf/bin/python -m netsurf conditional run \
   config/examples/m955_kws_s5_context_k8.toml
 ```
 

@@ -1,7 +1,7 @@
 # M9.5.7 independent frozen-mask replication
 
 Implementation branch: `m957-frozen-mask-replication`, worktree
-`/projects/netsurf/manuelbv/workspace/implementation-worktrees/m957`, based on
+`<repo>/workspace/implementation-worktrees/m957`, based on
 M956 `9a96d5e2267fac5fa113ec9d4043ac9311f6b707`. No merge or push.
 This prepares an independently specified replication. **The 256-field
 publication replication has not been executed.**
@@ -10,7 +10,7 @@ publication replication has not been executed.**
 
 The original finalized selection is:
 
-`/projects/netsurf/manuelbv/workspace/implementation-worktrees/m956/workspace/runs/m956_kws_s5_selection_k8/20261030T165154.608989Z-b465f389`
+`<repo>/workspace/implementation-worktrees/m956/workspace/runs/m956_kws_s5_selection_k8/20261030T165154.608989Z-b465f389`
 
 - Scientific payload: `6acf2a45452432e64186f52c3ffa6dfd2f298765106c1282ee220ef5823f0ff7`.
 - Frozen-selection file SHA-256: `675ac2b3a46a1555fb0f4da86a0808c96ca2b4ad961e66b68a4284f97286b046`.
@@ -208,21 +208,21 @@ Use tmux and the pinned interpreter; no installation, background wrapper or
 environment migration is required:
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/m957
+cd <repo>/workspace/implementation-worktrees/m957
 export NETSURF_WORKSPACE="$PWD/workspace"
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional validate \
+<assets>/.venv-mlperf/bin/python -m netsurf conditional validate \
   config/examples/m957_kws_frozen_replication_k8_v1.toml --resolved
 ```
 
 After reviewing the plan and confirming no unrecorded exposure, run **once**:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional run \
+<assets>/.venv-mlperf/bin/python -m netsurf conditional run \
   config/examples/m957_kws_frozen_replication_k8_v1.toml
 ```
 
 The existing exact S5 source bundle is required:
-`/projects/netsurf/manuelbv/workspace/runs/m93_kws_static_ber_sweep1000_v1/20261029T183410.488907Z-32c31070`.
+`<repo>/workspace/runs/m93_kws_static_ber_sweep1000_v1/20261029T183410.488907Z-32c31070`.
 The locked Speech Commands dataset and INT8 model paths in the TOML must
 remain accessible. TF2.21 is not an equivalent backend.
 
@@ -230,7 +230,7 @@ On a fresh checkout where the gitignored plan is absent, reconstruct it from
 the TOML **before inference**, then compare the printed file hash above:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf conditional freeze-replication \
+<assets>/.venv-mlperf/bin/python -m netsurf conditional freeze-replication \
   config/examples/m957_kws_frozen_replication_k8_v1.toml \
   --output workspace/plans/m957_kws_frozen_replication_k8_v1_diagnostics.json
 ```
@@ -295,8 +295,8 @@ remains clean at `9a96d5e`. No dependencies were installed, no locks changed,
 and nothing was merged or pushed.
 
 ```bash
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m pytest -q --tb=short
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m pytest -q \
+<netsurf-env>/bin/python -m pytest -q --tb=short
+<assets>/.venv-mlperf/bin/python -m pytest -q \
   tests/test_m957_replication.py tests/test_m956_preflight.py \
   tests/test_m953_same_distribution.py tests/test_m955_paired_swap.py \
   tests/test_m95_conditional_damage.py tests/test_m95_restricted_subcube.py \
@@ -312,13 +312,13 @@ It does not distribute datasets or model binaries. Choose a new archive name
 if that name already exists.
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/m957
+cd <repo>/workspace/implementation-worktrees/m957
 M957_RUN="/ABSOLUTE/FINALIZED/REPLICATION/RUN"
-M957_SELECTION="/projects/netsurf/manuelbv/workspace/implementation-worktrees/m956/workspace/runs/m956_kws_s5_selection_k8/20261030T165154.608989Z-b465f389"
+M957_SELECTION="<repo>/workspace/implementation-worktrees/m956/workspace/runs/m956_kws_s5_selection_k8/20261030T165154.608989Z-b465f389"
 M957_ARCHIVE="workspace/exports/m957_replication_evidence.zip"
 mkdir -p workspace/exports
 test -f "$M957_RUN/FINALIZED" && test ! -e "$M957_ARCHIVE" && \
-  /projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m zipfile -c "$M957_ARCHIVE" \
+  <assets>/.venv-mlperf/bin/python -m zipfile -c "$M957_ARCHIVE" \
   "$M957_RUN" "$M957_SELECTION" \
   config/examples/m957_kws_frozen_replication_k8_v1.toml \
   workspace/plans/m957_kws_frozen_replication_k8_v1_diagnostics.json \
@@ -331,7 +331,7 @@ On the Mac, replace `KONA_SSH_HOST` with the researcher's actual reachable SSH
 host/alias (not an assumed hostname):
 
 ```bash
-scp manuelbv@KONA_SSH_HOST:/projects/netsurf/manuelbv/workspace/implementation-worktrees/m957/workspace/exports/m957_replication_evidence.zip ~/Downloads/
+scp <user>@<host>:<repo>/workspace/implementation-worktrees/m957/workspace/exports/m957_replication_evidence.zip ~/Downloads/
 shasum -a 256 ~/Downloads/m957_replication_evidence.zip
 ```
 

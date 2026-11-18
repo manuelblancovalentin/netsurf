@@ -72,11 +72,11 @@ FP32/BF16 pilots do not satisfy that prerequisite.
 Use a new output directory, never the v1 product path:
 
 ```bash
-cd /projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m workflows.build_reliability_database \
+cd <repo>/workspace/implementation-worktrees/reliability-db
+<netsurf-env>/bin/python -m workflows.build_reliability_database \
   --sources config/reliability_sources_v1.json \
   --output workspace/reliability_database_v2_primary_new
-/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m workflows.build_reliability_database \
+<netsurf-env>/bin/python -m workflows.build_reliability_database \
   --sources config/reliability_sources_v1.json \
   --output workspace/reliability_database_v2_primary_new --verify
 ```
@@ -87,7 +87,7 @@ checksums and `FINALIZED`. The pinned MLPerf interpreter can validate a plan
 without executing it:
 
 ```bash
-/projects/kona-assets/manuelbv/.venv-mlperf/bin/python -m netsurf validate \
+<assets>/.venv-mlperf/bin/python -m netsurf validate \
   workspace/reliability_database_v2_primary_new/plans/kws_partial_tier_fkeras_matched_v1.toml
 ```
 

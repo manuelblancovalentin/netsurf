@@ -86,6 +86,10 @@ sign-bit triplication were never the best choice.
 | `DEPRECATED/` | The recovered 2025 implementation and notebooks. They are evidence, not the current specification; see `docs/LEGACY_MAPPING.md` before using them. |
 | `workspace/` | Run outputs, caches and checkouts. Ignored by git. |
 
+In the notes under `docs/` and `publications/`, machine paths are written with
+placeholders: `<repo>` is this checkout, `<assets>` the folder with model and dataset
+locks, `<netsurf-env>` the Python environment, `<home>` the home folder.
+
 ## Setup and tests
 
 NetSuRF needs Python 3.11. The validated package versions are listed in
