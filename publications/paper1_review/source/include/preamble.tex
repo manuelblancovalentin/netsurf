@@ -18,3 +18,8 @@
 % Draft markers (15 November 2026): red text is provisional evidence or a result still being computed.
 \newcommand{\pending}[1]{{\color{red}#1}}
 \newcommand{\waiting}[1]{{\color{red}\textbf{[Pending:} #1\textbf{]}}}
+% Cross-references: the whole "Figure 3" / "Section 5" / "Eq. (4)" is the link, and links are boxed (hyperref's default
+% look: red for internal links, green for citations, cyan for URLs) instead of coloured.
+\newcommand{\wref}[2]{\hyperref[#2]{#1~\ref*{#2}}}
+\newcommand{\weqref}[2]{\hyperref[#2]{#1~\textup{(\ref*{#2})}}}
+\AtBeginDocument{\hypersetup{colorlinks=false,pdfborder={0 0 0.8},linkbordercolor={1 0 0},citebordercolor={0 0.6 0},urlbordercolor={0 0.6 0.9}}}
