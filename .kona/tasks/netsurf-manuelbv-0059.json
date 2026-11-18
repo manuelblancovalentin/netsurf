@@ -1,12 +1,14 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0059",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 59,
  "label": "",
  "title": "Consolidate branches and worktrees into v2, clean up the repository, README with results",
  "summary": "",
- "notes": "Requested by the owner on 2026-11-17 after Paper 1 draft v33. Executes docs/BRANCH_CONSOLIDATION_PLAN.md (branch branch-consolidation-plan, bd06434). Phase 0 (annotated tag on every branch tip, provenance tag for the reflog-only commit cccdca8, backup bundle) first; nothing is pushed.",
- "status": "doing",
+ "notes": "Executed docs/BRANCH_CONSOLIDATION_PLAN.md (its section 7 is the execution record). Before: 42 branches, 40 worktrees, no tags. After: 5 branches (v2, master, the two working Paper 1 branches, m12-kws-transition-validation), 41 tags (an archive tag for every retired branch tip, a provenance tag for a reflog-only commit named by a run record, snapshot and delivery tags), a verified backup bundle in workspace/git_backups. v2 now contains all finished milestone code and the Paper 1 manuscript at draft v33 (merge commits, original hashes kept). One mechanical conflict resolved in netsurf/benchmarks/capabilities.py (both branches' verified capabilities kept). Not merged: m12-kws-transition-validation, because it and m11 both use campaign schema version 1.1.0 for different protocols with different primary comparisons; needs the owner's decision. README rewritten around the manuscript's results; long command list moved to docs/CLI_GUIDE.md. Verified: full test suite on the merged v2 gives 701 passed, 47 skipped, 6 failed; the six read an ignored local plan file and fail identically on their own branch; the four tests that touch the MNIST checkpoint pass. Retired folders and their run outputs were not moved. Nothing was pushed; the GitHub remotes still have every old branch.",
+ "status": "done",
  "priority": "high",
  "stage": "",
  "target": "",
@@ -26,8 +28,8 @@
  "updated": "2026-11-17",
  "start": "2026-11-17",
  "end": "",
- "completed": "",
- "percent": null,
+ "completed": "2026-11-17",
+ "percent": 100,
  "dependencies": [
   "netsurf-manuelbv-0058"
  ],
@@ -39,8 +41,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "doing"
+  },
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "notes,status,completed,percent",
+   "to": "Executed docs/BRANCH_CONSOLIDATION_PLAN.md (its section 7 is"
   }
- ],
- "number": 59,
- "id": "netsurf-manuelbv-0059"
+ ]
 }
