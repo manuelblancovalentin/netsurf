@@ -1,0 +1,201 @@
+{
+  "schema": "netsurf-manuscript-figure-reuse/1.0",
+  "request_date": "2026-11-10",
+  "originals_modified": false,
+  "measurement_values_imported": 0,
+  "adaptation": "Editable TikZ vector redrawing; original PNGs preserved, not pixel-edited.",
+  "files": [
+    {
+      "name": "2dAUC_old_legend.png",
+      "path": "/home/manuelbv/.codex/attachments/ce448227-4929-4828-a029-59fb6f96de33/2dAUC_old_legend.png",
+      "sha256": "7cb723a63d6dd87c84c138f1a935ff09b71a89bc1d6fc44ee290f2c66de62217",
+      "decision": "NOT_REUSED_AS_CURRENT_EVIDENCE",
+      "reason": "Historical numerical results lack the current model, cohort, metric and mask contracts; no values are imported into the current figures.",
+      "current_target": null
+    },
+    {
+      "name": "2dAUC.png",
+      "path": "/home/manuelbv/.codex/attachments/04254d72-e61a-4b80-b1c5-5e567dfeb3e5/2dAUC.png",
+      "sha256": "c367fab97580f84f739ddf3d75de18341012c8dc05ef182a36c76757755cec6d",
+      "decision": "NOT_REUSED_AS_CURRENT_EVIDENCE",
+      "reason": "Historical numerical results lack the current model, cohort, metric and mask contracts; no values are imported into the current figures.",
+      "current_target": null
+    },
+    {
+      "name": "5019f41b-3169-4614-b94b-365c67d16fed.png",
+      "path": "/home/manuelbv/.codex/attachments/8bd7e7d0-7f0d-4bd6-935b-bd6b14a40b0d/5019f41b-3169-4614-b94b-365c67d16fed.png",
+      "sha256": "38e4c697792a0dd6104addf8ec06f4dc08047a8589b53518701e8796556e67ed",
+      "decision": "NOT_REUSED_AS_CURRENT_EVIDENCE",
+      "reason": "Historical numerical results lack the current model, cohort, metric and mask contracts; no values are imported into the current figures.",
+      "current_target": null
+    },
+    {
+      "name": "area_power.png",
+      "path": "/home/manuelbv/.codex/attachments/b2370fa5-6ff7-436d-aed8-369bb6b15b5c/area_power.png",
+      "sha256": "ae01f9419e0a68f8354cbe3ed932cec76fca7f7696998ece2380b850c453d093",
+      "decision": "EXCLUDED_HARDWARE_SCOPE",
+      "reason": "Hardware, area/power and synthesis claims are outside the software-only manuscript.",
+      "current_target": null
+    },
+    {
+      "name": "areapower_interpolation.png",
+      "path": "/home/manuelbv/.codex/attachments/b094efb5-3ff3-4a3e-8fc7-3951b1e2a2f8/areapower_interpolation.png",
+      "sha256": "1e884f7245b5b0ac4ce96a04fe2c6e61082e9f0e6692da950a00516359a2236a",
+      "decision": "EXCLUDED_HARDWARE_SCOPE",
+      "reason": "Hardware, area/power and synthesis claims are outside the software-only manuscript.",
+      "current_target": null
+    },
+    {
+      "name": "boxplot_HiResW.png",
+      "path": "/home/manuelbv/.codex/attachments/1ce54cd1-d74c-47e0-95bd-aea425c175bd/boxplot_HiResW.png",
+      "sha256": "25a2ef40dcd59efa683481ad654bfe3a3818c27d0ebd979f3cf268e0207719c7",
+      "decision": "NOT_REUSED_AS_CURRENT_EVIDENCE",
+      "reason": "Historical numerical results lack the current model, cohort, metric and mask contracts; no values are imported into the current figures.",
+      "current_target": null
+    },
+    {
+      "name": "boxplot_new.png",
+      "path": "/home/manuelbv/.codex/attachments/e80aa248-b372-4255-905a-f4951a1e16ba/boxplot_new.png",
+      "sha256": "2843d99ad6bd9fbc383168b331a312ca2de24718e0146571f5434700c4e53e1e",
+      "decision": "NOT_REUSED_AS_CURRENT_EVIDENCE",
+      "reason": "Historical numerical results lack the current model, cohort, metric and mask contracts; no values are imported into the current figures.",
+      "current_target": null
+    },
+    {
+      "name": "boxplot.png",
+      "path": "/home/manuelbv/.codex/attachments/154414f2-4a60-459d-b8c5-700b82c04000/boxplot.png",
+      "sha256": "7a79239d5073f242373f2e3548c51dd22d609eb6fc4dad484314284c58377fde",
+      "decision": "NOT_REUSED_AS_CURRENT_EVIDENCE",
+      "reason": "Historical numerical results lack the current model, cohort, metric and mask contracts; no values are imported into the current figures.",
+      "current_target": null
+    },
+    {
+      "name": "delta_computation.png",
+      "path": "/home/manuelbv/.codex/attachments/507ef41a-62b8-4ea1-bddb-d9f648a61b3e/delta_computation.png",
+      "sha256": "accc67391e6a8f328764b734995c8f9e4db85727c11c7623ea7e3152016f5574",
+      "decision": "VISUAL_STRUCTURE_ADAPTED",
+      "reason": "Original six-bit scale-1/32 arithmetic verified; blue weights, pink encoded words and green delta matrix adapted to an explicitly illustrative INT8 scale-1/16 example.",
+      "current_target": "source/figures/encoded_xor.tex"
+    },
+    {
+      "name": "delta_computation2.png",
+      "path": "/home/manuelbv/.codex/attachments/a468c4e4-8b46-4775-9942-4bb74b5b812f/delta_computation2.png",
+      "sha256": "b4f21f3f0f7ec1aa77000e79c04b2c17b118f591f6cd790ab2a4908040f92c77",
+      "decision": "VISUAL_STRUCTURE_ADAPTED",
+      "reason": "Original six-bit scale-1/32 arithmetic verified; blue weights, pink encoded words and green delta matrix adapted to an explicitly illustrative INT8 scale-1/16 example.",
+      "current_target": "source/figures/encoded_xor.tex"
+    },
+    {
+      "name": "draft_framework_old.png",
+      "path": "/home/manuelbv/.codex/attachments/542117e8-ba80-4a80-9ce5-ef7d343c601e/draft_framework_old.png",
+      "sha256": "19319a04fe5b25162fa1a67400535066ae60b2500b3f12aad39aa4f1693d1a4d",
+      "decision": "RELATED_HISTORICAL_VARIANT",
+      "reason": "Three-stage framework visual language retained; training/QKeras and hardware paths replaced by frozen-model, sealed-mask and exact software-evaluation contracts.",
+      "current_target": "source/figures/workflow.tex"
+    },
+    {
+      "name": "fortune_3benchmarks-old.png",
+      "path": "/home/manuelbv/.codex/attachments/53f9c5a1-1652-492b-ae82-6f8457964a8a/fortune_3benchmarks-old.png",
+      "sha256": "6395fceabb493fc7eb39ed36e07a082b13737374a1d751f2efb98b186772445e",
+      "decision": "NOT_REUSED_AS_CURRENT_EVIDENCE",
+      "reason": "Historical numerical results lack the current model, cohort, metric and mask contracts; no values are imported into the current figures.",
+      "current_target": null
+    },
+    {
+      "name": "fortune_3benchmarks.png",
+      "path": "/home/manuelbv/.codex/attachments/ed0d9338-d00c-47ed-bb74-8ca7dc9fe9ea/fortune_3benchmarks.png",
+      "sha256": "58dc1081c30cc1ec400b0bb3cdb103829caca8c4bc994f309acc0fa1c5dd040d",
+      "decision": "NOT_REUSED_AS_CURRENT_EVIDENCE",
+      "reason": "Historical numerical results lack the current model, cohort, metric and mask contracts; no values are imported into the current figures.",
+      "current_target": null
+    },
+    {
+      "name": "hessian_3benchmarks-old.png",
+      "path": "/home/manuelbv/.codex/attachments/6d68eb26-896a-4ebd-a8d3-bd0d25ef82ce/hessian_3benchmarks-old.png",
+      "sha256": "be70aad2cacfd0f86591140f34cc04778998414eccb5b8150dad5b6cffcbac78",
+      "decision": "NOT_REUSED_AS_CURRENT_EVIDENCE",
+      "reason": "Historical numerical results lack the current model, cohort, metric and mask contracts; no values are imported into the current figures.",
+      "current_target": null
+    },
+    {
+      "name": "hessian_3benchmarks.png",
+      "path": "/home/manuelbv/.codex/attachments/0644def8-fda6-4065-b591-3d655e17c43c/hessian_3benchmarks.png",
+      "sha256": "e11a432a93cc21eaa6a44fb9eef45496bc2b2cfe7842102619692261689ef3b5",
+      "decision": "NOT_REUSED_AS_CURRENT_EVIDENCE",
+      "reason": "Historical numerical results lack the current model, cohort, metric and mask contracts; no values are imported into the current figures.",
+      "current_target": null
+    },
+    {
+      "name": "mnist.png",
+      "path": "/home/manuelbv/.codex/attachments/68a665eb-5cc4-4917-8304-fe83f90639c5/mnist.png",
+      "sha256": "f81ee279b2692973df377a55c479ec2b489ad5fb3c6d2ce5e18b98098e88ed5f",
+      "decision": "EXCLUDED_HARDWARE_SCOPE",
+      "reason": "Hardware, area/power and synthesis claims are outside the software-only manuscript.",
+      "current_target": null
+    },
+    {
+      "name": "netsurf_iccad.png",
+      "path": "/home/manuelbv/.codex/attachments/4291049c-1225-4248-93dd-8852f56d4119/netsurf_iccad.png",
+      "sha256": "d7efb03f429c01fe969b4dc63dfc4780900b918bda06c460597be075efe42225",
+      "decision": "EXCLUDED_HARDWARE_SCOPE",
+      "reason": "Hardware, area/power and synthesis claims are outside the software-only manuscript.",
+      "current_target": null
+    },
+    {
+      "name": "pruning_correlation_old_legend.png",
+      "path": "/home/manuelbv/.codex/attachments/bf510013-ef20-4a52-9e8d-bad731a1c9e1/pruning_correlation_old_legend.png",
+      "sha256": "2eb7e41ef364a1edf440b086822c034c98e8a3c7335f97ea8483fd8b68c33249",
+      "decision": "NOT_REUSED_AS_CURRENT_EVIDENCE",
+      "reason": "Historical numerical results lack the current model, cohort, metric and mask contracts; no values are imported into the current figures.",
+      "current_target": null
+    },
+    {
+      "name": "pruning_correlation.png",
+      "path": "/home/manuelbv/.codex/attachments/a87267bb-88a0-401b-8e47-903cdc93d4f4/pruning_correlation.png",
+      "sha256": "be316c2358e279858e24979185bb8d70b192a5bda25c3fb784fcacae7a5966be",
+      "decision": "NOT_REUSED_AS_CURRENT_EVIDENCE",
+      "reason": "Historical numerical results lack the current model, cohort, metric and mask contracts; no values are imported into the current figures.",
+      "current_target": null
+    },
+    {
+      "name": "susceptibility_computation.png",
+      "path": "/home/manuelbv/.codex/attachments/2a16c589-cf44-46ed-a407-003bc72ad04d/susceptibility_computation.png",
+      "sha256": "f5e271e2d6aca6020cda9c83aa4c8777f779a6361f7417cd8c77a67d8db6ff51",
+      "decision": "CONCEPT_RETAINED_IN_EQUATIONS",
+      "reason": "Score-times-jump-times-indicator sum is an additive surrogate, not exact multi-fault task risk; retained as first-order mathematics without adding a redundant figure.",
+      "current_target": "source/sections/04_susceptibility.tex"
+    },
+    {
+      "name": "tinyml_anomaly_det.png",
+      "path": "/home/manuelbv/.codex/attachments/56383a70-b42a-4872-988e-cb01b79bd072/tinyml_anomaly_det.png",
+      "sha256": "41d30b85a2857413380429f755c940a2812694b608841d57b9da4422d232caaa",
+      "decision": "EXCLUDED_HARDWARE_SCOPE",
+      "reason": "Hardware, area/power and synthesis claims are outside the software-only manuscript.",
+      "current_target": null
+    },
+    {
+      "name": "draft_framework_AUC.png",
+      "path": "/home/manuelbv/.codex/attachments/2f160cb0-7537-469f-a94c-51ca82d2f30e/draft_framework_AUC.png",
+      "sha256": "f7afc6ed5990d212bb21badb7bfd5d00ab20e6d29f38429ec3214d91ce87dc98",
+      "decision": "RELATED_HISTORICAL_VARIANT",
+      "reason": "Three-stage framework visual language retained; training/QKeras and hardware paths replaced by frozen-model, sealed-mask and exact software-evaluation contracts.",
+      "current_target": "source/figures/workflow.tex"
+    },
+    {
+      "name": "draft_framework_old1.png",
+      "path": "/home/manuelbv/.codex/attachments/61f0c1fb-9923-41ad-b4b9-95b523b0812b/draft_framework_old1.png",
+      "sha256": "375ed55dedfd459e8be7240b77dd76043285ced7b79ba1a5d6f222e1f856fe32",
+      "decision": "RELATED_HISTORICAL_VARIANT",
+      "reason": "Three-stage framework visual language retained; training/QKeras and hardware paths replaced by frozen-model, sealed-mask and exact software-evaluation contracts.",
+      "current_target": "source/figures/workflow.tex"
+    },
+    {
+      "name": "draft_framework.png",
+      "path": "/home/manuelbv/.codex/attachments/82d699ba-ca4a-496b-8f10-898367b3dc17/draft_framework.png",
+      "sha256": "25ee79c105511a3cd65a9e4c8b801491bfa4307ff8d6447441143ba455e48713",
+      "decision": "VISUAL_STRUCTURE_ADAPTED",
+      "reason": "Three-stage framework visual language retained; training/QKeras and hardware paths replaced by frozen-model, sealed-mask and exact software-evaluation contracts.",
+      "current_target": "source/figures/workflow.tex"
+    }
+  ]
+}

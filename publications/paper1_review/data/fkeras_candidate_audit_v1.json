@@ -1,0 +1,1094 @@
+{
+  "content": {
+    "schema": "netsurf.paper1.fkeras-candidate-audit/v1",
+    "status": "FINALIZED",
+    "scope": "offline derivation from finalized source artifacts; no new fault inference",
+    "models": [
+      {
+        "model": "resnet8",
+        "status": "validated",
+        "endpoint": "positive cross-entropy damage",
+        "endpoint_column": "positive_loss_damage",
+        "candidate_count": 320,
+        "join": {
+          "all_candidate_identities_unique": true,
+          "selection_matches_measurements": true,
+          "all_candidates_map_to_saved_scores": true,
+          "kernel_shapes_quantization_and_names_equal": true,
+          "ranking_partitions_including_label_bound_hash_equal": true,
+          "model_and_inference_identity_equal": true,
+          "actual_calibration_input_identity_verified": true
+        },
+        "ranking_partition": {
+          "indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63
+          ],
+          "provenance": "MLPerf Tiny pinned-source CIFAR-10 partition; train roles are disjoint from held-out test evaluation",
+          "role": "ranking",
+          "sample_sha256": "f0f34d666631ab202850b59f833dcdc20c34053cea0cd8be78bb29858b592250",
+          "source_split": "cifar10_train"
+        },
+        "empirical_partition": {
+          "indices": [
+            25000,
+            25001,
+            25002,
+            25003,
+            25004,
+            25005,
+            25006,
+            25007,
+            25008,
+            25009,
+            25010,
+            25011,
+            25012,
+            25013,
+            25014,
+            25015,
+            25016,
+            25017,
+            25018,
+            25019,
+            25020,
+            25021,
+            25022,
+            25023,
+            25024,
+            25025,
+            25026,
+            25027,
+            25028,
+            25029,
+            25030,
+            25031,
+            25032,
+            25033,
+            25034,
+            25035,
+            25036,
+            25037,
+            25038,
+            25039,
+            25040,
+            25041,
+            25042,
+            25043,
+            25044,
+            25045,
+            25046,
+            25047,
+            25048,
+            25049,
+            25050,
+            25051,
+            25052,
+            25053,
+            25054,
+            25055,
+            25056,
+            25057,
+            25058,
+            25059,
+            25060,
+            25061,
+            25062,
+            25063
+          ],
+          "provenance": "MLPerf Tiny pinned-source CIFAR-10 partition; train roles are disjoint from held-out test evaluation",
+          "role": "empirical_validation",
+          "sample_sha256": "807e79a3df3599546ec54efa25c5c0d517dedce3647ce21c44a259af52c64542",
+          "source_split": "cifar10_train"
+        },
+        "model_identity": {
+          "id": "mlperf_tiny_ic_resnet8_int8_v1",
+          "adapter": "mlperf_tiny_ic_int8_v1",
+          "checkpoint_sha256": "3c002613d1b2475eb51dd78dfb85a546c8ae658dee71cf6ade43b022fe205415",
+          "inference_backend": "tensorflow_lite_builtin_ref_v1",
+          "injectable_parameters": [
+            "kernels"
+          ],
+          "quantization": "tflite_affine_int8",
+          "quantization_backend": "tflite_affine_integer_v1",
+          "ranking_samples": 64
+        },
+        "dataset_identity": {
+          "empirical": {
+            "dataset_sha256": "6d958be074577803d12ecdefd02955f39262c83c16fe9348329d7fe0b5c001ce"
+          },
+          "fkeras": {
+            "dataset_sha256": "6d958be074577803d12ecdefd02955f39262c83c16fe9348329d7fe0b5c001ce"
+          }
+        },
+        "aggregate_asset_lock_digests": {
+          "empirical": "sha256:f953370a8b98f7a016e6907e4b001f3b099bbe216c3202d0306fbbca00702687",
+          "fkeras": "sha256:d0daf561e681b5a31f23350192c6b5d7041b27024bf054d13a2eb793e581abd9",
+          "interpretation": "distinct lock artifacts; no field-by-field historical lock diff or path-only claim"
+        },
+        "original_msb_reproduction": {
+          "spearman": 0.255924686173091,
+          "ci95_low": 0.1728689035455086,
+          "ci95_high": 0.3403001009097967
+        },
+        "bootstrap": {
+          "seed": 910301,
+          "replicates": 1000,
+          "confidence": 0.95,
+          "strata": 80,
+          "candidates_per_stratum": 4,
+          "design": "within-recorded-stratum candidate resampling; sample-limited",
+          "group_key": [
+            "layer",
+            "parameter_class",
+            "bit_index",
+            "score_quantile"
+          ],
+          "within_stratum_order": "original empirical CSV row order",
+          "generator": "numpy.random.default_rng; sorted strata; integers(0,n,size=n)",
+          "source_numpy_version": "1.26.4",
+          "original_msb_point_and_interval_reproduced_tolerance": 1e-12
+        },
+        "saved_score_replication_checks": {
+          "replication_0": {
+            "joined_candidates": 320,
+            "candidate_score_sha256_float64_le": "0637cef9c27b544d062a6eb5032892344fe11ed99bdf73ff77d03e12cd3a0866",
+            "exact_score_equal_to_replication_0": true,
+            "max_absolute_score_difference_from_replication_0": 0.0,
+            "strict_tier_candidate_order_and_ties_equal_to_replication_0": true,
+            "raw_candidate_order_and_ties_equal_to_replication_0": true,
+            "eigensolver_seed": 1208102
+          },
+          "replication_1": {
+            "joined_candidates": 320,
+            "candidate_score_sha256_float64_le": "8bd1b1bbb39c1d9c3bf5810f27719cc8c68eca23e0e35c4ee2fa0a0d447fd544",
+            "exact_score_equal_to_replication_0": false,
+            "max_absolute_score_difference_from_replication_0": 5.115907697472721e-13,
+            "strict_tier_candidate_order_and_ties_equal_to_replication_0": true,
+            "raw_candidate_order_and_ties_equal_to_replication_0": true,
+            "eigensolver_seed": 1209111
+          },
+          "replication_2": {
+            "joined_candidates": 320,
+            "candidate_score_sha256_float64_le": "0c6f91e1108efd4596bcfd30a66bee5945e07914f9a78e9a57982d31b50caa53",
+            "exact_score_equal_to_replication_0": false,
+            "max_absolute_score_difference_from_replication_0": 3.552713678800501e-13,
+            "strict_tier_candidate_order_and_ties_equal_to_replication_0": true,
+            "raw_candidate_order_and_ties_equal_to_replication_0": true,
+            "eigensolver_seed": 1210120
+          },
+          "replication_3": {
+            "joined_candidates": 320,
+            "candidate_score_sha256_float64_le": "e467ac64fbff4b94ad5b33b89616cf6635837596c013e4a9c8404b89aaabad5b",
+            "exact_score_equal_to_replication_0": false,
+            "max_absolute_score_difference_from_replication_0": 3.552713678800501e-13,
+            "strict_tier_candidate_order_and_ties_equal_to_replication_0": true,
+            "raw_candidate_order_and_ties_equal_to_replication_0": true,
+            "eigensolver_seed": 1211129
+          }
+        },
+        "score_realization_used": "replication_0; chosen by canonical index, not observed correlation",
+        "source_manifests": {
+          "empirical": {
+            "branch": "v2",
+            "commit": "f72d37e7da6ce52956450196a708a716c6af1459",
+            "dirty": true,
+            "source_fingerprint_sha256": "7b4b66896fdc9678a59ed372c136912c9ec996c2999539a2e0b7706f76046575",
+            "status_sha256": "01816836ac31a6d276bc20cfc884171a1088ff1f5daa8a709ec18da5b0fe1ad0",
+            "tracked_diff_sha256": "a0493673bc4913a22bab13c0b60a4aa25ddd7637ac1d55d63d7cb3033d3c909a"
+          },
+          "fkeras": {
+            "branch": "m12-fkeras-multibench",
+            "commit": "c27c3462a98ca6a584d053647400335b2c4fd219",
+            "dirty": false,
+            "source_fingerprint_sha256": "47ff1a0c1f84b971de235d41ccac83a18c22c04b0fc4a5c438dec2a6decfefa9",
+            "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "source_files": [
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m91_resnet8_estimator_validation_stratified320_v1/20261029T014136.049835Z-c23f1d77/manifest.json",
+            "sha256": "92dff36f64675fe8da1005f7af4f8ca60c86dbcc5ccf352740f161fd986dbd30",
+            "bytes": 9245,
+            "manifest_bound": false
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m91_resnet8_estimator_validation_stratified320_v1/20261029T014136.049835Z-c23f1d77/FINALIZED",
+            "sha256": "0b31fa261704b9b60c88ec8778a88f2216de3137bb56f98155be7edf7b8ef2ae",
+            "bytes": 91,
+            "manifest_bound": false
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m91_resnet8_estimator_validation_stratified320_v1/20261029T014136.049835Z-c23f1d77/summary.json",
+            "sha256": "f31f3afa7c09492718f9127c9f97e448e257187bae7ecbe7cf73cff840c6cf33",
+            "bytes": 12161,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m91_resnet8_estimator_validation_stratified320_v1/20261029T014136.049835Z-c23f1d77/scientific_payload.json",
+            "sha256": "94e6c1b8b983f1c986d2610f0920d21376a05e59d4640673c0424912f1ee8186",
+            "bytes": 435992,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m91_resnet8_estimator_validation_stratified320_v1/20261029T014136.049835Z-c23f1d77/resolved_config.json",
+            "sha256": "b2d9d6cb460e9f3d1e8a67ab0c1a0121f9e2e6a5557f4cf67481a782de0cb0a1",
+            "bytes": 2987,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m91_resnet8_estimator_validation_stratified320_v1/20261029T014136.049835Z-c23f1d77/artifacts/sample_partitions.json",
+            "sha256": "bc0d5b96c8cedb499c4fcc964fef8b9219ad0e3c6150718a71a543cee390d30a",
+            "bytes": 2455,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m91_resnet8_estimator_validation_stratified320_v1/20261029T014136.049835Z-c23f1d77/artifacts/candidate_selection.json",
+            "sha256": "8d69c106413bd16e3adbec3662c97f11fd5c632bc03937b27b6ba4641caa29a2",
+            "bytes": 63356,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m91_resnet8_estimator_validation_stratified320_v1/20261029T014136.049835Z-c23f1d77/measurements/empirical_bits.csv",
+            "sha256": "9e086e0ae39beb7c7f76067c3d1c3c3b5a7c36021986c1c3269c41d4f6320105",
+            "bytes": 113909,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/manifest.json",
+            "sha256": "7628cf276847c359e905875ae7f0b8c5ce95de94ccc163ea402aca80d59c7eca",
+            "bytes": 28888,
+            "manifest_bound": false
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/FINALIZED",
+            "sha256": "8239981991975a6ecbc99228d54e2d544522f969526699f4254c42a22ba5ca47",
+            "bytes": 91,
+            "manifest_bound": false
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/summary.json",
+            "sha256": "9b6c867bbb060996089f241d1a5d698f470a2211051e352c5158aa78da70a23e",
+            "bytes": 29347065,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/artifacts/sample_partitions.json",
+            "sha256": "05885dfafd4a247ec8b0b015c19ddf303dc75a59fa93cfb849e20e73a5c6e672",
+            "bytes": 19762,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/scientific_payload.json",
+            "sha256": "9381961b379c3699d9d99fe610d1130f2e8d4c5e3f7844a94283843d0a15c043",
+            "bytes": 35490408,
+            "manifest_bound": true
+          }
+        ],
+        "results": {
+          "fkeras_strict_bit_tier_ranking": {
+            "spearman": 0.28652151932248804,
+            "ci95_low": 0.2059054024510098,
+            "ci95_high": 0.36994018482111163
+          },
+          "fkeras_raw_absolute_projection_diagnostic": {
+            "spearman": 0.27391794616013176,
+            "ci95_low": 0.18931069901918832,
+            "ci95_high": 0.3559222698761333
+          }
+        },
+        "input_identity_basis": "identical complete CIFAR archive SHA-256, exact ranking indices and label-bound hash, fixed uint8-minus-128 preprocessing"
+      },
+      {
+        "model": "kws",
+        "status": "blocked_calibration_input_identity",
+        "endpoint": "positive cross-entropy damage",
+        "endpoint_column": "positive_loss_damage",
+        "candidate_count": 320,
+        "join": {
+          "all_candidate_identities_unique": true,
+          "selection_matches_measurements": true,
+          "all_candidates_map_to_saved_scores": true,
+          "kernel_shapes_quantization_and_names_equal": true,
+          "ranking_partitions_including_label_bound_hash_equal": true,
+          "model_and_inference_identity_equal": true,
+          "actual_calibration_input_identity_verified": false
+        },
+        "ranking_partition": {
+          "indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63
+          ],
+          "provenance": "Pinned TFDS shard order: round-robin blocks of 16; exact TF signal MFCC preprocessing",
+          "role": "ranking",
+          "sample_sha256": "f19ca231fd73c50a39c2e902a83807b313cc264e9212e4c2a5590882a65765f4",
+          "source_split": "speech_commands_tfds_train_interleaved_blocks16"
+        },
+        "empirical_partition": {
+          "indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63
+          ],
+          "provenance": "Pinned TFDS shard order: round-robin blocks of 16; exact TF signal MFCC preprocessing",
+          "role": "empirical_validation",
+          "sample_sha256": "7995eaa683b8e9f2968a99e1e10040f7c10b2ca3fd34a2458fc6e2d6057708c4",
+          "source_split": "speech_commands_tfds_validation_interleaved_blocks16"
+        },
+        "model_identity": {
+          "id": "mlperf_tiny_kws_dscnn_int8_v1",
+          "adapter": "mlperf_tiny_kws_int8_v1",
+          "checkpoint_sha256": "aeea436800704fce17b17292e4412630ad856e9d777c044c64ef748a880bd0ae",
+          "inference_backend": "tensorflow_lite_builtin_ref_v1",
+          "injectable_parameters": [
+            "kernels"
+          ],
+          "quantization": "tflite_affine_int8",
+          "quantization_backend": "tflite_affine_integer_v1",
+          "ranking_samples": 64
+        },
+        "dataset_identity": {
+          "empirical": {
+            "asset_lock_digest": "sha256:9de0816f7973b31febc84d04667068b3ad583ab2cb5d17c0f44da1a2c4ddd3d2",
+            "dataset": {
+              "id": "speech-commands",
+              "version": "tfds-0.0.3"
+            },
+            "local_path_excluded_from_scientific_identity": true,
+            "preprocessing_id": "mlperf-tiny/kws01/tf-signal-mfcc-10x49/1",
+            "sample_index_sha256": "6cb3709762d53fe64eb00eaf4a75796248bb3c1386f1d1f93ccdb07b071e9698"
+          },
+          "fkeras": {
+            "asset_lock_digest": "sha256:d87daf0dbc24bbc334589dae83e200504a9624008f647d461c6c4721ce1bcf6f",
+            "dataset": {
+              "id": "speech-commands",
+              "version": "tfds-0.0.3"
+            },
+            "local_path_excluded_from_scientific_identity": true,
+            "preprocessing_id": "mlperf-tiny/kws01/tf-signal-mfcc-10x49/1",
+            "sample_index_sha256": "6cb3709762d53fe64eb00eaf4a75796248bb3c1386f1d1f93ccdb07b071e9698"
+          }
+        },
+        "aggregate_asset_lock_digests": {
+          "empirical": "sha256:9de0816f7973b31febc84d04667068b3ad583ab2cb5d17c0f44da1a2c4ddd3d2",
+          "fkeras": "sha256:d87daf0dbc24bbc334589dae83e200504a9624008f647d461c6c4721ce1bcf6f",
+          "interpretation": "distinct lock artifacts; no field-by-field historical lock diff or path-only claim"
+        },
+        "original_msb_reproduction": {
+          "spearman": 0.2037593078458657,
+          "ci95_low": 0.10678587212513845,
+          "ci95_high": 0.2848117158615262
+        },
+        "bootstrap": {
+          "seed": 931301,
+          "replicates": 1000,
+          "confidence": 0.95,
+          "strata": 80,
+          "candidates_per_stratum": 4,
+          "design": "within-recorded-stratum candidate resampling; sample-limited",
+          "group_key": [
+            "layer",
+            "parameter_class",
+            "bit_index",
+            "score_quantile"
+          ],
+          "within_stratum_order": "original empirical CSV row order",
+          "generator": "numpy.random.default_rng; sorted strata; integers(0,n,size=n)",
+          "source_numpy_version": "1.26.4",
+          "original_msb_point_and_interval_reproduced_tolerance": 1e-12
+        },
+        "saved_score_replication_checks": {
+          "replication_0": {
+            "joined_candidates": 320,
+            "candidate_score_sha256_float64_le": "b0945e30e885d507e215af2630a6e9b236d04de6a9cd134aada1586de0edaba1",
+            "exact_score_equal_to_replication_0": true,
+            "max_absolute_score_difference_from_replication_0": 0.0,
+            "strict_tier_candidate_order_and_ties_equal_to_replication_0": true,
+            "raw_candidate_order_and_ties_equal_to_replication_0": true,
+            "eigensolver_seed": 970201
+          },
+          "replication_1": {
+            "joined_candidates": 320,
+            "candidate_score_sha256_float64_le": "3b541c8ed1434b07f19c900f06af40e2456d34587291d29d1f4f1b203a130216",
+            "exact_score_equal_to_replication_0": false,
+            "max_absolute_score_difference_from_replication_0": 2.6645352591003757e-15,
+            "strict_tier_candidate_order_and_ties_equal_to_replication_0": true,
+            "raw_candidate_order_and_ties_equal_to_replication_0": true,
+            "eigensolver_seed": 971210
+          },
+          "replication_2": {
+            "joined_candidates": 320,
+            "candidate_score_sha256_float64_le": "55baef2e3dab9a1a1872a252182000d9ea52210b882f21ac42da267075b99464",
+            "exact_score_equal_to_replication_0": false,
+            "max_absolute_score_difference_from_replication_0": 2.4424906541753444e-15,
+            "strict_tier_candidate_order_and_ties_equal_to_replication_0": true,
+            "raw_candidate_order_and_ties_equal_to_replication_0": true,
+            "eigensolver_seed": 972219
+          },
+          "replication_3": {
+            "joined_candidates": 320,
+            "candidate_score_sha256_float64_le": "c51c1da30b0d1926ed0f9dd73a66c30552f1fe2f389dd207f1fa24ec76c5a2ab",
+            "exact_score_equal_to_replication_0": false,
+            "max_absolute_score_difference_from_replication_0": 2.4424906541753444e-15,
+            "strict_tier_candidate_order_and_ties_equal_to_replication_0": true,
+            "raw_candidate_order_and_ties_equal_to_replication_0": true,
+            "eigensolver_seed": 973228
+          }
+        },
+        "score_realization_used": "replication_0; chosen by canonical index, not observed correlation",
+        "source_manifests": {
+          "empirical": {
+            "branch": "v2",
+            "commit": "e65a5f2895dbc7445b61ab6655ec80e05287a2fa",
+            "dirty": true,
+            "source_fingerprint_sha256": "e543e2e6dfc49799c8330e163313ab4209d4840dfb5a42eaa4cce6447dd23ffb",
+            "status_sha256": "764b521060062b8a4db6aadbae91e7e69c64d5a693ddcfd7c477c50a9dd43d76",
+            "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "fkeras": {
+            "branch": "m12-reliability-database",
+            "commit": "bb33fc39e53dae8553c5f8058fdbf8d883469017",
+            "dirty": false,
+            "source_fingerprint_sha256": "e5134243885ef8b1e38b9d80e8edc034997b062b2d8ec6150896ec4dbb772ce7",
+            "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "source_files": [
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_estimator_validation_stratified320_v1/20261029T172802.081387Z-f3ebf3fe/manifest.json",
+            "sha256": "b671a560ff24813b4ec2e855ed172f3a943d94f1bfd2174d5cb90089adbd0f0a",
+            "bytes": 9006,
+            "manifest_bound": false
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_estimator_validation_stratified320_v1/20261029T172802.081387Z-f3ebf3fe/FINALIZED",
+            "sha256": "219a150fd3b2415441ffdd43a00298ad6fa3186a4b43e91cb9f9a426d8ebae22",
+            "bytes": 91,
+            "manifest_bound": false
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_estimator_validation_stratified320_v1/20261029T172802.081387Z-f3ebf3fe/summary.json",
+            "sha256": "bb6d8c4986490b1b1f2ac9f97dba70647759fa26266128819ba2d08cca6818a0",
+            "bytes": 12174,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_estimator_validation_stratified320_v1/20261029T172802.081387Z-f3ebf3fe/scientific_payload.json",
+            "sha256": "5c329a0a9c3ec020766390219466af449947a28cee5b27e2a6d59b924fba7cde",
+            "bytes": 441340,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_estimator_validation_stratified320_v1/20261029T172802.081387Z-f3ebf3fe/resolved_config.json",
+            "sha256": "fdd6861a7c4cafa9b3e6abdaaa5a1ad6c4fc3ec81abdb23b26316de2f89a6314",
+            "bytes": 2965,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_estimator_validation_stratified320_v1/20261029T172802.081387Z-f3ebf3fe/artifacts/sample_partitions.json",
+            "sha256": "3e324e9c349cba878964824a3ad61f2c1a30ea0afd9420241007bb8f31932225",
+            "bytes": 1962,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_estimator_validation_stratified320_v1/20261029T172802.081387Z-f3ebf3fe/artifacts/candidate_selection.json",
+            "sha256": "aacdbb40cfe0737a6ec6be76bcf4fa9fa46c598499917b064b8ed9abc7e302af",
+            "bytes": 62692,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_estimator_validation_stratified320_v1/20261029T172802.081387Z-f3ebf3fe/measurements/empirical_bits.csv",
+            "sha256": "dbcf387ffd8c8ac75aa091a97cdc8c5b4850b7637742d9362fc8982ebe9236ea",
+            "bytes": 113695,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/runs/kws_partial_tier_fkeras_matched_v1/20261104T042124.586895Z-b0284b42/manifest.json",
+            "sha256": "a0e397c1c497d7d29a86fb687c77412e15d80bcfded0d14f7ba082927cbc2e41",
+            "bytes": 29436,
+            "manifest_bound": false
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/runs/kws_partial_tier_fkeras_matched_v1/20261104T042124.586895Z-b0284b42/FINALIZED",
+            "sha256": "711af0be969a8fe5479d4fc92a6134398dc0858fdf42cc26bb4bef277fb5932e",
+            "bytes": 91,
+            "manifest_bound": false
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/runs/kws_partial_tier_fkeras_matched_v1/20261104T042124.586895Z-b0284b42/summary.json",
+            "sha256": "765c2be5cce765d538cd3cdeaa8b6cfb547e5181f0b338166ee07842c306534d",
+            "bytes": 14485181,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/runs/kws_partial_tier_fkeras_matched_v1/20261104T042124.586895Z-b0284b42/artifacts/sample_partitions.json",
+            "sha256": "3e8a443b2c34a9146a0c23ff1a89ef47696d757b3d5371401386570e5194edae",
+            "bytes": 19994,
+            "manifest_bound": true
+          }
+        ],
+        "results": null,
+        "blocker": "Historical sample_sha256 hashes source_split, indices and labels, not actual inputs. The aggregate asset-lock digest changed; the complete old lock and old encoded calibration-input hash are unavailable. Matching preprocessing, official sample-index hash and label-bound calibration partition do not prove audio-input byte identity. No FKeras correlation is published for this model."
+      },
+      {
+        "model": "toycar",
+        "status": "blocked_calibration_input_identity",
+        "endpoint": "positive reconstruction-MSE damage",
+        "endpoint_column": "positive_loss_damage",
+        "candidate_count": 320,
+        "join": {
+          "all_candidate_identities_unique": true,
+          "selection_matches_measurements": true,
+          "all_candidates_map_to_saved_scores": true,
+          "kernel_shapes_quantization_and_names_equal": true,
+          "ranking_partitions_including_label_bound_hash_equal": true,
+          "model_and_inference_identity_equal": true,
+          "actual_calibration_input_identity_verified": false
+        },
+        "ranking_partition": {
+          "indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "provenance": "Each configured sample is one audio file; arrays contain all 196 reconstruction windows per file",
+          "role": "ranking",
+          "sample_sha256": "4bbf2f3c29475bfe50d6c2bd3ea89b0553f36daa368eb1ea4305b97de4ff2831",
+          "source_split": "dcase2020_toycar_development_train"
+        },
+        "empirical_partition": {
+          "indices": [
+            0,
+            140,
+            2,
+            142,
+            4,
+            144,
+            6,
+            146,
+            8,
+            148,
+            10,
+            150,
+            12,
+            152,
+            14,
+            154,
+            16,
+            156,
+            18,
+            158,
+            20,
+            160,
+            22,
+            162,
+            24,
+            164,
+            26,
+            166,
+            28,
+            168,
+            30,
+            170,
+            32,
+            172,
+            34,
+            174,
+            36,
+            176,
+            38,
+            178,
+            40,
+            180,
+            42,
+            182,
+            44,
+            184,
+            46,
+            186,
+            48,
+            188,
+            50,
+            190,
+            52,
+            192,
+            54,
+            194,
+            56,
+            196,
+            58,
+            198,
+            60,
+            200,
+            62,
+            202
+          ],
+          "provenance": "Each configured sample is one audio file; arrays contain all 196 reconstruction windows per file",
+          "role": "empirical_validation",
+          "sample_sha256": "64045f258d1de0475738eacdb2851d04188efb071fc67ca1bdc00475140a4df6",
+          "source_split": "dcase2020_toycar_official_development_test"
+        },
+        "model_identity": {
+          "id": "mlperf_tiny_ad_toycar_int8_v1",
+          "adapter": "mlperf_tiny_ad_int8_v1",
+          "checkpoint_sha256": "87cf24194ef93d1d9b11a591d805526b98008e351655d29883c825c9c106ba24",
+          "inference_backend": "tensorflow_lite_builtin_ref_v1",
+          "injectable_parameters": [
+            "kernels"
+          ],
+          "quantization": "tflite_affine_int8",
+          "quantization_backend": "tflite_affine_integer_v1",
+          "ranking_samples": 16
+        },
+        "dataset_identity": {
+          "empirical": {
+            "asset_lock_digest": "sha256:6a49d8dc1ac764b7109b7015b52c1db13021342a8e4624d41dea5b963398cf46",
+            "dataset": {
+              "id": "dcase2020-toycar",
+              "version": "zenodo-3678171-3727685-local"
+            },
+            "local_path_excluded_from_scientific_identity": true,
+            "preprocessing_id": "mlperf-tiny/ad01/librosa-logmel-128x5/1",
+            "sample_index_sha256": "4ecd91868e197ee0a6739d4bd7abde73eac2fa31e9a88d6bc6aedefa136ff2a4"
+          },
+          "fkeras": {
+            "asset_lock_digest": "sha256:2e362d617a104ca3749d47e1fd6a24ba0558b2be996bd16fb2fdd3cefa499b8c",
+            "dataset": {
+              "id": "dcase2020-toycar",
+              "version": "zenodo-3678171-3727685-local"
+            },
+            "local_path_excluded_from_scientific_identity": true,
+            "preprocessing_id": "mlperf-tiny/ad01/librosa-logmel-128x5/1",
+            "sample_index_sha256": "4ecd91868e197ee0a6739d4bd7abde73eac2fa31e9a88d6bc6aedefa136ff2a4"
+          }
+        },
+        "aggregate_asset_lock_digests": {
+          "empirical": "sha256:6a49d8dc1ac764b7109b7015b52c1db13021342a8e4624d41dea5b963398cf46",
+          "fkeras": "sha256:2e362d617a104ca3749d47e1fd6a24ba0558b2be996bd16fb2fdd3cefa499b8c",
+          "interpretation": "distinct lock artifacts; no field-by-field historical lock diff or path-only claim"
+        },
+        "original_msb_reproduction": {
+          "spearman": 0.5023267020485112,
+          "ci95_low": 0.430983068431508,
+          "ci95_high": 0.5705167907682824
+        },
+        "bootstrap": {
+          "seed": 933301,
+          "replicates": 1000,
+          "confidence": 0.95,
+          "strata": 80,
+          "candidates_per_stratum": 4,
+          "design": "within-recorded-stratum candidate resampling; sample-limited",
+          "group_key": [
+            "layer",
+            "parameter_class",
+            "bit_index",
+            "score_quantile"
+          ],
+          "within_stratum_order": "original empirical CSV row order",
+          "generator": "numpy.random.default_rng; sorted strata; integers(0,n,size=n)",
+          "source_numpy_version": "1.26.4",
+          "original_msb_point_and_interval_reproduced_tolerance": 1e-12
+        },
+        "saved_score_replication_checks": {
+          "replication_0": {
+            "joined_candidates": 320,
+            "candidate_score_sha256_float64_le": "4d72b99064fd6b2fb3b0b4f379edf93de3854a596a6ffbb41b867a4b585e7689",
+            "exact_score_equal_to_replication_0": true,
+            "max_absolute_score_difference_from_replication_0": 0.0,
+            "strict_tier_candidate_order_and_ties_equal_to_replication_0": true,
+            "raw_candidate_order_and_ties_equal_to_replication_0": true,
+            "eigensolver_seed": 1208102
+          },
+          "replication_1": {
+            "joined_candidates": 320,
+            "candidate_score_sha256_float64_le": "1a46cf92c779cf5bdb13a9268338d8b0af2266855b5ba39f5ea70198245fd6da",
+            "exact_score_equal_to_replication_0": false,
+            "max_absolute_score_difference_from_replication_0": 1.5916157281026244e-12,
+            "strict_tier_candidate_order_and_ties_equal_to_replication_0": true,
+            "raw_candidate_order_and_ties_equal_to_replication_0": true,
+            "eigensolver_seed": 1209111
+          },
+          "replication_2": {
+            "joined_candidates": 320,
+            "candidate_score_sha256_float64_le": "4e97951cb21b50a80c4e5fcca6a80177371d1576e32009eed4c9e710f4c045f0",
+            "exact_score_equal_to_replication_0": false,
+            "max_absolute_score_difference_from_replication_0": 4.092726157978177e-12,
+            "strict_tier_candidate_order_and_ties_equal_to_replication_0": true,
+            "raw_candidate_order_and_ties_equal_to_replication_0": true,
+            "eigensolver_seed": 1210120
+          },
+          "replication_3": {
+            "joined_candidates": 320,
+            "candidate_score_sha256_float64_le": "cc09de7c28abc718f8e343740eb188d32457a1e56d432638e46ffbd806c924d4",
+            "exact_score_equal_to_replication_0": false,
+            "max_absolute_score_difference_from_replication_0": 3.410605131648481e-12,
+            "strict_tier_candidate_order_and_ties_equal_to_replication_0": true,
+            "raw_candidate_order_and_ties_equal_to_replication_0": true,
+            "eigensolver_seed": 1211129
+          }
+        },
+        "score_realization_used": "replication_0; chosen by canonical index, not observed correlation",
+        "source_manifests": {
+          "empirical": {
+            "branch": "v2",
+            "commit": "e65a5f2895dbc7445b61ab6655ec80e05287a2fa",
+            "dirty": true,
+            "source_fingerprint_sha256": "e84c2a89ccb8328083ced74acc8f6d8ec0de7d3f9249cab0952f9c5bfcce0f12",
+            "status_sha256": "754b25305686d0159af824f34c8817cf95fe431a845304ed237aea8227bb3ea5",
+            "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "fkeras": {
+            "branch": "m12-fkeras-multibench",
+            "commit": "c27c3462a98ca6a584d053647400335b2c4fd219",
+            "dirty": false,
+            "source_fingerprint_sha256": "47ff1a0c1f84b971de235d41ccac83a18c22c04b0fc4a5c438dec2a6decfefa9",
+            "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "source_files": [
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_estimator_validation_stratified320_v1/20261029T181531.665041Z-bbb64f74/manifest.json",
+            "sha256": "968c20e92152931c5409d2cb579e351a00c669d9e9487412cfde9b59f612af32",
+            "bytes": 8444,
+            "manifest_bound": false
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_estimator_validation_stratified320_v1/20261029T181531.665041Z-bbb64f74/FINALIZED",
+            "sha256": "724bc238a18518e9a7a03d1495a2890f29e8a5f47410d4899dc57a56ac075c10",
+            "bytes": 91,
+            "manifest_bound": false
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_estimator_validation_stratified320_v1/20261029T181531.665041Z-bbb64f74/summary.json",
+            "sha256": "ee7637f0648f8eb4a0c660405d220b303b7a197a12d4e046a7b2e917f0062e65",
+            "bytes": 13449,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_estimator_validation_stratified320_v1/20261029T181531.665041Z-bbb64f74/scientific_payload.json",
+            "sha256": "25ff457de7c60ac1b5bfae4e445786622c93c5a2e323fc292b21e25585301751",
+            "bytes": 472223,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_estimator_validation_stratified320_v1/20261029T181531.665041Z-bbb64f74/resolved_config.json",
+            "sha256": "ad2e158d18096421f29294018ff1128d18417758c63ea3d08ac7ad32f66a9e8c",
+            "bytes": 2953,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_estimator_validation_stratified320_v1/20261029T181531.665041Z-bbb64f74/artifacts/sample_partitions.json",
+            "sha256": "4da9fedec81479d27b0d32c40d340c7f0ce679df3ebb9218dc89369e191e172c",
+            "bytes": 1390,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_estimator_validation_stratified320_v1/20261029T181531.665041Z-bbb64f74/artifacts/candidate_selection.json",
+            "sha256": "6669c5673ead95ade625250ba92865dcace94fb89eb49e3c889ab858e5f429b9",
+            "bytes": 62126,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_estimator_validation_stratified320_v1/20261029T181531.665041Z-bbb64f74/measurements/empirical_bits.csv",
+            "sha256": "25fb1d921cc6000b6f8fa078f0c0916b993a43235a99702a9df5305b5f2dd3c9",
+            "bytes": 127463,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/manifest.json",
+            "sha256": "9295017355bbf6f9a1e0903fa720d2e8b47829944ca1f31d8d4998d4aed46c4a",
+            "bytes": 14183,
+            "manifest_bound": false
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/FINALIZED",
+            "sha256": "8b38d04ef5c624fc3c6306ff702254c88200e0934328567ce2ab88629e943b02",
+            "bytes": 91,
+            "manifest_bound": false
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/summary.json",
+            "sha256": "d2da771c9f7f71d95e96f0d7f76b960d4502a7c139a984d3ef05b3fa09609888",
+            "bytes": 72350257,
+            "manifest_bound": true
+          },
+          {
+            "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/artifacts/sample_partitions.json",
+            "sha256": "c7644cca17d306da3b5937676b6afa8642e4920e44cfe461f1e4a5e5f023389a",
+            "bytes": 4774,
+            "manifest_bound": true
+          }
+        ],
+        "results": null,
+        "blocker": "Historical sample_sha256 hashes source_split, indices and labels, not actual inputs. The aggregate asset-lock digest changed; the complete old lock and old encoded calibration-input hash are unavailable. Matching preprocessing, official sample-index hash and label-bound calibration partition do not prove audio-input byte identity. No FKeras correlation is published for this model."
+      }
+    ],
+    "method": {
+      "strict_ranking": "ascending lexicographic (bit_index, abs(raw_parameter_score)); identical pairs share a code; Spearman uses average ranks",
+      "raw_diagnostic": "abs(raw_parameter_score); ignores bit-significance tiers; not a protection-policy ranking",
+      "ties": "natural score ties retained; stable-identity allocation tie-break excluded",
+      "uncertainty": "original within-recorded-stratum candidate bootstrap; conditional on saved empirical cohort and selected score realization",
+      "limitations": [
+        "not population weighted",
+        "no whole-network protection guarantee",
+        "no inference from overlap or separation of marginal correlation intervals",
+        "candidate bootstrap excludes calibration/eigensolver replication uncertainty",
+        "aggregate asset-lock identity is not silently equated across campaigns"
+      ]
+    },
+    "implementation_files": [
+      {
+        "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-complete-review-v1/publications/paper1_review/scripts/audit_fkeras_candidates.py",
+        "bytes": 20885,
+        "sha256": "b098f22eaecab7b5d63bcd13ee007c4003c223f2f397b3bde5f4d3e71f5fbb3d"
+      },
+      {
+        "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-complete-review-v1/netsurf/samples.py",
+        "bytes": 1351,
+        "sha256": "549e3b380c42e339d4654f6cf5dc377d7cfd77f4cf91b941279a12c63168d2b3"
+      },
+      {
+        "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-complete-review-v1/netsurf/analysis_m3.py",
+        "bytes": 14486,
+        "sha256": "8db18e844b382dcf9e9e2f66684a34132dbd23c17f70c16e5e318b32f2a57618"
+      },
+      {
+        "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-complete-review-v1/netsurf/study_engine.py",
+        "bytes": 36711,
+        "sha256": "0a74f6caf72cc82ae575edb1273197a7134e2935117ab4256dd242d9946710a1"
+      },
+      {
+        "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/netsurf/fkeras_estimator.py",
+        "bytes": 8746,
+        "sha256": "9672c25957de02c4c4778ea230a29696f92f8144c2a96fe52039e07040d4a53d"
+      },
+      {
+        "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/netsurf/fkeras_baseline.py",
+        "bytes": 7578,
+        "sha256": "be8904c5dd915876b8a688148bf974f5296ede895520f9c96d63f6cbdc27ecf3"
+      },
+      {
+        "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/netsurf/ordering.py",
+        "bytes": 5405,
+        "sha256": "2c1bf08b4e308875189ccdef2500e1064d37d9d1b034eb430ac84de1daac0f1a"
+      }
+    ],
+    "runtime": {
+      "python": "3.11.17",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1"
+    },
+    "validation": [
+      "deterministic tier-precedence and natural-tie fixtures",
+      "average-tie Spearman checked against scipy.stats.spearmanr",
+      "original MSB point and both original 95% endpoints reproduced within 1e-12 for all models"
+    ]
+  },
+  "finalization": {
+    "content_sha256": "6799cf6b105c2374f51975c340fa3cf27f7259b08a1165a8f136c749521091a1",
+    "hash_encoding": "UTF-8 JSON, sort_keys=True, separators=(comma,colon), allow_nan=False",
+    "write_once": true
+  }
+}

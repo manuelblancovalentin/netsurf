@@ -1,0 +1,7 @@
+model,estimator,candidate_count,metric,spearman,uncertainty
+toycar,random_reference,320,positive complete-file ROC-AUC damage,0.03489910760246619,descriptive correlation; no new inferential comparison or population weighting
+toycar,s2_msb_first,320,positive complete-file ROC-AUC damage,0.32442300096709875,descriptive correlation; no new inferential comparison or population weighting
+toycar,s3_numerical_jump,320,positive complete-file ROC-AUC damage,0.23025579234563984,descriptive correlation; no new inferential comparison or population weighting
+toycar,s4_gradient_delta,320,positive complete-file ROC-AUC damage,0.4881803548036789,descriptive correlation; no new inferential comparison or population weighting
+toycar,s5_per_example_absolute,320,positive complete-file ROC-AUC damage,0.5007753507076325,descriptive correlation; no new inferential comparison or population weighting
+toycar,s6_per_example_positive,320,positive complete-file ROC-AUC damage,0.5039741854292501,descriptive correlation; no new inferential comparison or population weighting

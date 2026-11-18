@@ -1,0 +1,55 @@
+[
+  {
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m91_resnet8_estimator_validation_stratified320_v1/20261029T014136.049835Z-c23f1d77/summary.json",
+    "sha256": "f31f3afa7c09492718f9127c9f97e448e257187bae7ecbe7cf73cff840c6cf33"
+  },
+  {
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m91_resnet8_estimator_validation_stratified320_v1/20261029T014136.049835Z-c23f1d77/measurements/empirical_bits.csv",
+    "sha256": "9e086e0ae39beb7c7f76067c3d1c3c3b5a7c36021986c1c3269c41d4f6320105"
+  },
+  {
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m91_resnet8_estimator_validation_stratified320_v1/20261029T014136.049835Z-c23f1d77/measurements/ranking_metrics.csv",
+    "sha256": "6b043cd0ab1e5781e7e793fa51676bc8e8972764935dd289f21df6fffa53d4dc"
+  },
+  {
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m91_resnet8_estimator_validation_stratified320_v1/20261029T014136.049835Z-c23f1d77/measurements/estimator_runtime.csv",
+    "sha256": "be1a041e47e61ca4182d9b648545250bfda7d9a0213c82d41a748e4fd07d69ed"
+  },
+  {
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_estimator_validation_stratified320_v1/20261029T172802.081387Z-f3ebf3fe/summary.json",
+    "sha256": "bb6d8c4986490b1b1f2ac9f97dba70647759fa26266128819ba2d08cca6818a0"
+  },
+  {
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_estimator_validation_stratified320_v1/20261029T172802.081387Z-f3ebf3fe/measurements/empirical_bits.csv",
+    "sha256": "dbcf387ffd8c8ac75aa091a97cdc8c5b4850b7637742d9362fc8982ebe9236ea"
+  },
+  {
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_estimator_validation_stratified320_v1/20261029T172802.081387Z-f3ebf3fe/measurements/ranking_metrics.csv",
+    "sha256": "8003cd27324fc37017730b15f538ae1a6c248869126c98e84e67ac89c3f5e951"
+  },
+  {
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m93_kws_estimator_validation_stratified320_v1/20261029T172802.081387Z-f3ebf3fe/measurements/estimator_runtime.csv",
+    "sha256": "15dacba3f1f971afd3c91ee3ddb2e4b293e830668ed849bab07f405c019070ac"
+  },
+  {
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_estimator_validation_stratified320_v1/20261029T181531.665041Z-bbb64f74/summary.json",
+    "sha256": "ee7637f0648f8eb4a0c660405d220b303b7a197a12d4e046a7b2e917f0062e65"
+  },
+  {
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_estimator_validation_stratified320_v1/20261029T181531.665041Z-bbb64f74/measurements/empirical_bits.csv",
+    "sha256": "25fb1d921cc6000b6f8fa078f0c0916b993a43235a99702a9df5305b5f2dd3c9"
+  },
+  {
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_estimator_validation_stratified320_v1/20261029T181531.665041Z-bbb64f74/measurements/ranking_metrics.csv",
+    "sha256": "494041b498541703a15f07c24bddaae918754ea440546d7aba1e31b89e048156"
+  },
+  {
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_estimator_validation_stratified320_v1/20261029T181531.665041Z-bbb64f74/measurements/estimator_runtime.csv",
+    "sha256": "ff70d231741834d2a60fb6a65cffb912913543b1569af3e0714d459230ecffd6"
+  },
+  {
+    "path": "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_estimator_validation_stratified320_v1/20261029T181531.665041Z-bbb64f74/measurements/estimator_predictions.csv",
+    "sha256": "8c71f58783611a7acc6c3de720795f0859b48f6e12b119725869760e80c98466",
+    "selection": "all empirical_candidate=True rows, one pass"
+  }
+]

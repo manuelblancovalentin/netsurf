@@ -1,0 +1,334 @@
+{
+  "schema": "paper1-compact-figure-provenance/1.1",
+  "scope": "Offline display-only redesign of existing verified manuscript evidence; no inference, ranking, mask, schedule, scientific-source or numerical-provenance modification.",
+  "paths_relative_to": "publications/paper1_review",
+  "generator": {
+    "path": "scripts/build_compact_figures.py",
+    "sha256": "bf4ddcd4eaa0d6e531b9189ee55ef001fad9d376b9e42e6cc9a3ab0258cd9490",
+    "bytes": 16857,
+    "interpreter": "/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python"
+  },
+  "inputs": {
+    "data/figure_provenance.json": {
+      "sha256": "a09eaa63c7570238dad8593303437e3c3e72a246b486e6500b536652262a52fc",
+      "bytes": 23073
+    },
+    "data/benchmark_inventory.json": {
+      "sha256": "174d2214a5d097c803d1df97c65b8c1f7de16a6e518d8f4408b67627f647e904",
+      "bytes": 801711
+    },
+    "data/reliability_conditions.csv": {
+      "sha256": "096c68a970eef16e026d368939032475a1f56c977eb6103ae3ed448711a8976d",
+      "bytes": 169863
+    },
+    "data/wide_paired_comparisons.csv": {
+      "sha256": "6046a71d15e6bf8b675ce42fca35dec56ad31759fa4872d70adc91aa6aec2440",
+      "bytes": 87722
+    },
+    "data/qwen_crossover.json": {
+      "sha256": "113bfa22a412f60d24f4e008633ed964775890eb2e790977f4404a58570c502f",
+      "bytes": 2903
+    },
+    "data/kws_pool_statistics.json": {
+      "sha256": "f8e099af9d09c6160ea50adf6a4c9f51c2d690a1eff934a6221a7215bf522979",
+      "bytes": 9895
+    }
+  },
+  "analytic_asset": {
+    "manuscript_figure": 1,
+    "label": "fig:workflow",
+    "path": "source/figures/workflow.tex",
+    "sha256": "cd2fe0f0a90b72124044209b4afcb8ba41d889d118c83637257f3f637d19abb7",
+    "bytes": 6260,
+    "status": "current_main",
+    "scope": "Implemented-method schematic adapting the original three-panel visual flow; not a numerical result or physical mitigation implementation."
+  },
+  "figures": [
+    {
+      "stem": "compact_reliability_ber_125",
+      "manuscript_figure": 2,
+      "label": "fig:ber",
+      "status": "current_main",
+      "inputs": [
+        "data/reliability_conditions.csv"
+      ],
+      "filter": {
+        "models": [
+          "resnet8",
+          "kws",
+          "toycar",
+          "distilbert",
+          "pythia",
+          "qwen"
+        ],
+        "coverage": 0.125,
+        "controls": [
+          "unprotected",
+          "full"
+        ],
+        "bers": "All measured BERs for each source study; no interpolation across absent cells.",
+        "display_overlap": "Separate MSB-first and FKeras (published) legend entries. Published FKeras is drawn as a purple dashed curve directly over the identical, wider black MSB curve on resnet8/kws/toycar. No coordinate offsets or synthetic transformer series. Transformer FKeras remains unavailable."
+      },
+      "y_derivation": {
+        "mean": "mean - clean",
+        "lower": "low - clean",
+        "upper": "high - clean"
+      },
+      "units": {
+        "resnet8": "cross-entropy increase, nats/image",
+        "kws": "cross-entropy increase, nats/clip",
+        "toycar": "AUC decrease, equivalently increase in 1-AUC risk",
+        "distilbert": "capped NLL increase, nats/example",
+        "pythia": "capped NLL increase, nats/token",
+        "qwen": "capped NLL increase, nats/token"
+      },
+      "axes": {
+        "x_scale": "log",
+        "x_limits": [
+          0.000008,
+          0.13
+        ],
+        "asinh_models": [
+          "resnet8",
+          "kws",
+          "distilbert"
+        ],
+        "asinh_linear_width": 0.1,
+        "other_y_axes": "linear, separate per model",
+        "y_limits": "Derived separately from original interval extrema; no shared incompatible-unit scale."
+      },
+      "uncertainty": "Original saved 95% marginal field intervals, unchanged. These are not paired significance tests, checkpoint intervals, or independent-input intervals.",
+      "field_count_per_ber": {
+        "resnet8": 32,
+        "kws": 32,
+        "toycar": 32,
+        "distilbert": 24,
+        "pythia": 24,
+        "qwen": 24
+      },
+      "overlap_verification": {
+        "comparison": "Exact equality of parsed saved source values, with no numerical tolerance",
+        "fields": [
+          "ber",
+          "coverage",
+          "mean",
+          "low",
+          "high",
+          "clean"
+        ],
+        "matched_conditions": {
+          "resnet8": 8,
+          "kws": 8,
+          "toycar": 5
+        },
+        "total_matched_conditions": 21,
+        "maximum_absolute_difference": 0,
+        "uncertainty_display": "Identical MSB/FKeras interval is shaded once, not double shaded.",
+        "independence": "Separate method labels do not make identical masks or outcomes independent evidence."
+      }
+    },
+    {
+      "stem": "compact_reliability_budget_001",
+      "manuscript_figure": 3,
+      "label": "fig:budget",
+      "status": "current_main",
+      "inputs": [
+        "data/reliability_conditions.csv"
+      ],
+      "filter": {
+        "models": [
+          "resnet8",
+          "kws",
+          "toycar",
+          "distilbert",
+          "pythia",
+          "qwen"
+        ],
+        "ber": 0.01,
+        "interior_coverages": [
+          0.0625,
+          0.125,
+          0.1875,
+          0.25
+        ],
+        "controls": [
+          "unprotected",
+          "full"
+        ],
+        "methods": "All measured source methods; no unmeasured transformer FKeras or PrioriFI curve."
+      },
+      "y_derivation": {
+        "mean": "mean - clean",
+        "lower": "low - clean",
+        "upper": "high - clean"
+      },
+      "units": "Same task-specific units as compact_reliability_ber_125, never pooled.",
+      "axes": {
+        "x_unit": "percent of declared eligible stored bits",
+        "x_limits": [
+          5.2,
+          26.1
+        ],
+        "y_scale": "linear, separate per model"
+      },
+      "uncertainty": "Original saved 95% marginal field intervals rendered as error bars. Unprotected and clean/full are horizontal mean references."
+    },
+    {
+      "stem": "compact_kws_pools",
+      "manuscript_figure": 4,
+      "label": "fig:decisions",
+      "status": "current_main",
+      "inputs": [
+        "data/kws_pool_statistics.json"
+      ],
+      "filter": {
+        "comparison": "comparisons entry with role=primary",
+        "effects": "All 32 pool_effects",
+        "mean_and_interval": "pool_mean_effect.mean and pool_mean_effect.confidence_interval",
+        "ber": 0.05,
+        "candidate_bits_per_pool": 6,
+        "candidate_protection_bits": 2,
+        "global_protection_fraction": 0.125
+      },
+      "estimand": "Conditional-selected minus exact-isolated held-out task risk, averaged over independently sampled pools under the frozen design.",
+      "units": "nats/clip",
+      "axes": {
+        "x_limits": [
+          -0.012325578336778702,
+          0.011183073313224132
+        ],
+        "vertical_position": "Deterministic overlap-avoiding dot displacement only; not a numerical observation or estimated density.",
+        "horizontal_position": "Exact saved per-pool effect; no jitter."
+      },
+      "source_effect_range": [
+        -0.011225578336778702,
+        0.010083073313224132
+      ],
+      "source_mean": -0.00008238807040406005,
+      "source_ci95": [
+        -0.0016934869514528537,
+        0.0015287108106447336
+      ],
+      "uncertainty": "Saved across-pool mean interval; pools, final fault fields, and input clips are not conflated."
+    },
+    {
+      "stem": "compact_paired_forest",
+      "status": "supplementary",
+      "inputs": [
+        "data/wide_paired_comparisons.csv",
+        "data/qwen_crossover.json"
+      ],
+      "filter": {
+        "pythia": {
+          "model": "pythia",
+          "ber": 0.01,
+          "compared_method": "global_first_order",
+          "reference_method": "msb_first",
+          "coverages": [
+            0.0625,
+            0.125,
+            0.1875,
+            0.25
+          ]
+        },
+        "qwen": {
+          "source": "conditions_and_contrasts entries with contrast",
+          "bers": [
+            0.05,
+            0.075
+          ],
+          "coverage": 0.125,
+          "contrast": "absolute-gradient minus MSB"
+        }
+      },
+      "units": "Paired capped-NLL difference, nats/token; models shown separately and never pooled.",
+      "axes": {
+        "x_limits": [
+          -11.1,
+          3.2
+        ],
+        "scale": "linear"
+      },
+      "uncertainty": "Original saved 95% paired intervals, unchanged; Pythia original Holm family retained in associated tests; Qwen exploratory intervals unadjusted.",
+      "fields_per_point": 24
+    }
+  ],
+  "outputs": {
+    "figures/compact_reliability_ber_125.pdf": {
+      "sha256": "5ee6f1f964f62884e0b75afc3142df993360cba09ff854e0925f1696c8b1d581",
+      "bytes": 47786
+    },
+    "figures/compact_reliability_ber_125.png": {
+      "sha256": "22296f69d447ab0b9cabe1cba48cd141023f3cfcbebdecbd80ab9b38a86e590b",
+      "bytes": 345942
+    },
+    "figures/compact_reliability_ber_125.svg": {
+      "sha256": "a96b6ddf08427ecd6b702987ddf62503a1e5edc2de3cabd8cda6a9ae9412595e",
+      "bytes": 144794
+    },
+    "figures/compact_reliability_budget_001.pdf": {
+      "sha256": "932a02b1bcaf8ddb2c251d4d97d06029c5daea3f1d697a2674b7493adbf9b798",
+      "bytes": 44450
+    },
+    "figures/compact_reliability_budget_001.png": {
+      "sha256": "aed4f061083b939b1c4db07e7cef3316a402cf00e4ca3890ed86f4f244539dcc",
+      "bytes": 261082
+    },
+    "figures/compact_reliability_budget_001.svg": {
+      "sha256": "cbf36f126258760d79472a9c66e06dabbf73264828b1b1ade15fa221aeed7f6b",
+      "bytes": 148335
+    },
+    "figures/compact_paired_forest.pdf": {
+      "sha256": "e23118243aeb9ef7c7fb3603d7c030292cf19c2ba944ab56fe1fca20ea8e261b",
+      "bytes": 19374
+    },
+    "figures/compact_paired_forest.png": {
+      "sha256": "d7728d52f3ef4f916668f1596b3f655a93c4b64c4e99b93d8e8a4687e33f11ae",
+      "bytes": 65272
+    },
+    "figures/compact_paired_forest.svg": {
+      "sha256": "9eddc6a517d6dc68f7a0a6680777b1e0f4c8c83202db81cec31e5ee1e04a9651",
+      "bytes": 15136
+    },
+    "figures/compact_kws_pools.pdf": {
+      "sha256": "8efe521e46df3477d15552668d759ecf4147527ec0cc97aaa95edaa46fa65bc6",
+      "bytes": 15512
+    },
+    "figures/compact_kws_pools.png": {
+      "sha256": "2e7e7c6b1cee99b12a76bb054024529920686e231721a5510029dcee40b438a8",
+      "bytes": 38162
+    },
+    "figures/compact_kws_pools.svg": {
+      "sha256": "2639569e76e2bd2ffa477115f8a6d2600ec8b00d830de3345e381f836fa41d6f",
+      "bytes": 13626
+    }
+  },
+  "numerical_authority": "data/figure_provenance.json and its linked finalized scientific source manifests remain authoritative and unchanged. This receipt adds display provenance only.",
+  "previous_delivery_archive": {
+    "status": "preserved_not_current_main",
+    "assets": [
+      "source/figures/encoded_xor.tex",
+      "figures/reliability_ber_125.pdf",
+      "figures/reliability_budget_001.pdf",
+      "figures/paired_reversals_and_kws.pdf"
+    ],
+    "note": "No additional measurements; old layouts/analytic illustrations retained. BER25 and all-budget supplement remain companion evidence."
+  },
+  "limitations": [
+    "All observations condition on frozen checkpoints, masks and cohorts; large-model evaluation uses short fixed cohorts.",
+    "All transformer finite per-unit NLL is capped at 30 nats; nonfinite failures receive the same penalty.",
+    "The compact receipt does not rehash large omitted original scientific payloads; prior numerical verification scope remains documented in data/figure_provenance.json.",
+    "Output hashes bind the delivered assets. Rebuilding PDF/SVG may change metadata/identifiers without changing numeric plotting data."
+  ],
+  "display_revision": {
+    "purpose": "Clarify distinct method identities while honestly displaying exact complete-tier coincidence.",
+    "changed_assets": [
+      "scripts/build_compact_figures.py",
+      "figures/compact_reliability_ber_125.pdf",
+      "figures/compact_reliability_ber_125.png",
+      "figures/compact_reliability_ber_125.svg"
+    ],
+    "unchanged_evidence": "All six data-input hashes and all nine non-BER compact output hashes matched their prior receipts before this update.",
+    "inference_requests": 0
+  }
+}

@@ -1,0 +1,11 @@
+source/*.aux
+source/*.bbl
+source/*.blg
+source/*.fdb_latexmk
+source/*.fls
+source/*.log
+source/*.out
+source/*.pdf
+source/comment.cut
+__pycache__/
+scripts/__pycache__/

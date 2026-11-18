@@ -1,0 +1,513 @@
+{
+ "status": "Run R Stage 1, confirmatory analysis by the frozen plan (R-A3, A1)",
+ "predictions_sha256": "bf38ffd6651bfa179352c18c8205d13465315e4f0019634642da6e0995f7a037",
+ "script_sha256": "f7f939689c21c1f5a221a6b14386dd850344d4c73ef180297220411b346bad3f",
+ "cells_total": 864,
+ "cells_usable": 586,
+ "usable_away_from_switch": 519,
+ "R1a": {
+  "holds": true,
+  "violations": []
+ },
+ "R1b": {
+  "holds": true,
+  "share": 0.9922928709055877,
+  "agree": 515,
+  "of": 519
+ },
+ "R1c": {
+  "checkpoints": 9,
+  "ratio": 0.8773166947355304,
+  "low": 0.8039687670905733,
+  "high": 0.9573563232400606,
+  "holds": true
+ },
+ "R1_confirmed": true,
+ "bias_geometric_mean_measured_over_predicted": 0.8756006491810792,
+ "pairs_without_measured_switch": 24,
+ "pairs_at_grid_end": 1,
+ "per_checkpoint": {
+  "pinned": {
+   "n_pairs": 5,
+   "mean_log_ratio": -0.34907546810735907
+  },
+  "undertrained_e100": {
+   "n_pairs": 4,
+   "mean_log_ratio": 0.02927157639023204
+  },
+  "pruned_s07": {
+   "n_pairs": 5,
+   "mean_log_ratio": -0.1198330043159036
+  },
+  "pruned_s05": {
+   "n_pairs": 5,
+   "mean_log_ratio": -0.1984519750604355
+  },
+  "retrained_seed7101": {
+   "n_pairs": 6,
+   "mean_log_ratio": -0.15178340568003984
+  },
+  "retrained_seed7102": {
+   "n_pairs": 6,
+   "mean_log_ratio": -0.19014604889262232
+  },
+  "retrained_seed7103": {
+   "n_pairs": 6,
+   "mean_log_ratio": -0.12202788082562717
+  },
+  "retrained_seed7104": {
+   "n_pairs": 5,
+   "mean_log_ratio": -0.08252543210183924
+  },
+  "retrained_seed7105": {
+   "n_pairs": 6,
+   "mean_log_ratio": 0.006586475425804073
+  }
+ },
+ "switches": {
+  "pinned/0.010000": {
+   "measured": null,
+   "predicted": 0.004931422057368107,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "pinned/0.031250": {
+   "measured": null,
+   "predicted": 0.0040579748133052,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "pinned/0.062500": {
+   "measured": null,
+   "predicted": 0.003670302051068211,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "pinned/0.125000": {
+   "measured": 0.002405331757692722,
+   "predicted": 0.003501134898412674,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "pinned/0.187500": {
+   "measured": 0.003012010731986172,
+   "predicted": 0.004008861562149437,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "pinned/0.250000": {
+   "measured": 0.0035836912501404513,
+   "predicted": 0.005161785230994864,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "pinned/0.375000": {
+   "measured": 0.007376124168057222,
+   "predicted": 0.010505772669890893,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "pinned/0.500000": {
+   "measured": 0.015293486935072449,
+   "predicted": 0.02204178371731219,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "undertrained_e100/0.010000": {
+   "measured": null,
+   "predicted": 0.010731191893321751,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "undertrained_e100/0.031250": {
+   "measured": null,
+   "predicted": 0.007747738552871262,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "undertrained_e100/0.062500": {
+   "measured": null,
+   "predicted": 0.007312136245060147,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "undertrained_e100/0.125000": {
+   "measured": 0.007099501416842225,
+   "predicted": 0.006862017861630744,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "undertrained_e100/0.187500": {
+   "measured": 0.007472876501769438,
+   "predicted": 0.007265766235427628,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "undertrained_e100/0.250000": {
+   "measured": 0.009213209667837863,
+   "predicted": 0.008808026062802236,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "undertrained_e100/0.375000": {
+   "measured": 0.01647613630835303,
+   "predicted": 0.016312487561912944,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "undertrained_e100/0.500000": {
+   "measured": null,
+   "predicted": 0.03,
+   "how": "above_grid",
+   "reason": "no sign change"
+  },
+  "pruned_s07/0.010000": {
+   "measured": null,
+   "predicted": 0.003668240235030149,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "pruned_s07/0.031250": {
+   "measured": null,
+   "predicted": 0.00422154947666393,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "pruned_s07/0.062500": {
+   "measured": null,
+   "predicted": 0.00371776772365657,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "pruned_s07/0.125000": {
+   "measured": 0.0029250640148608597,
+   "predicted": 0.0032312797307559944,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "pruned_s07/0.187500": {
+   "measured": 0.0026012439698027555,
+   "predicted": 0.003119498409509387,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "pruned_s07/0.250000": {
+   "measured": 0.0028265762991792017,
+   "predicted": 0.0032631097818073772,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "pruned_s07/0.375000": {
+   "measured": 0.004489041009780362,
+   "predicted": 0.004952507416371978,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "pruned_s07/0.500000": {
+   "measured": 0.0077460429097032536,
+   "predicted": 0.008358119265024307,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "pruned_s05/0.010000": {
+   "measured": null,
+   "predicted": 0.005387445465586888,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "pruned_s05/0.031250": {
+   "measured": null,
+   "predicted": 0.004938604644255418,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "pruned_s05/0.062500": {
+   "measured": null,
+   "predicted": 0.004751836279929282,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "pruned_s05/0.125000": {
+   "measured": 0.003601367393392015,
+   "predicted": 0.004760431291266241,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "pruned_s05/0.187500": {
+   "measured": 0.004076042490292419,
+   "predicted": 0.0049487003038235855,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "pruned_s05/0.250000": {
+   "measured": 0.00496619097222896,
+   "predicted": 0.005962084734484545,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "pruned_s05/0.375000": {
+   "measured": 0.009205577838552276,
+   "predicted": 0.010529768426978232,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "pruned_s05/0.500000": {
+   "measured": 0.015654039244103485,
+   "predicted": 0.01915956255691692,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7101/0.010000": {
+   "measured": null,
+   "predicted": 0.0032920688570276598,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "retrained_seed7101/0.031250": {
+   "measured": null,
+   "predicted": 0.002751826312815442,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "retrained_seed7101/0.062500": {
+   "measured": 0.0026058156710602473,
+   "predicted": 0.0032969200029124863,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7101/0.125000": {
+   "measured": 0.002686555171239677,
+   "predicted": 0.0031479008458349775,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7101/0.187500": {
+   "measured": 0.003152447490428578,
+   "predicted": 0.003610307389745505,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7101/0.250000": {
+   "measured": 0.004262994770777183,
+   "predicted": 0.004893953254916035,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7101/0.375000": {
+   "measured": 0.008434256532844396,
+   "predicted": 0.008986492585870814,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7101/0.500000": {
+   "measured": 0.01621994343429327,
+   "predicted": 0.01941720697833259,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7102/0.010000": {
+   "measured": null,
+   "predicted": 0.0036682081024053174,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "retrained_seed7102/0.031250": {
+   "measured": null,
+   "predicted": 0.0036889810686934824,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "retrained_seed7102/0.062500": {
+   "measured": 0.002722777444349694,
+   "predicted": 0.003548431073592966,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7102/0.125000": {
+   "measured": 0.0027345231544120482,
+   "predicted": 0.0033597605533434963,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7102/0.187500": {
+   "measured": 0.0032223134059490527,
+   "predicted": 0.0038124402664135534,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7102/0.250000": {
+   "measured": 0.004523470610771545,
+   "predicted": 0.005146480106169542,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7102/0.375000": {
+   "measured": 0.008912180464805509,
+   "predicted": 0.010574245891942679,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7102/0.500000": {
+   "measured": 0.017022213377341645,
+   "predicted": 0.020830616793265724,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7103/0.010000": {
+   "measured": null,
+   "predicted": 0.004137861940554777,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "retrained_seed7103/0.031250": {
+   "measured": null,
+   "predicted": 0.0034677564468643366,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "retrained_seed7103/0.062500": {
+   "measured": 0.0024846051355673945,
+   "predicted": 0.0033472922126992527,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7103/0.125000": {
+   "measured": 0.0030117960590180883,
+   "predicted": 0.0032471868746281603,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7103/0.187500": {
+   "measured": 0.003748759083657394,
+   "predicted": 0.0038704430250940474,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7103/0.250000": {
+   "measured": 0.005048206987732908,
+   "predicted": 0.005197138531036309,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7103/0.375000": {
+   "measured": 0.010063634829373209,
+   "predicted": 0.010582132481223411,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7103/0.500000": {
+   "measured": 0.017182081724075936,
+   "predicted": 0.022009765183968417,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7104/0.010000": {
+   "measured": null,
+   "predicted": 0.003432901893995791,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "retrained_seed7104/0.031250": {
+   "measured": null,
+   "predicted": 0.003172563194187245,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "retrained_seed7104/0.062500": {
+   "measured": null,
+   "predicted": 0.0032585436765314216,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "retrained_seed7104/0.125000": {
+   "measured": 0.0028961901863411924,
+   "predicted": 0.003229652224621998,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7104/0.187500": {
+   "measured": 0.003208185065982571,
+   "predicted": 0.0035758694779742216,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7104/0.250000": {
+   "measured": 0.004425348910302055,
+   "predicted": 0.004826325781675716,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7104/0.375000": {
+   "measured": 0.009461913455873633,
+   "predicted": 0.009707708984409803,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7104/0.500000": {
+   "measured": 0.016902389510266846,
+   "predicted": 0.01836081624247952,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7105/0.010000": {
+   "measured": null,
+   "predicted": 0.0016073098239653548,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "retrained_seed7105/0.031250": {
+   "measured": null,
+   "predicted": 0.002556641328070824,
+   "how": "interpolated",
+   "reason": "no sign change"
+  },
+  "retrained_seed7105/0.062500": {
+   "measured": 0.00246270499481837,
+   "predicted": 0.002431337462347508,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7105/0.125000": {
+   "measured": 0.0025000000000000005,
+   "predicted": 0.0025776168507259402,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7105/0.187500": {
+   "measured": 0.003231039722787876,
+   "predicted": 0.003235870203577536,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7105/0.250000": {
+   "measured": 0.004586477521727761,
+   "predicted": 0.004476747270514825,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7105/0.375000": {
+   "measured": 0.009639626800937757,
+   "predicted": 0.008761578407302233,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  },
+  "retrained_seed7105/0.500000": {
+   "measured": 0.01730015680403567,
+   "predicted": 0.01838746167986186,
+   "how": "interpolated",
+   "direction": "positive then behind"
+  }
+ },
+ "secondary": {
+  "undertrained": 0.009473173611588693,
+  "well_trained": {
+   "pinned": 0.004935593281596749,
+   "retrained_seed7101": 0.00484097726461858,
+   "retrained_seed7102": 0.005043773208628672,
+   "retrained_seed7103": 0.0053887708014946,
+   "retrained_seed7104": 0.005802193618375427,
+   "retrained_seed7105": 0.004977913790924087
+  },
+  "above_all": true
+ }
+}

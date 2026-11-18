@@ -1,0 +1,112 @@
+# Check of the events-versus-background sketch (Fig. 2 d-f)
+
+**Status:** frozen before the full run. Requested by the researcher on 2026-11-17 ("Yes, run it").
+
+## Question
+
+Panels (d-f) of the concept figure say, as a sketch: the low-bit background and the top-bit events grow together
+with the fault rate; what changes is how many events reach one neuron: at most one at sparse rates (it stands out),
+many at dense rates (their sum is itself close to a bell curve). Is that what happens in a real layer?
+
+## Design (all fixed here)
+
+- Model: the reference ResNet-8 (replication 1 of the main comparison), all nine CONV_2D layers. No other model.
+- Inputs: the first 8 evaluation images of that replication. The clean inputs of each layer are held fixed, and
+  only that layer's weights are faulted, so the change of each pre-activation is exactly linear in the weight
+  displacements and splits exactly into a part from bits 0-5 (background) and a part from bits 6-7 (events).
+  Effects of faults in earlier layers are not included.
+- Fault model: each unprotected bit of the layer flips independently with probability p; protected bits never flip
+  (ideal suppression, as in the fault-rate study and the model check).
+- Masks: no protection, and the absolute-gradient mask at 12.5% from 1,024 calibration inputs (the saved mask of the
+  main comparison).
+- Rates: the eight rates of the main comparison, 1e-5 to 1e-1.
+- Fields: 500 per layer, mask and rate; seed 20261117 with (layer, mask, rate, chunk).
+- Before any fault is drawn, the script recomputes each layer's clean output and stops unless it agrees with the
+  executable within one output step on at least 99.9% of the unsaturated outputs.
+- Code: `workflows/event_background_check.py`, `netsurf/event_background.py`, `tests/test_event_background.py`
+  (branch paper1-runR-v2-validated). Analysis: `workflows/event_background_analyze.py` merges the per-layer outputs
+  and evaluates the statements below; it has no free choice.
+
+## Statements and what counts as support
+
+Evaluated on every layer and mask in which top bits are left unprotected; the figure uses the layer with the largest
+fan-in (64 x 3 x 3 x 64, 576 weights per neuron), fixed here.
+
+1. *They grow together.* The share of the change's second moment due to events differs by less than 0.02 between
+   the eight rates. (The exact share is also computed from the moments.)
+2. *Number of events.* Reported per rate: mean number of top-bit flips in a neuron's fan-in, and the probability of
+   none, one, and two or more. No threshold; these are the numbers the caption will quote.
+3. *One event stands out at sparse rates.* Where at least one event occurred, the median size of the event part is
+   more than 3 standard deviations of the background at every rate at which the mean number of events is below 0.1.
+4. *Many events add up to a bell curve.* The largest gap between the distribution of the standardized event part and
+   a normal distribution falls as the rate grows, and is below 0.05 at p = 1e-1 on the figure layer without
+   protection. The same gap is reported for the background and for the sum.
+
+## What goes into the paper whatever the outcome
+
+One appendix paragraph with a table (figure layer, both masks, eight rates) and one figure of measured histograms at
+three rates. Fixed here: the rates shown are the lowest rate, the highest rate, and the rate at which the mean number
+of events per neuron is closest to one. If a statement fails, the caption of Fig. 2 is changed to what was measured.
+The result supports a sketch on one layer of one checkpoint; it is not a test of the statistical model.
+
+## Disclosure
+
+A code smoke was run before this plan: layer 0 (fan-in 27), p = 1e-3, 50 fields, both masks. Its output was read
+(run time, reconstruction, and the printed statistics). The full run repeats that condition with the same first
+chunk of fields.
+
+## Resources
+
+Nine processes (one per layer), four threads each, under 4 GB each, about 20 to 40 minutes on the shared server.
+Output (write-once): `workspace/runs/paper1_event_background_v1/layer<k>/`; log
+`workspace/runs/paper1_event_background_logs/run.log`.
+
+## Amendment 1 (2026-11-17, during the run, before any result was read)
+
+Three of the nine jobs stopped at the reconstruction check before drawing any fault: the second convolution of the
+first block and the two 1 x 1 shortcut convolutions (kernels 0010, 0013, 0016). The executable computes the residual
+addition that follows each of them in place, so the tensor that should hold the convolution's output holds the
+result of the addition instead, and the check compared against the wrong values. The inputs of these three layers
+are intact (each is also the input or the checked output of a layer that passed).
+
+Change, for these three layers only: the reconstruction is checked on the output of the following addition. The
+recomputed convolution output, clipped to the range its tensor can represent, is added to the other branch's stored
+output and clipped to the range of the addition's output; it must agree with the executable within one step of the
+convolution output plus one step of the addition output on at least 99.9% of the outputs that are not saturated.
+Nothing else changes: same fields, seeds, masks, rates, statistics and statements. The six layers that passed keep
+their outputs from the first launch (script hash recorded in their DONE files); the three are run with the amended
+script. No statistic of any layer had been read when this was written; only job exit codes and the three error
+messages.
+
+## Outcome (2026-11-17)
+
+Analysis `workspace/runs/paper1_event_background_analysis_v1` (statements.json). Figure layer: kernel 0015, 576 weights
+per neuron.
+
+1. *They grow together:* fails as written. The measured share stays within 0.02 on 7 of 17 layer-mask pairs
+   (including both masks of the figure layer: 0.934-0.940 and 0.902-0.913). The exact share varies by at most 0.008
+   on every pair; the measured excursions are at sparse rates where 500 fields hold few or no events.
+2. *Number of events* (figure layer, no protection): 0.012 per neuron at 1e-5, 1.15 at 1e-3, 11.5 at 1e-2, 115 at
+   1e-1. Counts were recorded up to 60 per neuron, so means above 40 are the expected values.
+3. *One event stands out:* holds on 14 of 17 pairs. Fails under the mask on the three layers with 144 weights per
+   neuron, where most top bits are protected and the remaining events are still rare when the background has grown
+   to the size of one event (medians 2.2, 1.3, 1.3).
+4. *Bell curve:* the gap of the event part falls with the rate on all 17 pairs; on the figure layer without
+   protection it is 0.004 at 1e-1 (limit 0.05): holds.
+
+Not anticipated: the background is as far from normal as the events at sparse rates (gap 0.48 at 1e-5, 0.26 at 1e-3
+on the figure layer); the total is close to normal only from about 1e-2.
+
+Written into the paper as Appendix E, "Events and background at one layer", and into the caption of Fig. 2.
+
+## Corrections after external review (2026-11-17)
+
+- The sampled "share" of statement 1 is E[T^2] / (E[T^2] + E[L^2]) for the event part T and the low-bit part L. It is
+  not a fraction of E[(T + L)^2], which also contains 2 E[T] E[L]. The paper now names it exactly and gives the
+  events' fraction of the variance, Var(T) / Var(T + L), computed exactly by `workflows/event_background_exact.py`
+  (output `paper1_event_background_exact_v1`): 15/16 on every layer without protection, independent of the rate.
+- The expected flip counts in the figure are now the counted unprotected bits times p (1,152 top bits without
+  protection and 934.05 under the mask on the figure layer), not an extrapolation from sampled counts.
+- The distance from a normal distribution is read at histogram bin edges 0.05 standard deviations apart, which
+  resolves it to within 0.02 at most. The paper no longer names 1e-2 as the rate at which the total becomes normal.
+  Statement 4 (0.004 against 0.05 at 1e-1) is not affected.

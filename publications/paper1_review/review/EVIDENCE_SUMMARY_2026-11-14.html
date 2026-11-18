@@ -1,0 +1,165 @@
+<title>Paper 1 Evidence Summary</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+/* Layout: a single reading column, a memo header, one evidence table, then short decision blocks. */
+:root {
+  --paper: #fbfcfd; --ink: #18202b; --muted: #5a6573; --rule: #dde2e8; --panel: #f1f4f7;
+  --accent: #1f5f7a;
+  --ok-bg: #e3f2e8; --ok-fg: #1d5a32;
+  --wait-bg: #fbf0d9; --wait-fg: #7a5208;
+  --expl-bg: #e7ebf3; --expl-fg: #33456b;
+  --limit-bg: #f8e4e1; --limit-fg: #8a2b1e;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --head: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #12161c; --ink: #e4e8ee; --muted: #9aa5b3; --rule: #2b333d; --panel: #1a2029;
+  --accent: #7cc0dc;
+  --ok-bg: #173322; --ok-fg: #8fd6a6; --wait-bg: #3a2c10; --wait-fg: #f0c674;
+  --expl-bg: #1f2a40; --expl-fg: #a9bde6; --limit-bg: #3d1d18; --limit-fg: #f0a597; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #12161c; --ink: #e4e8ee; --muted: #9aa5b3; --rule: #2b333d; --panel: #1a2029;
+  --accent: #7cc0dc;
+  --ok-bg: #173322; --ok-fg: #8fd6a6; --wait-bg: #3a2c10; --wait-fg: #f0c674;
+  --expl-bg: #1f2a40; --expl-fg: #a9bde6; --limit-bg: #3d1d18; --limit-fg: #f0a597; color-scheme: dark }
+
+body { background: var(--paper); color: var(--ink); font: 15px/1.6 var(--body); }
+.wrap { max-width: 860px; margin: 0 auto; padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 32px; }
+header { display: grid; gap: 8px; border-bottom: 2px solid var(--ink); padding-bottom: 16px; }
+.eyebrow { font: 500 12px/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 600 32px/1.15 var(--head); margin: 0; text-wrap: balance; }
+h2 { font: 600 20px/1.3 var(--head); margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; }
+section { display: grid; gap: 12px; }
+.meta { color: var(--muted); font-size: 14px; }
+.claim { background: var(--panel); border-left: 3px solid var(--accent); padding: 16px 20px; font-size: 16px; max-width: none; }
+.tablebox { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; min-width: 680px; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+th { font: 500 12px/1.4 var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); background: var(--panel); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; width: 30%; }
+.num { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; font: 500 11px/1 var(--mono); letter-spacing: .04em; text-transform: uppercase;
+  padding: 5px 7px; border-radius: 4px; white-space: nowrap; }
+.ok { background: var(--ok-bg); color: var(--ok-fg); }
+.wait { background: var(--wait-bg); color: var(--wait-fg); }
+.expl { background: var(--expl-bg); color: var(--expl-fg); }
+.limit { background: var(--limit-bg); color: var(--limit-fg); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.two > div { min-width: 0; display: grid; gap: 8px; align-content: start; }
+ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+ol { margin: 0; padding-left: 22px; display: grid; gap: 10px; }
+.foot { font-size: 13px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 16px; }
+@media (max-width: 640px) { .two { grid-template-columns: 1fr; } h1 { font-size: 26px; } }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">NetSuRF Paper 1 · ACM TECS revision · 14 November 2026</div>
+  <h1>Where the evidence stands</h1>
+  <p class="meta">INT8 networks with stored-bit faults; accuracy changes in percentage points; fault rates are logical
+  bit-error rates, not physical upset rates. The Stage 2 confirmatory analysis has not run yet: 1,186 of 2,304
+  correction searches are done, and the analysis is expected around 15–16 November.</p>
+</header>
+
+<section>
+  <h2>The claim the evidence supports</h2>
+  <p class="claim">Bit-protection rankings in the literature are fixed, but the best ranking depends on the fault rate,
+  and the common ones can be far from the best. A cheap two-moment model predicts where the ranking changes. This is
+  confirmed on nine ResNet-8 checkpoints. The model fails on a well-trained keyword-spotting network, and the failure
+  has a measured cause: its estimate of how much the damage spreads is too optimistic, increasingly so at higher
+  fault rates and on well-trained models. A fixed ranking is not a safe default; protection should be chosen for the
+  deployment fault rate.</p>
+  <p>What it does not support: a single method that wins on every model.</p>
+</section>
+
+<section>
+  <h2>Evidence</h2>
+  <div class="legend">
+    <span><i class="chip ok">confirmed</i> rules fixed before the data</span>
+    <span><i class="chip wait">interim</i> confirmatory run pending</span>
+    <span><i class="chip limit">limit</i> confirmed failure</span>
+    <span><i class="chip expl">exploratory</i> diagnosis or pilot</span>
+  </div>
+  <div class="tablebox">
+  <table>
+    <thead><tr><th>Finding</th><th>Status</th><th>Numbers</th></tr></thead>
+    <tbody>
+      <tr><td>The best ranking changes with fault rate, where the model predicts (ResNet-8, 9 checkpoints incl. pruned and under-trained)</td>
+        <td><span class="chip ok">confirmed</span><br><span class="meta">Stage 1</span></td>
+        <td>Predicted sign right in <span class="num">515 / 519</span> cells away from the switch; switch location
+        within about 12% on average (measured / predicted <span class="num">0.88</span>).</td></tr>
+      <tr><td>Every fixed ranking fails somewhere; literature rankings can be far from the best (ResNet-8, 9 checkpoints, 8 rates)</td>
+        <td><span class="chip wait">interim</span><br><span class="meta">Stage 2</span></td>
+        <td>Absolute-gradient mask fails on 8 of 9 checkpoints, positive mask on 9 of 9. Worst-cell gap to the best
+        mask: significance-first <span class="num">23–52</span>, FKeras <span class="num">19–28</span>, absolute gradient
+        <span class="num">0.5–3.0</span> points (worst-cell gaps are biased upward).</td></tr>
+      <tr><td>Choosing the mask for the fault rate is never clearly behind (ResNet-8)</td>
+        <td><span class="chip wait">interim</span><br><span class="meta">Stage 2</span></td>
+        <td>Rate-aware selection never resolved 0.5 points behind any fixed ranking; worst gap
+        <span class="num">0.11–0.61</span> points, the smallest of all arms on every checkpoint. Designed after an
+        earlier version overfit; its test data were untouched.</td></tr>
+      <tr><td>The prediction breaks on a well-trained keyword-spotting network (DS-CNN, 6 replications)</td>
+        <td><span class="chip limit">limit</span><br><span class="meta">Stage 4</span></td>
+        <td>Switch comes far earlier than predicted, at or below the lowest tested rate. Rate-aware selection misses
+        the 0.5-point bar in 3 cells (<span class="num">0.50, 0.58, 0.68</span> points behind the absolute mask); at most
+        <span class="num">0.20</span> behind every other fixed ranking.</td></tr>
+      <tr><td>Why it breaks: the model's spread estimate is too optimistic</td>
+        <td><span class="chip expl">exploratory</span><br><span class="meta">4 checks</span></td>
+        <td>Measured with real flips, loss exceeds the model by <span class="num">0.15–0.25×</span> at low rates and
+        <span class="num">&gt;2×</span> at 3e-2; about zero error on the under-trained checkpoint. Replacing the spread
+        shortcut with simulated noise cuts the accuracy error from about 3 to 0.5–0.9 points. Gradient predictions of
+        single swaps are wrong 54–85% of the time.</td></tr>
+      <tr><td>Large model: rebuilding the mask for a high fault rate (DistilBERT)</td>
+        <td><span class="chip expl">exploratory</span><br><span class="meta">Run F</span></td>
+        <td><span class="num">+9.3</span> points at rate 0.1 and 12.5% budget, <span class="num">+11.5</span> on 328
+        unused sentences with new faults; <span class="num">+1.3</span> at 18.75%; nothing at lower rates or at 6.25%.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="two">
+  <div>
+    <h2>Weaknesses to state openly</h2>
+    <ul>
+      <li>Two small models are confirmatory; DistilBERT is a single exploratory run.</li>
+      <li>The rate-aware selection was designed after overfitting was seen on training-side data.</li>
+      <li>On the DS-CNN the method is close to the best fixed ranking but not within half a point everywhere.</li>
+      <li>No hardware cost, area, power, or physical fault rates in this paper.</li>
+    </ul>
+  </div>
+  <div>
+    <h2>Before writing</h2>
+    <ul>
+      <li>Stage 2 confirmatory analysis, run once: adds the correction-search arm and its rule.</li>
+      <li>Revise the draft around the claim above, with the DS-CNN limit and its diagnosis.</li>
+      <li>Move the new formulation (measured single flips, protection by layer and bit position) to the follow-up
+      paper, with cheap pilots only when machines are free.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Decisions for you</h2>
+  <ol>
+    <li><strong>Framing.</strong> Is "fixed rankings are unsafe; the switch is predictable on ResNet-8; here is where
+    and why the prediction fails" strong enough for TECS without a method that wins on every model?</li>
+    <li><strong>DistilBERT.</strong> Keep it as an exploratory result, or spend time on a confirmatory run so the
+    large-model point carries weight?</li>
+    <li><strong>Follow-up paper.</strong> Protection chosen per layer and bit position, valued with measured flips, as
+    the next paper's method?</li>
+  </ol>
+</section>
+
+<p class="foot">Sources: Run R plan and results notes for Stages 1, 2 (interim) and 4; blur pilot and Stage 2 search
+records (exploratory); Run F results. Interim and exploratory numbers can change and are not manuscript results.</p>
+</div>

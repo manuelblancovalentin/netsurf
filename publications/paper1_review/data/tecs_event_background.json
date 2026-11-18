@@ -1,0 +1,1448 @@
+{
+ "figure_layer": 7,
+ "layer": {
+  "layer": 7,
+  "kernel": "tflite_tensor_0015/kernel",
+  "shape": [
+   64,
+   3,
+   3,
+   64
+  ],
+  "stride": 1,
+  "fan_in": 576,
+  "reconstruction_within_one_step": 1.0,
+  "unsaturated_share": 1.0,
+  "clipped_low_share": 0.0,
+  "clean_preactivation_sd": 3.387459671295932,
+  "output_step": 0.21724364161491394
+ },
+ "shown_rates": [
+  1e-05,
+  0.001,
+  0.1
+ ],
+ "rows": {
+  "unprotected": [
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "unprotected",
+    "ber": "1e-05",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "0.01175",
+    "events_p0": "0.98825",
+    "events_p1": "0.01175",
+    "events_p2plus": "0.0",
+    "lowflips_mean": "0.03328125",
+    "lowflips_p0": "0.96715625",
+    "event_share_measured": "0.938560709313709",
+    "event_share_exact": "0.9375139813842485",
+    "sum_sd_over_clean_sd": "0.01302072438053211",
+    "event_over_background_median": "39.81071705534978",
+    "event_over_background_gt3": "0.9690408057502085",
+    "kurtosis_low": "1759.4111728317203",
+    "kurtosis_top": "1836.3657308159375",
+    "kurtosis_sum": "1619.8503874963337",
+    "ks_low": "0.47631900666162796",
+    "ks_top": "0.478731604317878",
+    "ks_sum": "0.4752148196499092"
+   },
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "unprotected",
+    "ber": "0.0001",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "0.11771875",
+    "events_p0": "0.88971875",
+    "events_p1": "0.103125",
+    "events_p2plus": "0.00715625",
+    "lowflips_mean": "0.347125",
+    "lowflips_p0": "0.7060625",
+    "event_share_measured": "0.9403919815587503",
+    "event_share_exact": "0.9375110656797442",
+    "sum_sd_over_clean_sd": "0.04117329288598266",
+    "event_over_background_median": "14.125375446227554",
+    "event_over_background_gt3": "0.8708523082112787",
+    "kurtosis_low": "169.59574159765666",
+    "kurtosis_top": "185.83679462625062",
+    "kurtosis_sum": "164.5651941311865",
+    "ks_low": "0.44471304963037794",
+    "ks_top": "0.4667680423061592",
+    "ks_sum": "0.43805362580225293"
+   },
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "unprotected",
+    "ber": "0.0003",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "0.34653125",
+    "events_p0": "0.708375",
+    "events_p1": "0.2433125",
+    "events_p2plus": "0.0483125",
+    "lowflips_mean": "1.055625",
+    "lowflips_p0": "0.34996875",
+    "event_share_measured": "0.9365205551697601",
+    "event_share_exact": "0.9375045852697448",
+    "sum_sd_over_clean_sd": "0.07130710270002498",
+    "event_over_background_median": "7.943282347242821",
+    "event_over_background_gt3": "0.7770436829509919",
+    "kurtosis_low": "57.037677466990445",
+    "kurtosis_top": "64.03855410268518",
+    "kurtosis_sum": "56.35365378262685",
+    "ks_low": "0.38311240265772173",
+    "ks_top": "0.44242789338037725",
+    "ks_sum": "0.37540360138818984"
+   },
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "unprotected",
+    "ber": "0.001",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "1.15565625",
+    "events_p0": "0.31303125",
+    "events_p1": "0.36640625",
+    "events_p2plus": "0.3205625",
+    "lowflips_mean": "3.44903125",
+    "lowflips_p0": "0.03059375",
+    "event_share_measured": "0.9380541182635934",
+    "event_share_exact": "0.9374818922421388",
+    "sum_sd_over_clean_sd": "0.1301427746148698",
+    "event_over_background_median": "4.4668359215096345",
+    "event_over_background_gt3": "0.6277242071968918",
+    "kurtosis_low": "17.02391192403562",
+    "kurtosis_top": "19.215588956541033",
+    "kurtosis_sum": "16.97461854092185",
+    "ks_low": "0.25981107960241434",
+    "ks_top": "0.3635098025600648",
+    "ks_sum": "0.2594258256961637"
+   },
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "unprotected",
+    "ber": "0.003",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "3.457375",
+    "events_p0": "0.0320625",
+    "events_p1": "0.10728125",
+    "events_p2plus": "0.86065625",
+    "lowflips_mean": "10.33840625",
+    "lowflips_p0": "3.125e-05",
+    "event_share_measured": "0.937428804797297",
+    "event_share_exact": "0.9374169554913647",
+    "sum_sd_over_clean_sd": "0.22518814528764247",
+    "event_over_background_median": "2.818382931264455",
+    "event_over_background_gt3": "0.47459841549579185",
+    "kurtosis_low": "5.654468091441428",
+    "kurtosis_top": "6.3804124147258",
+    "kurtosis_sum": "5.6391237250297745",
+    "ks_low": "0.1374143834751096",
+    "ks_top": "0.2116559884065642",
+    "ks_sum": "0.13916897949285756"
+   },
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "unprotected",
+    "ber": "0.01",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "11.4785625",
+    "events_p0": "0.0",
+    "events_p1": "6.25e-05",
+    "events_p2plus": "0.9999375",
+    "lowflips_mean": "34.588",
+    "lowflips_p0": "0.0",
+    "event_share_measured": "0.9367182269016222",
+    "event_share_exact": "0.9371885092622123",
+    "sum_sd_over_clean_sd": "0.4096895766496112",
+    "event_over_background_median": "2.5118864315095824",
+    "event_over_background_gt3": "0.3917405568511694",
+    "kurtosis_low": "1.6368181317210313",
+    "kurtosis_top": "1.8326162420103058",
+    "kurtosis_sum": "1.6171567685711041",
+    "ks_low": "0.0464344503470806",
+    "ks_top": "0.057433975760265876",
+    "ks_sum": "0.04783166071760714"
+   },
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "unprotected",
+    "ber": "0.03",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "34.54253125",
+    "events_p0": "0.0",
+    "events_p1": "0.0",
+    "events_p2plus": "1.0",
+    "lowflips_mean": "60.0",
+    "lowflips_p0": "0.0",
+    "event_share_measured": "0.9364869532991036",
+    "event_share_exact": "0.9365256301565555",
+    "sum_sd_over_clean_sd": "0.702398882486163",
+    "event_over_background_median": "2.5118864315095824",
+    "event_over_background_gt3": "0.4125269109273455",
+    "kurtosis_low": "0.483824914798066",
+    "kurtosis_top": "0.5542097610967822",
+    "kurtosis_sum": "0.4858162885392976",
+    "ks_low": "0.014083964809770866",
+    "ks_top": "0.016776019796158614",
+    "ks_sum": "0.014266742452408665"
+   },
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "unprotected",
+    "ber": "0.1",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "60.0",
+    "events_p0": "0.0",
+    "events_p1": "0.0",
+    "events_p2plus": "1.0",
+    "lowflips_mean": "60.0",
+    "lowflips_p0": "0.0",
+    "event_share_measured": "0.9340085031621832",
+    "event_share_exact": "0.9340799089330293",
+    "sum_sd_over_clean_sd": "1.2352605511511903",
+    "event_over_background_median": "2.818382931264455",
+    "event_over_background_gt3": "0.44168124033698974",
+    "kurtosis_low": "0.08831561503927654",
+    "kurtosis_top": "0.09914074139733664",
+    "kurtosis_sum": "0.0884795371273599",
+    "ks_low": "0.0027044397792119756",
+    "ks_top": "0.004441241964127429",
+    "ks_sum": "0.004132448393955657"
+   }
+  ],
+  "abs@0.125": [
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "abs@0.125",
+    "ber": "1e-05",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "0.0094375",
+    "events_p0": "0.99059375",
+    "events_p1": "0.009375",
+    "events_p2plus": "3.125e-05",
+    "lowflips_mean": "0.03378125",
+    "lowflips_p0": "0.96709375",
+    "event_share_measured": "0.9128213229639175",
+    "event_share_exact": "0.9037508698578776",
+    "sum_sd_over_clean_sd": "0.010490210495527022",
+    "event_over_background_median": "39.81071705534978",
+    "event_over_background_gt3": "0.965297388570264",
+    "kurtosis_low": "1864.4563228383804",
+    "kurtosis_top": "2734.827249216679",
+    "kurtosis_sum": "2230.0087439640706",
+    "ks_low": "0.4763432376186592",
+    "ks_top": "0.47904703400537796",
+    "ks_sum": "0.4754910037319405"
+   },
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "abs@0.125",
+    "ber": "0.0001",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "0.093125",
+    "events_p0": "0.91109375",
+    "events_p1": "0.08484375",
+    "events_p2plus": "0.0040625",
+    "lowflips_mean": "0.34584375",
+    "lowflips_p0": "0.70775",
+    "event_share_measured": "0.9019370172390324",
+    "event_share_exact": "0.9037505257122376",
+    "sum_sd_over_clean_sd": "0.03317146546882766",
+    "event_over_background_median": "12.589254117941687",
+    "event_over_background_gt3": "0.8572032057162169",
+    "kurtosis_low": "171.34219359522137",
+    "kurtosis_top": "278.3029800013223",
+    "kurtosis_sum": "223.71094642195467",
+    "ks_low": "0.4447729861538148",
+    "ks_top": "0.47011466095850296",
+    "ks_sum": "0.4403675906460023"
+   },
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "abs@0.125",
+    "ber": "0.0003",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "0.28225",
+    "events_p0": "0.7540625",
+    "events_p1": "0.21325",
+    "events_p2plus": "0.0326875",
+    "lowflips_mean": "1.0338125",
+    "lowflips_p0": "0.3561875",
+    "event_share_measured": "0.9041752227948124",
+    "event_share_exact": "0.9037497609245475",
+    "sum_sd_over_clean_sd": "0.057448917225207105",
+    "event_over_background_median": "7.07945784384138",
+    "event_over_background_gt3": "0.7526440967515894",
+    "kurtosis_low": "57.59831014742301",
+    "kurtosis_top": "90.72441646281358",
+    "kurtosis_sum": "73.30908536374575",
+    "ks_low": "0.3838765628139711",
+    "ks_top": "0.4503774783413155",
+    "ks_sum": "0.38237369416162725"
+   },
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "abs@0.125",
+    "ber": "0.001",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "0.92996875",
+    "events_p0": "0.400875",
+    "events_p1": "0.3591875",
+    "events_p2plus": "0.2399375",
+    "lowflips_mean": "3.46928125",
+    "lowflips_p0": "0.0295",
+    "event_share_measured": "0.902474810185187",
+    "event_share_exact": "0.9037470839547077",
+    "sum_sd_over_clean_sd": "0.10485016503560479",
+    "event_over_background_median": "3.981071705534973",
+    "event_over_background_gt3": "0.5887140404740903",
+    "kurtosis_low": "17.15503939108267",
+    "kurtosis_top": "27.715931136735225",
+    "kurtosis_sum": "22.298966913149027",
+    "ks_low": "0.25888810596960177",
+    "ks_top": "0.3872757937710023",
+    "ks_sum": "0.2680882402469449"
+   },
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "abs@0.125",
+    "ber": "0.003",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "2.78165625",
+    "events_p0": "0.066125",
+    "events_p1": "0.17590625",
+    "events_p2plus": "0.75796875",
+    "lowflips_mean": "10.36790625",
+    "lowflips_p0": "3.125e-05",
+    "event_share_measured": "0.9042825511989931",
+    "event_share_exact": "0.9037394336439144",
+    "sum_sd_over_clean_sd": "0.18142393434704998",
+    "event_over_background_median": "2.5118864315095824",
+    "event_over_background_gt3": "0.4156526158585052",
+    "kurtosis_low": "5.6813210309193565",
+    "kurtosis_top": "9.156129058366547",
+    "kurtosis_sum": "7.386554435214654",
+    "ks_low": "0.13716621452979705",
+    "ks_top": "0.2521211306850648",
+    "ks_sum": "0.15170920166082635"
+   },
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "abs@0.125",
+    "ber": "0.01",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "9.3599375",
+    "events_p0": "0.00028125",
+    "events_p1": "0.001125",
+    "events_p2plus": "0.99859375",
+    "lowflips_mean": "34.5504375",
+    "lowflips_p0": "0.0",
+    "event_share_measured": "0.903966358810304",
+    "event_share_exact": "0.903712636239935",
+    "sum_sd_over_clean_sd": "0.3300684179524995",
+    "event_over_background_median": "1.9952623149688808",
+    "event_over_background_gt3": "0.3043140356070964",
+    "kurtosis_low": "1.6091190521903194",
+    "kurtosis_top": "2.5946042161363643",
+    "kurtosis_sum": "2.0866350505463203",
+    "ks_low": "0.04524657770979529",
+    "ks_top": "0.08206266651647609",
+    "ks_sum": "0.05629328524514443"
+   },
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "abs@0.125",
+    "ber": "0.03",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "28.04065625",
+    "events_p0": "0.0",
+    "events_p1": "0.0",
+    "events_p2plus": "1.0",
+    "lowflips_mean": "60.0",
+    "lowflips_p0": "0.0",
+    "event_share_measured": "0.9037186486778174",
+    "event_share_exact": "0.903635889048741",
+    "sum_sd_over_clean_sd": "0.5658911066514474",
+    "event_over_background_median": "1.9952623149688808",
+    "event_over_background_gt3": "0.30184700872583164",
+    "kurtosis_low": "0.48920130901759995",
+    "kurtosis_top": "0.7861851357035734",
+    "kurtosis_sum": "0.631060051273125",
+    "ks_low": "0.01305088375508337",
+    "ks_top": "0.025204158276200928",
+    "ks_sum": "0.019328066069736916"
+   },
+   {
+    "layer": "7",
+    "kernel": "tflite_tensor_0015/kernel",
+    "fan_in": "576",
+    "mask": "abs@0.125",
+    "ber": "0.1",
+    "fields": "500",
+    "inputs": "8",
+    "neurons_kept_share": "1.0",
+    "neurons_with_events_share": "1.0",
+    "events_mean": "59.92453125",
+    "events_p0": "0.0",
+    "events_p1": "0.0",
+    "events_p2plus": "1.0",
+    "lowflips_mean": "60.0",
+    "lowflips_p0": "0.0",
+    "event_share_measured": "0.9034294551126885",
+    "event_share_exact": "0.9033651182979658",
+    "sum_sd_over_clean_sd": "0.9951937249951339",
+    "event_over_background_median": "2.23872113856834",
+    "event_over_background_gt3": "0.3371756204811357",
+    "kurtosis_low": "0.0871223295885768",
+    "kurtosis_top": "0.1413489599178086",
+    "kurtosis_sum": "0.11355639308416787",
+    "ks_low": "0.0020333911875730637",
+    "ks_top": "0.004224421948075929",
+    "ks_sum": "0.003392436548644573"
+   }
+  ]
+ },
+ "expected_events_mean": {
+  "unprotected": [
+   0.01152,
+   0.11520000000000001,
+   0.34559999999999996,
+   1.1520000000000001,
+   3.456,
+   11.52,
+   34.56,
+   115.2
+  ],
+  "abs@0.125": [
+   0.00934046875,
+   0.0934046875,
+   0.28021406249999997,
+   0.934046875,
+   2.8021406250000003,
+   9.34046875,
+   28.02140625,
+   93.40468750000001
+  ]
+ },
+ "exact": [
+  {
+   "layer": 0,
+   "kernel": "tflite_tensor_0008/kernel",
+   "fan_in": 27,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 54.0,
+   "unprotected_low_bits_per_neuron": 162.0,
+   "event_variance_fraction": 0.9375143053330283
+  },
+  {
+   "layer": 0,
+   "kernel": "tflite_tensor_0008/kernel",
+   "fan_in": 27,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 0.0,
+   "unprotected_low_bits_per_neuron": 78.0,
+   "event_variance_fraction": 0.0
+  },
+  {
+   "layer": 1,
+   "kernel": "tflite_tensor_0009/kernel",
+   "fan_in": 144,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 288.0,
+   "unprotected_low_bits_per_neuron": 864.0,
+   "event_variance_fraction": 0.937514305333028
+  },
+  {
+   "layer": 1,
+   "kernel": "tflite_tensor_0009/kernel",
+   "fan_in": 144,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 31.3125,
+   "unprotected_low_bits_per_neuron": 717.5,
+   "event_variance_fraction": 0.3023870791046367
+  },
+  {
+   "layer": 2,
+   "kernel": "tflite_tensor_0010/kernel",
+   "fan_in": 144,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 288.0,
+   "unprotected_low_bits_per_neuron": 864.0,
+   "event_variance_fraction": 0.9375143053330282
+  },
+  {
+   "layer": 2,
+   "kernel": "tflite_tensor_0010/kernel",
+   "fan_in": 144,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 7.6875,
+   "unprotected_low_bits_per_neuron": 738.25,
+   "event_variance_fraction": 0.1247293294456856
+  },
+  {
+   "layer": 3,
+   "kernel": "tflite_tensor_0011/kernel",
+   "fan_in": 144,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 288.0,
+   "unprotected_low_bits_per_neuron": 864.0,
+   "event_variance_fraction": 0.9375143053330282
+  },
+  {
+   "layer": 3,
+   "kernel": "tflite_tensor_0011/kernel",
+   "fan_in": 144,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 5.625,
+   "unprotected_low_bits_per_neuron": 781.09375,
+   "event_variance_fraction": 0.10948983922561502
+  },
+  {
+   "layer": 4,
+   "kernel": "tflite_tensor_0012/kernel",
+   "fan_in": 288,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 576.0,
+   "unprotected_low_bits_per_neuron": 1728.0,
+   "event_variance_fraction": 0.9375143053330282
+  },
+  {
+   "layer": 4,
+   "kernel": "tflite_tensor_0012/kernel",
+   "fan_in": 288,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 88.09375,
+   "unprotected_low_bits_per_neuron": 1692.0,
+   "event_variance_fraction": 0.45109347847065967
+  },
+  {
+   "layer": 5,
+   "kernel": "tflite_tensor_0013/kernel",
+   "fan_in": 16,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 32.0,
+   "unprotected_low_bits_per_neuron": 96.0,
+   "event_variance_fraction": 0.9375143053330282
+  },
+  {
+   "layer": 5,
+   "kernel": "tflite_tensor_0013/kernel",
+   "fan_in": 16,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 6.15625,
+   "unprotected_low_bits_per_neuron": 92.5,
+   "event_variance_fraction": 0.4454939502478993
+  },
+  {
+   "layer": 6,
+   "kernel": "tflite_tensor_0014/kernel",
+   "fan_in": 288,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 576.0,
+   "unprotected_low_bits_per_neuron": 1728.0,
+   "event_variance_fraction": 0.9375143053330282
+  },
+  {
+   "layer": 6,
+   "kernel": "tflite_tensor_0014/kernel",
+   "fan_in": 288,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 338.53125,
+   "unprotected_low_bits_per_neuron": 1726.5,
+   "event_variance_fraction": 0.8271744617138279
+  },
+  {
+   "layer": 7,
+   "kernel": "tflite_tensor_0015/kernel",
+   "fan_in": 576,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 1152.0,
+   "unprotected_low_bits_per_neuron": 3456.0,
+   "event_variance_fraction": 0.9375143053330282
+  },
+  {
+   "layer": 7,
+   "kernel": "tflite_tensor_0015/kernel",
+   "fan_in": 576,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 934.046875,
+   "unprotected_low_bits_per_neuron": 3455.953125,
+   "event_variance_fraction": 0.9037509080959442
+  },
+  {
+   "layer": 8,
+   "kernel": "tflite_tensor_0016/kernel",
+   "fan_in": 32,
+   "mask": "unprotected",
+   "unprotected_top_bits_per_neuron": 64.0,
+   "unprotected_low_bits_per_neuron": 192.0,
+   "event_variance_fraction": 0.9375143053330282
+  },
+  {
+   "layer": 8,
+   "kernel": "tflite_tensor_0016/kernel",
+   "fan_in": 32,
+   "mask": "abs@0.125",
+   "unprotected_top_bits_per_neuron": 41.265625,
+   "unprotected_low_bits_per_neuron": 191.875,
+   "event_variance_fraction": 0.8347561519538779
+  }
+ ],
+ "statements": {
+  "grow_together": {
+   "per_layer_mask": {
+    "layer0|unprotected": {
+     "measured_min": 0.9154775535730909,
+     "measured_max": 0.9830298142979743,
+     "exact_min": 0.9339238089573048,
+     "exact_max": 0.9375139778295228,
+     "holds": false
+    },
+    "layer1|abs@0.125": {
+     "measured_min": 0.21818852772250624,
+     "measured_max": 0.4131328890077539,
+     "exact_min": 0.29538444025988925,
+     "exact_max": 0.30238635880167297,
+     "holds": false
+    },
+    "layer1|unprotected": {
+     "measured_min": 0.9318094866688923,
+     "measured_max": 0.9411674243690116,
+     "exact_min": 0.9360565105561716,
+     "exact_max": 0.9375141653387082,
+     "holds": true
+    },
+    "layer2|abs@0.125": {
+     "measured_min": 0.0,
+     "measured_max": 0.1320247929292961,
+     "exact_min": 0.12472933341159141,
+     "exact_max": 0.12476940693805347,
+     "holds": false
+    },
+    "layer2|unprotected": {
+     "measured_min": 0.9334001235219346,
+     "measured_max": 0.9509085467865698,
+     "exact_min": 0.9342727581395733,
+     "exact_max": 0.9375139979576813,
+     "holds": true
+    },
+    "layer3|abs@0.125": {
+     "measured_min": 0.0,
+     "measured_max": 0.1264462813323725,
+     "exact_min": 0.10949048506741908,
+     "exact_max": 0.11599734761072043,
+     "holds": false
+    },
+    "layer3|unprotected": {
+     "measured_min": 0.9350344825270802,
+     "measured_max": 0.9424326537056839,
+     "exact_min": 0.9345573938464697,
+     "exact_max": 0.9375140183647238,
+     "holds": true
+    },
+    "layer4|abs@0.125": {
+     "measured_min": 0.42854376395558696,
+     "measured_max": 0.4823412287574704,
+     "exact_min": 0.4510939745874136,
+     "exact_max": 0.4559784013022548,
+     "holds": false
+    },
+    "layer4|unprotected": {
+     "measured_min": 0.9357960268199909,
+     "measured_max": 0.9499272900407048,
+     "exact_min": 0.9357624057784261,
+     "exact_max": 0.937514134322953,
+     "holds": true
+    },
+    "layer5|abs@0.125": {
+     "measured_min": 0.0,
+     "measured_max": 0.4878842414573271,
+     "exact_min": 0.44549448179976836,
+     "exact_max": 0.4507444383045291,
+     "holds": false
+    },
+    "layer5|unprotected": {
+     "measured_min": 0.7150972821078813,
+     "measured_max": 0.9525038426710044,
+     "exact_min": 0.9363543838725893,
+     "exact_max": 0.9375141919419392,
+     "holds": false
+    },
+    "layer6|abs@0.125": {
+     "measured_min": 0.7719723156496752,
+     "measured_max": 0.8340586191554318,
+     "exact_min": 0.827175270412975,
+     "exact_max": 0.8348505133561517,
+     "holds": false
+    },
+    "layer6|unprotected": {
+     "measured_min": 0.9366303637112557,
+     "measured_max": 0.9449889344185408,
+     "exact_min": 0.9370159670397166,
+     "exact_max": 0.9375142555565914,
+     "holds": true
+    },
+    "layer7|abs@0.125": {
+     "measured_min": 0.9019370172390324,
+     "measured_max": 0.9128213229639175,
+     "exact_min": 0.9033651182979658,
+     "exact_max": 0.9037508698578776,
+     "holds": true
+    },
+    "layer7|unprotected": {
+     "measured_min": 0.9340085031621832,
+     "measured_max": 0.9403919815587503,
+     "exact_min": 0.9340799089330293,
+     "exact_max": 0.9375139813842485,
+     "holds": true
+    },
+    "layer8|abs@0.125": {
+     "measured_min": 0.6631985755627628,
+     "measured_max": 0.8480557046656095,
+     "exact_min": 0.8347569781860219,
+     "exact_max": 0.8426046595739065,
+     "holds": false
+    },
+    "layer8|unprotected": {
+     "measured_min": 0.9284813076628289,
+     "measured_max": 0.9491864959587372,
+     "exact_min": 0.9375146217129209,
+     "exact_max": 0.9405211983654828,
+     "holds": false
+    }
+   },
+   "holds_everywhere": false
+  },
+  "one_event_stands_out": {
+   "per_layer_mask": {
+    "layer0|unprotected": {
+     "rates": [
+      1e-05,
+      0.0001,
+      0.0003,
+      0.001
+     ],
+     "medians": [
+      112.20184543019653,
+      50.11872336272725,
+      25.11886431509582,
+      15.848931924611142
+     ],
+     "holds": true
+    },
+    "layer1|abs@0.125": {
+     "rates": [
+      1e-05,
+      0.0001,
+      0.0003,
+      0.001,
+      0.003
+     ],
+     "medians": [
+      39.81071705534978,
+      12.589254117941687,
+      7.07945784384138,
+      3.981071705534973,
+      2.23872113856834
+     ],
+     "holds": false
+    },
+    "layer1|unprotected": {
+     "rates": [
+      1e-05,
+      0.0001,
+      0.0003
+     ],
+     "medians": [
+      50.11872336272725,
+      17.78279410038923,
+      10.0
+     ],
+     "holds": true
+    },
+    "layer2|abs@0.125": {
+     "rates": [
+      0.0001,
+      0.0003,
+      0.001,
+      0.003,
+      0.01
+     ],
+     "medians": [
+      11.220184543019629,
+      7.07945784384138,
+      3.981071705534973,
+      2.23872113856834,
+      1.2589254117941675
+     ],
+     "holds": false
+    },
+    "layer2|unprotected": {
+     "rates": [
+      1e-05,
+      0.0001,
+      0.0003
+     ],
+     "medians": [
+      63.09573444801943,
+      17.78279410038923,
+      11.220184543019629
+     ],
+     "holds": true
+    },
+    "layer3|abs@0.125": {
+     "rates": [
+      0.0001,
+      0.0003,
+      0.001,
+      0.003,
+      0.01
+     ],
+     "medians": [
+      11.220184543019629,
+      7.07945784384138,
+      3.981071705534973,
+      2.23872113856834,
+      1.2589254117941675
+     ],
+     "holds": false
+    },
+    "layer3|unprotected": {
+     "rates": [
+      1e-05,
+      0.0001,
+      0.0003
+     ],
+     "medians": [
+      56.23413251903491,
+      19.952623149688787,
+      11.220184543019629
+     ],
+     "holds": true
+    },
+    "layer4|abs@0.125": {
+     "rates": [
+      1e-05,
+      0.0001,
+      0.0003,
+      0.001
+     ],
+     "medians": [
+      35.481338923357534,
+      11.220184543019629,
+      5.623413251903491,
+      3.1622776601683795
+     ],
+     "holds": true
+    },
+    "layer4|unprotected": {
+     "rates": [
+      1e-05,
+      0.0001
+     ],
+     "medians": [
+      44.668359215096345,
+      14.125375446227554
+     ],
+     "holds": true
+    },
+    "layer5|abs@0.125": {
+     "rates": [
+      0.0001,
+      0.0003,
+      0.001,
+      0.003,
+      0.01
+     ],
+     "medians": [
+      39.81071705534978,
+      25.11886431509582,
+      12.589254117941687,
+      7.943282347242821,
+      3.981071705534973
+     ],
+     "holds": true
+    },
+    "layer5|unprotected": {
+     "rates": [
+      1e-05,
+      0.0001,
+      0.0003,
+      0.001,
+      0.003
+     ],
+     "medians": [
+      125.89254117941688,
+      56.23413251903491,
+      35.481338923357534,
+      17.78279410038923,
+      11.220184543019629
+     ],
+     "holds": true
+    },
+    "layer6|abs@0.125": {
+     "rates": [
+      1e-05,
+      0.0001
+     ],
+     "medians": [
+      35.481338923357534,
+      11.220184543019629
+     ],
+     "holds": true
+    },
+    "layer6|unprotected": {
+     "rates": [
+      1e-05,
+      0.0001
+     ],
+     "medians": [
+      50.11872336272725,
+      14.125375446227554
+     ],
+     "holds": true
+    },
+    "layer7|abs@0.125": {
+     "rates": [
+      1e-05,
+      0.0001
+     ],
+     "medians": [
+      39.81071705534978,
+      12.589254117941687
+     ],
+     "holds": true
+    },
+    "layer7|unprotected": {
+     "rates": [
+      1e-05
+     ],
+     "medians": [
+      39.81071705534978
+     ],
+     "holds": true
+    },
+    "layer8|abs@0.125": {
+     "rates": [
+      1e-05,
+      0.0001,
+      0.0003,
+      0.001
+     ],
+     "medians": [
+      89.12509381337459,
+      35.481338923357534,
+      19.952623149688787,
+      11.220184543019629
+     ],
+     "holds": true
+    },
+    "layer8|unprotected": {
+     "rates": [
+      1e-05,
+      0.0001,
+      0.0003,
+      0.001
+     ],
+     "medians": [
+      141.25375446227554,
+      44.668359215096345,
+      22.387211385683422,
+      14.125375446227554
+     ],
+     "holds": true
+    }
+   },
+   "holds_everywhere": false
+  },
+  "many_events_bell_curve": {
+   "per_layer_mask": {
+    "layer0|unprotected": {
+     "ks_event_part": [
+      0.47982829926416704,
+      0.47719806549951793,
+      0.472376547555182,
+      0.45318457672998735,
+      0.39186334870264294,
+      0.25249535913410326,
+      0.07917075977819488,
+      0.010808132046902952
+     ],
+     "falls": true,
+     "last": 0.010808132046902952
+    },
+    "layer1|abs@0.125": {
+     "ks_event_part": [
+      0.48002155152548937,
+      0.4793712382519738,
+      0.47741896411831114,
+      0.4534250247279209,
+      0.42111132603941154,
+      0.3405128690881159,
+      0.21091337342215336,
+      0.05658322484527745
+     ],
+     "falls": true,
+     "last": 0.05658322484527745
+    },
+    "layer1|unprotected": {
+     "ks_event_part": [
+      0.47922464631006545,
+      0.4709326541225648,
+      0.45407648346826857,
+      0.38557952661457273,
+      0.26135494775715085,
+      0.07965291198797475,
+      0.0215637700402993,
+      0.003925059765458649
+     ],
+     "falls": true,
+     "last": 0.003925059765458649
+    },
+    "layer2|abs@0.125": {
+     "ks_event_part": [
+      0.48006119416162796,
+      0.4798467727271609,
+      0.479626209611794,
+      0.4573932824281698,
+      0.44499272967688935,
+      0.38893617179614215,
+      0.2917430698748445,
+      0.12881894286778295
+     ],
+     "falls": true,
+     "last": 0.12881894286778295
+    },
+    "layer2|unprotected": {
+     "ks_event_part": [
+      0.4792611758510811,
+      0.47371195099756547,
+      0.4581771151821351,
+      0.39656578705713574,
+      0.2804121071809783,
+      0.09929584781187317,
+      0.02491594428815902,
+      0.00540446041523962
+     ],
+     "falls": true,
+     "last": 0.00540446041523962
+    },
+    "layer3|abs@0.125": {
+     "ks_event_part": [
+      0.48006119416162796,
+      0.47987618170395213,
+      0.47922097184002826,
+      0.4580554438831322,
+      0.43250196520338546,
+      0.3882789093560164,
+      0.2944458453426204,
+      0.12621006156505926
+     ],
+     "falls": true,
+     "last": 0.12621006156505926
+    },
+    "layer3|unprotected": {
+     "ks_event_part": [
+      0.4794573123256898,
+      0.4713329531948311,
+      0.4524057071010811,
+      0.3824289004604554,
+      0.24767384118976732,
+      0.06655443851011533,
+      0.017620074971939848,
+      0.007909633129716487
+     ],
+     "falls": true,
+     "last": 0.007909633129716487
+    },
+    "layer4|abs@0.125": {
+     "ks_event_part": [
+      0.4799884288006508,
+      0.4787892482581446,
+      0.4741615314946943,
+      0.4429058544405965,
+      0.4015685059709187,
+      0.29450200094736695,
+      0.16516219143788466,
+      0.046785217617045016
+     ],
+     "falls": true,
+     "last": 0.046785217617045016
+    },
+    "layer4|unprotected": {
+     "ks_event_part": [
+      0.47889029572412795,
+      0.4676018740932686,
+      0.4423511111538155,
+      0.35600717804834603,
+      0.2052402788211643,
+      0.05281464301383343,
+      0.014899907300854331,
+      0.0036177722910887278
+     ],
+     "falls": true,
+     "last": 0.0036177722910887278
+    },
+    "layer5|abs@0.125": {
+     "ks_event_part": [
+      0.48006119416162796,
+      0.4799080189674997,
+      0.4795652894706369,
+      0.4593235705045695,
+      0.4493050634782093,
+      0.3964764888376756,
+      0.3153129581961125,
+      0.16531000973970877
+     ],
+     "falls": true,
+     "last": 0.16531000973970877
+    },
+    "layer5|unprotected": {
+     "ks_event_part": [
+      0.4800611941616273,
+      0.47907013581201796,
+      0.4765040957729554,
+      0.4499370247835174,
+      0.41176115198078367,
+      0.3220712231780841,
+      0.17748608764715443,
+      0.035658092374051376
+     ],
+     "falls": true,
+     "last": 0.035658092374051376
+    },
+    "layer6|abs@0.125": {
+     "ks_event_part": [
+      0.47952817414209603,
+      0.4725914675991273,
+      0.4557179324428773,
+      0.3939620186800017,
+      0.2784436470979704,
+      0.10990172854917779,
+      0.03141401278420697,
+      0.008781836617349104
+     ],
+     "falls": true,
+     "last": 0.008781836617349104
+    },
+    "layer6|unprotected": {
+     "ks_event_part": [
+      0.4788140628139717,
+      0.46700345490381545,
+      0.44024307892725234,
+      0.34631907434406495,
+      0.1982444283479704,
+      0.047697608101724076,
+      0.01475014088990867,
+      0.003319537862564892
+     ],
+     "falls": true,
+     "last": 0.003319537862564892
+    },
+    "layer7|abs@0.125": {
+     "ks_event_part": [
+      0.47904703400537796,
+      0.47011466095850296,
+      0.4503774783413155,
+      0.3872757937710023,
+      0.2521211306850648,
+      0.08206266651647609,
+      0.025204158276200928,
+      0.004224421948075929
+     ],
+     "falls": true,
+     "last": 0.004224421948075929
+    },
+    "layer7|unprotected": {
+     "ks_event_part": [
+      0.478731604317878,
+      0.4667680423061592,
+      0.44242789338037725,
+      0.3635098025600648,
+      0.2116559884065642,
+      0.057433975760265876,
+      0.016776019796158614,
+      0.004441241964127429
+     ],
+     "falls": true,
+     "last": 0.004441241964127429
+    },
+    "layer8|abs@0.125": {
+     "ks_event_part": [
+      0.4800207278530335,
+      0.47925699494287793,
+      0.47681473420068976,
+      0.4543732669155336,
+      0.42347349328937667,
+      0.33614359913366365,
+      0.19399509033270135,
+      0.05342929755484904
+     ],
+     "falls": true,
+     "last": 0.05342929755484904
+    },
+    "layer8|unprotected": {
+     "ks_event_part": [
+      0.4799224002163148,
+      0.4786141116420967,
+      0.4746883914272523,
+      0.457326025704596,
+      0.408839032840158,
+      0.2984252153446011,
+      0.13912676517027156,
+      0.031312698904797154
+     ],
+     "falls": true,
+     "last": 0.031312698904797154
+    }
+   },
+   "falls_everywhere": true,
+   "figure_layer_last": 0.004441241964127429,
+   "figure_layer_holds": true
+  }
+ },
+ "thresholds": {
+  "share_range": 0.02,
+  "stands_out": 3.0,
+  "few_events": 0.1,
+  "ks_limit": 0.05
+ },
+ "layers": [
+  {
+   "layer": 0,
+   "kernel": "tflite_tensor_0008/kernel",
+   "shape": [
+    16,
+    3,
+    3,
+    3
+   ],
+   "stride": 1,
+   "fan_in": 27,
+   "reconstruction_within_one_step": 1.0,
+   "unsaturated_share": 0.6435165405273438,
+   "clipped_low_share": 1.0,
+   "clean_preactivation_sd": 0.7778203722953981,
+   "output_step": 0.039393551647663116
+  },
+  {
+   "layer": 1,
+   "kernel": "tflite_tensor_0009/kernel",
+   "shape": [
+    16,
+    3,
+    3,
+    16
+   ],
+   "stride": 1,
+   "fan_in": 144,
+   "reconstruction_within_one_step": 1.0,
+   "unsaturated_share": 0.565673828125,
+   "clipped_low_share": 1.0,
+   "clean_preactivation_sd": 1.2329747647069365,
+   "output_step": 0.07629315555095673
+  },
+  {
+   "layer": 2,
+   "kernel": "tflite_tensor_0010/kernel",
+   "shape": [
+    16,
+    3,
+    3,
+    16
+   ],
+   "stride": 1,
+   "fan_in": 144,
+   "reconstruction_within_one_step": 1.0,
+   "reconstruction_checked_on": "following addition",
+   "unsaturated_share": 0.6883621215820312,
+   "clipped_low_share": 0.31163787841796875,
+   "clean_preactivation_sd": 1.1768314933771575,
+   "output_step": 0.10419496148824692
+  },
+  {
+   "layer": 3,
+   "kernel": "tflite_tensor_0011/kernel",
+   "shape": [
+    32,
+    3,
+    3,
+    16
+   ],
+   "stride": 2,
+   "fan_in": 144,
+   "reconstruction_within_one_step": 1.0,
+   "unsaturated_share": 0.4891204833984375,
+   "clipped_low_share": 1.0,
+   "clean_preactivation_sd": 1.1851696185217373,
+   "output_step": 0.04567283019423485
+  },
+  {
+   "layer": 4,
+   "kernel": "tflite_tensor_0012/kernel",
+   "shape": [
+    32,
+    3,
+    3,
+    32
+   ],
+   "stride": 1,
+   "fan_in": 288,
+   "reconstruction_within_one_step": 1.0,
+   "unsaturated_share": 1.0,
+   "clipped_low_share": 0.0,
+   "clean_preactivation_sd": 1.866444747746253,
+   "output_step": 0.11311884224414825
+  },
+  {
+   "layer": 5,
+   "kernel": "tflite_tensor_0013/kernel",
+   "shape": [
+    32,
+    1,
+    1,
+    16
+   ],
+   "stride": 2,
+   "fan_in": 16,
+   "reconstruction_within_one_step": 1.0,
+   "reconstruction_checked_on": "following addition",
+   "unsaturated_share": 0.522735595703125,
+   "clipped_low_share": 0.477264404296875,
+   "clean_preactivation_sd": 0.6634054167702975,
+   "output_step": 0.044761426746845245
+  },
+  {
+   "layer": 6,
+   "kernel": "tflite_tensor_0014/kernel",
+   "shape": [
+    64,
+    3,
+    3,
+    32
+   ],
+   "stride": 2,
+   "fan_in": 288,
+   "reconstruction_within_one_step": 1.0,
+   "unsaturated_share": 0.274505615234375,
+   "clipped_low_share": 1.0,
+   "clean_preactivation_sd": 1.013600920673614,
+   "output_step": 0.02845017984509468
+  },
+  {
+   "layer": 7,
+   "kernel": "tflite_tensor_0015/kernel",
+   "shape": [
+    64,
+    3,
+    3,
+    64
+   ],
+   "stride": 1,
+   "fan_in": 576,
+   "reconstruction_within_one_step": 1.0,
+   "unsaturated_share": 1.0,
+   "clipped_low_share": 0.0,
+   "clean_preactivation_sd": 3.387459671295932,
+   "output_step": 0.21724364161491394
+  },
+  {
+   "layer": 8,
+   "kernel": "tflite_tensor_0016/kernel",
+   "shape": [
+    64,
+    1,
+    1,
+    32
+   ],
+   "stride": 2,
+   "fan_in": 32,
+   "reconstruction_within_one_step": 1.0,
+   "reconstruction_checked_on": "following addition",
+   "unsaturated_share": 0.29827880859375,
+   "clipped_low_share": 0.70172119140625,
+   "clean_preactivation_sd": 1.8923397964359634,
+   "output_step": 0.08385830372571945
+  }
+ ],
+ "inputs_sha256": {
+  "statements": "1b18b85aafc1747221bbe35c010841869b4b8e9d9140b3a6a373125623735254",
+  "summary": "3593bc473f8b4aefa5aa068481056d7e21479412f9f315e6da6deaf82102fdeb",
+  "histograms": "7c7f8148ace26ebcca8f630988ad1a28fc4497100a43337e37aec07d1a3162df",
+  "exact": "86f3736c2b0082df809457bd89cdbf33f4d7dc9fbc5fea574eb4133b34b913aa"
+ }
+}

@@ -1,0 +1,73 @@
+# Venue and novelty assessment
+
+Audit date: 10 November 2026. This is an internal editorial assessment, not an acceptance prediction. It uses the supplied manuscript, the original FCCM paper and EISFINN PDFs, the FKeras and PrioriFI author manuscripts, and the actual source snapshot accompanying the selective-ECC dataset. No experiments were run for this review.
+
+## Recommendation
+
+There is enough material for a complete research draft. I would not describe the present paper as an obvious TECS acceptance. Its strongest contribution is a controlled evaluation methodology and a substantive cross-model empirical result: the preferred protection ranking can change with BER and budget, and a more expensive conditional selection procedure can change masks without reliably improving held-out risk. That is useful evidence, but the general observation that neural-network fault sensitivity depends on context is already present in closely related work.
+
+TECS is a defensible, ambitious first submission if the paper makes a concrete engineering decision procedure, exact numerical execution, reproducibility, and measured computational cost its central contribution. Journal of Systems Architecture is the closer alternative if the final manuscript remains primarily a software methodology plus a comparative evaluation. I would select between these after the internal review, rather than change venue merely because the conditional optimizer did not win.
+
+The proposed title **NetSuRF: Bit-Accurate Evaluation of Budgeted Protection in Quantized Neural Networks** matches the evidence. “Beyond static rankings” risks promising an optimizer advantage that the new KWS comparison does not establish. A subtitle or abstract sentence can convey operating-condition dependence without making a universal statement.
+
+## What is already established by prior work
+
+| Work | What its method actually does | Boundary for this paper |
+|---|---|---|
+| FKeras, JATS 2024 | Computes leading weight-loss Hessian eigenpairs, forms the printed projection \(\sum_i\lambda_i(v_i^T\theta)v_i\), and orders parameters within successive significance tiers. It supports single- and multi-bit faults and explicitly discusses exceptions to bit-tier monotonicity. | Do not claim that prior tools considered only one fault, that the Hessian contains no cross-parameter information, or that exposing MSB failures is new. NetSuRF evaluates published-form tier-first allocation under its own exact storage/backend and matched stochastic protection contract. |
+| PrioriFI, ASPLOS 2026 | Starts from Hessian-ordered significance queues, probes one bit in each queue, and chooses the next queue using recent observed fault damage. The paper uses a nonnegative damage metric and reports how rapidly sensitive bits are discovered. | Feedback-directed injection already exists. A protected-mask construction from its observations is a NetSuRF adaptation unless prescribed by the source. Discovery efficiency and held-out protection effectiveness are different endpoints. |
+| EISFINN, IOLTS 2024 | Uses attribution at neuron-output and bit levels to bias fault-location sampling; an optional uniform component improves coverage. Its reported endpoint is efficiency of finding critical faults. | Attribution-guided injection is not new, and activation faults are a valid separate fault domain. EISFINN's discovery samples do not by themselves define an unbiased Bernoulli expected-risk estimator or a fixed-budget protection allocation. |
+| Published FCCM design flow, 2025 | Already combines bit susceptibility, GradDelta, user-defined budgets, selective TMR, reconfigurable registers and HLS/ASIC implementation. | The general design-flow narrative, bit-level gradient motivation and selective allocation are prior contributions by overlapping authors. Cite this paper prominently. The new work supplies a different software-only execution/evaluation contract, broader independent models, matched uncertainty, and measured limits of transfer between conditions. |
+| *Learned or Ranked?* companion dataset, 2026 | The inspected source uses layer protection decisions, INT8 stored weights with float forward execution, matched-cost allocation methods, held-out evaluation, and diagnostics for pair effects and context-dependent layer marginal rankings. It also includes ideal and word-level ECC/burst variants. | It directly overlaps a broad “protection is context-dependent” thesis. NetSuRF's distinctions are individual encoded-bit decisions, exact reference backends, fixed bit-cardinality contexts, exact bounded-candidate integration, and multiple task-risk definitions. These distinctions need explicit evidence and do not establish superiority over its methods. |
+
+Primary methodological sources: [FKeras author PDF](https://kastner.ucsd.edu/wp-content/uploads/2024/05/admin/jats24-fkeras.pdf), [PrioriFI author PDF](https://kastner.ucsd.edu/wp-content/uploads/2026/05/admin/asplos2026-priorifi.pdf), [EISFINN DOI](https://doi.org/10.1109/IOLTS60994.2024.10616075), [FCCM DOI](https://doi.org/10.1109/FCCM62733.2025.00014), and [selective-ECC dataset](https://zenodo.org/records/23054820).
+
+The Zenodo release is a public dataset/companion release, not verified peer-reviewed publication of the manuscript. Its archived README says “IEEE Access, in preparation.” The archive inspected was `code__eccmarl-2ea13f9.tar.gz`, SHA-256 `82eed19a02e3242afc908ac249e549778cc0174b9b87ddfc1bfe5f4e72f7e000`; files inspected included `README.md`, `eccmarl/faults.py`, `eccmarl/env.py`, and `eccmarl/interaction.py`. The source contains layer-level paired second differences and context-dependent marginals. Those are related to, but are not the same experimental object as, individual encoded-bit response tables. We did not execute or independently reproduce its numerical findings.
+
+## Claims that withstand an informed review
+
+1. **Specific contribution:** a reusable, bit-accurate, checkpoint-specific software procedure that evaluates fixed protection masks under a declared persistent Bernoulli fault law and task metric, with saved pairing and exact restoration.
+2. **Specific empirical conclusion:** among the tested masks, ranking effectiveness changes with model, task, BER and budget. Within-model reversals are stronger evidence than comparing unrelated architectures. State the paired effect and interval, not merely which curve is lowest.
+3. **Exact analytical qualification:** an isolated score has no general guarantee of optimizing simultaneous-fault expected risk. This follows from known multilinear/set-function foundations; the contribution is their precise use for encoded-bit protection and the controlled measurements.
+4. **Useful negative result:** conditional selection is not automatically better. The independent KWS pools changed most local decisions but did not establish a gain over exact isolated selection. This tests the practical consequence of the theory and should remain visible.
+
+The paper should not claim the first multi-bit injector, the first selective hardening method, the first context-dependent interaction diagnostic, a universally better optimizer, or the first proof that neural networks are nonlinear. Do not rename the empirical comparison as a new theory to disguise these boundaries.
+
+## Submission risks and concrete repairs
+
+| Reviewer objection | Required manuscript repair |
+|---|---|
+| “This is a large comparison of familiar heuristics.” | State the exact evaluation contract and the decision it enables. Give two or three quantified within-model reversals and the computational price of checking them. Explain what a practitioner should do before accepting a ranking. |
+| “This repeats the FCCM design flow.” | Add an explicit prior-work paragraph in the introduction and a scope row in related work. State which ideas are inherited, which execution assumptions changed, and which new measurements are wholly absent from FCCM. Do not reuse hardware performance numbers. |
+| “The novelty is already in PrioriFI or Learned or Ranked?” | Contrast objectives and granularity concretely. Cite their adaptive scheduling and interaction diagnostics fairly. Avoid any priority claim based only on bit versus layer naming. |
+| “The largest models are tested only where they saturate.” | Display the full measured BER grid, show usable intermediate regimes, retain clean task quality, identify the 30-nat cap and failure semantics, and include Qwen's uncapped finite-loss diagnostic where available. |
+| “The intervals omit model and input variability.” | Label field-level intervals as conditional on fixed model, cohort and mask. Report independently sampled candidate pools separately. Do not call different BER points or language-model precisions independent model replications. |
+| “The conditional optimizer has no gain.” | Report that result directly. Position bounded conditional evaluation as a diagnostic reference; do not imply an implemented method is a recommended universal optimizer. |
+| “Large models are included but their baselines are incomplete.” | Provide a method-availability matrix. Do not imply FKeras or PrioriFI was measured where no valid study exists. Use complete tier degeneracy to avoid meaningless duplicate FKeras/MSB comparisons. |
+| “Software masks imply hardware reliability.” | Keep cost in protected eligible bits and execution time. Explain persistent parameter corruption and excluded activations, metadata, control and datapath state. No physical reliability or implemented ECC claim follows. |
+
+These repairs make a credible submission possible; they cannot guarantee that a reviewer will consider the methodological increment sufficient.
+
+## Venue fit
+
+| Venue | Fit to the current scope | Candid assessment |
+|---|---|---|
+| ACM TECS | Its official SIGBED description covers analysis, design, behavior and experience with embedded systems, including software. | Plausible first choice if the paper is concise and clearly serves embedded inference decisions. The main risk is contribution depth and embedded relevance, not the absence of a new winning ranker. Large models extend stress coverage but do not themselves establish an embedded deployment claim. |
+| Journal of Systems Architecture | Elsevier's scope includes embedded software, application-specific architectures, methodologies and design tools; case studies must contribute beyond one design. | Best alternative for this software evaluation contribution. It remains a research journal, not an automatic acceptance route. Recent DNN reliability papers confirm topical fit, although many offer a new mechanism. |
+| ACM JETC | Its published scope emphasizes systems built from emerging technologies and advanced semiconductors. | Weaker fit for a software-only study using existing numerical backends without an emerging-device contribution. It is not simply a lower-risk TECS. |
+| IEEE TDMR | The IEEE description emphasizes device/material/process/interface/package reliability and reliable microelectronic products. | Poorer match while the scope deliberately excludes physical mechanisms and radiation calibration. Do not add unsupported physics merely to fit it. |
+| Microelectronics Reliability | Covers reliability of devices, circuits and systems from manufacture through operation. Its DNN articles include physical fault attacks, processor injections and device-level models. | Possible with careful systems-reliability framing, but less direct than JSA; the software-to-physical abstraction gap remains a review risk. |
+
+Scope sources checked: [ACM SIGBED journals](https://sigbed.org/journals/), [ACM journal scope brochure](https://www.glsvlsi.org/archive/glsvlsi25/acm/acm-scs.pdf), [Elsevier's official JSA listing](https://shop.elsevier.com/journals/subjects/physical-sciences-and-engineering?page=5&slug=physical-sciences-and-engineering&subjectArea=physical-sciences-and-engineering&type=journals), and [IEEE EDS April 2024 TDMR description](https://eds.ieee.org/images/files/newsletters/EDS_Apr2024FINAL.pdf). Direct ACM/ScienceDirect journal-about pages returned access errors during this audit; no third-party ranking or acceptance-rate claims are used.
+
+Recent topical examples are [TECS's hyperdimensional edge-AI reliability evaluation](https://doi.org/10.1145/3773032), whose [author manuscript](https://www.famaey.eu/papers/jnl-rajappa2025b.pdf) includes actual radiation experiments; [JSA's on-device DNN fault resilience](https://doi.org/10.1016/j.sysarc.2025.103593); and [JSA's RAP pruning study](https://doi.org/10.1016/j.sysarc.2026.103829). These establish relevance, not a requirement to reproduce their experiments or a guarantee of acceptance. For Microelectronics Reliability, [the edge-device fault-attack evaluation](https://doi.org/10.1016/j.microrel.2021.114116) illustrates why its physical-security framing differs from this manuscript.
+
+## AI assistance disclosure
+
+The current [official ACM conference policy page](https://2027.sigcse-ts.acm.org/info/policies-ai) quotes the updated central authorship policy: research uses of AI, including code, analysis, validation and result-bearing figures, must be described in the methods; writing assistance alone is treated separately. The linked central ACM page returned HTTP 403 in this audit. Older ACM conference pages retain the older blanket acknowledgments wording, so do not rely on them as the current rule. Recheck the central policy at submission.
+
+This project used assistance beyond proofreading, so a methods disclosure is appropriate under either version. Recommended factual wording, subject to author review:
+
+> OpenAI ChatGPT and Codex assisted software implementation, test construction, experiment preparation, artifact checks, statistical analysis, figure preparation, and manuscript drafting. Reported numerical observations originate from versioned model executions and saved experimental artifacts; language-model responses were not treated as measurements. The reproducibility package records the executable definitions, source revisions, inputs, fault schedules, and validation checks used for the reported results. The named authors are responsible for the final scientific claims and manuscript.
+
+Do not add a claim that every code path or numerical result was independently reviewed by a human unless that review has actually occurred. The historical paper's Claude acknowledgment should be retained only insofar as that earlier assistance contributed to material reused here; the authors should confirm its exact scope. Matching the author's prior technical voice is compatible with transparent disclosure. No AI system belongs in the author list or Git attribution.

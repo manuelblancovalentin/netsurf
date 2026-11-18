@@ -1,0 +1,10 @@
+build.log
+comment.cut
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+main.pdf

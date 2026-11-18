@@ -1,0 +1,38 @@
+\section{Fault Model and Protection Mechanisms}\label{sec:fault}
+The evaluation freezes a trained model, its numerical execution and its task data; builds protection assignments from calibration data; and compares them under common random faults (Fig.~\ref{fig:workflow}). All clean and faulted outcomes come from the quantized executable itself, not from the differentiable companion model used to compute gradients. NetSuRF is the software implementation of this workflow; it is not a ranking in the comparison.
+
+\begin{figure}[t]
+\centering\input{figures/workflow}
+\caption{Evaluation workflow. A ranking or a rate-aware search fixes which bits are protected and how, and a fault field proposes random flips; the two are separate objects. Assignments are frozen before paired evaluation. Protection cost counts storage bits; physical correction circuits are outside the study.}
+\Description{Frozen model and bit identities lead to calibration-based rankings, fixed protection masks, paired exact faults and task-level reliability measurements.}
+\label{fig:workflow}
+\end{figure}
+
+\paragraph{Eligible population.} The eligible population contains the $N$ bits of the stored INT8 weight codes: convolution and dense kernels in the TFLite models, and the weight matrices of all linear layers in the transformers. Bit $b$ belongs to weight $w(b)$; position zero is least significant and position seven is the sign bit. Zero-valued weights remain eligible. Biases, quantization scales and zero points, input embedding tables, normalization parameters and activations are not faulted (Appendix~\ref{app:implementation}); they are treated as perfectly reliable at no cost, which is an assumption of the study.
+
+\paragraph{Faults.} A fault XORs one stored bit. Flipping bit $b$ alone moves its weight by an exact jump $\Delta_b$: for code $5$ with scale $1/16$, flipping the sign bit gives code $-123$, a jump of $-8$ codes or $-0.5$. In two's complement the jumps of several flipped bits of one word add exactly. A \emph{fault field} proposes a flip at every stored bit independently with probability $p$, the logical bit-error probability. Copies and check bits are stored bits too and fail with the same $p$.
+
+\paragraph{Protection mechanisms and their residual error.} A mechanism $s$ lowers the probability that a data bit is still wrong after voting or decoding to a residual value $\rho_s(p)$, at a cost of $\mathrm{cost}_s$ extra storage bits per data bit (Table~\ref{tab:mechanisms}, Fig.~\ref{fig:residual}). An \emph{assignment} $A$ gives every data bit a mechanism, and bit $b$ then flips with probability $r_b=\rho_{A(b)}(p)$. The paper's earlier masks are the special case of ideal suppression, $\rho=0$. The curves of Table~\ref{tab:mechanisms} follow from counting failure patterns: a majority vote is wrong when most copies flip; a SEC-DED code repairs one error per word, so a data bit stays wrong when another bit of its $n$-bit word also flips; checksum correction (ABFT) repairs one faulty weight per output channel of $G$ weights, so a flipped bit stays wrong when another weight of its channel is faulty.
+
+\begin{table}[t]
+\caption{Residual flip probability of a protected data bit and storage cost. Every stored bit, including copies and check bits, flips independently with probability $p$; voters and decoders are ideal. $^*$ABFT: exact for one-weight repair with fault-free checksum words; wrong repairs and checksum faults (Section~\ref{sec:theory-abft}) make a real decoder worse.}\label{tab:mechanisms}
+\centering\small
+\begin{tabular}{l l l}\toprule
+Mechanism $s$ & $\rho_s(p)$ & Extra storage per data bit\\\midrule
+None & $p$ & 0\\
+Ideal suppression & $0$ & counted as 1\\
+Three copies (TMR) & $3p^2-2p^3$ & 2\\
+Five copies & $10p^3-15p^4+6p^5$ & 4\\
+SEC-DED, $n$-bit word & $p\,[1-(1-p)^{n-1}]\approx(n-1)p^2$ & $(n-d)/d$ for $d$ data bits\\
+ABFT$^*$, $G$ weights per channel & $p\,[1-(1-p)^{8(G-1)}]\approx 8(G-1)p^2$ & two checksum words per channel\\\bottomrule
+\end{tabular}
+\Description{Residual error probabilities and storage costs of six protection mechanisms.}
+\end{table}
+
+\begin{figure}[t]
+\centering\includegraphics[width=.72\linewidth]{residual_curves}
+\caption{Residual flip probability of a protected data bit against the bit-error probability of every stored bit, from Table~\ref{tab:mechanisms}. Copies keep a power law over the whole range. Codes and checksum correction leave it once a second error in the same word or channel becomes likely, near $p\approx1/n$ or $1/(8G)$, and then protect almost nothing. The shaded band is where the masks of this study differ. Curves are analytic; \Branch{R3a}{a bit-level simulation matches every one of them (Section~\ref{sec:mechanisms}).}{\TBD{simulation check outcome}.}}\label{fig:residual}
+\Description{Log-log curves of residual error probability for no protection, three and five copies, two SEC-DED codes and two ABFT channel sizes.}
+\end{figure}
+
+\paragraph{Why stored weights, and why dense fault rates.} A stored weight is needed for the whole deployment and an activation only until it is consumed, so in the architectural-vulnerability view a weight bit is exposed for much longer~\cite{mukherjee2003avf,deutsch2024delayavf}. On the Eyeriss accelerator the projected failure rate of the filter memory exceeds that of the whole datapath by about three orders of magnitude, although which storage dominates depends on the architecture~\cite{li2017understanding,tyagi2023thales}. Proton tests of ECON-D, a radiation-hard ASIC of the CMS calorimeter upgrade~\cite{cummings2023econd}, combined with the planned luminosity of the High-Luminosity LHC~\cite{hllhc2017tdr}, imply that an unprotected register bit that is never rewritten reaches an upset probability of $10^{-3}$ within hours to days and $10^{-2}$ within days to weeks of beam, the band in which the masks of this study differ. Appendix~\ref{app:faultmotivation} gives the numbers and their limits; neither argument calibrates $p$. Because $p$ grows with the time since the last rewrite, scrubbing moves a deployment along these curves, which is one reason to design for a range of rates rather than for one.

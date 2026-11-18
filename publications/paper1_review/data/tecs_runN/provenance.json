@@ -1,0 +1,33 @@
+{
+ "run": "Run N method campaigns (pinned ResNet-8)",
+ "script": "workflows/method_campaigns_resnet8.py",
+ "script_commit": "8b61a48",
+ "script_sha256": "4bf002d7e1203fff70bab141ada7176775d517c09ce0a50acc816202025c11b6",
+ "plan": "review/RUN_N_METHOD_CAMPAIGNS_FROZEN_PLAN_2026-11-11.md",
+ "single_flip_table_run": "workspace/runs/paper1_runN0_single_flip_resnet8_v1",
+ "masks": {
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c1/p0.003_f0.125/mask.npz": "5a6a9db8582a32e04ac09b83083dc7dd5369ae24c142cf0f533b8dff96eb0ee3",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c1/p0.003_f0.25/mask.npz": "ff679fb2fe80f1eee3d58e161cc27c98d76833f9e7efbd06d8a96dbcba384529",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c1/p0.01_f0.125/mask.npz": "ed50f1b841022ff3276ae1676b7b8664dd5126f09c9f0d9107ae018e912bd4ac",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c1/p0.01_f0.25/mask.npz": "5c647ba8cea4e8f222f02b7b2588b39f67bff7124a129540382ca2bf61c71f7b",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c1/p0.03_f0.125/mask.npz": "b4b9a55f840be386c41bd6dd95f6d8b5ed4d7dd2ae75eddc0b545d3f9724ba26",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c1/p0.03_f0.25/mask.npz": "17f5f2db8d5767f28cff98f5ee5d3921e7e847f9990cf60e45ae7f322ceb9c38",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c2/p0.003_f0.125/mask.npz": "99f3ec015cea9a6802a16559e48824702380570df19fa6719e1cd093c88abd7e",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c2/p0.003_f0.25/mask.npz": "a624ffa6d2e8a609f357f13febe6be77bc894cc0527c5cf2872a6d2b711e75e4",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c2/p0.01_f0.125/mask.npz": "93ae51a63f6aa20c2483edbfc1542bbb6a11bd96222ffc7ff139b1b9ac4492ca",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c2/p0.01_f0.25/mask.npz": "d177788a70e61dc83f3f2a6a749cc5801fd08ee2dd60fd80ee2000d44f09b1d9",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c2/p0.03_f0.125/mask.npz": "b277293226fe1d9c7c34d0d1a4bb0459ab89a0084ae8a789782595e54041b04a",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c2/p0.03_f0.25/mask.npz": "cff674bf8f16954b28c8ab10c4acdfbfadb59c848a37fed79384742aeffa9ba2",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c2r/f0.125/mask.npz": "e639afc111057d4416764467a3b43749a417c42c84c726a85b7f6499a620de39",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c2r/f0.25/mask.npz": "1f5637dc46e945cd329e5669f5f3b13819bede9e172bc7e9ef55735cb8776448",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c3/p0.003_f0.125/mask.npz": "8c8ba40f53eb1ffe6d8df8a5bf73daf4402be68fcfd4aaaeded8ee5fc4ada25c",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c3/p0.003_f0.25/mask.npz": "ae659e48bb75880a255dc1fc461b3dabe448aa4883151fa9ede8c643dd88966c",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c3/p0.01_f0.125/mask.npz": "f07cffb90ea601185610a7e874495d06c41726b06d59283dc804cecb3ce6b37f",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c3/p0.01_f0.25/mask.npz": "b5ef0bcb60c19fc8b4f4fbc329bc13238bbbe4867f4f8247fd2ecf7265dc437a",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c3/p0.03_f0.125/mask.npz": "8ba68171a8c5de80988a9d6a1efd12037f88ef9345ef146758acbe99218bf5e5",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c3/p0.03_f0.25/mask.npz": "5df5c205857c938e202f6e8d7c63c832998f0280d1348bddd5c5495ae094197b",
+  "workspace/runs/paper1_runN_method_campaigns_resnet8_v1/c45/masks.npz": "1ccca7c7a1dd5d2b46c51f75a42c0190cd926640a769ba7257e86735fb508c0b"
+ },
+ "protocol": "test images 2000-2999 (clean 0.856), Run M fault fields (seed 20261120 + 1000 a + i), 16 per rate; rates 3e-3, 1e-2, 3e-2; budgets 12.5% and 25%",
+ "finalized_by_engine": false
+}

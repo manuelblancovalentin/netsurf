@@ -1,0 +1,52 @@
+\section{Why the Preferred Ranking Depends on the Fault Rate}\label{sec:theory}\label{sec:allocation}
+\subsection{Protection value depends on what else fails}
+Let $J_p(A)=\E_x\E_\xi[L_x(\theta+X)]$ be the expected loss of the faulty model under assignment $A$, where $x$ is an input, $L_x$ its loss, and $X$ the random displacement of the weights. For ideal suppression and an unprotected bit $b$, let $G$ be the random set of faults on the other unprotected bits. Because bit $b$ fails independently of $G$,
+\begin{equation}\label{eq:protection-benefit}
+J_p(A)-J_p(A\cup\{b\})=p\,\E_G\big[L(G\cup\{b\})-L(G)\big].
+\end{equation}
+This is the improvement potential of reliability theory, the failure probability times Birnbaum's importance~\cite{birnbaum1969importance,rausand2004system}. The expectation on the right is the damage of flipping $b$ in a network that already carries the faults $G$, and $G$ depends on $p$ and on the rest of the assignment. A ranking computed once ignores both. The rest of this section shows how they enter for a neural network, and when they matter.
+
+\subsection{Mean and variance of the faulty weights}
+Each weight moves by the sum of the jumps of its flipped bits, $X_w=\sum_{b:\,w(b)=w}\xi_b\Delta_b$ with $\xi_b\sim\mathrm{Bernoulli}(r_b)$ independent for unprotected and replicated bits. Its mean and variance are exact:
+\begin{equation}\label{eq:moments}
+\mu_w=\sum_{b:\,w(b)=w}r_b\,\Delta_b,\qquad V_w=\sum_{b:\,w(b)=w}r_b(1-r_b)\,\Delta_b^2 .
+\end{equation}
+Expanding the loss to second order around the average faulty weights $\theta+\mu$, the linear term vanishes in expectation and
+\begin{equation}\label{eq:jhat}
+J_p(A)\approx\hat J_p(A)=\underbrace{L(\theta+\mu)-L(\theta)}_{\text{loss at the average faulty weights}}+\underbrace{\tfrac12\textstyle\sum_w F_w V_w}_{\text{spread around them}},
+\end{equation}
+with $L=\E_xL_x$ and the curvature $F_w=\E_x[g_{x,w}^2]$, the mean squared gradient of weight $w$, standing in for the diagonal of the Hessian~\cite{lecun1989optimal,hassibi1992surgeon}. Only the diagonal is needed because the displacements of different weights are uncorrelated. The first term is evaluated exactly, by one forward pass of the model at $\theta+\mu$; only the spread around the average is approximated.
+
+\subsection{One term per bit, one term per pair}
+For ideal suppression, $r_b=p$ on the unprotected set $U$ and $0$ elsewhere. Writing $e_{x,b}=g_{x,w(b)}\Delta_b$ for the first-order effect of flipping $b$ on input $x$ and expanding Eq.~\eqref{eq:jhat} in $p$ (Appendix~\ref{app:theory}),
+\begin{equation}\label{eq:p-expansion}
+\hat J_p(A)=p\sum_{b\in U}\Big(\E_x e_{x,b}+\tfrac12\E_x e_{x,b}^2\Big)\;+\;\tfrac12p^2\!\!\sum_{\substack{b\ne b'\in U}}\!\!\E_x\big[e_{x,b}\,e_{x,b'}\big]\;+\;O(p^3).
+\end{equation}
+The first sum has one term per bit. While it dominates, the best mask protects the bits with the largest $\E_x e_{x,b}+\tfrac12\E_x e_{x,b}^2$, and a fixed ranking is optimal. The term keeps the \emph{sign} of the mean effect: a flip that lowers the loss on average is worth leaving unprotected, because a few such faults act like a small training step. The second sum has one term per pair of unprotected bits. It is large when many unprotected flips push the weights in the same direction, and no ranking can capture it, because the value of protecting one bit then depends on which others are protected. Fault rate decides which sum dominates: the per-bit sum grows like $p$ and the pairwise sum like $p^2$.
+
+\subsection{The switch rate}
+Compare a mask that leaves loss-lowering flips unprotected with one that leaves a balanced remainder. Their difference in Eq.~\eqref{eq:p-expansion} is approximately $D(p)=-a\,p+b\,p^2$ with $a,b>0$: the first mask gains $a\,p$ from the signed term and pays $b\,p^2$ for its one-sided remainder. The second mask becomes the better one above
+\begin{equation}\label{eq:pstar}
+p^*\approx\frac{a}{b}\approx\frac{2\,|g^\top v|}{v^\top H v},
+\end{equation}
+where $v$ is the summed jump of the one-sided remainder and $g$ the mean gradient. The remainder acts like a gradient step of size $p$ along $v$: it lowers the loss until the step is about twice the best step size along that direction, and raises it beyond. A model far from a minimum of its loss, with a large mean gradient, has a large $p^*$; a model at a minimum has $p^*\to0$, and the sign is never worth exploiting. In practice we do not use Eq.~\eqref{eq:pstar} but compute $\hat J_p$ of both masks on a grid of rates from calibration data, with the first term of Eq.~\eqref{eq:jhat} evaluated exactly, and locate the sign change of their difference. No fault is injected.
+
+\subsection{What static rankings optimize}
+Each static ranking of Table~\ref{tab:methods} is the exact optimum of one simplified piece of Eq.~\eqref{eq:p-expansion}, or close to one:
+\begin{itemize}
+\item The \emph{positive gradient}, $\E_x\max(0,e_{x,b})=\tfrac12(\E_x|e_{x,b}|+\E_x e_{x,b})$, is half the signed mean that drives the per-bit term plus half the absolute gradient. It is not the per-bit term itself, but it is the only static ranking that keeps the sign of the mean effect, so it should win at sparse rates and lose once the pairwise term matters.
+\item The \emph{squared effect}, $\E_x e_{x,b}^2$, is the variance term alone.
+\item The \emph{absolute gradient}, $\E_x|e_{x,b}|$, minimizes $\sum_{b\in U}\E_x|e_{x,b}|$, which bounds the per-input first-order damage when every unprotected flip happens to push the same way. Being sign-blind, it leaves a balanced remainder, so it should be close to the best choice at dense rates and never far behind at sparse ones.
+\item \emph{Significance-first} and the \emph{numerical jump} rank by $|\Delta_b|$, the variance term with equal curvature for every weight, which is far from true in a trained network.
+\item The \emph{global gradient}, $|\E_x e_{x,b}|$, keeps the size of the mean effect but drops its sign.
+\end{itemize}
+These readings are predictions about where each ranking does well. Section~\ref{sec:switch} tests the first of them directly.
+
+\subsection{Calibration noise}
+The signed mean $\E_x e_{x,b}$ is a sum of per-input terms that largely cancel, so it is small next to its own spread and needs many calibration inputs to estimate. The absolute and squared effects do not cancel. This is why masks that use the sign need hundreds of inputs while the absolute-gradient mask is settled at 64 (Appendix~\ref{app:calibration}). The method of Section~\ref{sec:method} shrinks every mean gradient toward zero by its standard error, so that where the sign is not resolved it falls back on magnitude.
+
+\subsection{Imperfect protection, grouped failures and wrong repairs}\label{sec:theory-abft}
+Equations~\eqref{eq:moments} and~\eqref{eq:jhat} hold for any per-bit rates $r_b=\rho_{A(b)}(p)$, so protection by copies enters by its residual curve. Codes and checksum correction add one more term, because the bits of one word or channel fail together: when a SEC-DED word holds two errors, both stay. The spread then gains $\tfrac12\sum_{b\ne b'}\mathrm{Cov}(\xi_b,\xi_{b'})\,\E_x[e_{x,b}e_{x,b'}]$ over pairs in the same group (Appendix~\ref{app:theory}). A checksum decoder can also make things worse. With two checksums $C_1=\sum_iq_i$ and $C_2=\sum_i i\,q_i$ over the codes of a channel, one faulty weight is located exactly, but two faulty weights produce a location $\sigma_2/\sigma_1$ that can point at a third, healthy weight, which is then changed. Which pairs of flips do so is fixed by the stored codes, so the rate of wrong repairs in a channel is $p^2$ times a count that can be computed once. On the pinned ResNet-8 with 32-bit checksum words, 18.9\% of the pairs of data-bit flips in different weights of a channel end in a wrong repair and 6.2\% cancel and go undetected; of the pairs of one data-bit flip and one checksum-bit flip, 13.6\% end in a wrong repair. The share grows with the channel size, from 15.1\% for channels of 16 weights to 19.0\% for 576. A real ABFT that checks computed outputs, rather than stored weights, has data-dependent locations and is not modelled.
+
+\subsection{Where the approximation is weak}
+Equation~\eqref{eq:jhat} is a second-order description of the spread. A sign or high-order flip is a large jump, and when several such jumps meet, the loss is no longer quadratic around the average weights. The expression also predicts loss, while designers care about accuracy or perplexity. Section~\ref{sec:method} therefore offers a Monte Carlo correction of exactly the part that is approximated, and Sections~\ref{sec:switch} and~\ref{sec:rateaware} judge every prediction by the task metric on independent fault fields.

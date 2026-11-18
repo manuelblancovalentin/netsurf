@@ -1,0 +1,380 @@
+{
+  "schema": "paper1-figure-provenance/1.0",
+  "source_files": [
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/m12_current_comparative_v3/README.md",
+      "sha256": "e1f7aaf1f563ed516edc4bc7a91aac902deb0d88ef385c3aec81e2ea480cccd3",
+      "role": "finalized consolidated source",
+      "bytes": 1607
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/m12_current_comparative_v3/coverage_matrix.csv",
+      "sha256": "c3126800035c5e62d42562b82f4de45ddd779b6a4aa6babcbad3ffa8b5bdfcdb",
+      "role": "finalized consolidated source",
+      "bytes": 191632
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/m12_current_comparative_v3/current_comparative.sqlite",
+      "sha256": "7cdb533a2c30de95bd3c23ac5d1fec33f0e32c7bf5c86fdd0740c5c8637fa08f",
+      "role": "finalized consolidated source",
+      "bytes": 31059968
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/m12_current_comparative_v3/current_conditions.csv",
+      "sha256": "6ae6677011e56f64cab0871964698c246a3e19366859fa63148e0237a6df54c8",
+      "role": "finalized consolidated source",
+      "bytes": 450265
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/m12_current_comparative_v3/current_trials.csv",
+      "sha256": "d70b0f33c0468eaf965fa8dcbb451523853383183050d5d2392c7cea9e0e41a4",
+      "role": "finalized consolidated source",
+      "bytes": 5520966
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/m12_current_comparative_v3/focused_conditions.csv",
+      "sha256": "a30a628eae3205bddf71adecbbd30b2b1fa7f9cc7875abc2eb75e26aa6a7cbf8",
+      "role": "finalized consolidated source",
+      "bytes": 4690
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/m12_current_comparative_v3/method_coverage.csv",
+      "sha256": "5006bb7f2e630fe5e5fde8408b2882531d76fa246a4673501be3d9002d3bba3b",
+      "role": "finalized consolidated source",
+      "bytes": 8715
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/m12_current_comparative_v3/paired_contrasts.csv",
+      "sha256": "ae2b648e87922b583d6bf73eba0b85913b87d775b9e0537be9ef1abb80cf9f57",
+      "role": "finalized consolidated source",
+      "bytes": 854000
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/m12_current_comparative_v3/provenance.json",
+      "sha256": "07ee2d02776efaf964a68824f7dc2cd2cb5dc82dbbd48cb52bf63c287f3d4fde",
+      "role": "finalized consolidated source",
+      "bytes": 4963
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/m12_current_comparative_v3/study_registry.csv",
+      "sha256": "21c4fa83f0dd548067d72667ee585c1627ec299e397b9f086260558f7cbfc3c8",
+      "role": "finalized consolidated source",
+      "bytes": 2460
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/scientific_payload.json",
+      "sha256": "9381961b379c3699d9d99fe610d1130f2e8d4c5e3f7844a94283843d0a15c043",
+      "role": "manifest-bound source used in figures",
+      "bytes": 35490408
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/summary.json",
+      "sha256": "9b6c867bbb060996089f241d1a5d698f470a2211051e352c5158aa78da70a23e",
+      "role": "manifest-bound source used in figures",
+      "bytes": 29347065
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/measurements/trials.csv",
+      "sha256": "ccc7636167d0651beb25115880044d322afee089d536a92d0735c7e79250e74c",
+      "role": "manifest-bound source used in figures",
+      "bytes": 1766665
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/measurements/protection_results.csv",
+      "sha256": "fe728937b223b65fd8d494ff817939a364a1b426c1e32de2ee5b8485bfdfd261",
+      "role": "manifest-bound source used in figures",
+      "bytes": 120365
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/measurements/estimator_runtime.csv",
+      "sha256": "888d323a2d00b07f04b7393e4c347acb102dec5be676e5cb3b5d77c7d6b539bc",
+      "role": "manifest-bound source used in figures",
+      "bytes": 2595
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/artifacts/sample_partitions.json",
+      "sha256": "05885dfafd4a247ec8b0b015c19ddf303dc75a59fa93cfb849e20e73a5c6e672",
+      "role": "manifest-bound source used in figures",
+      "bytes": 19762
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/config.toml",
+      "sha256": "237f4697d69d9778cfd2f08510cc5ec4099ce1d1693b854c77906b83e901496a",
+      "role": "manifest-bound source used in figures",
+      "bytes": 4016
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_resnet8_fkeras_matched_grid_v1/20261105T175030.135296Z-c799a357/manifest.json",
+      "sha256": "7628cf276847c359e905875ae7f0b8c5ce95de94ccc163ea402aca80d59c7eca",
+      "role": "source manifest",
+      "finalized_marker": "scientific_payload_sha256=bd8a700cd7072a9d21044f081a5f742dd9455d341015094bf10dfd6250c0ec6a"
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/runs/kws_partial_tier_fkeras_matched_v1/20261104T042124.586895Z-b0284b42/scientific_payload.json",
+      "sha256": "88dd891bfdeb166048a188e2bee363d15f6127172fde19cd75e21046a5378775",
+      "role": "manifest-bound source used in figures",
+      "bytes": 20708035
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/runs/kws_partial_tier_fkeras_matched_v1/20261104T042124.586895Z-b0284b42/summary.json",
+      "sha256": "765c2be5cce765d538cd3cdeaa8b6cfb547e5181f0b338166ee07842c306534d",
+      "role": "manifest-bound source used in figures",
+      "bytes": 14485181
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/runs/kws_partial_tier_fkeras_matched_v1/20261104T042124.586895Z-b0284b42/measurements/trials.csv",
+      "sha256": "4edbba09a4a6bbbb30add3ae581e89e5f201355fedf571df9e33fb90c3820d5c",
+      "role": "manifest-bound source used in figures",
+      "bytes": 1756566
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/runs/kws_partial_tier_fkeras_matched_v1/20261104T042124.586895Z-b0284b42/measurements/protection_results.csv",
+      "sha256": "93b773947032037bb3397f0a56116b24f98a1ac37b8a2fb4c5096e646b21f45d",
+      "role": "manifest-bound source used in figures",
+      "bytes": 120610
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/runs/kws_partial_tier_fkeras_matched_v1/20261104T042124.586895Z-b0284b42/measurements/estimator_runtime.csv",
+      "sha256": "0e9f5c8ad6c6d14760bbdf58d2bc0863c55d84999c4be34ea4c878ada08045e6",
+      "role": "manifest-bound source used in figures",
+      "bytes": 2590
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/runs/kws_partial_tier_fkeras_matched_v1/20261104T042124.586895Z-b0284b42/artifacts/sample_partitions.json",
+      "sha256": "3e8a443b2c34a9146a0c23ff1a89ef47696d757b3d5371401386570e5194edae",
+      "role": "manifest-bound source used in figures",
+      "bytes": 19994
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/runs/kws_partial_tier_fkeras_matched_v1/20261104T042124.586895Z-b0284b42/config.toml",
+      "sha256": "abc218c5df197afc56fa991d9fccdb2c14d122e0c15033aff1f71bb07fc753a1",
+      "role": "manifest-bound source used in figures",
+      "bytes": 4083
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/reliability-db/workspace/runs/kws_partial_tier_fkeras_matched_v1/20261104T042124.586895Z-b0284b42/manifest.json",
+      "sha256": "a0e397c1c497d7d29a86fb687c77412e15d80bcfded0d14f7ba082927cbc2e41",
+      "role": "source manifest",
+      "finalized_marker": "scientific_payload_sha256=9fbf8f905051a9b79a04232475e65dfc5a4a7b78c395bebf02bfe1d4bce85b4b"
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/scientific_payload.json",
+      "sha256": "f38eb2dba78f2980a038c32ce1ea11e09649fe36e9a14e5cbc1f00c12cb5e9fe",
+      "role": "manifest-bound source used in figures",
+      "bytes": 76260627
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/summary.json",
+      "sha256": "d2da771c9f7f71d95e96f0d7f76b960d4502a7c139a984d3ef05b3fa09609888",
+      "role": "manifest-bound source used in figures",
+      "bytes": 72350257
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/measurements/trials.csv",
+      "sha256": "397a593be6762610f1ac3367f6baf41f58fda9b97fa4e26d59f77b86cbb34597",
+      "role": "manifest-bound source used in figures",
+      "bytes": 1352963
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/measurements/protection_results.csv",
+      "sha256": "b4da56f3a786c25dc0a8ac879503b5c8f976ca12173c3f8535d06f26aa433321",
+      "role": "manifest-bound source used in figures",
+      "bytes": 76564
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/measurements/estimator_runtime.csv",
+      "sha256": "7f0aaa706a2203c6061c932f9882c79f57847eed3d12042de3301811d0f93eac",
+      "role": "manifest-bound source used in figures",
+      "bytes": 2595
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/artifacts/sample_partitions.json",
+      "sha256": "c7644cca17d306da3b5937676b6afa8642e4920e44cfe461f1e4a5e5f023389a",
+      "role": "manifest-bound source used in figures",
+      "bytes": 4774
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/config.toml",
+      "sha256": "f8b59c0b3674f84ffd126fda82b6c03b3f441216b63e846aa95f591fc446d806",
+      "role": "manifest-bound source used in figures",
+      "bytes": 3990
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m12-fkeras-multibench/workspace/runs/m12_toycar_fkeras_matched_grid_v1/20261105T210814.691588Z-16296f36/manifest.json",
+      "sha256": "9295017355bbf6f9a1e0903fa720d2e8b47829944ca1f31d8d4998d4aed46c4a",
+      "role": "source manifest",
+      "finalized_marker": "scientific_payload_sha256=e353230a38b0f4727ba97c5fab9e55b4b3def45bf82e5182de9b84ad9f1e06cb"
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/distilbert_sst2_int8/plan.json",
+      "sha256": "97d437da5cbbac3f7ae3496561185016ad59bcca57afa777ad9083341006f2f3",
+      "role": "manifest-bound source used in figures",
+      "bytes": 17530
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/distilbert_sst2_int8/derived/conditions.csv",
+      "sha256": "9949e143495e78278c47469dcac8c4d29df99259b7edefde74b0fae4edd8ff4b",
+      "role": "manifest-bound source used in figures",
+      "bytes": 57017
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/distilbert_sst2_int8/derived/trials.csv",
+      "sha256": "92a266c71b72017271bc9b7b2d6e7302de8f8f25831afce5d3c3c9ea77fe3ce8",
+      "role": "manifest-bound source used in figures",
+      "bytes": 1492858
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/distilbert_sst2_int8/derived/paired_comparisons.csv",
+      "sha256": "9fb9f65773ed1e488be75c768a3fa14695875441ab6545a5ccde3179498279aa",
+      "role": "manifest-bound source used in figures",
+      "bytes": 28235
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/distilbert_sst2_int8/derived/analysis.json",
+      "sha256": "b656069eab975b496fcf695434db9ecb73f2ad11cccebb16151ada662e25cd58",
+      "role": "manifest-bound source used in figures",
+      "bytes": 896
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/distilbert_sst2_int8/manifest.json",
+      "sha256": "1acfce0dce290dbfc8fc6316213e8dae3e0630efe8ab19276ce88f510a40bd6e",
+      "role": "source manifest",
+      "finalized_marker": "{\"manifest_sha256\":\"1acfce0dce290dbfc8fc6316213e8dae3e0630efe8ab19276ce88f510a40bd6e\"}"
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/pythia-wide-confirm/workspace/runs/pythia_w8a8_high_ber_clean_gated_v2/plan.json",
+      "sha256": "622262bf19c4dcce8a02d1dddc8376166dce63adb91e9890434bb556de5ad118",
+      "role": "manifest-bound source used in figures",
+      "bytes": 15789
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/pythia-wide-confirm/workspace/runs/pythia_w8a8_high_ber_clean_gated_v2/derived/conditions.csv",
+      "sha256": "b4155b3e354880946f752630dbd8f2308b8957b704bf7ac3ec6ff12127a28164",
+      "role": "manifest-bound source used in figures",
+      "bytes": 51483
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/pythia-wide-confirm/workspace/runs/pythia_w8a8_high_ber_clean_gated_v2/derived/trials.csv",
+      "sha256": "0f506afac2efe3adf6ffb0e742335c440e4c820059354d0b0e6fac7f9a919cd6",
+      "role": "manifest-bound source used in figures",
+      "bytes": 1430389
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/pythia-wide-confirm/workspace/runs/pythia_w8a8_high_ber_clean_gated_v2/derived/paired_comparisons.csv",
+      "sha256": "47a72c2975db10112036ea519e2767ed81efe42656834d85230b4352b685d6e2",
+      "role": "manifest-bound source used in figures",
+      "bytes": 28115
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/pythia-wide-confirm/workspace/runs/pythia_w8a8_high_ber_clean_gated_v2/derived/analysis.json",
+      "sha256": "5d926dd6abe8e3d509f6183e7dac167850898808367f6b5d77e780263d1ee83f",
+      "role": "manifest-bound source used in figures",
+      "bytes": 913
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/pythia-wide-confirm/workspace/runs/pythia_w8a8_high_ber_clean_gated_v2/manifest.json",
+      "sha256": "14451ee5b11a8daed3fc7c175aff5600bf4238153c7edbfd8e26cc35257b5013",
+      "role": "source manifest",
+      "finalized_marker": "{\"manifest_sha256\":\"14451ee5b11a8daed3fc7c175aff5600bf4238153c7edbfd8e26cc35257b5013\"}"
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/qwen3_0_6b_int8/plan.json",
+      "sha256": "fcb5e8ecc2c7f7c623b900296bf444de5e300617589c7618e5157e731373ac7f",
+      "role": "manifest-bound source used in figures",
+      "bytes": 15721
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/qwen3_0_6b_int8/derived/conditions.csv",
+      "sha256": "2da798b8a2f112ca30245b9549c1e88ef4d013f8e348d0f212b517dfedf1de7a",
+      "role": "manifest-bound source used in figures",
+      "bytes": 51978
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/qwen3_0_6b_int8/derived/trials.csv",
+      "sha256": "720623f574e75392d403f32f902ee8703d48b687fe3b456f3239379e6a68852e",
+      "role": "manifest-bound source used in figures",
+      "bytes": 1448322
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/qwen3_0_6b_int8/derived/paired_comparisons.csv",
+      "sha256": "14f3e2c9102883495a02fcefca6b1389e7519a192e4df4886e365d166b77f188",
+      "role": "manifest-bound source used in figures",
+      "bytes": 28062
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/qwen3_0_6b_int8/derived/analysis.json",
+      "sha256": "8a514465f3e966bc466e03d9e099013a71fd102b28821a9383dbd86404a5031c",
+      "role": "manifest-bound source used in figures",
+      "bytes": 914
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-ber-stress/workspace/runs/w8a8_wide_ber_matched_v1/qwen3_0_6b_int8/manifest.json",
+      "sha256": "13ef4e7cd96326bf15e8b531a8f8b712caa30f46df091d55f10a03befec1f1e2",
+      "role": "source manifest",
+      "finalized_marker": "{\"manifest_sha256\":\"13ef4e7cd96326bf15e8b531a8f8b712caa30f46df091d55f10a03befec1f1e2\"}"
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-followup/workspace/runs/qwen_crossover_p05_p075_v1/derived/analysis.json",
+      "sha256": "2cbb767d285f812e680269921814699e5a8d28f1da3320581105f5dce18b4659",
+      "role": "manifest-bound source used in figures",
+      "bytes": 2315
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-followup/workspace/runs/qwen_crossover_p05_p075_v1/derived/trials.csv",
+      "sha256": "47f040774cc4ae1dc5a3a6f768d6a2bf348f3c385685fcc927b2eecf18da4e9b",
+      "role": "manifest-bound source used in figures",
+      "bytes": 36400
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-followup/workspace/runs/qwen_crossover_p05_p075_v1/derived/paired.csv",
+      "sha256": "06319bac94df8a41d70d4d1d2c475e768878e0f8c2d2a5437f5e8ac9bd40d387",
+      "role": "manifest-bound source used in figures",
+      "bytes": 5252
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/w8a8-followup/workspace/runs/qwen_crossover_p05_p075_v1/manifest.json",
+      "sha256": "4bf287372dd443d66011b1b2d7127c9895944e1a70681edb920879a74bd67a43",
+      "role": "source manifest",
+      "finalized_marker": "4bf287372dd443d66011b1b2d7127c9895944e1a70681edb920879a74bd67a43"
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/kws-transition-validation/workspace/runs/kws_transition_independent_pools_p05_derived_recovery_v1/costs.json",
+      "sha256": "239f74c838e0839a15cb71e742a61e3576724b7ee2c8efb9240c9988250750c9",
+      "role": "finalized recovered KWS aggregate",
+      "bytes": 4208
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/kws-transition-validation/workspace/runs/kws_transition_independent_pools_p05_derived_recovery_v1/pool_effects.png",
+      "sha256": "e8876ba50804ba02a370a65e4ca69a1da11e08c4723b248c61b81cd60691315c",
+      "role": "finalized recovered KWS aggregate",
+      "bytes": 243360
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/kws-transition-validation/workspace/runs/kws_transition_independent_pools_p05_derived_recovery_v1/report.md",
+      "sha256": "13e55f3a696a65be9b0c6016db9dee3ea8d4559ec7b69274780012ace11a4014",
+      "role": "finalized recovered KWS aggregate",
+      "bytes": 6399
+    },
+    {
+      "path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/kws-transition-validation/workspace/runs/kws_transition_independent_pools_p05_derived_recovery_v1/scientific_payload.json",
+      "sha256": "e9e777f1deebe439d50540cd944b59bd535ccb4ec9e583ec479cec8b74f4b27f",
+      "role": "finalized recovered KWS aggregate",
+      "bytes": 708532
+    }
+  ],
+  "figures": {
+    "reliability_ber_125": "All measured methods, six models, 12.5% budget; 95% marginal field intervals.",
+    "reliability_ber_250": "All measured methods, six models, 25% budget; 95% marginal field intervals.",
+    "reliability_budget_001": "All six models at measured 1% BER and all four interior budgets.",
+    "paired_reversals_and_kws": "Illustrative paired reversals plus all 32 KWS pool effects; full grid remains supplied.",
+    "reliability_all_budgets_supplement": "All measured BERs and all four interior budgets on one page per model."
+  },
+  "limits": [
+    "Large mask/prediction binaries are linked through source manifests, not independently rehashed during this figure build.",
+    "Saved trials were used to reconstruct every plotted mean; source uncertainty definitions were retained.",
+    "W8A8 wide grids are exploratory; fixed checkpoint, cohort, and mask. No across-checkpoint inference.",
+    "Language model token NLL is capped at 30 nats, including finite values; failed-token counts do not measure finite clipping.",
+    "KWS/ResNet/ToyCar FKeras is published form. PrioriFI has engineering evidence only and is not shown as measured protection.",
+    "No source bundle, database, mask, fault schedule, or model was changed."
+  ]
+}

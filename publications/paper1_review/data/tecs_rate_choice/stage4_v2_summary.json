@@ -1,0 +1,50 @@
+{
+ "status": "R-A5 rule R4d' on the frozen Stage 4 fields",
+ "picks_sha256": "8c1a864f5310903d941d2d2e4eae51c5479c1aed25b0d78fa680eda347618335",
+ "script_sha256": "65e90be103ba4dea0874624936171c311a566bdfe7892139b34ddfd7a9e5425f",
+ "clean_accuracy": 0.9162499999999999,
+ "choices": {
+  "ra_analytic": 27,
+  "abs1024": 141,
+  "pos1024": 120
+ },
+ "usable_cells": 45,
+ "R4d_prime": {
+  "holds": false,
+  "violations": [
+   {
+    "budget": 0.1875,
+    "ber": 0.005,
+    "arm": "abs1024",
+    "diff": 0.5026041666666673,
+    "p_holm": 0.002249977500224998
+   },
+   {
+    "budget": 0.1875,
+    "ber": 0.007,
+    "arm": "abs1024",
+    "diff": 0.5781249999999997,
+    "p_holm": 0.01121988780112199
+   },
+   {
+    "budget": 0.25,
+    "ber": 0.01,
+    "arm": "abs1024",
+    "diff": 0.684895833333334,
+    "p_holm": 0.014799852001479987
+   }
+  ]
+ },
+ "largest_gap_static_minus_v2": {
+  "abs1024": 0.684895833333334,
+  "pos1024": 0.13541666666666632,
+  "abs64": 0.20052083333333207,
+  "msb": 0.11718750000000051,
+  "fkeras": 0.11718750000000051
+ },
+ "v1_minus_v2": {
+  "median": -0.5859374999999987,
+  "min": -10.1875,
+  "max": -0.018229166666667435
+ }
+}

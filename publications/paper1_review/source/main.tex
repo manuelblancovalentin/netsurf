@@ -1,0 +1,24 @@
+\documentclass[manuscript,screen,review]{acmart}
+\acmJournal{TECS}
+\setcopyright{none}
+\settopmatter{printacmref=false}
+\input{include/preamble}
+\input{include/metadata}
+\begin{document}
+\begin{abstract}
+Protecting only some of a neural network's stored weight bits requires choosing which ones. Existing methods rank bits one at a time, by position or single-flip damage, which guarantees nothing when many bits fail together; testing every fault combination is impossible. The problem lies in between. The faults left by a protection scheme in an INT8 network can be replaced by Gaussian noise on each weight, matching the mean and variance of its unprotected low bits, plus individual flips of the two highest bits. With nothing fitted, this model predicted accuracy within half a point on average on 18 models it was not developed on, and picked the better of two protection choices in 437 of 443 cases. We compare rankings and mechanisms on 24 models of nine architectures, from a 4,000-weight MLP to the 0.6-billion-parameter Qwen3, with every stored bit allowed to fail, redundancy included. Triplicating the bits with the largest gradient effect protects better than triplicating by bit position (FORTUNE) or by FKeras's Hessian order: it preserved up to 21 more accuracy points and was never significantly worse while a model remained usable. No fixed ranking is always best: rankings that also use the direction of a flip can help when faults are rare, hurt when they are frequent, and leave two of three language models worse than unprotected. The best mechanism depends on the model too: at similar storage, triplication tolerates more faults than an error-correcting code on 8 of 24 models and fewer on 2.
+\end{abstract}
+\maketitle
+\input{sections/01_introduction}
+\input{sections/02_related_work}
+\input{sections/03_fault_model}
+\input{sections/04_susceptibility}
+\input{sections/05_protection_allocation}
+\input{sections/06_experimental_setup}
+\input{sections/07_results}
+\input{sections/08_discussion}
+\input{sections/09_conclusion}
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+\input{sections/10_mathematical_appendix}
+\end{document}

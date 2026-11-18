@@ -1,0 +1,33 @@
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{tabularx}
+\graphicspath{{figures/}{../figures/}}
+\newcommand{\protset}{\mathcal{P}}
+\newcommand{\risk}{\mathcal{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\bits}{\mathcal{B}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\clip}{\operatorname{clip}}
+\definecolor{nsnavy}{HTML}{18354A}
+\definecolor{nsteal}{HTML}{087E8B}
+\definecolor{nsgold}{HTML}{BC771B}
+\definecolor{nspale}{HTML}{EFF4F6}
+% ---------------------------------------------------------------- draft v2 (rate-aware) placeholders
+% \TBD{...}            a number or statement that waits for a Run R result
+% \Branch{rule}{if the rule holds}{if it fails}   both versions are printed until the result picks one
+% \RuleHolds{R1}       after a result: \setbranch{R1}{holds} or {fails} prints only that version
+\newcommand{\TBD}[1]{\textcolor{red}{\textbf{[TBD:} #1\textbf{]}}}
+\newcommand{\TBDcite}[1]{\textcolor{red}{[cite: #1]}}
+\newcommand{\TBDfig}[2]{\fbox{\parbox[c][#1][c]{.95\linewidth}{\centering\textcolor{red}{\textbf{Figure placeholder:} #2}}}}
+\makeatletter
+\newcommand{\setbranch}[2]{\expandafter\def\csname branch@#1\endcsname{#2}}
+\newcommand{\Branch}[3]{%
+  \@ifundefined{branch@#1}{%
+    {\color{nsteal}[\textbf{if #1 holds:} #2]}~{\color{nsgold}[\textbf{if #1 fails:} #3]}}{%
+    \expandafter\ifx\csname branch@#1\endcsname\branch@holdsword #2\else #3\fi}}
+\def\branch@holdsword{holds}
+\makeatother
+\newcommand{\rhos}{\rho}

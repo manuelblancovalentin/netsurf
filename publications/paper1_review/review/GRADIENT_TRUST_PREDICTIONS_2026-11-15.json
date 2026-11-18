@@ -1,0 +1,84 @@
+{
+ "checkpoints": {
+  "jet-e1": {
+   "D1": 0.25396876854850065,
+   "D2": 0.25254961082113897,
+   "exploratory": false,
+   "prediction": "one regime",
+   "sha256": "f71d915684b0d5468e48a992c64bd038e5a143eabd8b375c67a554ec34889ae9"
+  },
+  "jet-e10": {
+   "D1": 0.4189492172193767,
+   "D2": 0.15153688842629418,
+   "exploratory": false,
+   "prediction": "two regimes",
+   "sha256": "b20e9968dc9e529f08abe1a8773234ff75c62e1996e8ee899f0584214e73b03c"
+  },
+  "jet-e100": {
+   "D1": 0.4036884095064677,
+   "D2": 0.19593663220824087,
+   "exploratory": false,
+   "prediction": "two regimes",
+   "sha256": "dd124179ed97f357f11224ee434fb93e1ce4944125dc1da4bea7cf424ffd9b5e"
+  },
+  "jet-e3": {
+   "D1": 0.5132371533568522,
+   "D2": 0.4711475259863177,
+   "exploratory": false,
+   "prediction": "two regimes",
+   "sha256": "8f7d04a4595090fd8f2123b35d1f9d7a20f31b541f4263f9f808db367bc9bd96"
+  },
+  "jet-e30": {
+   "D1": 0.5085544199313283,
+   "D2": 0.23914907330482393,
+   "exploratory": false,
+   "prediction": "two regimes",
+   "sha256": "c0b63b0b10eadcb9bcab9b830074422e3f53219180cda42cd3f0513820de504d"
+  },
+  "mnist-e1": {
+   "D1": 0.5511052485225438,
+   "D2": 0.4098333240828007,
+   "exploratory": false,
+   "prediction": "two regimes",
+   "sha256": "65c8870bba83af78b67266a28398ead5283739bf8017fedfe5c90da2a63dd83f"
+  },
+  "mnist-e10": {
+   "D1": 0.3203345834359361,
+   "D2": 0.23085076264358215,
+   "exploratory": false,
+   "prediction": "no prediction",
+   "sha256": "6e19316787a0b909abfb6a1cb55dc438be1d9d602ad06ad1062f938bc7d67a3c"
+  },
+  "mnist-e3": {
+   "D1": 0.6081641462865294,
+   "D2": 0.49915805714575817,
+   "exploratory": false,
+   "prediction": "two regimes",
+   "sha256": "54b6906275f61e298893d4223d9de54dbef676cba6337cbbba94e39e2dfa555a"
+  },
+  "mnist-e30": {
+   "D1": 0.4238965477753271,
+   "D2": 0.2604876844577703,
+   "exploratory": false,
+   "prediction": "two regimes",
+   "sha256": "c224cef2fabf60c3abd6bd9266863a6ebe4a5efbff486fa7189b6c30d67f8917"
+  },
+  "mnist-tcad": {
+   "D1": 0.5633942992728556,
+   "D2": 0.4762802160907026,
+   "exploratory": true,
+   "prediction": "two regimes",
+   "sha256": "8f0e99a21ded7dcdad05d301fa01fbada6375286d9a99599b9b6fa48a97c91d0"
+  },
+  "vww": {
+   "D1": 0.9429157932560853,
+   "D2": 0.8989598202386483,
+   "exploratory": false,
+   "prediction": "two regimes",
+   "sha256": "597a384c8c2c8a1276f04702f25013b7838f2f814f1ca7c174d295b73e3d6b7b"
+  }
+ },
+ "cut_high": 0.4,
+ "cut_low": 0.3,
+ "status": "gradient-trust predictions (plan Section 4), frozen before any Phase 2 fault run"
+}

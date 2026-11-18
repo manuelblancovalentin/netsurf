@@ -1,0 +1,87 @@
+{
+  "clean": {
+    "cap_or_failure_fraction": 0.0,
+    "failed_units": 0,
+    "failure_kinds_sha256": "bf025f9bd00d75e8a9ad191ff8162ab91768a3a4885172ae0c2f3c32b59d7cf9",
+    "finite_nll_at_or_above_30_count": 0,
+    "finite_nll_uncapped_max": 20.93595266342163,
+    "finite_nll_uncapped_mean": 2.8286317681195214,
+    "finite_nll_uncapped_p95": 8.603256225585938,
+    "logit_statistics_sha256": "2f2de8163e1dcee7a8df8a0da74e82787578bcc8d7c7cec42b4ea6b9c1732515",
+    "metrics": {
+      "failure_fraction": 0.0,
+      "mean_nll": 2.8286317681195214,
+      "perplexity": 16.922291359026712
+    },
+    "total_units": 4096
+  },
+  "conditions_and_contrasts": [
+    {
+      "ber": 0.05,
+      "fields": 24,
+      "mean_cap_or_failure_fraction": 0.208709716796875,
+      "mean_finite_uncapped_nll": 25.480671166020954,
+      "mean_nll_nats": 24.659652918611794,
+      "policy": "unprotected"
+    },
+    {
+      "ber": 0.05,
+      "fields": 24,
+      "mean_cap_or_failure_fraction": 0.014689127604166666,
+      "mean_finite_uncapped_nll": 19.071538420089336,
+      "mean_nll_nats": 19.040181616411957,
+      "policy": "msb_first_b595984384"
+    },
+    {
+      "ber": 0.05,
+      "fields": 24,
+      "mean_cap_or_failure_fraction": 0.0002848307291666667,
+      "mean_finite_uncapped_nll": 9.744040393571032,
+      "mean_nll_nats": 9.743379350406073,
+      "policy": "per_example_absolute_b595984384"
+    },
+    {
+      "ber": 0.05,
+      "ci95_high": -8.567107614975614,
+      "ci95_low": -10.020524829971269,
+      "contrast": "absolute_minus_msb",
+      "fields": 24,
+      "interpretation": "exploratory post-hoc BER interval; field uncertainty conditional on fixed masks and cohort",
+      "mean_difference_nats": -9.296802266005882
+    },
+    {
+      "ber": 0.075,
+      "fields": 24,
+      "mean_cap_or_failure_fraction": 0.3540751139322917,
+      "mean_finite_uncapped_nll": 27.990248479408212,
+      "mean_nll_nats": 26.360457376802334,
+      "policy": "unprotected"
+    },
+    {
+      "ber": 0.075,
+      "fields": 24,
+      "mean_cap_or_failure_fraction": 0.07069905598958333,
+      "mean_finite_uncapped_nll": 21.37394777635227,
+      "mean_nll_nats": 21.1301949302463,
+      "policy": "msb_first_b595984384"
+    },
+    {
+      "ber": 0.075,
+      "fields": 24,
+      "mean_cap_or_failure_fraction": 0.10489908854166667,
+      "mean_finite_uncapped_nll": 23.14916591685727,
+      "mean_nll_nats": 22.767025558048363,
+      "policy": "per_example_absolute_b595984384"
+    },
+    {
+      "ber": 0.075,
+      "ci95_high": 2.6608806369642855,
+      "ci95_low": 0.6050777145030319,
+      "contrast": "absolute_minus_msb",
+      "fields": 24,
+      "interpretation": "exploratory post-hoc BER interval; field uncertainty conditional on fixed masks and cohort",
+      "mean_difference_nats": 1.6368306278020615
+    }
+  ],
+  "plan_sha256": "16a709d5e473f00ebcbc7401f326650f0a8f71efec535823fac7135e46f781a6"
+}

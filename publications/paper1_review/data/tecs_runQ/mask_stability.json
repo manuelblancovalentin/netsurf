@@ -1,0 +1,216 @@
+{
+ "budget": 0.125,
+ "per_checkpoint_mean": {
+  "pinned": {
+   "abs128": 0.9115,
+   "abs256": 0.9395,
+   "abs512": 0.963,
+   "pos128": 0.8552,
+   "pos256": 0.9007,
+   "pos512": 0.9411,
+   "global128": 0.6578,
+   "global256": 0.7147,
+   "global512": 0.8074
+  },
+  "pruned_s05": {
+   "abs128": 0.9165,
+   "abs256": 0.9427,
+   "abs512": 0.966,
+   "pos128": 0.8687,
+   "pos256": 0.9094,
+   "pos512": 0.9477,
+   "global128": 0.6817,
+   "global256": 0.7407,
+   "global512": 0.8319
+  },
+  "pruned_s07": {
+   "abs128": 0.922,
+   "abs256": 0.9469,
+   "abs512": 0.9698,
+   "pos128": 0.8767,
+   "pos256": 0.919,
+   "pos512": 0.9534,
+   "global128": 0.6861,
+   "global256": 0.7617,
+   "global512": 0.8457
+  },
+  "retrained_seed7101": {
+   "abs128": 0.9044,
+   "abs256": 0.9385,
+   "abs512": 0.9645,
+   "pos128": 0.8484,
+   "pos256": 0.9001,
+   "pos512": 0.9425,
+   "global128": 0.6674,
+   "global256": 0.7293,
+   "global512": 0.8209
+  },
+  "retrained_seed7102": {
+   "abs128": 0.9066,
+   "abs256": 0.9364,
+   "abs512": 0.9644,
+   "pos128": 0.8555,
+   "pos256": 0.9039,
+   "pos512": 0.9451,
+   "global128": 0.6766,
+   "global256": 0.7472,
+   "global512": 0.836
+  },
+  "retrained_seed7103": {
+   "abs128": 0.9098,
+   "abs256": 0.9346,
+   "abs512": 0.9632,
+   "pos128": 0.8602,
+   "pos256": 0.9006,
+   "pos512": 0.9427,
+   "global128": 0.6698,
+   "global256": 0.729,
+   "global512": 0.8188
+  },
+  "retrained_seed7104": {
+   "abs128": 0.9119,
+   "abs256": 0.9387,
+   "abs512": 0.9635,
+   "pos128": 0.8599,
+   "pos256": 0.9086,
+   "pos512": 0.9436,
+   "global128": 0.6834,
+   "global256": 0.7682,
+   "global512": 0.8389
+  },
+  "retrained_seed7105": {
+   "abs128": 0.9085,
+   "abs256": 0.937,
+   "abs512": 0.9628,
+   "pos128": 0.8527,
+   "pos256": 0.9017,
+   "pos512": 0.9411,
+   "global128": 0.6442,
+   "global256": 0.7182,
+   "global512": 0.8019
+  },
+  "undertrained_e100": {
+   "abs128": 0.9301,
+   "abs256": 0.9519,
+   "abs512": 0.9734,
+   "pos128": 0.8914,
+   "pos256": 0.9275,
+   "pos512": 0.96,
+   "global128": 0.7291,
+   "global256": 0.7833,
+   "global512": 0.8653
+  }
+ },
+ "range_over_checkpoints": {
+  "abs128": [
+   0.9044,
+   0.9301
+  ],
+  "abs256": [
+   0.9346,
+   0.9519
+  ],
+  "abs512": [
+   0.9628,
+   0.9734
+  ],
+  "pos128": [
+   0.8484,
+   0.8914
+  ],
+  "pos256": [
+   0.9001,
+   0.9275
+  ],
+  "pos512": [
+   0.9411,
+   0.96
+  ],
+  "global128": [
+   0.6442,
+   0.7291
+  ],
+  "global256": [
+   0.7147,
+   0.7833
+  ],
+  "global512": [
+   0.8019,
+   0.8653
+  ]
+ },
+ "masks_sha256": {
+  "pinned/rep1/masks.npz": "098a37aaf979d130171c1301c08ae98317098fe603d76371cf93b6a2bb6bb938",
+  "pinned/rep2/masks.npz": "740136008587b1faa988f09d4bf8c8fccc629046b16bd83681303569ae7b8cf4",
+  "pinned/rep3/masks.npz": "5bd83f5e025a6861638c3b7cb3d59bb644fde0286cab9f52f6056129c0eaee7b",
+  "pinned/rep4/masks.npz": "e95d20a01ac2639e6879abb3171f98dd2636f73d325d9413d16ea495c1a9a506",
+  "pinned/rep5/masks.npz": "60bbce84950ab09b2eb553171ed2ad875dd90ab63c2845f12104ae32d8c65efa",
+  "pinned/rep6/masks.npz": "a2005d6e4776a1b360353bfd43f11a32cf942d3fbaa123b34784f1c36b8b4785",
+  "pinned/rep7/masks.npz": "0fa308f16ea4a1ff2e72cc891d164e8249158bccd9a963b6af73417072b07fa3",
+  "pinned/rep8/masks.npz": "0ce16045724b536cdc3f557fdcb09b646d483041284fdd44da47cdde16853bec",
+  "pinned/rep9/masks.npz": "cafce8ec95c3e6d5062d0d02fcc3f5a6e1d9c56188662be9583b43459780c07a",
+  "pruned_s05/rep0/masks.npz": "5677e5d44619df7316e35ea76998e34011345c3c42886ecd451d4a091a020a50",
+  "pruned_s05/rep1/masks.npz": "22f833afc044c3ebcf8d626f55fd82ce4475ee9d4484a3a28f6b44d43dbb9274",
+  "pruned_s05/rep2/masks.npz": "6ddd229183479a1dc1615bb921184b7d1eb32776b0cbb178532811400ddf9de5",
+  "pruned_s05/rep3/masks.npz": "ee6f81b2d8df229e61a3b7298fafff9f7888d86260531218af02566e86988a12",
+  "pruned_s05/rep4/masks.npz": "cfc5b16814406f5d78de0672b3334dd4949c33ce57118d5d0659e6581634ba98",
+  "pruned_s05/rep5/masks.npz": "2fe584242b157533a7c3f6a7a7882715ed6234e6fe69a4ca6703f7db43d0e9fb",
+  "pruned_s05/rep6/masks.npz": "9236a33cbb7b69a6cf540b0f7b684ff277d7204275ecc05e282974d0db618eea",
+  "pruned_s05/rep7/masks.npz": "d9d2123136dc5ec252bee58246a627ed7bc9312d913d8b9e47248ef6c378e0e7",
+  "pruned_s07/rep0/masks.npz": "6fdfa30d5a3d49e81dae3085d7759724a038e3663b6408c3ca193e4fbc555ba5",
+  "pruned_s07/rep1/masks.npz": "7b845c87e5b393fbd5c01d6e965f2dadd58e138bd974c09859e8e7da14b59be5",
+  "pruned_s07/rep2/masks.npz": "c1c00ac2416f924e9a80cdc8930a84e095658fc90fe08d15567bc4c53403c84f",
+  "pruned_s07/rep3/masks.npz": "4baf7adb2a7aa2b45efd42ff5f795cf647f36e2663d38a496295d4cd8686a020",
+  "pruned_s07/rep4/masks.npz": "1a1f57eae12f63906bee9c3d49af7c652fde043e46e5db8785b0a70a6050934e",
+  "pruned_s07/rep5/masks.npz": "8a35be722b5d5f75fd926489fddcb0605cd7312f02c0a198a4d7dc8c3d219db0",
+  "pruned_s07/rep6/masks.npz": "597963fd5f28fe6955c38936fceb87cc3f0213c4629af258942eba0dded5886d",
+  "pruned_s07/rep7/masks.npz": "9e1522e4409cf5220e11f5e05beb8ef26fe23ffe8ade9791bd262baac0f8648a",
+  "retrained_seed7101/rep0/masks.npz": "9dbc90485e16e9cc01e0147b12bf311e2bf160d079d06d0cf4c0b120a7d58693",
+  "retrained_seed7101/rep1/masks.npz": "131d719bf1034034b2610430423eb6b53f57d3fd0d041c34c8ab8dd1d11dceff",
+  "retrained_seed7101/rep2/masks.npz": "c2ceb1b3885c7183277c37df8c1df82f5f1f7bbbfbc781a0ce8653efbc6b4d89",
+  "retrained_seed7101/rep3/masks.npz": "384bfe6198ca95c7d665391cd8a130ef1ee76ebbd7a2bbe248c63cd190091cd8",
+  "retrained_seed7101/rep4/masks.npz": "6ef0b80f53519c8012d2a4cb097643599ad46e4f4f12627182e30d1f231eaa67",
+  "retrained_seed7101/rep5/masks.npz": "df45dc3dcea266bf432f842ae7d8e4f0b1ba6c4c320f3bcfc8a61e0ab8de0fa5",
+  "retrained_seed7101/rep6/masks.npz": "5dfa003658ebf3f13af6189b6ec1afb524ff0b7c5461486b27ea71e75411a2c9",
+  "retrained_seed7101/rep7/masks.npz": "9f562fe03b5c21c385ac165c45c51bfe56530de00056041fa6f658856c111971",
+  "retrained_seed7102/rep0/masks.npz": "0df3d2636213fbf1842a40509791407991928e3b820b5afe4a77754044d42e03",
+  "retrained_seed7102/rep1/masks.npz": "ee6acbf9ca6ee5dcf6c5e00b2b66ae94cc0bb6dea71217db91cd19de7756faca",
+  "retrained_seed7102/rep2/masks.npz": "30eb15b5aee157509731b1d1d2bb2a37f80f5040f7b0863c03afc5b18ca35658",
+  "retrained_seed7102/rep3/masks.npz": "5212dd6dc2f88d8b9dea48e4d83491872c2304e70a8ec52408e1ea516762e265",
+  "retrained_seed7102/rep5/masks.npz": "32cfe33d87fafff3c833735262f64f52d86928b746401c165f0a17f6fee0b153",
+  "retrained_seed7102/rep6/masks.npz": "bcbbfc3eeb324fbfe0708935d72fc282922a70fafdc9135952beec63f1518b1e",
+  "retrained_seed7102/rep7/masks.npz": "d9f3fd7dcbf41376831ea010df0fec9bf940c3823084cad4c5ede6def48179e1",
+  "retrained_seed7103/rep0/masks.npz": "24cf760f0eb44a5a91263ee6695b8c3d16163c4650dda059d35e5ccff330e554",
+  "retrained_seed7103/rep1/masks.npz": "985b0e40520287a405991302179645b6ce13410004c6293a7db6267b55b15e94",
+  "retrained_seed7103/rep2/masks.npz": "9ed13b864a7542ef30ff6ee23a551cb3409432bc26975ea06a9f501375a51431",
+  "retrained_seed7103/rep3/masks.npz": "56528009edf988d454d76110a42b0f0822eb94fc4402f55b5229d9b2311eecfc",
+  "retrained_seed7103/rep4/masks.npz": "ad40b876c97ed464b74fbc28cc281064cee98c0ae9ecaa5469be1e01c17ff391",
+  "retrained_seed7103/rep5/masks.npz": "1db6ed691abedec4e054131c0b7297f0b3c99822ae1626e58417091a8ada900b",
+  "retrained_seed7103/rep6/masks.npz": "f4350c9c9b2745a2a90ffe99f391b5423976ff1accabe92985b98b25c28b66cc",
+  "retrained_seed7103/rep7/masks.npz": "0384cbf1d7c71c295a471572d123902b5e7b5e1237e32493ef4aadf937dda00b",
+  "retrained_seed7104/rep0/masks.npz": "0757976b90b67dbc1e944706e8ae4845171b5d23136eda5408d1ea1b2c84db9f",
+  "retrained_seed7104/rep1/masks.npz": "ec0876bc61e6891a5510afac269a03235e27d5a2cac35a1140f15758d0d0ed01",
+  "retrained_seed7104/rep2/masks.npz": "4e74b39996a7cec6e2e523f6caecfc706f90e1e00232cfe994b59105691321a6",
+  "retrained_seed7104/rep3/masks.npz": "5328452e46806bfcc321ba2137655ad7d7f6706eba0efd3f68e877407b8d12c1",
+  "retrained_seed7104/rep4/masks.npz": "a35eca7a7ef71ac949609a04f762d98e2c45e3ccab92a2acd118a8521fb14cd9",
+  "retrained_seed7104/rep5/masks.npz": "795e170dadf5d51ecfa4c0edbdf6a663d3afa7c2a21942f63f65efb4e9bb3ae3",
+  "retrained_seed7104/rep6/masks.npz": "91b72b171684afbd60717d53d08fd48b5c791a5e1b3fdbfee41168409a058b4e",
+  "retrained_seed7104/rep7/masks.npz": "656204ddb90ad3fb057d005f8438fecc772db8441c4034682ea1ea801603b9d6",
+  "retrained_seed7105/rep0/masks.npz": "ac653427b2b44ed330fcad305f0473324f5e28d0714a53934baecf02d622a488",
+  "retrained_seed7105/rep1/masks.npz": "b49539b3a409a28579947122b761bf113540d7d10b4ca81484bf8c44ce6268bc",
+  "retrained_seed7105/rep2/masks.npz": "380d1d84fbd57789375d64be35497017235f865edc43246d3939714e12b75f57",
+  "retrained_seed7105/rep3/masks.npz": "e581fd74d7a7b0ee0ec3e4ff5c5702b299c0d13b77dd233e90cffc26e53b2c90",
+  "retrained_seed7105/rep4/masks.npz": "a8fbce7ef2e385ba81cf13606c8ed866eecc616b000255a15e54b29c290c2128",
+  "retrained_seed7105/rep5/masks.npz": "3d2d24c2bc1595e5aafd4e4cd7e1b98a17c7b26de78c50ccd433326893b9aee4",
+  "retrained_seed7105/rep6/masks.npz": "8a24338a0998c6ab617cfee433369dee9e68d396a8a7d6bb85bb79b8197c45e7",
+  "retrained_seed7105/rep7/masks.npz": "7e19905f8e6474ee4abd779ac9e1f2fbcaa984745dec5c90561f8882da753203",
+  "undertrained_e100/rep0/masks.npz": "4c6a043c60bf8be39d39ec115b83b2a900f6c297c754e99c5e8e5bdec10056b3",
+  "undertrained_e100/rep1/masks.npz": "df263e1b5c7f953d1770d79660de34f726708c20a995da5f316403a459b8a598",
+  "undertrained_e100/rep2/masks.npz": "a0fdd64c519b4f4a4a08f346c62f55556e3830771a79121d57a66c3993175d14",
+  "undertrained_e100/rep3/masks.npz": "8b7ca9dd08320d99857c16fc03f2866e7521794d8d8a9df920eadf5ee9369c4f",
+  "undertrained_e100/rep4/masks.npz": "de4d0702911672fc0ee011fd27fa3aff69a609387bb5aee56a30ccbceb60a91e",
+  "undertrained_e100/rep5/masks.npz": "03fa3f4b66fd00ab24a877add9691b81496e10ca9bc47f13d59d6cb6699ab1ce",
+  "undertrained_e100/rep6/masks.npz": "9b8580c6f8e3e35f3468875ae56d9cf27d4bc848ccff63cbc89a144d7cf0c4a7",
+  "undertrained_e100/rep7/masks.npz": "72b9dbe215ea16117c5da1338bc1bf5fe0caf3998dda82e959d4c5418eee4b90"
+ }
+}

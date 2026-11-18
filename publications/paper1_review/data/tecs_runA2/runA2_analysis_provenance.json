@@ -1,0 +1,153 @@
+{
+ "kws": {
+  "run_dir": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/paper1-runA-tflite-confirm/workspace/runs/paper1_runA2_kws_confirm12_v1/20261111T163724.628443Z-dd9a9dab",
+  "run_id": "20261111T163724.628443Z-dd9a9dab",
+  "source": {
+   "branch": "paper1-runA-tflite-confirm",
+   "commit": "c21b35470f76d44638fcd1107455e7b09d5c7754",
+   "dirty": false,
+   "source_fingerprint_sha256": "adc788d8154e0e51061fbf7ce515f1f687be8621b8018a8f53592c4e467b14d0",
+   "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "scientific_payload_sha256": "798026a02e517ec987f9352605b1aa335db17120994ef788da5bcb79401bd28c",
+  "trials_sha256": "575652a3c94ab57795ba8c7983a3259317b37d516c021695c0636106434992de",
+  "config_sha256": "c3a839b8e816a7c11954361b6f09f7755a457c00f6f25e2958673c8c3ddddd73",
+  "checks": {
+   "matched_schedules": true,
+   "model_state_restored": true,
+   "partitions_disjoint": true,
+   "quantized_state_exact": true
+  },
+  "windows": {
+   "0": {
+    "evaluation": [
+     0,
+     399
+    ],
+    "calibration": [
+     0,
+     63
+    ]
+   },
+   "1": {
+    "evaluation": [
+     405,
+     804
+    ],
+    "calibration": [
+     405,
+     468
+    ]
+   },
+   "10": {
+    "evaluation": [
+     4050,
+     4449
+    ],
+    "calibration": [
+     4050,
+     4113
+    ]
+   },
+   "11": {
+    "evaluation": [
+     4455,
+     4854
+    ],
+    "calibration": [
+     4455,
+     4518
+    ]
+   },
+   "2": {
+    "evaluation": [
+     810,
+     1209
+    ],
+    "calibration": [
+     810,
+     873
+    ]
+   },
+   "3": {
+    "evaluation": [
+     1215,
+     1614
+    ],
+    "calibration": [
+     1215,
+     1278
+    ]
+   },
+   "4": {
+    "evaluation": [
+     1620,
+     2019
+    ],
+    "calibration": [
+     1620,
+     1683
+    ]
+   },
+   "5": {
+    "evaluation": [
+     2025,
+     2424
+    ],
+    "calibration": [
+     2025,
+     2088
+    ]
+   },
+   "6": {
+    "evaluation": [
+     2430,
+     2829
+    ],
+    "calibration": [
+     2430,
+     2493
+    ]
+   },
+   "7": {
+    "evaluation": [
+     2835,
+     3234
+    ],
+    "calibration": [
+     2835,
+     2898
+    ]
+   },
+   "8": {
+    "evaluation": [
+     3240,
+     3639
+    ],
+    "calibration": [
+     3240,
+     3303
+    ]
+   },
+   "9": {
+    "evaluation": [
+     3645,
+     4044
+    ],
+    "calibration": [
+     3645,
+     3708
+    ]
+   }
+  },
+  "event_identity_violations": 0
+ },
+ "script_sha256": "1f2da5ce709c760d6e16ccf58ce780d43ce6cc5f079506b8f42c966a70dd6a83",
+ "outputs": {
+  "absgrad_contrasts.csv": "4bf21f02c98846a40b87d9cd4ccec89479eda6c564790c0010e79541358422a9",
+  "fresh_cell_quality.csv": "32fef07240e9fcdf011afb0835da8cd20ccc02ee3a44bdf2a3c1d9341c349125",
+  "replication0_cells.csv": "daf9cb951587ecd93a0870777d7414ae681191b9899f8fc7cf510034178d36fc",
+  "summary.json": "4f853f866076b8eb7c7cfe6a4dc8647b94ff8f2c9195f421aebe0feb5a919af3"
+ }
+}

@@ -1,0 +1,19 @@
+model,estimator,metric,candidate_count,spearman,ci95_low,ci95_high,runtime_seconds,top10_tie_aware_recall,bootstrap_design
+resnet8,s2_msb_first,positive cross-entropy damage,320,0.255924686173091,0.1728689035455086,0.3403001009097967,0.0,0.1,within-recorded-stratum candidate resampling; sample-limited
+resnet8,s3_numerical_jump,positive cross-entropy damage,320,0.06953498206049058,-0.01859106157985916,0.16240897117458572,0.8871526527218521,0.1,within-recorded-stratum candidate resampling; sample-limited
+resnet8,s4_gradient_delta,positive cross-entropy damage,320,0.36419607744367405,0.2851356558019757,0.4509994635083259,1.2134869443252683,0.9,within-recorded-stratum candidate resampling; sample-limited
+resnet8,s5_per_example_absolute,positive cross-entropy damage,320,0.3763479688504156,0.2913344140834871,0.4593870694384214,17.16991813806817,0.7,within-recorded-stratum candidate resampling; sample-limited
+resnet8,s6_per_example_positive,positive cross-entropy damage,320,0.36425675890885595,0.2839628177616923,0.4497539420380425,17.16991813806817,0.7,within-recorded-stratum candidate resampling; sample-limited
+resnet8,random_reference,positive cross-entropy damage,320,-0.05395609464426936,-0.14924678680090178,0.04158257124699141,0.0,0.0,within-recorded-stratum candidate resampling; sample-limited
+kws,s2_msb_first,positive cross-entropy damage,320,0.2037593078458657,0.10678587212513845,0.2848117158615262,0.0,0.15,within-recorded-stratum candidate resampling; sample-limited
+kws,s3_numerical_jump,positive cross-entropy damage,320,0.17453889079237941,0.07845584549566194,0.25748890439147154,0.23440687963739038,0.025,within-recorded-stratum candidate resampling; sample-limited
+kws,s4_gradient_delta,positive cross-entropy damage,320,0.2581610682730173,0.15897338733920405,0.346360623528657,0.4194106850773096,0.4,within-recorded-stratum candidate resampling; sample-limited
+kws,s5_per_example_absolute,positive cross-entropy damage,320,0.28827858521176014,0.19904600247001844,0.3753451376698567,8.313701021950692,0.4,within-recorded-stratum candidate resampling; sample-limited
+kws,s6_per_example_positive,positive cross-entropy damage,320,0.24647612872698063,0.15578495353204674,0.33286170393978787,8.313701021950692,0.1,within-recorded-stratum candidate resampling; sample-limited
+kws,random_reference,positive cross-entropy damage,320,0.011523880506402752,-0.08314961631585693,0.10110135096561083,0.0,0.1,within-recorded-stratum candidate resampling; sample-limited
+toycar,s2_msb_first,positive reconstruction-MSE damage,320,0.5023267020485112,0.430983068431508,0.5705167907682824,0.0,0.15,within-recorded-stratum candidate resampling; sample-limited
+toycar,s3_numerical_jump,positive reconstruction-MSE damage,320,0.43896864157765825,0.3602737622368913,0.5121562385487847,3.0491781937889755,0.15,within-recorded-stratum candidate resampling; sample-limited
+toycar,s4_gradient_delta,positive reconstruction-MSE damage,320,0.4979738813242834,0.4114923633550875,0.5814516847933593,3.881401647347957,0.5,within-recorded-stratum candidate resampling; sample-limited
+toycar,s5_per_example_absolute,positive reconstruction-MSE damage,320,0.5464669967463611,0.4631333406923496,0.6269334959770669,205.882389775943,0.6,within-recorded-stratum candidate resampling; sample-limited
+toycar,s6_per_example_positive,positive reconstruction-MSE damage,320,0.6365927831719045,0.5618708949885172,0.710428442070059,205.882389775943,0.6,within-recorded-stratum candidate resampling; sample-limited
+toycar,random_reference,positive reconstruction-MSE damage,320,0.05883321964639185,-0.03582698399874488,0.14723600714758434,0.0,0.1,within-recorded-stratum candidate resampling; sample-limited
