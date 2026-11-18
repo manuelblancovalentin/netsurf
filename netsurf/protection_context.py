@@ -63,6 +63,34 @@ def _selected(document: object, key: str) -> object:
     return value
 
 
+def read_mask_identities(path, key):
+    """Read only the selected mask from large historical JSON, not all policies.
+
+    Legacy small artifacts retain their parser. Large artifacts use the already
+    tested streaming mask grammar; the caller verifies the entire file checksum.
+    """
+    path = Path(path)
+    if path.stat().st_size <= 16 * 1024**2:
+        raw = _selected(json.loads(path.read_text()), key)
+        if not isinstance(raw, list):
+            raise ProtectionContextError("selected mask record is not a list")
+        return tuple(_identity(v) for v in raw)
+    from .mechanism_audit import _iter_mask_entries
+    from .mask_stream import json_tokens
+    parts = key.split("/")
+    if len(parts) == 1:
+        replication, policy = "replication_0", parts[0]
+    elif len(parts) == 2:
+        replication, policy = parts
+    else:
+        raise ProtectionContextError("unsupported nested mask key")
+    result = tuple(BitIdentity(parameter, flat, bit) for rep, name, parameter, flat, bit
+                   in _iter_mask_entries(path, tokens=json_tokens(path)) if (rep, name) == (replication, policy))
+    if not result:
+        raise ProtectionContextError("selected large source mask is missing or empty")
+    return result
+
+
 def verify_protection_context(
     configuration: ProtectionContextConfiguration,
     universe: Sequence[BitIdentity],
@@ -111,13 +139,9 @@ def verify_protection_context(
     if sha256_file(artifact_path) != configuration.artifact_sha256:
         raise ProtectionContextError("source protection-mask artifact checksum mismatch")
     try:
-        document = json.loads(artifact_path.read_text(encoding="utf-8"))
+        identities = read_mask_identities(artifact_path, configuration.mask_key)
     except (OSError, json.JSONDecodeError) as error:
         raise ProtectionContextError(f"cannot parse source protection-mask artifact: {error}") from error
-    raw_mask = _selected(document, configuration.mask_key)
-    if not isinstance(raw_mask, list):
-        raise ProtectionContextError("selected mask record is not a list")
-    identities = tuple(_identity(value) for value in raw_mask)
     original = frozenset(identities)
     if len(original) != len(identities):
         raise ProtectionContextError("source protection mask contains duplicate identities")

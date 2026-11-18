@@ -115,6 +115,22 @@ FaultModel -> deterministic FaultSchedule -> InjectionEngine
 
 ## Storage boundary
 
+### M11 conditional-response layer
+
+`conditional_scaling.py` contains model-free Bernoulli integration, bounded-risk
+and finite-sample regret calculations, diagnostic signed-marginal selection,
+exact-oracle audits and paired field/input statistics. `scaling_study.py` binds
+these to existing verified conditional adapters, source S5 masks, frozen
+probability-sampled pools and disjoint selection/final execution. No old schema-6
+algorithm or payload is reinterpreted. The independent request schema is
+`netsurf/schemas/scaling/v1.schema.json`, with strict executable validation.
+
+`scaling_reporting.py` regenerates tables/figures without inference and requires
+all prespecified final pool/arm results. `scaling_historical.py` verifies and
+reanalyzes the entire M910 source inventory offline. Both create new derived
+destinations; they never replace finalized evidence. Selection and final
+bundles bind exact faults, candidate identities, cohorts and source masks.
+
 `netsurf.paths` resolves shared datasets from environment variables and new
 results under `workspace/runs/` (override with `NETSURF_WORKSPACE`). Benchmark
 definitions belong under `config/`; generated data are ignored. Historical
@@ -185,3 +201,37 @@ population Kronecker interaction sum with dynamic rank-one updates.
 acceptance gate. `timing.py` defines non-overlapping timing intervals; bundle
 and reporting code label inclusive method and cumulative trajectory timing so
 they cannot be mistaken for additive phase measurements.
+
+## Capability-bound conditional integration (M9.8)
+
+`conditional_benchmarks.py` binds schema 6.7 to explicit KWS/ResNet checkpoint,
+population, risk and source-partition capabilities. Its ResNet wrapper reuses
+the existing exact TFLite adapter and captures per-image CE from the same
+authoritative call; it does not introduce a second inference or fault engine.
+It also audits original sample exposure through verified finalized payloads.
+`conditional_config`, `conditional_damage` and `conditional_bundle` dispatch
+the new version while preserving schema 6.0–6.6 paths.
+
+`cross_pool` request 1.1 reuses the existing status-stratified pool draw,
+freeze/seal lifecycle and paired evaluator with capability-defined populations
+and windows. `cross_pool_analysis` derives statistics/plots offline and retains
+long exact event fields. ToyCar remains explicitly blocked at this interface
+until complete-file identities and nonadditive AUC reporting are specified;
+its existing static adapter remains available. Detailed contracts and examples:
+`docs/M98_CONDITIONAL_ADAPTERS.md`.
+
+## Scalar complete-file cohorts (M9.9)
+
+`adapters/toycar_conditional.py` selects explicit complete files and captures
+scores/output digests from the existing M9.3 authoritative evaluation. It adds
+no new fault backend. `cohort_risk.py` defines the nonadditive metric and cohort
+validation; `toycar_exposure.py` produces immutable metadata-only exposure
+inventories. Schema 6.8 dispatches through `conditional_damage` and its existing
+response-table and paired-swap algorithms. `cohort_analysis.py` handles campaign
+1.2 scalar pool/field inference and score verification without TensorFlow.
+Classification schemas retain their additive diagnostics and scientific payloads.
+
+`mask_stream.py` supplies bounded JSON tokens to the existing mask grammar so
+the 516-MB ToyCar mask archive need not be deserialized for every policy at once.
+The selected mask and entire-file checksum are still verified. No historical
+artifact is migrated or rewritten.

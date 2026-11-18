@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "description": "All 56 production pool/BER conditions from the completed M96, M97 three-arm, M98 and M99 campaigns; offline only, no outcome-based exclusions.",
+  "campaigns": [
+    {"path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/campaign.json", "sha256": "46674ad4f90e8bc49fcee3ef826bbb57130005f239d192700cd09d8f106d3ff3"},
+    {"path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p001/campaign.json", "sha256": "1c9e2182a8363a3a232f929b5e3649cebb2389c80c10994b8012743931098eeb"},
+    {"path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p003/campaign.json", "sha256": "c634785e4fd1c51a2e37a60baf05fd1473e427c24b2ecbb5b3731116f23a3249"},
+    {"path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m97_ber/workspace/runs/m97_kws_multiber_v2/arms/ber_0p01/campaign.json", "sha256": "b69204d4e36c88bc87b0e81d9e526d2467194d78e2ef0732c17b45a32d588fff"},
+    {"path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m98/workspace/runs/m98_resnet8_cross_pool_k6_v1/campaign.json", "sha256": "5bee01e08717c06535142e6ec44e52cb2327dd427af828c7f2fd4045c32bf1da"},
+    {"path": "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m99-toycar-conditional/workspace/runs/m99_toycar_production_plan_v1/campaign.json", "sha256": "1a5965251494a108e0903f99a629df2b236480dae4a1aad242d96c83a3e4f802"}
+  ],
+  "exclusions": [
+    "Engineering campaigns are analyzed separately, never mixed with production pool inference.",
+    "M97 multiber v1 is an unexecuted superseded frozen plan, not another completed experiment.",
+    "Payload-identical replays are not independent pools or fault replications.",
+    "M95-M957 historical explicit pools are exploratory antecedents, not members of the M96-M99 probability-sampled campaigns."
+  ]
+}

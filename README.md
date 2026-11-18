@@ -21,6 +21,14 @@ or Hessian capability is inferred from a registry entry.
 
 ## Kona setup
 
+M11 adds a separate [conditional-scaling measurement protocol](docs/M11_THEORY.md)
+and [execution/evidence guide](docs/M11_RESULTS_AND_LIMITATIONS.md).
+`python -m netsurf scaling --help` exposes metadata-only freeze, selection,
+all-selection sealing, independent final comparisons and offline analysis.
+It measures K+1 candidate-forced-clean responses per outside field; it is not
+an adaptive optimizer or a claim of full conditional influence. Exact K<=12
+audits remain available. Research sweeps are never launched automatically.
+
 The private `proj` project is named `netsurf` and points to this repository and
 the Python 3.11 environment at
 `/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf`.
@@ -263,3 +271,21 @@ rankings through an explicitly labeled straight-through companion. Exact
 TFLite 2.14.1 `BUILTIN_REF` inference remains authoritative. See
 `docs/MLPERF_TINY_M9_STATIC_ESTIMATORS.md` and the two maintained
 `m9_resnet8_static_*_v1.toml` configurations before running them.
+
+### Complete-file ToyCar conditional protection (M9.9)
+
+ToyCar conditional studies use schema 6.8 / campaign 1.2 and optimize
+`1 - file_ROC_AUC`, not reconstruction MSE. See
+[the M99 protocol and foreground commands](docs/M99_TOYCAR_CONDITIONAL.md)
+before freezing a campaign. Selection and final file cohorts must be disjoint,
+both-class and exposure-audited; all masks are sealed before final evaluation.
+No production campaign is launched automatically.
+
+### Offline interaction attribution (M9.10)
+
+The separate `m910-interaction-attribution` worktree analyzes finalized KWS,
+ResNet-8 and ToyCar exact response tables without inference. See
+[the M910 evidence report](docs/M910_INTERACTION_ATTRIBUTION.md) for the
+hash-pinned source inventory, signed decomposition, uncertainty limitations,
+all-pool figures and reproduction commands. New derived outputs never replace
+historical bundles.

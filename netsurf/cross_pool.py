@@ -107,7 +107,9 @@ def freeze_campaign(configuration, output):
     source = Path(configuration).resolve()
     request = tomllib.loads(source.read_text())
     _strict(request, {"schema_version", "name", "purpose", "benchmark_template", "design", "samples", "statistics"}, "campaign")
-    if request["schema_version"] != VERSION or request["purpose"] not in {"engineering", "confirmation"}:
+    cohort = request["schema_version"] == "1.2.0"
+    modern = request["schema_version"] in {"1.1.0", "1.2.0"}
+    if request["schema_version"] not in {VERSION, "1.1.0", "1.2.0"} or request["purpose"] not in {"engineering", "confirmation"}:
         raise ValueError("unsupported campaign schema/purpose")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", request["name"]):
         raise ValueError("campaign name must be filesystem-safe")
@@ -119,9 +121,9 @@ def freeze_campaign(configuration, output):
         _integer(samples[key], 1 if key.endswith("count") else 0)
     for key in ("selection_replicates", "selection_fields_per_seed", "final_fields"):
         _integer(design[key], 1)
-    if design["final_fields"] < 2 or samples["selection_offset"] + samples["selection_count"] > 1024:
+    if design["final_fields"] < 2 or (not modern and samples["selection_offset"] + samples["selection_count"] > 1024):
         raise ValueError("need >=2 final fields and valid model-selection window")
-    if stats["confidence"] != .95 or design["logical_ber"] != .01:
+    if stats["confidence"] != .95 or (not modern and design["logical_ber"] != .01) or not 0 < design["logical_ber"] < 1:
         raise ValueError("v1 prespecifies 95% confidence, CE minimization and BER 0.01")
     _integer(stats["bootstrap_seed"]); _integer(stats["bootstrap_replicates"], 100)
     n = len(design["pool_seeds"])
@@ -144,28 +146,52 @@ def freeze_campaign(configuration, output):
     from .conditional_config import load_conditional
     # Verify backend and scientific template semantics before generating any pool.
     template_config = load_conditional(template, check_inputs=False)
-    if template_config.benchmark.adapter != "mlperf_tiny_kws_int8_v1":
+    if not modern and template_config.benchmark.adapter != "mlperf_tiny_kws_int8_v1":
         raise ValueError("campaign v1 is KWS-only")
-    lock = VerifiedAssetLock.load(template_config.benchmark.asset_lock, expected_benchmark_id="mlperf-tiny/kws")
-    storage = TFLiteModelStorage.from_path(template_config.benchmark.checkpoint, expected_sha256=KWS_SHA, eligible_roles=("kernel",))
+    if modern:
+        from .conditional_benchmarks import verified_storage
+        if template_config.schema_version != ("6.8.0" if cohort else "6.7.0"):
+            raise ValueError("campaign 1.1/1.2 requires a schema-6.7/6.8 template respectively")
+        cap, lock, storage = verified_storage(template_config.benchmark)
+        if cohort:
+            if (samples["selection_offset"] or samples["final_offset"]
+                    or samples["selection_count"] != len(template_config.cohorts["conditional_model_selection"])
+                    or samples["final_count"] != len(template_config.cohorts["conditional_final_evaluation"])):
+                raise ValueError("campaign counts/offsets must match explicit complete-file cohorts")
+        else:
+            cap.indices("conditional_model_selection", samples["selection_offset"], samples["selection_count"])
+    else:
+        lock = VerifiedAssetLock.load(template_config.benchmark.asset_lock, expected_benchmark_id="mlperf-tiny/kws")
+        storage = TFLiteModelStorage.from_path(template_config.benchmark.checkpoint, expected_sha256=KWS_SHA, eligible_roles=("kernel",))
     universe = storage.bit_identities()
     context = template_config.protection_context
-    artifact = _read(context.source_bundle / context.artifact)
-    from .protection_context import _selected, _identity
-    provisional = tuple(_identity(b) for b in _selected(artifact, context.mask_key))
+    from .protection_context import read_mask_identities
+    provisional = read_mask_identities(context.source_bundle / context.artifact, context.mask_key)
     # The verifier needs a mixed pool; this is just a deterministic metadata check,
     # not an experimental candidate draw. All source integrity checks precede RNG use.
     provisional_set = set(provisional)
     probe = (provisional[0], next(b for b in universe if b not in provisional_set))
-    verified = verify_protection_context(context, universe, probe, expected_checkpoint_sha256=KWS_SHA)
-    if (len(universe), len(verified.original)) != (176128, 22016):
+    verified = verify_protection_context(context, universe, probe, expected_checkpoint_sha256=storage.sha256)
+    if not modern and (len(universe), len(verified.original)) != (176128, 22016):
         raise ValueError("pinned KWS S5 population/cardinality differs")
+    if modern and (len(verified.original) * 8 != len(universe)
+                   or context.mask_key.split("/")[-1] != "per_example_absolute_global@0.125000"):
+        raise ValueError("campaign 1.1 requires a verified S5 12.5% context")
     source_payload = context.source_bundle / "scientific_payload.json"
     checks = _read(context.source_bundle / "checksums.json")
     if sha256_file(source_payload) != checks["files"]["scientific_payload.json"] or digest_object(_read(source_payload)) != context.scientific_payload_sha256:
         raise ValueError("source scientific payload corrupted")
-    audit = audit_exposure()
-    exposure = check_exposure(audit, samples["final_offset"], samples["final_count"], request["purpose"])
+    if modern:
+        from .conditional_benchmarks import audit_exposure as capability_audit, check_exposure as capability_exposure
+        audit = capability_audit(cap)
+        if cohort:
+            from .cohort_risk import exposure_check
+            exposure = exposure_check(audit, template_config.cohorts, request["purpose"])
+        else:
+            exposure = capability_exposure(cap, audit, samples["final_offset"], samples["final_count"], request["purpose"])
+    else:
+        audit = audit_exposure()
+        exposure = check_exposure(audit, samples["final_offset"], samples["final_count"], request["purpose"])
     pools = sample_pools(universe, verified.original, design["pool_seeds"], design["candidate_count"])
     values = storage.values()
     descriptors = {d.parameter: d for d in storage.descriptors}
@@ -183,30 +209,34 @@ def freeze_campaign(configuration, output):
     overlap = [{"left": a["pool_id"], "right": b["pool_id"],
                 "shared_identities": sorted(set(r["identity"] for r in a["candidates"]) & set(r["identity"] for r in b["candidates"]))}
                for i, a in enumerate(pools) for b in pools[i + 1:]]
-    base["schema_version"] = "6.6.0"
-    base["scientific_protocol"] = "cross-pool-frozen-protection/v7"
+    base["schema_version"] = "6.7.0" if modern else "6.6.0"
+    base["scientific_protocol"] = "capability-conditional-protection/v8" if modern else "cross-pool-frozen-protection/v7"
+    if cohort:
+        base.update(schema_version="6.8.0", scientific_protocol="scalar-cohort-conditional-protection/v9")
     base["samples"].update(model_selection_offset=samples["selection_offset"], model_selection_count=samples["selection_count"],
                            evaluation_offset=samples["final_offset"], evaluation_count=samples["final_count"])
-    base["backgrounds"]["probabilities"] = [.01]
+    base["backgrounds"]["probabilities"] = [design["logical_ber"]]
     base["execution"]["confidence"] = .95
     base["restricted_oracle"].update(budget=2, calibration_background_count=design["selection_fields_per_seed"])
     base["paired_swap_evaluation"].update(enabled=False, background_count=design["final_fields"])
-    base["workflow"] = {"mode": "selection_only", "purpose": request["purpose"], "candidate_provenance": PROVENANCE, "record_per_input": True}
+    base["workflow"] = {"mode": "selection_only", "purpose": request["purpose"], "candidate_provenance": PROVENANCE, "record_per_input": not cohort}
     for i, pool in enumerate(pools):
         doc = json.loads(json.dumps(base))
         doc["experiment"] = {"name": request["name"] + "_" + pool["pool_id"] + "_selection",
                              "description": "Independent status-stratified pool; exact model-selection-only enumeration.",
                              "objective": "Frozen cross-pool expected-CE comparisons; no radiation interpretation."}
+        if cohort:
+            doc["experiment"]["objective"] = "Fixed-cohort expected 1-file_ROC_AUC; not MSE, an additive input loss, or radiation reliability."
         doc["candidates"] = [{k: r[k] for k in ("parameter", "flat_index", "bit_index")} for r in pool["candidates"]]
         doc["restricted_oracle"]["calibration_replicate_seeds"] = list(range(design["selection_seed_bases"][i], design["selection_seed_bases"][i] + design["selection_replicates"]))
         doc["paired_swap_evaluation"]["seed"] = design["final_seeds"][i]
         doc["output"]["root"] = ""
         pool["selection_document"] = doc
-    record = {"schema_version": VERSION, "protocol": "cross-pool-frozen-protection/v1", "name": request["name"],
+    record = {"schema_version": "1.1.0" if modern else VERSION, "protocol": "capability-cross-pool/v2" if modern else "cross-pool-frozen-protection/v1", "name": request["name"],
               "purpose": request["purpose"], "design": design, "samples": samples, "statistics": stats,
-              "checkpoint_sha256": KWS_SHA, "asset_lock_sha256": sha256_file(lock.path),
+              "checkpoint_sha256": storage.sha256, "asset_lock_sha256": sha256_file(lock.path),
               "universe_sha256": digest_object([b.key() for b in universe]),
-              "eligible_population": 176128, "protected_population": 22016, "unprotected_population": 154112,
+              "eligible_population": len(universe), "protected_population": len(verified.original), "unprotected_population": len(universe) - len(verified.original),
               "source_mask_sha256": verified.record["original_mask_sha256"],
               "source_context": context.to_dict(), "tensor_population": [d.to_dict() for d in storage.descriptors],
               "rng": {"algorithm": "NumPy Generator(PCG64); protected draw then unprotected draw; choice replace=False; sorted BitIdentity strata and final order", "numpy_version": np.__version__},
@@ -219,6 +249,28 @@ def freeze_campaign(configuration, output):
                   "secondary_multiplicity": "Holm across two cross-pool tests; Bonferroni 97.5% secondary CIs",
                   "diagnostics": "pool bootstrap; field bootstrap conditional on pools/inputs; shared-input bootstrap conditional on pools/fields; crossed pool/input/field bootstrap as an approximate sensitivity diagnostic",
                   "no_adaptation": "all pools retained; no response-dependent resampling, stopping, field-count change or candidate screening"}}
+    if modern:
+        record["conditional_capability"] = cap.record()
+        record["operation_counts"]["note"] = (f"Final bound: two swaps × two states × three contrasts per field; "
+            f"{cap.reference_inputs} already exposed clean reference inputs per adapter load are additional. "
+            "Clip-inference fields count images for ResNet-8; no model inference during freeze.")
+    if cohort:
+        from .cohort_risk import CONTRACT
+        record.update(schema_version="1.2.0", protocol="scalar-cohort-cross-pool/v3",
+                      cohorts=dict(template_config.cohorts), scalar_cohort_contract=CONTRACT)
+        counts = record["operation_counts"]
+        # In this schema evaluations count complete cohorts, not individual clips.
+        selection_files = counts.pop("selection_clip_inferences_total") + n * samples["selection_count"]
+        final_files = counts.pop("final_clip_inferences_upper_bound_total") + n * samples["final_count"]
+        counts.update(selection_files_total=selection_files, selection_window_inferences_total=196 * selection_files,
+                      final_files_upper_bound_total=final_files, final_window_inferences_upper_bound_total=196 * final_files,
+                      clean_cohort_evaluations_per_phase_per_pool=1, conformance_files_per_load=2,
+                      conformance_windows_per_load=392, conformance_windows_all_phases=2 * n * 392,
+                      note="All 196 windows per file. One extra clean cohort per phase/pool; 392 conformance windows per adapter load. No final file access during freeze/selection.")
+        record["statistical_plan"].update(
+            principal_unit="candidate pool; independent whole fault fields nested within pools; complete fixed cohort shared",
+            diagnostics="field and pool uncertainty only; no additive input or comparison-pair bootstrap",
+            input_population_uncertainty="not estimated; requires stratified complete-file resampling and recomputation of every paired AUC")
     destination = Path(output).resolve()
     destination.mkdir(parents=True, exist_ok=False)
     _write_json(destination / "campaign.json", record)
@@ -255,7 +307,9 @@ def load_campaign(path, expected=None):
         if Path(relative).is_absolute() or ".." in Path(relative).parts or sha256_file(path.parent / relative) != checksum:
             raise ValueError("campaign inventory checksum mismatch")
     record = _read(path)
-    if record.get("schema_version") != VERSION or record.get("protocol") != "cross-pool-frozen-protection/v1":
+    if (record.get("schema_version"), record.get("protocol")) not in {
+            (VERSION, "cross-pool-frozen-protection/v1"), ("1.1.0", "capability-cross-pool/v2"),
+            ("1.2.0", "scalar-cohort-cross-pool/v3")}:
         raise ValueError("unsupported campaign schema/protocol")
     return record
 
@@ -296,6 +350,10 @@ def verify_pool_configuration(configuration, *, execution):
     workflow = configuration.workflow
     path = Path(workflow["campaign_manifest"])
     record = load_campaign(path, workflow["campaign_sha256"])
+    if record["schema_version"] == "1.1.0" and configuration.schema_version != "6.7.0":
+        raise ValueError("capability campaign requires schema 6.7")
+    if record["schema_version"] == "1.2.0" and configuration.schema_version != "6.8.0":
+        raise ValueError("scalar-cohort campaign requires schema 6.8")
     parent = None
     if "joint_campaign" in record:
         from .multiber_campaign import verify_member
@@ -307,6 +365,8 @@ def verify_pool_configuration(configuration, *, execution):
     # Compare every resolved scientific field, not just candidate identities.
     expected = _bound_document(record, pool, path, workflow["campaign_sha256"])
     actual = configuration.resolved_document()
+    if record["schema_version"] == "1.2.0" and actual.get("cohorts") != expected.get("cohorts"):
+        raise ValueError("frozen complete-file cohorts changed")
     for key in ("benchmark", "samples", "risk", "candidates", "backgrounds", "execution", "restricted_oracle", "protection_context", "paired_swap_evaluation"):
         left = json.loads(json.dumps(actual[key]))
         right = expected[key]
@@ -343,8 +403,17 @@ def verify_pool_configuration(configuration, *, execution):
             raise ValueError("frozen campaign asset lock identity changed")
         allowed = ([arm["manifest_sha256"] for arm in parent["arms"]] if parent is not None
                    else workflow["campaign_sha256"])
-        check_exposure(audit_exposure(allowed_campaign=allowed),
-                       record["samples"]["final_offset"], record["samples"]["final_count"], record["purpose"])
+        if record["schema_version"] == "1.2.0":
+            from .cohort_risk import configuration_exposure
+            configuration_exposure(configuration, allowed_campaign=allowed)
+        elif record["schema_version"] == "1.1.0":
+            from .conditional_benchmarks import conditional_capability, audit_exposure as audit, check_exposure as check
+            cap = conditional_capability(configuration.benchmark.adapter)
+            check(cap, audit(cap, allowed_campaign=allowed), record["samples"]["final_offset"],
+                  record["samples"]["final_count"], record["purpose"])
+        else:
+            check_exposure(audit_exposure(allowed_campaign=allowed),
+                           record["samples"]["final_offset"], record["samples"]["final_count"], record["purpose"])
     return record
 
 

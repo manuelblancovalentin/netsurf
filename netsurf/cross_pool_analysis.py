@@ -15,6 +15,21 @@ from .result_bundle import _write_json, _write_bytes
 from .statistics import summarize
 
 
+def read_field_records(path):
+    """Retain exact event lists, with an explicit 64 MiB per-field ceiling.
+
+    ResNet-8 at BER .01 already exceeds csv's default 128 KiB field limit.
+    Restore the process setting after this synchronous offline read.
+    """
+    previous = csv.field_size_limit()
+    try:
+        csv.field_size_limit(64 * 1024**2)
+        with Path(path).open() as handle:
+            return list(csv.DictReader(handle))
+    finally:
+        csv.field_size_limit(previous)
+
+
 def cross_pool_statistics(effects, *, seed, replicates, field_effects=None):
     """P×F×I×C crossed data. Pool is primary, never flattened field/input cells.
 
@@ -81,6 +96,9 @@ def cross_pool_statistics(effects, *, seed, replicates, field_effects=None):
 
 def aggregate_campaign(path, output, *, plots=True):
     path = Path(path).resolve(); record = load_campaign(path); digest = sha256_file(path)
+    if record["schema_version"] == "1.2.0":
+        from .cohort_analysis import aggregate_scalar_campaign
+        return aggregate_scalar_campaign(path, output, plots=plots)
     root = path.parent
     evidence, arrays, scalar_arrays, common_ids, seeds = [], [], [], None, set()
     for pool in record["pools"]:
@@ -88,8 +106,7 @@ def aggregate_campaign(path, output, *, plots=True):
         selection_receipt, selection = verified_receipt(_receipt(root, pid, "selection"), digest, pid, "selection")
         receipt, payload = verified_receipt(_receipt(root, pid, "final"), digest, pid, "final")
         bundle = Path(receipt["bundle"])
-        with (bundle / "measurements/paired_swap_fields.csv").open() as handle:
-            fields = list(csv.DictReader(handle))
+        fields = read_field_records(bundle / "measurements/paired_swap_fields.csv")
         for row in fields:
             for key in ("field", "field_seed", "path_length", "authoritative_evaluation_requests"):
                 row[key] = int(row[key])
@@ -133,6 +150,9 @@ def aggregate_campaign(path, output, *, plots=True):
             "selection_runtime_seconds": _read(Path(selection_receipt["bundle"]) / "manifest.json")["execution"]["runtime_seconds"],
             "final_runtime_seconds": _read(bundle / "manifest.json")["execution"]["runtime_seconds"]})
     statistics = cross_pool_statistics(np.stack(arrays), seed=record["statistics"]["bootstrap_seed"], replicates=record["statistics"]["bootstrap_replicates"], field_effects=np.stack(scalar_arrays))
+    if record["schema_version"] == "1.1.0":
+        statistics["conditional_capability"] = record["conditional_capability"]
+        statistics["assumptions"] = statistics["assumptions"].replace("contiguous TFDS ordering", "recorded source ordering")
     # Execution durations are incidental metadata, never scientific hash content.
     costs = [{k: r[k] for k in ("pool_id", "selection_runtime_seconds", "final_runtime_seconds")} for r in evidence]
     for row in evidence:
@@ -142,7 +162,7 @@ def aggregate_campaign(path, output, *, plots=True):
     destination = Path(output).resolve(); destination.mkdir(parents=True, exist_ok=False)
     _write_json(destination / "scientific_payload.json", payload)
     _write_json(destination / "costs.json", {"schema_version": "1.0.0", "pools": costs, "operation_plan": record["operation_counts"]})
-    lines = ["# M9.6 cross-pool protection comparison", "", f"Campaign SHA-256: `{digest}`", "",
+    lines = ["# Cross-pool protection comparison" if record["schema_version"] == "1.1.0" else "# M9.6 cross-pool protection comparison", "", f"Campaign SHA-256: `{digest}`", "",
              f"Purpose: **{record['purpose']}**. " + ("Bounded software validation on previously exposed inputs; not confirmation evidence." if record['purpose'] == "engineering" else "Prespecified campaign; interpretation remains conditional on recorded exposure and sampling assumptions."), "",
              "All prespecified pools retained. Negative CE differences favor the target. Ideal event suppression is not physical mitigation.", "",
              "| Contrast | Pools | Mean CE difference | Pool-t 95% CI | Negative / zero / positive estimated pool effects |", "|---|---:|---:|---|---|"]

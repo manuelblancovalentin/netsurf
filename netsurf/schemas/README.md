@@ -150,3 +150,28 @@ selection registries and aggregates independently declare `1.0.0`. Complete
 matched fields and all pools are required for aggregation. Unknown versions
 fail; finalized files are never migrated in place. See
 `docs/M96_CROSS_POOL_PROTOCOL.md`.
+
+Capability-bound conditional schema `6.7.0` (`conditional/v1_7.schema.json`)
+adds explicitly verified ResNet-8 alongside KWS without altering older paths.
+It permits joint engineering diagnostics or the existing separated selection /
+frozen-final workflow, with architecture-specific identity and exposure gates.
+Campaign request/frozen manifest `1.1.0` (`campaign/v1_1.schema.json`) uses
+those capabilities for population, sample windows and a prespecified BER.
+Existing campaign 1.0 remains the fixed KWS protocol. Scalar risk remains
+classification CE; ToyCar file-level AUC is explicitly unsupported by this
+version rather than aliased to an additive loss. Python validators enforce
+runtime/asset, cardinality, seed, source and partition constraints beyond JSON
+field checks. See `docs/M98_CONDITIONAL_ADAPTERS.md`.
+
+Scalar-cohort conditional `6.8.0` (`conditional/v1_8.schema.json`) and campaign
+`1.2.0` (`campaign/v1_2.schema.json`) add ToyCar complete-file `1-file_ROC_AUC`
+risk. They require explicit `[cohorts]` original file-index arrays, both classes,
+matching counts, zero offsets and disjoint roles. `record_per_input=true` is
+rejected rather than inventing additive AUC contributions. Selection-only and
+hash-pinned frozen-final modes remain mandatory. Artifact `cohort_scores.json`
+and scalar-cohort contract independently use `1.0.0`. Pooled diagnostics use
+whole fault fields and candidate pools, never windows or comparison pairs as
+independent trials. Input-population uncertainty is not estimated; the retained
+campaign bootstrap fields are compatibility/reserved settings, not an active
+additive-input bootstrap. Previous schema readers remain intact.
+See `docs/M99_TOYCAR_CONDITIONAL.md` for every configurable field and commands.

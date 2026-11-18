@@ -1,0 +1,28 @@
+# Exact K8/K12 oracle engineering audit on previously exposed clips.
+schema_version = "1.0.0"
+name = "m11_kws_oracle_engineering"
+purpose = "engineering"
+source_campaign = "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_engineering_campaign_v1/campaign.json"
+source_campaign_sha256 = "54c6f6c5fc507c8531f99928b62e09fe021f2a828bc65c87ba344d55394c4c8b"
+
+[design]
+candidate_counts = [8, 12]
+pool_seeds = [110101]
+sampling = "primary"
+bit_positions = [0, 1, 2, 3, 4, 5, 6, 7]
+axis = "ber"
+values = [0.003]
+selection_seeds = [110201]
+final_seeds = [110301, 110302]
+exhaustive_max_k = 12
+
+[samples]
+selection_offset = 0
+selection_count = 2
+final_offset = 12
+final_count = 2
+
+[statistics]
+confidence = 0.95
+bootstrap_seed = 110401
+bootstrap_replicates = 100

@@ -72,7 +72,7 @@ def capability_records():
             "static_s2_s3": "VERIFIED" if executable else "BLOCKED",
             "s4_s5_s6": "VERIFIED" if executable and not streaming else "BLOCKED",
             "continuous_hessian": "VERIFIED" if target == "kws_dscnn_int8" else "BLOCKED",
-            "conditional_restricted": "VERIFIED" if target == "kws_dscnn_int8" else "BLOCKED",
+            "conditional_restricted": "VERIFIED" if target in {"kws_dscnn_int8", "resnet8_int8", "toycar_int8"} else "BLOCKED",
             "independent_study_partitions": "VERIFIED" if executable and not streaming else "BLOCKED",
         }
         if streaming:
@@ -80,9 +80,9 @@ def capability_records():
                 "no independently calibrated gradient task loss or held-out partitions",
                 "event FP/FN remain separate; no agreed scalar risk for restricted protection"]
         if target == "resnet8_int8":
-            blockers += ["schema-6 conditional windows remain KWS-specific; requires a frozen CIFAR partition plan"]
+            blockers += ["conditional studies require schema 6.7 / campaign 1.1, audited exposure and a verified S5 context; not an efficacy claim"]
         if target == "toycar_int8":
-            blockers += ["schema-6 risk is not file ROC-AUC; AUC cannot be decomposed into per-file risks",
+            blockers += ["conditional task risk requires schema 6.8 / campaign 1.2 complete-file cohorts, exposure audit and verified S5 context; no additive AUC losses",
                          "continuous classical Hessian not validated; reconstruction STE derivatives are distinct"]
         if not executable:
             blockers += ["no validated NetSuRF loading, stored-bit/runtime mapping and fault-restoration backend for this target"]
@@ -108,7 +108,10 @@ def capability_records():
             "fault_lifetime": "whole stream" if streaming else "persistent evaluation trial",
             "resource_plan": entry["resource_plan"], "cost_model": entry["cost_model"],
             "validation_command": f"{PINNED_PYTHON} -m netsurf benchmarks probe {target} --output workspace/runs/m97_probe_{target}",
-            "evidence": "docs/M97_BENCHMARK_ADAPTER_STATUS.md; probe receipts required for this runtime",
+            "evidence": ("docs/M99_TOYCAR_CONDITIONAL.md; complete-file schema-6.8 engineering receipts" if target == "toycar_int8" else
+                         "docs/M98_CONDITIONAL_ADAPTERS.md; schema-6.7 engineering receipts"
+                         if target == "resnet8_int8" else
+                         "docs/M97_BENCHMARK_ADAPTER_STATUS.md; probe receipts required for this runtime"),
             "status_does_not_validate_current_environment": True,
         }
         records.append(record)

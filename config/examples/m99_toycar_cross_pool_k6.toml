@@ -1,0 +1,28 @@
+schema_version = "1.2.0"
+name = "m99_toycar_cross_pool_k6_ber001"
+purpose = "confirmation"
+benchmark_template = "m99_toycar_publication_template.toml"
+
+# A prespecified bounded pilot, NOT a formal power calculation or full publication evidence.
+# Edit BEFORE freeze; all outcomes must retain every frozen pool/field.
+[design]
+candidate_count = 6
+pool_seeds = [999101, 999102, 999103, 999104]
+selection_seed_bases = [999201, 999211, 999221, 999231]
+selection_replicates = 2
+selection_fields_per_seed = 4
+final_seeds = [999501, 999502, 999503, 999504]
+final_fields = 32
+logical_ber = 0.001
+
+[samples]
+selection_offset = 0
+selection_count = 24
+final_offset = 0
+final_count = 48
+
+[statistics]
+bootstrap_seed = 999801
+# Retained compatible field; scalar-cohort v1.2 does not perform an additive-input bootstrap.
+bootstrap_replicates = 1000
+confidence = 0.95

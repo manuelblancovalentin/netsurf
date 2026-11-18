@@ -129,6 +129,11 @@ def _risk_value(evaluation, expected_metric: str) -> float:
     _primary_name, _primary, _primary_direction, loss_name, loss, loss_direction = (
         evaluation_contract(evaluation)
     )
+    if expected_metric == "one_minus_file_roc_auc":
+        if (_primary_name != "roc_auc" or _primary_direction != "maximize"
+                or not math.isfinite(_primary) or not 0 <= _primary <= 1):
+            raise ValueError("scalar-cohort risk requires finite authoritative file ROC-AUC")
+        return float(1 - _primary)
     if loss_name != expected_metric or loss_direction != "minimize":
         raise ValueError(
             f"adapter exposes {loss_name}/{loss_direction}, expected {expected_metric}/minimize"
@@ -217,7 +222,7 @@ def execute_conditional_damage(
         from .replication_preflight import verify_replication_plan, load_replication_selection
         replication_plan_record = verify_replication_plan(configuration)
     campaign_record = None
-    if configuration.schema_version == "6.6.0":
+    if configuration.schema_version == "6.6.0" or "campaign_manifest" in configuration.workflow:
         from .cross_pool import verify_pool_configuration
         campaign_record = verify_pool_configuration(configuration, execution=True)
     mode = configuration.workflow.get("mode", "joint")
@@ -225,14 +230,25 @@ def execute_conditional_damage(
     exposure = exposure_audit(
         configuration.samples.evaluation_offset, configuration.samples.evaluation_count,
         configuration.workflow["purpose"],
-    ) if configuration.workflow else None
+    ) if configuration.workflow and configuration.schema_version not in {"6.7.0", "6.8.0"} else None
+    if configuration.schema_version == "6.7.0" and campaign_record is None:
+        from .conditional_benchmarks import configuration_exposure
+        exposure = configuration_exposure(configuration)
+    if configuration.schema_version == "6.8.0" and campaign_record is None:
+        from .cohort_risk import configuration_exposure
+        exposure = configuration_exposure(configuration)
     if replication_plan_record is not None:
         frozen_source = load_replication_selection(configuration)
         exposure = replication_plan_record["exposure_audit"]
     if campaign_record is not None:
         exposure = campaign_record["exposure_audit"]
-    benchmark = adapter or create_adapter(configuration, None)
+    if configuration.schema_version in {"6.7.0", "6.8.0"} and adapter is None:
+        from .conditional_benchmarks import create_conditional_adapter
+        benchmark = create_conditional_adapter(configuration)
+    else:
+        benchmark = adapter or create_adapter(configuration, None)
     benchmark.load()
+    identity_records = getattr(benchmark, "sample_identity_records", _sample_identity_records)
     universe = tuple(benchmark.bit_identities())
     if campaign_record is not None and digest_object([b.key() for b in universe]) != campaign_record["universe_sha256"]:
         raise ValueError("campaign eligible population hash differs")
@@ -274,7 +290,7 @@ def execute_conditional_damage(
         evaluation_x, evaluation_y, evaluation_partition = sample_data["held_out_evaluation"]
         if configuration.workflow and (
             tuple(evaluation_partition.indices) != tuple(exposure["requested_original_indices"])
-            or evaluation_partition.source_split != "speech_commands_tfds_test_interleaved_blocks16"
+            or evaluation_partition.source_split != exposure.get("source_split", "speech_commands_tfds_test_interleaved_blocks16")
         ):
             raise ValueError("actual final sample identities differ from the preflight exposure audit")
     model_selection_data = None
@@ -295,8 +311,14 @@ def execute_conditional_damage(
     if configuration.samples.require_disjoint:
         require_disjoint(tuple(partitions.values()))
     partition_diagnostics = {
-        name: _partition_diagnostics(data[1], data[2]) for name, data in sample_data.items()
+        name: (benchmark.partition_diagnostics(*data) if hasattr(benchmark, "partition_diagnostics")
+               else _partition_diagnostics(data[1], data[2])) for name, data in sample_data.items()
     }
+    if configuration.schema_version == "6.8.0":
+        # One clean complete-cohort evaluation for auditable pair-order diagnostics.
+        # Selection-only has loaded NO final files. This is not an additive loss.
+        for x, y, _partition in sample_data.values():
+            benchmark.evaluate(x, y)
     # Legacy joint diagnostics enumerate all labels. Never do this in selection-only.
     complete_window_diagnostics = (
         benchmark.same_distribution_window_diagnostics()
@@ -304,7 +326,7 @@ def execute_conditional_damage(
     )
     if frozen_source is not None:
         source_ids = {row["sample_id"] for row in frozen_source["sample_identities"]}
-        actual_final_ids = {row["sample_id"] for row in _sample_identity_records(
+        actual_final_ids = {row["sample_id"] for row in identity_records(
             evaluation_x, evaluation_y, evaluation_partition)}
         if source_ids & actual_final_ids:
             raise ValueError("frozen selection and actual final samples overlap")
@@ -1046,6 +1068,8 @@ def execute_conditional_damage(
             "6.4.0": "netsurf-frozen-selection-protection/v5",
             "6.5.0": "netsurf-independent-frozen-mask-replication/v6",
             "6.6.0": "netsurf-cross-pool-frozen-protection/v7",
+            "6.7.0": "netsurf-capability-conditional-protection/v8",
+            "6.8.0": "netsurf-scalar-cohort-conditional-protection/v9",
         }[configuration.schema_version],
         "scientific_protocol": configuration.scientific_protocol,
         "experiment": configuration.name,
@@ -1062,7 +1086,7 @@ def execute_conditional_damage(
         "partition_diagnostics": partition_diagnostics,
         "complete_window_diagnostics": complete_window_diagnostics,
         "sample_identities": {
-            name: list(_sample_identity_records(*data)) for name, data in sample_data.items()
+            name: list(identity_records(*data)) for name, data in sample_data.items()
         },
         "risk": {
             "name": configuration.risk_metric,
@@ -1153,6 +1177,10 @@ def execute_conditional_damage(
             ),
         },
     }
+    if configuration.schema_version in {"6.7.0", "6.8.0"}:
+        from .conditional_benchmarks import conditional_capability
+        payload["conditional_capability"] = conditional_capability(configuration.benchmark.adapter).record()
+        payload["exposure_audit"] = exposure
     if configuration.workflow:
         payload["workflow"] = {k: v for k, v in configuration.workflow.items() if k not in {"selection_bundle", "replication_plan", "campaign_manifest", "final_registry"}}
         payload["exposure_audit"] = exposure
@@ -1219,6 +1247,19 @@ def execute_conditional_damage(
             "sample_identities": payload["sample_identities"]["held_out_evaluation"],
             "records": paired_input_records,
             "interpretation": "crossed field/input effects; no independence of field-times-input cells; scalar field estimates remain primary"}
+    if configuration.schema_version == "6.8.0":
+        from .cohort_risk import CONTRACT
+        evidence = benchmark.cohort_evidence()
+        payload["scalar_cohort_evidence"] = evidence
+        payload["scalar_cohort_evidence_sha256"] = digest_object(evidence)
+        payload["benchmark"]["task_metrics"].update(risk=configuration.risk_metric, application_metric="file_roc_auc")
+        payload["risk"]["definition"] = "Exact Bernoulli-integrated 1-file_ROC_AUC, or paired difference thereof, over a fixed complete-file cohort"
+        payload["risk"]["scalar_cohort_contract"] = CONTRACT
+        payload["operation_counts"]["additional_clean_cohort_evaluations"] = len(sample_data)
+        payload["operation_counts"]["actual_complete_cohort_evaluations"] = len(evidence["evaluations"])
+        payload["operation_counts"]["actual_window_inferences"] = sum(
+            evidence["cohorts"][r["cohort_sha256"]]["window_count"] for r in evidence["evaluations"])
+        payload["operation_counts"]["additional_conformance_window_inferences"] = 392
     return ConditionalOutcome(
         configuration, payload, partitions, tuple(candidate_records), tuple(backgrounds),
         tuple(measurements), tuple(summaries), tuple(rank_comparisons),

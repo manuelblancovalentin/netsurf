@@ -1,0 +1,112 @@
+schema_version = "6.8.0"
+scientific_protocol = "scalar-cohort-conditional-protection/v9"
+
+[experiment]
+name = "m99_toycar_selection_template"
+description = "Source binding for campaign freeze; candidate placeholders are replaced by prespecified S5-status-stratified probability draws. Do not execute this template directly."
+objective = "Fixed-cohort expected 1-file_ROC_AUC with full-budget S5 context. No additive window-loss substitution."
+
+[benchmark]
+adapter = "mlperf_tiny_ad_int8_v1"
+id = "mlperf_tiny_ad_toycar_int8_v1"
+checkpoint = "/data/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4/benchmark/training/anomaly_detection/trained_models/ad01_int8.tflite"
+dataset = "/data/datasets/dcase2020-toycar"
+asset_lock = "/projects/kona-assets/manuelbv/locks/mlperf-tiny/ad.lock.json"
+inference_backend = "tensorflow_lite_builtin_ref_v1"
+split = "official_248_files"
+quantization = "tflite_affine_int8"
+quantization_backend = "tflite_affine_integer_v1"
+injectable_parameters = ["kernels"]
+
+[samples]
+calibration_role = "conditional_calibration"
+calibration_count = 2
+calibration_offset = 0
+model_selection_role = "conditional_model_selection"
+model_selection_count = 2
+model_selection_offset = 0
+evaluation_role = "conditional_final_evaluation"
+evaluation_count = 2
+evaluation_offset = 0
+require_disjoint = true
+
+# Engineering cohorts only: all previously exposed. Selection-only never loads final files.
+[cohorts]
+conditional_calibration = [2, 142]
+conditional_model_selection = [0, 140]
+conditional_final_evaluation = [1, 141]
+
+[risk]
+metric = "one_minus_file_roc_auc"
+direction = "minimize"
+
+[[candidates]]
+parameter = "tflite_tensor_0011/kernel"
+flat_index = 0
+bit_index = 7
+[[candidates]]
+parameter = "tflite_tensor_0011/kernel"
+flat_index = 1
+bit_index = 7
+[[candidates]]
+parameter = "tflite_tensor_0011/kernel"
+flat_index = 2
+bit_index = 7
+[[candidates]]
+parameter = "tflite_tensor_0011/kernel"
+flat_index = 3
+bit_index = 7
+[[candidates]]
+parameter = "tflite_tensor_0011/kernel"
+flat_index = 4
+bit_index = 7
+[[candidates]]
+parameter = "tflite_tensor_0011/kernel"
+flat_index = 5
+bit_index = 7
+
+[backgrounds]
+probabilities = [0.001]
+calibration_count = 1
+evaluation_count = 1
+calibration_seed = 990001
+evaluation_seed = 990002
+
+[restricted_oracle]
+enabled = true
+budget = 2
+calibration_background_count = 1
+evaluation_background_count = 1
+calibration_seed = 990003
+evaluation_seed = 990004
+calibration_replicate_seeds = [990201, 990202]
+
+[protection_context]
+mode = "verified_global_mask"
+source_bundle = "/projects/netsurf/manuelbv/workspace/runs/m93_toycar_static_ber_pilot64_parallel_repair_v1/20261029T234704.724222Z-3913968c"
+artifact = "artifacts/protection_masks.json"
+artifact_sha256 = "16855e9b4464b4f9b6845d59cd39e0cb1b1949a1e15db8363fa350efb2e23684"
+scientific_payload_sha256 = "5d9c1eaa69e24b5f2139b7bf69ae0d775cc8727d458d0b66c5cfe897ab44b554"
+mask_key = "replication_0/per_example_absolute_global@0.125000"
+expected_population_size = 2113536
+expected_global_cardinality = 264192
+
+[paired_swap_evaluation]
+enabled = false
+background_count = 2
+seed = 990501
+comparisons = ["restricted_selected_vs_original_s5", "restricted_selected_vs_exact_isolated", "exact_isolated_vs_original_s5"]
+
+[workflow]
+mode = "selection_only"
+purpose = "engineering"
+candidate_provenance = "prespecified_explicit_engineering/v1"
+record_per_input = false
+
+[execution]
+confidence = 0.95
+
+[output]
+root = ""
+report = true
+plots = false

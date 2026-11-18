@@ -390,8 +390,8 @@ def _json_tokens(path: Path):
         source.close()
 
 
-def _iter_mask_entries(path: Path) -> Iterator[tuple[str, str, str, int, int]]:
-    tokens = iter(_json_tokens(path))
+def _iter_mask_entries(path: Path, *, tokens=None) -> Iterator[tuple[str, str, str, int, int]]:
+    tokens = iter(_json_tokens(path) if tokens is None else tokens)
 
     def take(expected=None):
         value = next(tokens)

@@ -14,7 +14,7 @@ from .result_bundle import ResultBundleError, _inventory, _write_bytes, _write_c
 
 
 def _report(outcome: ConditionalOutcome) -> str:
-    if outcome.configuration.schema_version in {"6.4.0", "6.5.0", "6.6.0"}:
+    if outcome.configuration.workflow and outcome.configuration.schema_version in {"6.4.0", "6.5.0", "6.6.0", "6.7.0", "6.8.0"}:
         return _preflight_report(outcome)
     payload = outcome.scientific_payload
     interval_label = f"{100.0 * outcome.configuration.execution.confidence:g}% CI"
@@ -138,17 +138,36 @@ def _preflight_report(outcome):
     mode = outcome.configuration.workflow["mode"]
     population_description = (
         "Probability-sampled S5-status-stratified candidate pool; pool-level inference requires the complete frozen campaign. "
-        if outcome.configuration.schema_version == "6.6.0" else
+        if "campaign_manifest" in outcome.configuration.workflow else
         "Frozen exploratory candidate pool, not a random population sample. ")
     lines = [f"# {outcome.configuration.name}", "", outcome.configuration.objective, "",
              f"Execution: `{mode}`; purpose: `{outcome.configuration.workflow['purpose']}`.", "",
              population_description + "All risk measurements "
              "use exact INT8 XOR and TFLite 2.14.1 BUILTIN_REF. Logical BER is not a physical SEU rate.", ""]
+    cohort = outcome.configuration.schema_version == "6.8.0"
+    risk_label = "1 − file ROC-AUC" if cohort else "cross-entropy"
+    if cohort:
+        lines += ["One risk is computed over complete normal/anomalous files under a persistent weight-fault field. "
+                  "All 196 windows of each file contribute to its pinned anomaly score. Tied scores receive half credit. "
+                  "MSE is diagnostic only, never the optimization objective. Files, windows and normal/anomalous pairs "
+                  "are not independent fault trials; input-population uncertainty is not estimated.", "",
+                  "Exact file IDs, labels, ordered windows, score bytes/hashes, integer-output hashes and ordering changes "
+                  "are saved in `artifacts/cohort_scores.json`.", ""]
+        evidence = outcome.scientific_payload["scalar_cohort_evidence"]
+        lines += ["| Cohort | Normal / anomalous files | Windows | Clean ROC-AUC | Evaluated states | Max strict pair reversals |",
+                  "|---|---:|---:|---:|---:|---:|"]
+        for key, record in evidence["cohorts"].items():
+            rows = [r for r in evidence["evaluations"] if r["cohort_sha256"] == key]
+            clean = next((r for r in rows if r["fault"] is None), None)
+            normal = sum(f["label"] == 0 for f in record["files"])
+            auc = clean.get("file_roc_auc", 1-clean["risk"]) if clean is not None else "not measured"
+            lines.append(f"| {record['role']} | {normal} / {len(record['files'])-normal} | {record['window_count']} | {auc} | {len(rows)} | {max((r['pair_ordering'].get('strict_reversals', 0) for r in rows), default=0)} |")
+        lines += ["", "Ordering counts are descriptive: pairs share files and must not be treated as independent observations.", ""]
     if mode == "selection_only":
         lines += ["No final-evaluation samples were loaded and no final fields were generated. "
                   "No held-out mask performance is reported.", "",
                   "## All model-selection mask risks", "",
-                  "| Candidate mask | Mean cross-entropy | Fields |", "|---|---:|---:|"]
+                  f"| Candidate mask | Mean {risk_label} | Fields |", "|---|---:|---:|"]
         for row in outcome.oracle_summaries:
             for mask in row["eligible_masks"]:
                 lines.append(f"| {mask['indices']} | {mask['mean_risk']:.10g} | {len(mask['field_risks'])} |")
@@ -168,7 +187,7 @@ def _preflight_report(outcome):
         lines += ["Masks loaded from the explicitly hash-pinned finalized selection artifact; "
                   "selection was not rerun. Primary: restricted-selected minus original S5. Negative "
                   "differences favor the target. Secondary contrasts share the same master fields.", "",
-                  "| Contrast | Fields | Mean CE difference | Marginal CI | Family-wise CI |",
+                  f"| Contrast | Fields | Mean {risk_label} difference | Marginal CI | Family-wise CI |",
                   "|---|---:|---:|---|---|"]
         for row in outcome.paired_swap_summaries:
             e = row["target_minus_baseline"]
@@ -204,6 +223,8 @@ def create_conditional_bundle(
         _write_json(staging / "scientific_payload.json", outcome.scientific_payload)
         if "frozen_selection" in outcome.scientific_payload:
             _write_json(staging / "artifacts/frozen_selection.json", outcome.scientific_payload["frozen_selection"])
+        if "scalar_cohort_evidence" in outcome.scientific_payload:
+            _write_json(staging / "artifacts/cohort_scores.json", outcome.scientific_payload["scalar_cohort_evidence"])
         _write_json(staging / "summary.json", {
             "schema_version": outcome.configuration.schema_version,
             "scientific_protocol": outcome.configuration.scientific_protocol,
@@ -354,7 +375,7 @@ def create_conditional_bundle(
                 _write_json(staging / "artifacts/paired_input_contributions.json", outcome.scientific_payload["paired_input_diagnostics"])
             manifest["replication_plan_sha256"] = outcome.scientific_payload["replication_plan_sha256"]
             manifest["outputs"] = _inventory(staging)
-        if outcome.configuration.schema_version == "6.6.0":
+        if "campaign_binding" in outcome.scientific_payload:
             manifest["campaign_binding"] = outcome.scientific_payload["campaign_binding"]
             if "paired_input_diagnostics" in outcome.scientific_payload:
                 _write_json(staging / "artifacts/paired_input_contributions.json", outcome.scientific_payload["paired_input_diagnostics"])
@@ -380,10 +401,21 @@ def verify_conditional_bundle(path: str | Path) -> dict[str, object]:
         raise ResultBundleError(f"not a finalized conditional bundle: {root}")
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     checksums = json.loads((root / "checksums.json").read_text(encoding="utf-8"))
-    if manifest.get("schema_version") not in {"6.0.0", "6.1.0", "6.2.0", "6.3.0", "6.4.0", "6.5.0", "6.6.0"}:
+    if manifest.get("schema_version") not in {"6.0.0", "6.1.0", "6.2.0", "6.3.0", "6.4.0", "6.5.0", "6.6.0", "6.7.0", "6.8.0"}:
         raise ResultBundleError(f"unsupported conditional manifest: {manifest.get('schema_version')!r}")
     for relative, expected in checksums["files"].items():
         actual = sha256_file(root / relative)
         if actual != expected:
             raise ResultBundleError(f"checksum mismatch for {relative}: expected {expected}, got {actual}")
+    if manifest["schema_version"] == "6.8.0":
+        from .cohort_analysis import verify_score_evidence
+        from .manifests import digest_object
+        payload = json.loads((root / "scientific_payload.json").read_text())
+        evidence = json.loads((root / "artifacts/cohort_scores.json").read_text())
+        if (digest_object(evidence) != payload["scalar_cohort_evidence_sha256"]
+                or evidence != payload["scalar_cohort_evidence"]
+                or digest_object(payload) != manifest["scientific_payload_sha256"]
+                or (root / "FINALIZED").read_text().strip() != f"scientific_payload_sha256={digest_object(payload)}"):
+            raise ResultBundleError("scalar-cohort payload/evidence identity mismatch")
+        verify_score_evidence(evidence)
     return manifest

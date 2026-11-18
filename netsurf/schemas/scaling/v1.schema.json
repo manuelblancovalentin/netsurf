@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netsurf.local/schemas/scaling/1.0.0",
+  "title": "M11 outside-conditioned forced-clean measurement request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "name",
+    "purpose",
+    "source_campaign",
+    "source_campaign_sha256",
+    "design",
+    "samples",
+    "statistics"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+    },
+    "purpose": {
+      "enum": [
+        "engineering",
+        "exploratory",
+        "confirmation"
+      ]
+    },
+    "source_campaign": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_campaign_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_counts",
+        "pool_seeds",
+        "sampling",
+        "bit_positions",
+        "axis",
+        "values",
+        "selection_seeds",
+        "final_seeds",
+        "exhaustive_max_k"
+      ],
+      "properties": {
+        "candidate_counts": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              6,
+              8,
+              12,
+              32,
+              64
+            ]
+          }
+        },
+        "pool_seeds": {
+          "$ref": "#/$defs/seeds"
+        },
+        "selection_seeds": {
+          "$ref": "#/$defs/seeds"
+        },
+        "final_seeds": {
+          "$ref": "#/$defs/seeds"
+        },
+        "sampling": {
+          "enum": [
+            "primary",
+            "structural_bit_tiers"
+          ]
+        },
+        "bit_positions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 7
+          }
+        },
+        "axis": {
+          "enum": [
+            "ber",
+            "expected_applied_flips"
+          ]
+        },
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "exhaustive_max_k": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 12
+        }
+      }
+    },
+    "samples": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selection_offset",
+        "selection_count",
+        "final_offset",
+        "final_count"
+      ],
+      "properties": {
+        "selection_offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "selection_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "final_offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "final_count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "statistics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "confidence",
+        "bootstrap_seed",
+        "bootstrap_replicates"
+      ],
+      "properties": {
+        "confidence": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "bootstrap_seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bootstrap_replicates": {
+          "type": "integer",
+          "minimum": 2
+        }
+      }
+    }
+  },
+  "$defs": {
+    "seeds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    }
+  }
+}

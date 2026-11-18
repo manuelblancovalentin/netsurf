@@ -1,0 +1,28 @@
+# Already-exposed engineering inputs only; not a publication confirmation study.
+schema_version = "1.0.0"
+name = "m11_resnet8_engineering"
+purpose = "engineering"
+source_campaign = "/projects/netsurf/manuelbv/workspace/implementation-worktrees/m98/workspace/runs/m98_resnet8_engineering_v1/campaign.json"
+source_campaign_sha256 = "e936ec77557886d519fa437b118a084cbca0776ad455d30afc3d8287a203a4ca"
+
+[design]
+candidate_counts = [6, 32, 64]
+pool_seeds = [110101]
+sampling = "primary"
+bit_positions = [0, 1, 2, 3, 4, 5, 6, 7]
+axis = "ber"
+values = [0.003]
+selection_seeds = [110201, 110202]
+final_seeds = [110301, 110302]
+exhaustive_max_k = 6
+
+[samples]
+selection_offset = 0
+selection_count = 2
+final_offset = 0
+final_count = 2
+
+[statistics]
+confidence = 0.95
+bootstrap_seed = 110401
+bootstrap_replicates = 100

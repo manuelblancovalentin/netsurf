@@ -1,0 +1,27 @@
+schema_version = "1.1.0"
+name = "m98_resnet8_engineering_v1"
+purpose = "engineering"
+benchmark_template = "m98_resnet8_selection_template.toml"
+
+[design]
+candidate_count = 6
+pool_seeds = [989101, 989102]
+selection_seed_bases = [989201, 989203]
+selection_replicates = 2
+selection_fields_per_seed = 1
+final_seeds = [989501, 989502]
+final_fields = 2
+logical_ber = 0.01
+
+[samples]
+# Explicit engineering designation: original test 1000-1001 and 3000-3001.
+# These are outside the production windows. Never later call them untouched.
+selection_offset = 0
+selection_count = 2
+final_offset = 0
+final_count = 2
+
+[statistics]
+bootstrap_seed = 989801
+bootstrap_replicates = 100
+confidence = 0.95

@@ -1,0 +1,25 @@
+schema_version = "1.2.0"
+name = "m99_toycar_engineering_k6"
+purpose = "engineering"
+benchmark_template = "m99_toycar_selection_template.toml"
+
+[design]
+candidate_count = 6
+pool_seeds = [991101, 991102]
+selection_seed_bases = [992101, 992201]
+selection_replicates = 2
+selection_fields_per_seed = 1
+final_seeds = [993101, 993201]
+final_fields = 2
+logical_ber = 0.001
+
+[samples]
+selection_offset = 0
+selection_count = 2
+final_offset = 0
+final_count = 2
+
+[statistics]
+bootstrap_seed = 994101
+bootstrap_replicates = 100
+confidence = 0.95

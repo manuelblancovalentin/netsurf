@@ -727,3 +727,69 @@ Do not run the production plan as a test. Full foreground commands, hashed
 evidence, operational batching, interrupted-attempt behavior, exposure audit and
 costs are in `docs/M96_CROSS_POOL_PROTOCOL.md`. No package installation, model
 conversion, asset-lock modification or GPU is required.
+
+## M9.8 ResNet-8 conditional protection
+
+The isolated `m98-conditional-adapters` worktree provides schema 6.7 / campaign
+1.1 and the frozen four-pool K=6 ResNet plan. It was validated, not executed.
+Use the pinned `/projects/kona-assets/manuelbv/.venv-mlperf/bin/python` for
+`campaign validate`, selection, sealing and final evaluation. Canonical Python
+regenerates plots from saved evidence. The original KWS engineering replay
+retains scientific payload
+`5b4efe74ccf9b81f9e685b1203d88168d9a4ba7acb2054faedf12d857b0d3556`.
+See `docs/M98_CONDITIONAL_ADAPTERS.md` for exact foreground commands,
+editable requests versus immutable manifests, frozen source dependencies,
+exposure windows, operation counts, tests and archive/export instructions.
+No production plan should be used as an automatic test. ToyCar AUC integration
+has bounded mathematical/backend checks but is not production-ready.
+
+## M9.9 ToyCar complete-file conditional protection
+
+The separate `m99-toycar-conditional` worktree resolves that orchestration gate
+using schema 6.8 / campaign 1.2. See `docs/M99_TOYCAR_CONDITIONAL.md` for exact
+complete-file cohorts, source S5 checksums, exposure inventory, operation counts,
+foreground commands and ZIP/scp instructions. The K=6 engineering campaign is
+finalized; the four-pool primary BER 0.001 plan is frozen but **unexecuted**.
+
+Use the pinned MLPerf interpreter for model execution and canonical Python for
+offline `campaign aggregate` into a new output directory. No generic additive
+input bootstrap is applied to ROC-AUC. Original/final score vectors, integer
+output digests and file/window identities support offline verification. The
+committed-code engineering replay retains payload
+`9f4fbfb8f38279216a75f74cefce45303d6c6e5890e5b76658acce48af76efaa`.
+No published protection-superiority claim follows from this tiny smoke.
+
+## M9.10 offline interaction attribution
+
+The M99 status above describes that milestone's delivery; the researcher has
+since completed the production campaign. M910 verifies all six completed
+M96–M99 production campaign/BER arms (56 pool conditions, 112 bundles) and
+analyzes their saved responses. No new model inference is required.
+
+From the `m910-interaction-attribution` worktree, use the existing canonical
+interpreter and a fresh output directory:
+
+```bash
+/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf/bin/python -m netsurf.interaction_attribution \
+  --sources config/analysis/m910_sources.json \
+  --output workspace/runs/m910_user_analysis \
+  --seed 910001 --bootstrap-replicates 500
+```
+
+The source inventory pins exact campaign hashes. All complete source receipts,
+response tables, selections, cohorts and fault laws are verified before use.
+Reports include all pools, not favorable subsets; signed effects and field,
+pool and input-resampling uncertainty remain separate. See
+`docs/M910_INTERACTION_ATTRIBUTION.md` for finalized outputs, test results,
+detectability limitations and manuscript-ready figures.
+
+## M11 frozen conditional-response studies
+
+Use [M11 results and execution instructions](M11_RESULTS_AND_LIMITATIONS.md)
+and [the mathematical contract](M11_THEORY.md) for the independent
+`netsurf scaling` schema-1.0.0 interface. Authoritative inference still requires
+`/projects/kona-assets/manuelbv/.venv-mlperf/bin/python` and its unchanged locked
+assets; plots/tests use the canonical Python3.11 environment. Freeze plans,
+finish and seal every prescribed selection, then evaluate frozen masks with
+independent final fields. Do not launch the expensive exploratory example
+campaigns automatically. A passed engineering smoke is not confirmation evidence.

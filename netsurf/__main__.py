@@ -25,6 +25,30 @@ from .conditional_config import ConditionalConfigurationError
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="netsurf")
     subparsers = parser.add_subparsers(dest="command", required=True)
+    scaling = subparsers.add_parser("scaling", help="M11 frozen outside-conditioned measurement studies")
+    sc = scaling.add_subparsers(dest="scaling_command", required=True)
+    sf = sc.add_parser("freeze", help="verify sources/exposure and freeze pools; no inference")
+    sf.add_argument("request", type=Path)
+    sf.add_argument("--output", type=Path, required=True)
+    sv = sc.add_parser("validate")
+    sv.add_argument("request", type=Path)
+    sr = sc.add_parser("run")
+    sr.add_argument("plan", type=Path)
+    sr.add_argument("--pool", required=True)
+    sr.add_argument("--arm", type=int, required=True)
+    sr.add_argument("--phase", choices=("selection", "final"), required=True)
+    sr.add_argument("--selection-registry", type=Path)
+    sr.add_argument("--output", type=Path, required=True)
+    ss = sc.add_parser("seal")
+    ss.add_argument("plan", type=Path)
+    ss.add_argument("selection_root", type=Path)
+    ss.add_argument("--output", type=Path, required=True)
+    sa = sc.add_parser("analyze", help="offline all-pool analysis, no inference")
+    sa.add_argument("plan", type=Path)
+    sa.add_argument("selection_registry", type=Path)
+    sa.add_argument("final_root", type=Path)
+    sa.add_argument("--output", type=Path, required=True)
+    sa.add_argument("--no-plots", action="store_true")
     doctor = subparsers.add_parser("doctor", help="diagnose the software experiment environment")
     doctor.add_argument("--json", action="store_true")
     benchmarks = subparsers.add_parser("benchmarks", help="discover and prepare registered benchmarks")
@@ -350,7 +374,22 @@ def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
     try:
-        if args.command == "doctor":
+        if args.command == "scaling":
+            from .scaling_study import freeze, load_request, execute, seal
+            if args.scaling_command == "freeze":
+                result = freeze(args.request, args.output)
+            elif args.scaling_command == "validate":
+                result = load_request(args.request)
+            elif args.scaling_command == "seal":
+                result = seal(args.plan, args.selection_root, args.output)
+            elif args.scaling_command == "analyze":
+                from .scaling_reporting import analyze
+                result = analyze(args.plan,args.selection_registry,args.final_root,args.output,plots=not args.no_plots)
+            else:
+                result = execute(args.plan, args.pool, args.arm, args.phase, args.output,
+                    selection_registry=args.selection_registry)
+            print(json.dumps(result, indent=2, sort_keys=True))
+        elif args.command == "doctor":
             report = doctor_report()
             if args.json:
                 print(json.dumps(report, indent=2, sort_keys=True))
@@ -463,6 +502,7 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 from .cross_pool_analysis import aggregate_campaign
                 result = aggregate_campaign(args.manifest, args.output, plots=not args.no_plots)
+            print(json.dumps(result, indent=2, sort_keys=True))
         elif args.command == "multiber":
             from .multiber_campaign import SOURCE, freeze_joint, load_joint, run_joint, seal_joint
             from .manifests import sha256_file

@@ -425,3 +425,102 @@ arbitrary architectures, global optimality, or physical upset exposure. Adverse
 and zero-effect pools remain included. Known prior fault-exposed test indices
 are rejected for confirmation; unknown manual/concurrent exposure still requires
 disclosure. Existing final bundles and 6.0–6.5 behavior remain unchanged.
+
+## M9.8 capability-bound conditional protection
+
+Schema 6.7 and campaign 1.1 add the pinned ResNet-8 INT8 kernel population
+(618,880 bits) to the existing exact restricted selector and paired-swap
+evaluator. They retain authoritative TF 2.14.1 BUILTIN_REF mean integer-softmax
+cross-entropy, exact XOR, independent Bernoulli fields and fixed global
+cardinality. The existing KWS schemas and scientific payloads remain unchanged.
+The verified frozen S5 12.5% context is not regenerated or replaced.
+
+ResNet conditional roles use original CIFAR-10 test positions: calibration
+0–999, model selection 1000–2999, final 3000–9999. These are disjoint source
+windows, not proof of identical distributions. Known finalized fault-exposure
+identities, including scattered official-subset aliases, are checksum-audited
+and rejected for confirmation. Clean full-reference evaluation does not make
+the remaining data inference-naive; unknown/manual/concurrent exposure still
+requires disclosure. All pool selections must be sealed before final execution.
+
+ToyCar task risk would be 1 minus whole-file-cohort ROC-AUC, not reconstruction
+MSE. Response-table integration and paired-swap identities apply to that scalar
+set function without additive per-input losses. Production orchestration remains
+blocked pending frozen both-class cohorts, a file-identity/exposure contract and
+nonadditive reporting/uncertainty support. Do not pass window MSE through CE
+columns or infer an additive AUC contribution from a per-window loss.
+See `docs/M98_CONDITIONAL_ADAPTERS.md` for evidence, costs and limitations.
+
+## M9.9 scalar-cohort conditional protection
+
+Schema 6.8 / campaign 1.2 resolves the M98 ToyCar orchestration blocker with
+explicit, disjoint, both-class complete-file cohorts. The sole optimized risk
+is `one_minus_file_roc_auc`: one minus ROC-AUC computed from one pinned anomaly
+score for each complete file, with half credit for ties. All 196 windows per
+file use the same persistent INT8 kernel fault state. Reconstruction MSE
+remains the S5 gradient surrogate and a descriptive score ingredient, never
+an alias for AUC risk. No asset lock, tolerance, fault law or S5 definition changes.
+
+The existing exact response-table selector and paired-swap identity operate
+on this scalar set function without requiring additive per-input losses.
+Schema 6.8 rejects `record_per_input=true`. Saved file labels/IDs, ordered
+window identities, content/output/score hashes and float64 score values permit
+offline risk and dependent normal/anomalous ordering diagnostics. Statistical
+units are whole independently seeded fault fields and prespecified candidate
+pools. No uncertainty over input files is claimed; any future file-population
+bootstrap must resample complete files within class and recompute paired AUCs.
+
+Every pool preserves the verified 264,192-bit S5 global budget over 2,113,536
+eligible kernel bits. Selection-only cannot load final cohorts; all selections
+must be sealed before final execution. Checksum-audited prior fault exposure
+is rejected for both selection and final confirmation cohorts. All 248 files
+already underwent clean reference inference: remaining files are not
+inference-naive or an independently collected dataset. Unknown manual,
+concurrent and incomplete-run exposures still require researcher disclosure.
+See `docs/M99_TOYCAR_CONDITIONAL.md` for the frozen pilot and engineering evidence.
+
+## M9.10 offline interaction attribution
+
+The exact selection-table contrast decomposes into clean isolated prediction,
+outside-background conditioning correction and within-candidate nonadditive
+correction on the SAME recorded cohort. The background intercept cancels in
+equal-context mask contrasts. All signed effects and candidate interaction
+orders are retained. This is an algebraic decision attribution, not a causal
+claim about architectural redundancy or a new protection optimizer.
+
+Model-selection empirical regret and resampled winner stability remain
+selection-biased diagnostics. They cannot replace independent final mask
+comparisons. Final paired-swap records without complete final subcubes cannot
+identify the same decomposition on final inputs. Field, candidate-pool and
+input-population uncertainty remain distinct. ToyCar file resampling uses
+whole labeled files within class and recomputes AUC for every paired state;
+there is no additive per-file AUC loss or independent score-pair sample size.
+All new mechanism analyses are exploratory, with original comparison-family
+contracts preserved. See `docs/M910_INTERACTION_ATTRIBUTION.md`.
+
+## M11 outside-conditioned scaling
+
+`outside-conditioned-forced-clean/v1` measures h_G(empty) and h_G({b}) while
+every other candidate is forced clean. Its signed marginal is NOT full
+conditional vulnerability with other candidates still subject to Bernoulli
+faults. All outside events are independent Bernoulli on coordinates outside
+the candidate pool and fixed outside protection context. Global mask cardinality
+is invariant. Frozen selected masks are evaluated independently; no final
+optimum is selected. K>12 outputs do not claim an exact optimum or exact regret.
+
+The bounded-risk remainder/regret propositions and their assumptions are in
+`M11_THEORY.md`. Observed curvature bounds apply only to sampled fields, not
+all possible outside faults. Exact enumeration retains all candidate orders.
+Primary sampling is SRS within original S5-status strata, with positive inclusion
+probabilities across all eligible bit/tensor strata; small draws need not cover
+every stratum. Structural bit-tier enrichment is separate and cannot be pooled
+as the same population design. All planned pools, including adverse/null, remain.
+
+Independent seed streams are derived and recorded for each pool/size/BER/phase.
+Field, candidate-pool, input/cohort, mask-selection and approximation uncertainties
+are distinct. ToyCar resampling draws complete files within class and recomputes
+the scalar cohort AUC; windows/pairs are never independent task observations.
+Engineering input identities must already occur in the audited exposure ledger.
+Confirmation plans reject previous fault-outcome exposure; known-root audits
+cannot prove absence of manual/concurrent/out-of-root use. Prior KWS/ResNet/ToyCar
+contracts, source locks and finalized scientific payloads remain unchanged.
