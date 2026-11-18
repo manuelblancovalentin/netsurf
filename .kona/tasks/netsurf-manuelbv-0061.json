@@ -1,0 +1,47 @@
+{
+ "schema": 1,
+ "project": "netsurf",
+ "scope": "manuelbv",
+ "label": "",
+ "title": "Merge the KWS transition-validation branch: campaign schema 1.1.0 stays with the m11 protocol, KWS high-BER format becomes 1.3.0",
+ "summary": "",
+ "notes": "Owner's decision on 2026-11-17 after the comparison in netsurf-manuelbv-0060.",
+ "status": "doing",
+ "priority": "medium",
+ "stage": "",
+ "target": "",
+ "action": "",
+ "lane": "",
+ "milestone": "",
+ "summaryTags": [
+  "repository",
+  "maintenance"
+ ],
+ "timeline": true,
+ "owners": [
+  "manuelbv"
+ ],
+ "agent": "claude",
+ "created": "2026-11-17",
+ "updated": "2026-11-17",
+ "start": "2026-11-17",
+ "end": "",
+ "completed": "",
+ "percent": null,
+ "dependencies": [
+  "netsurf-manuelbv-0060",
+  "netsurf-manuelbv-0033"
+ ],
+ "links": {},
+ "updated_by": "manuelbv",
+ "history": [
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "created",
+   "to": "doing"
+  }
+ ],
+ "number": 61,
+ "id": "netsurf-manuelbv-0061"
+}
