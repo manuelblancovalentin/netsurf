@@ -1,12 +1,14 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0060",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 60,
  "label": "",
  "title": "Repository follow-ups: skip tests without local plans, redact private paths, remove leftovers, push to GitHub",
  "summary": "",
- "notes": "Requested by the owner after the consolidation (netsurf-manuelbv-0059).",
- "status": "doing",
+ "notes": "Done at the owner's request after the consolidation (netsurf-manuelbv-0059). (1) The six W8A8 plan-equivalence tests skip when the frozen v1 plan, an ignored run output, is absent; full suite on v2: 701 passed, 53 skipped, none failed. (2) Machine paths replaced by placeholders in 52 notes (332 paths, plus a login name in five scp examples); four notes left unchanged because their hashes are recorded in tracked manifests; paths in code, configurations and data records are functional or provenance and were not changed; earlier commits still contain the original text because rewriting history would change the commit hashes that run records name. No secret or email address was found in tracked files. (3) Removed the empty second clone after confirming its two task files equal the ones in v2; stopped the idle tmux server in w8a8-ber-stress and the old monitoring shells. (4) Pushed v2 and all 41 tags to both GitHub remotes, and main and the two working Paper 1 branches to the lab remote; all pushes were fast-forwards. Not done: deleting the 35 retired branches on the lab remote was refused by the session's permission system; each is at the same commit as its archive tag there. Open: which protocol keeps campaign schema version 1.1.0 (recommendation given to the owner: the m11 line keeps it, the KWS high-BER request format takes 1.3.0).",
+ "status": "done",
  "priority": "medium",
  "stage": "",
  "target": "",
@@ -26,8 +28,8 @@
  "updated": "2026-11-17",
  "start": "2026-11-17",
  "end": "",
- "completed": "",
- "percent": null,
+ "completed": "2026-11-17",
+ "percent": 100,
  "dependencies": [
   "netsurf-manuelbv-0059"
  ],
@@ -39,8 +41,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "doing"
+  },
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "notes,status,completed,percent",
+   "to": "Done at the owner's request after the consolidation (netsurf"
   }
- ],
- "number": 60,
- "id": "netsurf-manuelbv-0060"
+ ]
 }
