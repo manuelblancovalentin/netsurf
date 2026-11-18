@@ -534,3 +534,19 @@ tags only; keep the retired worktree folders registered (Phase 5 not run).
 
 Branches after execution: `v2`, `master`, `paper1-tecs-revision-v1`,
 `paper1-runR-v2-validated`, `m12-kws-transition-validation`.
+
+### Follow-ups on the same day
+
+- The six tests that read the frozen W8A8 v1 plans now skip when that ignored run
+  output is not in the checkout. Full suite on `v2`: 701 passed, 53 skipped, none failed.
+- Machine paths were replaced by placeholders (`<repo>`, `<assets>`, `<netsurf-env>`,
+  `<home>`) in 52 notes, this one included, so the commands above are templates. Four
+  notes whose hashes are recorded in tracked manifests were left unchanged. Paths in
+  code, configurations and data records were not changed, and earlier commits still
+  contain the original text.
+- The empty second clone `repo.second-clone-20261117/` was removed after checking that
+  its two task files were identical to the ones in `v2`. The idle tmux server in
+  `w8a8-ber-stress` was stopped.
+- Pushed to both GitHub remotes: `v2`, all 41 tags, and on `kona` also `main` (= `v2`)
+  and the two working Paper 1 branches. The 35 retired branches still exist on `kona`;
+  each is at the same commit as its `archive/` tag there, so deleting them loses nothing.
