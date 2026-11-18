@@ -1,0 +1,355 @@
+{
+  "asset_readiness_manifest": {
+    "path": "/projects/kona-assets/manuelbv/NETSURF_ASSET_READINESS.json",
+    "schema": "kona-assets/netsurf-asset-readiness/1",
+    "sha256": "7128399521cef0d3e08f5d70bcb4f5b360fe2c85406c8ea8ac495e85be77b1b0"
+  },
+  "date": "2026-11-03",
+  "entries": [
+    {
+      "asset_record_sha256": "b62355e20a7db105525e05cf703ff61900dec6273f43db6c953588e1abce414d",
+      "asset_status": "READY",
+      "blocker": null,
+      "evidence": [
+        "docs/M97_BENCHMARK_ADAPTER_STATUS.md",
+        "netsurf/benchmarks/capabilities.py"
+      ],
+      "finalized_new_model_result": false,
+      "precision": "INT8",
+      "source_registry_status": "Ready",
+      "status": "READY",
+      "target": "resnet8_int8"
+    },
+    {
+      "asset_record_sha256": "7cca7de37b83958d0032f6404f7cb082b8ab1c8ce1249e85b8228b353f81ff91",
+      "asset_status": "READY",
+      "blocker": null,
+      "evidence": [
+        "docs/M97_BENCHMARK_ADAPTER_STATUS.md",
+        "netsurf/benchmarks/capabilities.py"
+      ],
+      "finalized_new_model_result": false,
+      "precision": "INT8",
+      "source_registry_status": "Ready",
+      "status": "READY",
+      "target": "toycar_int8"
+    },
+    {
+      "asset_record_sha256": "e45f511be0d2dee7e5f52a7acdf1bfa2c9ca6f688e4b637e2674903126610688",
+      "asset_status": "READY",
+      "blocker": null,
+      "evidence": [
+        "docs/M97_BENCHMARK_ADAPTER_STATUS.md",
+        "netsurf/benchmarks/capabilities.py"
+      ],
+      "finalized_new_model_result": false,
+      "precision": "INT8",
+      "source_registry_status": "Ready",
+      "status": "READY",
+      "target": "kws_dscnn_int8"
+    },
+    {
+      "asset_record_sha256": "e5c657458ee7285557ef6cc7d9724bdc1d1eb1d88293d823752ec0f24104dc38",
+      "asset_status": "MISSING_ASSET",
+      "blocker": "Official vw_coco2014_96.tar.gz is not obtainable (HTTP 403, no published checksum); the measured 0.858 on the local images is provisional. COCO-derived labels: person if a person annotation covers at least 2.5 percent of the image, 96x96 antialiased resize, train2014+val2014 combined (Silicon Labs script); COCO images keep their Flickr terms.",
+      "evidence": [
+        "config/benchmark_expansion_registry.json"
+      ],
+      "finalized_new_model_result": false,
+      "precision": "INT8",
+      "source_registry_status": "Asset acquisition required",
+      "status": "BLOCKED",
+      "target": "vww_mobilenetv1_int8"
+    },
+    {
+      "asset_record_sha256": "8bf9a903a7a0c9ef7954c6c06cb02d4cf647064e3e5b7e185df8eee1a629499d",
+      "asset_status": "MISSING_ASSET",
+      "blocker": "MUSAN (about 11 GB) not approved for download; deferred by decision.; Quality target: at most 8 false positives and at most 8 false negatives (rules text at the pinned commit and the public page).",
+      "evidence": [
+        "config/benchmark_expansion_registry.json"
+      ],
+      "finalized_new_model_result": false,
+      "precision": "INT8",
+      "source_registry_status": "Adapter required",
+      "status": "BLOCKED",
+      "target": "streaming_dscnn1d_int8"
+    },
+    {
+      "asset_record_sha256": "d051cf01e3fb7de1a6e1fb9663ce52f7110a580a57b33cdbefb7f7ecb511aca2",
+      "asset_status": "LICENSE_BLOCKED",
+      "blocker": "ILSVRC2012 validation images and labels are gated and not authorised for this server; acquisition stays blocked (no download, no substitute image set, no synthetic images).; Model weights are open (apache-2.0) and can be prepared, about 47 MB; preprocessing transform, class mapping and expected clean quality are to be recorded from the model card at acquisition.",
+      "evidence": [
+        "config/benchmark_expansion_registry.json"
+      ],
+      "finalized_new_model_result": false,
+      "precision": "FP32",
+      "source_registry_status": "Asset acquisition required",
+      "status": "BLOCKED",
+      "target": "resnet18_fp32"
+    },
+    {
+      "asset_record_sha256": "261dca6079de1b6ec29886c773e7ced1d4806d9f70d7247fb30ee8ac14b6e795",
+      "asset_status": "LICENSE_BLOCKED",
+      "blocker": "ILSVRC2012 validation images and labels are gated and not authorised for this server; acquisition stays blocked (no download, no substitute image set, no synthetic images).; Model weights are open (apache-2.0) and can be prepared, about 47 MB; preprocessing transform, class mapping and expected clean quality are to be recorded from the model card at acquisition.; No verified INT8 representation exists. A derived artifact needs an agreed recipe (algorithm, calibration set, scales, zero points, group size, packing, signed encoding) and a measured clean quality before any fault experiment; casting or a convenience quantisation flag does not qualify.",
+      "evidence": [
+        "config/benchmark_expansion_registry.json"
+      ],
+      "finalized_new_model_result": false,
+      "precision": "INT8",
+      "source_registry_status": "Research-stage",
+      "status": "BLOCKED",
+      "target": "resnet18_int8"
+    },
+    {
+      "asset_record_sha256": "d5e7f912002bfea3d507be61442cd49f57168627f1c468fd7ab0eec3a7de1ace",
+      "asset_status": "LICENSE_BLOCKED",
+      "blocker": "ILSVRC2012 validation images and labels are gated and not authorised for this server; acquisition stays blocked (no download, no substitute image set, no synthetic images).; Model weights are open (apache-2.0) and can be prepared, about 10 MB; preprocessing transform, class mapping and expected clean quality are to be recorded from the model card at acquisition.",
+      "evidence": [
+        "config/benchmark_expansion_registry.json"
+      ],
+      "finalized_new_model_result": false,
+      "precision": "FP32",
+      "source_registry_status": "Asset acquisition required",
+      "status": "BLOCKED",
+      "target": "mobilenetv3_small_fp32"
+    },
+    {
+      "asset_record_sha256": "05915973d370c6264f9ffe78f161d9240d57fbdc2e54f8c3d8cfb8f29a08b2fd",
+      "asset_status": "LICENSE_BLOCKED",
+      "blocker": "ILSVRC2012 validation images and labels are gated and not authorised for this server; acquisition stays blocked (no download, no substitute image set, no synthetic images).; Model weights are open (apache-2.0) and can be prepared, about 10 MB; preprocessing transform, class mapping and expected clean quality are to be recorded from the model card at acquisition.; No verified INT8 representation exists. A derived artifact needs an agreed recipe (algorithm, calibration set, scales, zero points, group size, packing, signed encoding) and a measured clean quality before any fault experiment; casting or a convenience quantisation flag does not qualify.",
+      "evidence": [
+        "config/benchmark_expansion_registry.json"
+      ],
+      "finalized_new_model_result": false,
+      "precision": "INT8",
+      "source_registry_status": "Research-stage",
+      "status": "BLOCKED",
+      "target": "mobilenetv3_small_int8"
+    },
+    {
+      "asset_record_sha256": "4c4accf5c875ba23d16e0e6426c616dd13e25990cf37c57c91ea80eccd5ce2e4",
+      "asset_status": "LICENSE_BLOCKED",
+      "blocker": "ILSVRC2012 validation images and labels are gated and not authorised for this server; acquisition stays blocked (no download, no substitute image set, no synthetic images).; Model weights are open (apache-2.0) and can be prepared, about 346 MB; preprocessing transform, class mapping and expected clean quality are to be recorded from the model card at acquisition.",
+      "evidence": [
+        "config/benchmark_expansion_registry.json"
+      ],
+      "finalized_new_model_result": false,
+      "precision": "FP32",
+      "source_registry_status": "Asset acquisition required",
+      "status": "BLOCKED",
+      "target": "vit_base_fp32"
+    },
+    {
+      "asset_record_sha256": "e6033420ec44d4d7064e7e199af2c90074fdb8a54283f8726c774910cfc85868",
+      "asset_status": "LICENSE_BLOCKED",
+      "blocker": "ILSVRC2012 validation images and labels are gated and not authorised for this server; acquisition stays blocked (no download, no substitute image set, no synthetic images).; Model weights are open (apache-2.0) and can be prepared, about 346 MB; preprocessing transform, class mapping and expected clean quality are to be recorded from the model card at acquisition.; No verified INT8 representation exists. A derived artifact needs an agreed recipe (algorithm, calibration set, scales, zero points, group size, packing, signed encoding) and a measured clean quality before any fault experiment; casting or a convenience quantisation flag does not qualify.",
+      "evidence": [
+        "config/benchmark_expansion_registry.json"
+      ],
+      "finalized_new_model_result": false,
+      "precision": "INT8",
+      "source_registry_status": "Research-stage",
+      "status": "BLOCKED",
+      "target": "vit_base_int8"
+    },
+    {
+      "asset_record_sha256": "989fee0624a92f798511a029fc8917744dcb182cb8dd1801640594fc8dc0d504",
+      "asset_status": "READY",
+      "blocker": "Finalized v4 and independent validation-cohort replication cover the same first 32 FP32 classifier weights only; their high-BER allocation direction differs, and the calibration and final cohorts both changed.",
+      "engineering_receipt_manifest_sha256": "842613482ca5056fc5a22bc346068b3c026bd50f83ce7a9f78cf1a5ca2cff4a6",
+      "engineering_source_commit": "ca2bd69e6d57e99e7ab80feaa4384533e5aad66e",
+      "evidence": [
+        "workspace/runs/distilbert_sst2_fp32_conformance_v3/FINALIZED",
+        "workspace/runs/distilbert_sst2_fp32_conformance_v3/manifest.json",
+        "config/experiments/distilbert_sst2_classifier1024_v4.json",
+        "workspace/plans/distilbert_sst2_classifier1024_v4/NETSURF_ASSET_READINESS.json",
+        "docs/TRANSFORMER_BENCHMARK_PROTOCOL.md",
+        "workspace/runs/distilbert_sst2_classifier1024_v4_run1/selection/seal.json",
+        "workspace/runs/distilbert_sst2_classifier1024_v4_run1/analysis.json",
+        "workspace/runs/distilbert_sst2_classifier1024_v4_run1_export/complete.zip",
+        "config/experiments/distilbert_sst2_validation_replication_v1.json",
+        "docs/DISTILBERT_V4_RETROSPECTIVE_AUDIT.md",
+        "workspace/runs/distilbert_sst2_validation_replication_v1_run1/selection/seal.json",
+        "workspace/runs/distilbert_sst2_validation_replication_v1_run1/analysis.json",
+        "workspace/runs/distilbert_sst2_validation_replication_v1_run1_export/complete.zip",
+        "docs/DISTILBERT_VALIDATION_REPLICATION_EVIDENCE.md"
+      ],
+      "finalized_analysis_sha256": "5fdd2bf99543190d947b099cc607fc016fb6cc35a9e100dc9d237e90e8bb9707",
+      "finalized_complete_zip_sha256": "9df099fa58b125315aa68ec528cb3ee71bbe00c7f7c33744e3f1f274849259a4",
+      "finalized_new_model_result": true,
+      "frozen_plan_object_sha256": "735ad6e8531628059bf891075e37885026b220a586bc2d0dc640e507238dc7d7",
+      "frozen_plan_sha256": "989363ec2af12ab4ccbc8344e0685e3512759fdd6f6469f65bde8e6e5d87989c",
+      "precision": "FP32",
+      "ready_consumer_record_sha256": "23b96d38a0670a52e0eb82bbbd41577b549feb1a247691d11ada73a64d3abf87",
+      "replication_analysis_sha256": "154b002eb9e99febcd522f14290f9be5b171411e63f1486b4aa6bde89c2bf989",
+      "replication_complete_zip_sha256": "fbb13e175c0cbd8e83b76a6207463ad21d2beece92d5a2fd5aa5890bd4f423ea",
+      "replication_plan_object_sha256": "a07ebf6849203e56613a11166f1ba651175da9814d2df594500dd41017d1bbc6",
+      "replication_selection_seal_sha256": "2f4c890f9b87557066824e2f4a4a092ca0eb5e9a61fb841fad962ab3c52c4fd1",
+      "source_registry_status": "Asset acquisition required",
+      "status": "FINALIZED",
+      "target": "distilbert_sst2_fp32"
+    },
+    {
+      "asset_record_sha256": "e6d03c3bce030b060badb6d4e44e93008176848361e551e265f2c02b6ea06c68",
+      "asset_status": "READY",
+      "blocker": null,
+      "eligible_bits": 344469504,
+      "evidence": [
+        "docs/W8A8_RELIABILITY_PROTOCOL.md",
+        "workspace/runs/distilbert_sst2_w8a8_fault_smoke_v2/receipt.json"
+      ],
+      "finalized_new_model_result": false,
+      "precision": "INT8",
+      "source_registry_status": "Research-stage",
+      "status": "READY",
+      "target": "distilbert_sst2_int8",
+      "targeted_scope": "whole declared INT8 qweight universe; bounded paired engineering gate passed; production masks and fields unrun"
+    },
+    {
+      "asset_record_sha256": "67a92f95e32e8b29dbd3ee8a0f4f868a250b1833f10f693c9a0d2d60fe250bd3",
+      "asset_status": "READY",
+      "blocker": "Targeted 96-bit selection/final plan is frozen and validated but unrun; full-model BER/budget study still needs scalable protection allocation.",
+      "engineering_smoke_payload_sha256": "13fc5782437fbcdcda19bb9c3c4a9f2d4ba2bf5c523a779c772f1610cfe8f07c",
+      "evidence": [
+        "netsurf/storage_bit_codec.py",
+        "netsurf/adapters/transformers_pinned.py",
+        "tests/test_transformer_storage.py",
+        "workspace/runs/pythia160m_fp32stored_fp32compute_fault_smoke_v1/FINALIZED",
+        "workspace/runs/pythia160m_bf16stored_fp32compute_fault_smoke_v1/FINALIZED",
+        "docs/TRANSFORMER_LM_ENGINEERING_EVIDENCE.md",
+        "config/experiments/pythia160m_fp32_targeted96_v1.json",
+        "config/experiments/pythia160m_bf16fp32_targeted96_v1.json",
+        "docs/TRANSFORMER_LM_TARGETED96_PROTOCOL.md",
+        "scripts/run_transformer_lm_campaign_once.sh",
+        "workspace/runs/pythia160m_fp32_targeted96_v1_run1/selection/seal.json",
+        "workspace/runs/pythia160m_fp32_targeted96_v1_run1/analysis.json",
+        "workspace/runs/pythia160m_fp32_targeted96_v1_run1_export/complete.zip",
+        "workspace/runs/pythia160m_bf16fp32_targeted96_v1_run1/selection/seal.json",
+        "workspace/runs/pythia160m_bf16fp32_targeted96_v1_run1/analysis.json",
+        "workspace/runs/pythia160m_bf16fp32_targeted96_v1_run1_export/complete.zip",
+        "docs/TRANSFORMER_MANUSCRIPT_INTEGRATION.md"
+      ],
+      "finalized_new_model_result": true,
+      "finalized_targeted96_analysis_sha256": {
+        "pythia160m_bf16fp32_targeted96_v1": "e5acd88b140e121c79c1c2327e8e6da014aa5df2ecdbb7d7d694fee942edc93e",
+        "pythia160m_fp32_targeted96_v1": "1baa55a33d3027b67b8eb1c3774630cdc19d918865e0b0903559fd4f31c2ab03"
+      },
+      "finalized_targeted96_complete_zip_sha256": {
+        "pythia160m_bf16fp32_targeted96_v1": "a51fe02c0ea903ff44b97ef846ab246e9ea20cd8867c1662fd9c4ddcad903345",
+        "pythia160m_fp32_targeted96_v1": "a1bde2b1a68df8c15607eb04a9c05b715b1009ee6d399301031cb5211c829b91"
+      },
+      "frozen_targeted96_plan_object_sha256": {
+        "pythia160m_bf16stored_fp32compute": "9d20067254f632cf5f93650a1980c6755847fa241be56e8e19a45975b6ae6043",
+        "pythia160m_fp32stored_fp32compute": "cba91a5295ca2505ed0804ea0664f7f6f09a20db16be8259b9fff93722d798bf"
+      },
+      "frozen_targeted96_source_commit": "d8d3ba1",
+      "precision": "BF16",
+      "ready_consumer_record_sha256": "4e2207e2a8dd91619635e2198a0af514b35e08497392f7df0324098b71cd0ec5",
+      "runtime_configuration_record_sha256": {
+        "pythia160m_bf16stored_bf16compute": "b6853de4d79891989e18562df8e75fe945ea8b7746a4f7355a49f0da41ad1ba7",
+        "pythia160m_bf16stored_fp32compute": "04e7713a3f3ce2a4d74e8309b967b7ff9aa3c0e6e10a1b16e89f796672622d8a",
+        "pythia160m_fp32stored_fp32compute": "b0c10ce641fb0ec83a02c0e8af7923e8263876374f2d236b44bb918cd29ece99"
+      },
+      "runtime_configurations": [
+        "pythia160m_fp32stored_fp32compute",
+        "pythia160m_bf16stored_fp32compute"
+      ],
+      "source_registry_status": "Research-stage",
+      "status": "FINALIZED",
+      "target": "pythia160m_bf16",
+      "targeted_scope": "96 bits from 32 presampled verified linear-weight words; 64 paired final fields finalized; exploratory restricted-support result; no full-model reliability claim"
+    },
+    {
+      "asset_record_sha256": "85e7135f695a42a24669afe12483fa72ca97f4158b1e593074f470e712580723",
+      "asset_status": "READY",
+      "blocker": null,
+      "eligible_bits": 988545024,
+      "evidence": [
+        "docs/W8A8_RELIABILITY_PROTOCOL.md",
+        "workspace/runs/pythia160m_w8a8_fault_smoke_v2/receipt.json"
+      ],
+      "finalized_new_model_result": false,
+      "precision": "INT8",
+      "source_registry_status": "Research-stage",
+      "status": "READY",
+      "target": "pythia160m_int8",
+      "targeted_scope": "whole declared INT8 qweight universe; bounded paired engineering gate passed; production masks and fields unrun"
+    },
+    {
+      "asset_record_sha256": "f65a3e1b5ae617f9a78310d61c32e29edea9ab8f5f8fde649d657c0212faf3f0",
+      "asset_status": "READY",
+      "blocker": "Targeted 96-bit selection/final plan is frozen and validated but unrun; full-model BER/budget study still needs scalable protection allocation.",
+      "engineering_smoke_payload_sha256": "d29bbea1dc2b99c35cca9429981219ea4244b223f385bfc5901b1e2d9e21d446",
+      "evidence": [
+        "netsurf/storage_bit_codec.py",
+        "netsurf/adapters/transformers_pinned.py",
+        "tests/test_transformer_storage.py",
+        "workspace/runs/qwen3_0_6b_bf16_fault_smoke_v1/FINALIZED",
+        "docs/TRANSFORMER_LM_ENGINEERING_EVIDENCE.md",
+        "config/experiments/qwen3_0_6b_bf16_targeted96_v1.json",
+        "docs/TRANSFORMER_LM_TARGETED96_PROTOCOL.md",
+        "scripts/run_transformer_lm_campaign_once.sh",
+        "workspace/runs/qwen3_0_6b_bf16_targeted96_v1_run1/selection/seal.json",
+        "workspace/runs/qwen3_0_6b_bf16_targeted96_v1_run1/analysis.json",
+        "workspace/runs/qwen3_0_6b_bf16_targeted96_v1_run1_export/complete.zip",
+        "docs/TRANSFORMER_MANUSCRIPT_INTEGRATION.md"
+      ],
+      "finalized_new_model_result": true,
+      "finalized_targeted96_analysis_sha256": {
+        "qwen3_0_6b_bf16_targeted96_v1": "0438ab5e1e1f5d7cba72a16548bd5b98f4611c657a574bc4f599f71e0e4103f9"
+      },
+      "finalized_targeted96_complete_zip_sha256": {
+        "qwen3_0_6b_bf16_targeted96_v1": "5fa889ae32e7fc20132ea09f90476b3f672ca4006406d0e09dcef5c43c2abb62"
+      },
+      "frozen_targeted96_plan_object_sha256": {
+        "qwen3_0_6b_bf16": "f41e841bed8510a55378c3a3b738d1b221c1752f2ae2eb69197bab6bc6392573"
+      },
+      "frozen_targeted96_source_commit": "d8d3ba1",
+      "precision": "BF16",
+      "ready_consumer_record_sha256": "1e8448bb03baf060f1a8c403584d3b5edd91dad1d5c449a3a4ea68e627381106",
+      "source_registry_status": "Asset acquisition required",
+      "status": "FINALIZED",
+      "target": "qwen3_0_6b_bf16",
+      "targeted_scope": "96 bits from 32 presampled verified linear-weight words; 64 paired final fields finalized; exploratory restricted-support result; no full-model reliability claim"
+    },
+    {
+      "asset_record_sha256": "c9bc0733982117e9ace2fab0403d3ae0458b7ae2c3e210f3590494187289bd88",
+      "asset_status": "READY",
+      "blocker": null,
+      "eligible_bits": 4767875072,
+      "evidence": [
+        "docs/W8A8_RELIABILITY_PROTOCOL.md",
+        "workspace/runs/qwen3_0_6b_w8a8_fault_smoke_v2/receipt.json"
+      ],
+      "finalized_new_model_result": false,
+      "precision": "INT8",
+      "source_registry_status": "Research-stage",
+      "status": "READY",
+      "target": "qwen3_0_6b_int8",
+      "targeted_scope": "whole declared INT8 qweight universe; bounded paired engineering gate passed; production masks and fields unrun"
+    },
+    {
+      "asset_record_sha256": "4d611759a5f0f9225ebe2f821b1c29184bd4ea6f9e9376a3623190394d1dd1d2",
+      "asset_status": "BACKEND_BLOCKED",
+      "blocker": "No verified INT4 representation exists. A derived artifact needs an agreed recipe (algorithm, calibration set, scales, zero points, group size, packing, signed encoding) and a measured clean quality before any fault experiment; casting or a convenience quantisation flag does not qualify.; NF4, GPTQ, AWQ and plain signed INT4 are different formats; the target format must be chosen by NetSuRF before an artifact is built.",
+      "evidence": [
+        "config/benchmark_expansion_registry.json"
+      ],
+      "finalized_new_model_result": false,
+      "precision": "INT4",
+      "source_registry_status": "Research-stage",
+      "status": "BLOCKED",
+      "target": "qwen3_0_6b_int4"
+    }
+  ],
+  "schema_version": "transformer-target-status/v1",
+  "source_registry_sha256": "289471536a49d87e6055d25c0deaed98b616132650a397c0c80d614d145339dc",
+  "status_meanings": {
+    "BLOCKED": "required asset, precision or backend contract absent",
+    "FINALIZED": "checksum-verified final task-level protection campaign; scope remains as declared in its frozen plan",
+    "FROZEN_FOR_RUN": "asset, source, cohort and scientific plan hashes sealed",
+    "IMPLEMENTING": "source and fixture work underway; asset/backend smoke incomplete",
+    "READY": "pinned asset and real-model fault backend passed engineering gate; effectiveness campaign may still be absent",
+    "RUNNING": "frozen foreground run in progress"
+  }
+}

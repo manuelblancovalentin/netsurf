@@ -30,8 +30,8 @@ class FaultModel:
             raise ValueError(f"unsupported target: {self.target}")
         if self.persistence not in {"per_inference", "persistent_trial", "bounded_activation"}:
             raise ValueError(f"unsupported persistence: {self.persistence}")
-        if self.distribution != "independent_bernoulli":
-            raise ValueError("v2 foundation currently supports independent_bernoulli only")
+        if self.distribution not in {"independent_bernoulli", "forced_engineering"}:
+            raise ValueError("unsupported logical fault distribution")
         if not 0.0 <= self.probability <= 1.0:
             raise ValueError("probability must be in [0, 1]")
 
@@ -63,6 +63,8 @@ class FaultSchedule:
         seed: int,
         inference_count: int,
     ) -> "FaultSchedule":
+        if model.distribution != "independent_bernoulli":
+            raise ValueError("forced engineering events cannot be sampled as Bernoulli fields")
         if inference_count <= 0:
             raise ValueError("inference_count must be positive")
         generator = np.random.default_rng(int(seed))
