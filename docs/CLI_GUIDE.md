@@ -1,0 +1,221 @@
+# Command-line guide
+
+Moved from the top-level README on 2026-11-17. It lists the `netsurf` commands by the milestone that introduced them.
+
+## Self-service experiments
+
+The CLI, Python API, and notebook-style tutorial all use the same engine:
+
+```bash
+netsurf doctor
+netsurf benchmarks list
+netsurf benchmarks info numpy_reference
+netsurf benchmarks info mnist_quantized
+netsurf benchmarks info mnist_lite_exact_kb_v1
+netsurf benchmarks identity mnist_lite_exact_kb_v1
+netsurf benchmarks info mlperf_tiny_ic_resnet8_int8_v1
+netsurf benchmarks identity mlperf_tiny_ic_resnet8_int8_v1
+
+netsurf validate config/experiments/numpy_reference.toml --resolved
+netsurf run config/experiments/numpy_reference.toml
+
+# One-time bounded preparation; refuses to overwrite an existing checkpoint.
+netsurf benchmarks prepare mnist_quantized --epochs 3 --train-samples 20000
+
+netsurf validate config/experiments/mnist_msb.toml
+netsurf run config/experiments/mnist_msb.toml
+netsurf run config/experiments/mnist_ranker_comparison.toml
+
+# M3: exact isolated-bit reference and composable ranking policies.
+netsurf run config/experiments/numpy_single_bit.toml
+netsurf run config/experiments/mnist_single_bit.toml
+netsurf run config/experiments/mnist_msb_policies.toml
+
+# Larger researcher-run M3 protocols (bounded, but not smoke tests).
+netsurf run config/experiments/mnist_estimator_comparison.toml
+netsurf run config/experiments/mnist_multi_coverage.toml
+
+# M3.1: cancellation control, uniform sampling, independent replications,
+# and a multi-coverage/multi-logical-BER protection design.
+netsurf run config/experiments/numpy_qpolar_cancellation.toml
+netsurf run config/experiments/mnist_estimator_uniform.toml
+netsurf run config/experiments/mnist_estimator_replicated.toml
+netsurf run config/experiments/mnist_multi_coverage_ber.toml
+
+# M4.3: exact mask-aware screening reference and bounded MNIST diagnostics.
+netsurf run config/experiments/numpy_conditional_screening_exact.toml
+netsurf run config/experiments/mnist_factorized_aggregate_validation.toml
+netsurf run config/experiments/mnist_conditional_screening_smoke.toml
+netsurf validate config/experiments/mnist_conditional_screening_research.toml --resolved
+
+# Use the run directory printed by either command.
+netsurf inspect workspace/runs/<experiment>/<run-id>
+netsurf report workspace/runs/<experiment>/<run-id> --plots
+```
+
+The recovered MNIST-lite exact-kernel/bias benchmark is a separate v2 identity,
+not a manuscript reproduction. Its accepted population, full-test evidence,
+configuration fields, and the blocked keyword-spotting/autoencoder candidates
+are documented in `docs/BENCHMARK_EXPANSION.md`. This gate intentionally does
+not add a maintained research TOML.
+
+`netsurf run` displays live progress automatically when stderr is an
+interactive terminal. Progress is written to stderr so the final JSON result
+on stdout remains script-friendly. Use `--progress` to force occasional plain
+lines when redirected, or `--no-progress` to disable presentation entirely:
+
+```bash
+netsurf run config/experiments/mnist_policy_ber_replication_v1.toml
+netsurf run config/experiments/mnist_policy_ber_replication_v1.toml --no-progress
+netsurf run config/experiments/mnist_policy_ber_replication_v1.toml --progress 2>progress.log
+netsurf validate config/experiments/mnist_policy_ber_wide_v1.toml
+netsurf run config/experiments/mnist_policy_ber_wide_v1.toml
+```
+
+Run an existing suite with one persistent queue display. The default remains
+sequential; independent configurations can opt into spawned workers:
+
+```bash
+netsurf batch \
+  config/experiments/numpy_reference.toml \
+  config/experiments/numpy_single_bit.toml \
+  config/experiments/numpy_conditional_screening_exact.toml
+
+# Line-oriented redirected progress, or no presentation output:
+netsurf batch config/experiments/first.toml config/experiments/second.toml --progress 2>progress.log
+netsurf batch config/experiments/first.toml config/experiments/second.toml --no-progress
+netsurf batch config/experiments/first.toml config/experiments/second.toml --workers 2 --threads-per-worker 2
+```
+
+Batch execution validates the supplied files, processes them sequentially by
+default or as independent whole configurations when `--workers` is greater
+than one,
+continues after expected configuration or experiment failures, and returns exit
+status `2` if any experiment failed. Its stdout is one machine-readable JSON
+summary; progress and the concise completion summary remain on stderr.
+
+Replicated schema-3 studies and schema-4 BER/budget/search-replication units
+can also run in parallel without changing their scientific task identities:
+
+```bash
+netsurf run config/experiments/study.toml --workers 8 --threads-per-worker 1
+```
+
+See `docs/PARALLEL_EXECUTION.md` for safe boundaries and sizing guidance.
+
+The Rich display uses one coordinated Live renderer. A persistent queue table
+keeps completed, running, pending, and failed experiments visible while a
+detail panel shows the current stage, grouped BER/budget/replication/method
+condition, measured work, elapsed time, and phase-aware experiment and queue
+ETAs. The queue's `Runtime` column retains each completed or failed
+experiment's wall time and shows live elapsed time for the running experiment.
+It adapts to terminal width, including interactive `tmux -CC` sessions.
+The counter advances
+only after declared operations actually complete. Shared
+fault schedules are counted once, while every model evaluation under a control
+or protection mask is counted separately. Setup, estimator, empirical-bit,
+statistical, and bundle stages are also explicit. ETA remains `Estimating...`
+until enough remaining work has a measured rate and changes to `Completed in
+MM:SS` at completion. Progress timing is never serialized into the scientific
+payload. If Rich is unavailable, NetSuRF retains compact plain output; the
+environment owner can install it with `python -m pip install 'rich>=13,<16'`.
+
+The preparation step trains `Flatten(28x28) -> Dense(32, ReLU) -> Dense(10)`
+and writes an exact `q<6,2,1>` checkpoint under
+`workspace/benchmarks/mnist_quantized/`. Experiments never retrain it. Kernels
+and biases are the injectable population: 25,450 scalars and 152,700 logical
+bits. MSB-first, seeded random, and first-order
+`abs(dL/dw * exact_bit_delta)` rankers are available independently or together.
+
+Schema-5 structured pruning physically removes complete hidden-neuron
+dependency groups and writes new immutable checkpoints under `workspace/`.
+Validate, prepare, and verify a researcher-authored configuration with
+`netsurf pruning validate`, `netsurf pruning run`, and
+`netsurf pruning inspect`; see `docs/PRUNING.md`. No M5 research campaign is
+started automatically.
+M3 additionally separates raw estimators, composable lexicographic ordering,
+and budget selection; records disjoint ranking, empirical-validation, and final
+evaluation samples; and supports exact isolated-bit damage, seeded Hutchinson
+diagonal curvature, per-example first order, and three explicitly versioned
+historical/qPolarGrad research variants.
+Schema 3.1 additionally provides uniform candidate sampling, the separately
+versioned positive per-example score, independent replication controls,
+multiple Hutchinson probe-count aliases, and multiple logical-BER conditions.
+
+Schema 4 adds fixed-budget conditional protection search for the two explicit
+Dense→ReLU→Dense adapters. Existing M3 rankings can initialize masks and form
+rank-mixture proposal priors. Uniform, static-guided, polar-guided,
+conditional-greedy, and simulated-annealing searches use exact matched
+three-state swap evaluations; independent held-out fault states are shared by
+all final masks. The polar score is proposal guidance only.
+
+Schema 4.3 adds reusable common-background conditional marginals, saved paired
+candidate contributions, exact shortlist verification, and dynamic full-
+vulnerable-population conventional/stratified Kronecker aggregates. Candidate-
+pool aggregation is an explicit restricted control. Aggregate and polar scores
+remain proposal diagnostics; only exact three-state conditional evaluation can
+accept a swap. See `docs/M4_3_AUDIT.md` for the 25%-coverage sparse-guidance
+diagnosis and non-overlapping timing semantics.
+
+```bash
+netsurf validate config/experiments/numpy_pgcs_exact.toml
+netsurf run config/experiments/numpy_pgcs_exact.toml
+netsurf run config/experiments/mnist_incremental_validation.toml
+# Researcher-sized studies; inspect their budgets before launching:
+netsurf run config/experiments/mnist_static_guided_search.toml
+netsurf run config/experiments/mnist_polar_guided_search.toml
+```
+
+NetSuRF's lazy TensorFlow import suppresses TensorFlow 2.21's native pre-absl
+CPU/GPU discovery chatter by default. Set `NETSURF_TF_IMPORT_QUIET=0` to expose
+it when debugging, and optionally set `NETSURF_TF_CPP_MIN_LOG_LEVEL` to choose
+TensorFlow's normal C++ log threshold. This affects console presentation only;
+it does not enable a GPU, change inference, or suppress Python exceptions.
+
+For generic schema-1 template operations retained from M1.5:
+
+```bash
+netsurf --help
+netsurf init-experiment --template smoke --output workspace/scratch/my_experiment.toml
+netsurf validate config/experiments/template.toml --resolved
+```
+
+Finalized bundles are immutable and contain configuration, provenance,
+measurements, exact masks and schedules, checksums, a Markdown report, and
+supported plots. `tutorials/read_result.py` demonstrates the public Python API;
+report regeneration does not import TensorFlow or rerun inference. These are
+logical weight-bit experiments with ideal event suppression, not calibrated
+physical SEU models or synthesized mitigation. See `docs/REPRODUCIBILITY.md`
+for bounded commands and expected digests.
+
+
+Schema 4.1 adds independent conditional-risk evaluation for closely related
+final masks. Begin with
+`config/experiments/numpy_pgcs_conditional_validation.toml`; matched MNIST
+smoke and research configurations reuse the existing prepared checkpoint.
+### MLPerf Tiny INT8 static estimators (M9)
+
+The pinned ResNet-8 adapter supports kernel-only MSB, exact numerical jump,
+global gradient-times-delta, per-example absolute and per-example positive
+rankings through an explicitly labeled straight-through companion. Exact
+TFLite 2.14.1 `BUILTIN_REF` inference remains authoritative. See
+`docs/MLPERF_TINY_M9_STATIC_ESTIMATORS.md` and the two maintained
+`m9_resnet8_static_*_v1.toml` configurations before running them.
+
+### Complete-file ToyCar conditional protection (M9.9)
+
+ToyCar conditional studies use schema 6.8 / campaign 1.2 and optimize
+`1 - file_ROC_AUC`, not reconstruction MSE. See
+[the M99 protocol and foreground commands](docs/M99_TOYCAR_CONDITIONAL.md)
+before freezing a campaign. Selection and final file cohorts must be disjoint,
+both-class and exposure-audited; all masks are sealed before final evaluation.
+No production campaign is launched automatically.
+
+### Offline interaction attribution (M9.10)
+
+The separate `m910-interaction-attribution` worktree analyzes finalized KWS,
+ResNet-8 and ToyCar exact response tables without inference. See
+[the M910 evidence report](docs/M910_INTERACTION_ATTRIBUTION.md) for the
+hash-pinned source inventory, signed decomposition, uncertainty limitations,
+all-pool figures and reproduction commands. New derived outputs never replace
+historical bundles.

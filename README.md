@@ -1,48 +1,108 @@
 # NetSuRF
 
-NetSuRF is a research framework for deterministic neural-network bit-fault
-susceptibility experiments and resource-aware protection studies. The
-canonical `netsurf` package is the reconstructed, side-effect-free v2 core.
-The recovered 2025 implementation and its notebooks are preserved under
-`DEPRECATED/` and are evidence, not the current scientific specification.
+NetSuRF is a research framework for studying which stored weight bits of a quantized
+neural network are worth protecting against bit flips. It freezes a model, builds
+protection choices from calibration data, injects exact bit faults into the stored
+INT8 weights, and compares the choices on the same random faults, in the task metric.
 
-The isolated M9.6 implementation adds a frozen, probability-sampled KWS
-cross-pool campaign interface (`python -m netsurf campaign --help`). The full
-study remains researcher-run: see [protocol and commands](docs/M96_CROSS_POOL_PROTOCOL.md).
-The [audited benchmark roadmap](docs/BENCHMARK_EXPANSION_ROADMAP.md) distinguishes
-verified static adapters from conditional-protocol, data and precision blockers.
+This repository holds the framework (`netsurf/`), the experiment scripts
+(`workflows/`), and the manuscript *A Bit More Than Noise: Statistical Fault Analysis
+for Budgeted Protection in Quantized Neural Networks* with its figures, data tables
+and frozen analysis plans (`publications/paper1_review/`).
 
-M9.7-A adds [validated FKeras scoring variants and bounded KWS examples](docs/M97_FKERAS_REPRODUCTION.md),
-plus [explicit capabilities for all 18 portfolio targets](docs/M97_BENCHMARK_ADAPTER_STATUS.md).
-Inspect with `python -m netsurf benchmarks capabilities`; run exact-bit probes
-only with the pinned interpreter documented there. Streaming DS-CNN has a verified
-short-fixture probe, not a full publication-study adapter. No large-model precision
-or Hessian capability is inferred from a registry entry.
+## Main results
 
-## Kona setup
+All numbers are from the manuscript (draft v33, tag `paper1/delivery-v33`), on 24
+trained INT8 models of nine architectures, from a 4,000-weight MLP to the
+0.6-billion-parameter Qwen3. Every stored bit can fail, including the redundant
+copies and check bits of the protection itself.
 
-M11 adds a separate [conditional-scaling measurement protocol](docs/M11_THEORY.md)
-and [execution/evidence guide](docs/M11_RESULTS_AND_LIMITATIONS.md).
-`python -m netsurf scaling --help` exposes metadata-only freeze, selection,
-all-selection sealing, independent final comparisons and offline analysis.
-It measures K+1 candidate-forced-clean responses per outside field; it is not
-an adaptive optimizer or a claim of full conditional influence. Exact K<=12
-audits remain available. Research sweeps are never launched automatically.
+![Accuracy against the share of triplicated bits on eight models](publications/paper1_review/figures/fig_headline.png)
 
-The private `proj` project is named `netsurf` and points to this repository and
-the Python 3.11 environment at
-`/mnt/raid0/ml/conda_envs/manuelbv/envs/netsurf`.
+**1. Ranking bits by the size of their gradient effect protects better than ranking by
+bit position.** Triplicating the bits with the largest per-example gradient effect
+was compared with triplicating by bit position (MSB-first, as FORTUNE does for the
+sign bit) and by the Hessian order of FKeras. Wherever a model was still usable it
+was significantly better in 222 of the 859 conditions tested and significantly worse
+in none, by up to 21 accuracy points on ResNet-8.
+
+**2. A simple statistical model predicts what many simultaneous faults do.** The
+faults that a protection choice leaves can be replaced by Gaussian noise on each
+weight, with the exact mean and variance of its unprotected low bits, plus individual
+flips of the two highest bits. With nothing fitted, this model reproduced measured
+accuracy within 0.08 to 0.50 points on average on each of 18 models it was not
+developed on, and picked the better of two protection choices in 437 of 443 cases.
+
+![Predicted against measured accuracy](publications/paper1_review/figures/fig_model_check.png)
+
+**3. No fixed ranking is always best.** Rankings that also use the direction of a
+flip help ResNet-8 when faults are rare, hurt when they are frequent, and leave two
+of three language models worse than with no protection. On ResNet-8 the fault rate at
+which the preference switches is predicted from calibration data before any fault is
+injected; the measured preference agreed in 515 of 519 conditions away from the switch.
+
+**4. The best protection mechanism depends on the model.** At similar storage cost,
+triplicating ranked bits tolerates a higher fault rate than a SEC-DED code on 8 of
+the 24 models, the code on 2, and they tie on 14. Checksum-based correction (ABFT) and
+sign-bit triplication were never the best choice.
+
+![Highest tolerated fault rate per model and mechanism](publications/paper1_review/figures/fig_mechanism_map.png)
+
+### What these results are not
+
+- The study is software-only. Protection cost is counted in stored bits; voters,
+  encoders, decoders, area and power are not priced.
+- The bit-error probability is a model parameter. It is not a measured radiation
+  upset rate.
+- Detection is not correction, and a synthesis result is not fabricated silicon.
+- The statistical model was checked on 18 small models, not on the language models,
+  and against measurements that already existed when its pass criteria were written.
+- The model matches the mean and variance of the low-bit disturbance; it has its
+  shape only when faults are frequent (see Appendix E of the manuscript).
+
+| Model family | Models | Stored weight bits | Task |
+|---|---|---|---|
+| Jet-tagging MLP | 5 | 34,048 | jet classification |
+| MNIST MLP | 4 | 203,264 | digit classification |
+| DS-CNN (MLPerf Tiny) | 1 | 176,128 | keyword spotting |
+| ResNet-8 (MLPerf Tiny) | 9 | 618,880 | CIFAR-10 |
+| VWW MobileNet (MLPerf Tiny) | 1 | 1,664,896 | visual wake words |
+| ToyCar autoencoder (MLPerf Tiny) | 1 | 2,113,536 | anomaly detection |
+| DistilBERT | 1 | 344,469,504 | SST-2 sentiment |
+| Pythia-160M | 1 | 988,545,024 | WikiText-2 language modelling |
+| Qwen3-0.6B | 1 | 4,767,875,072 | WikiText-2 language modelling |
+
+## Where things are
+
+| Path | Contents |
+|---|---|
+| `netsurf/` | The framework: exact bit identities and faults, rankings, protection mechanisms (`nonideal_protection.py`, `protection_analytic.py`), the statistical model's moments (`event_background.py`, `mean_variance.py`), benchmark adapters. Importing it has no side effects. |
+| `workflows/` | Scripts that ran the experiments and analyses of the manuscript (`runT_*.py` is the main comparison). |
+| `tests/` | Deterministic regression tests. |
+| `publications/paper1_review/` | Manuscript source (`source/`), figures, the data tables behind them (`data/`), figure scripts (`scripts/`), and the plans that were fixed before each study (`review/`). |
+| `config/` | Experiment configurations and asset registries. |
+| `docs/` | Scientific contracts, milestone audits, protocols, and the [command-line guide](docs/CLI_GUIDE.md). |
+| `tutorials/` | Maintained examples. |
+| `DEPRECATED/` | The recovered 2025 implementation and notebooks. They are evidence, not the current specification; see `docs/LEGACY_MAPPING.md` before using them. |
+| `workspace/` | Run outputs, caches and checkouts. Ignored by git. |
+
+## Setup and tests
+
+NetSuRF needs Python 3.11. The validated package versions are listed in
+`dependencies/modern-ml-direct.txt`; `dependencies/MODERN_ML.md` explains the setup
+and its acceptance checks.
 
 ```bash
-proj activate netsurf
 python -m pip install --no-deps -e .
-python -m tests.run
 ```
 
-The validated modern stack is recorded in `dependencies/modern-ml-direct.txt`;
-see `dependencies/MODERN_ML.md` for setup without `proj`, compatibility notes,
-and acceptance checks. Historical compatibility remains documented separately
-in `dependencies/LEGACY_MNIST.md` and is not required by the new benchmarks.
+```bash
+python -m pytest -q
+```
+
+The TFLite experiments of the manuscript use the TensorFlow Lite 2.14.1 reference
+kernels, in a separate environment from the framework's default one; the versions are
+in `publications/paper1_review/review/COMPUTE_ENVIRONMENT.md`.
 
 ## Storage configuration
 
@@ -58,234 +118,49 @@ ignored repository workspace. The Kona defaults are:
 Override these environment variables on another system. A reference layout is
 provided in `config/storage.example.toml`.
 
-## Self-service modern experiments
+## Running experiments
 
-The CLI, Python API, and notebook-style tutorial all use the same engine:
+The command-line interface, the Python API and the tutorial share one engine:
 
 ```bash
 netsurf doctor
+```
+
+```bash
 netsurf benchmarks list
-netsurf benchmarks info numpy_reference
-netsurf benchmarks info mnist_quantized
-netsurf benchmarks info mnist_lite_exact_kb_v1
-netsurf benchmarks identity mnist_lite_exact_kb_v1
-netsurf benchmarks info mlperf_tiny_ic_resnet8_int8_v1
-netsurf benchmarks identity mlperf_tiny_ic_resnet8_int8_v1
+```
 
-netsurf validate config/experiments/numpy_reference.toml --resolved
+```bash
 netsurf run config/experiments/numpy_reference.toml
-
-# One-time bounded preparation; refuses to overwrite an existing checkpoint.
-netsurf benchmarks prepare mnist_quantized --epochs 3 --train-samples 20000
-
-netsurf validate config/experiments/mnist_msb.toml
-netsurf run config/experiments/mnist_msb.toml
-netsurf run config/experiments/mnist_ranker_comparison.toml
-
-# M3: exact isolated-bit reference and composable ranking policies.
-netsurf run config/experiments/numpy_single_bit.toml
-netsurf run config/experiments/mnist_single_bit.toml
-netsurf run config/experiments/mnist_msb_policies.toml
-
-# Larger researcher-run M3 protocols (bounded, but not smoke tests).
-netsurf run config/experiments/mnist_estimator_comparison.toml
-netsurf run config/experiments/mnist_multi_coverage.toml
-
-# M3.1: cancellation control, uniform sampling, independent replications,
-# and a multi-coverage/multi-logical-BER protection design.
-netsurf run config/experiments/numpy_qpolar_cancellation.toml
-netsurf run config/experiments/mnist_estimator_uniform.toml
-netsurf run config/experiments/mnist_estimator_replicated.toml
-netsurf run config/experiments/mnist_multi_coverage_ber.toml
-
-# M4.3: exact mask-aware screening reference and bounded MNIST diagnostics.
-netsurf run config/experiments/numpy_conditional_screening_exact.toml
-netsurf run config/experiments/mnist_factorized_aggregate_validation.toml
-netsurf run config/experiments/mnist_conditional_screening_smoke.toml
-netsurf validate config/experiments/mnist_conditional_screening_research.toml --resolved
-
-# Use the run directory printed by either command.
-netsurf inspect workspace/runs/<experiment>/<run-id>
-netsurf report workspace/runs/<experiment>/<run-id> --plots
 ```
 
-The recovered MNIST-lite exact-kernel/bias benchmark is a separate v2 identity,
-not a manuscript reproduction. Its accepted population, full-test evidence,
-configuration fields, and the blocked keyword-spotting/autoencoder candidates
-are documented in `docs/BENCHMARK_EXPANSION.md`. This gate intentionally does
-not add a maintained research TOML.
+Every finished run is an immutable folder with its configuration, provenance,
+measurements, exact masks and fault schedules, checksums and a report. The
+[command-line guide](docs/CLI_GUIDE.md) lists the commands for every kind of study,
+and `docs/REPRODUCIBILITY.md` gives bounded commands with their expected digests.
+Large campaigns are never started automatically.
 
-`netsurf run` displays live progress automatically when stderr is an
-interactive terminal. Progress is written to stderr so the final JSON result
-on stdout remains script-friendly. Use `--progress` to force occasional plain
-lines when redirected, or `--no-progress` to disable presentation entirely:
+## Reproducing the manuscript
 
-```bash
-netsurf run config/experiments/mnist_policy_ber_replication_v1.toml
-netsurf run config/experiments/mnist_policy_ber_replication_v1.toml --no-progress
-netsurf run config/experiments/mnist_policy_ber_replication_v1.toml --progress 2>progress.log
-netsurf validate config/experiments/mnist_policy_ber_wide_v1.toml
-netsurf run config/experiments/mnist_policy_ber_wide_v1.toml
-```
+- Each study has a plan in `publications/paper1_review/review/` that fixes its
+  conditions, seeds and decision rules.
+- The scripts in `workflows/` produce the run outputs; the scripts in
+  `publications/paper1_review/scripts/` turn them into the tables in
+  `publications/paper1_review/data/` and the figures.
+- Run outputs (about 350 GB) are not in git. The data tables that the figures and
+  the text use are, each with the hash of the outputs it was built from.
+- Run times of every study are in Appendix C of the manuscript: 449 job-hours for
+  the main comparison and 399 for the fault-rate study on a shared CPU server.
 
-Run an existing suite with one persistent queue display. The default remains
-sequential; independent configurations can opt into spawned workers:
+## Branches and tags
 
-```bash
-netsurf batch \
-  config/experiments/numpy_reference.toml \
-  config/experiments/numpy_single_bit.toml \
-  config/experiments/numpy_conditional_screening_exact.toml
+`v2` is the main line and contains all finished work. Earlier milestone branches
+were retired on 2026-11-17: each survives as a tag `archive/<branch>`, so every
+commit named in a run record still resolves. `paper1-tecs-revision-v1` and
+`paper1-runR-v2-validated` stay as working branches until the manuscript is
+submitted. `docs/BRANCH_CONSOLIDATION_PLAN.md` records what was done and why.
 
-# Line-oriented redirected progress, or no presentation output:
-netsurf batch config/experiments/first.toml config/experiments/second.toml --progress 2>progress.log
-netsurf batch config/experiments/first.toml config/experiments/second.toml --no-progress
-netsurf batch config/experiments/first.toml config/experiments/second.toml --workers 2 --threads-per-worker 2
-```
+## Status and licence
 
-Batch execution validates the supplied files, processes them sequentially by
-default or as independent whole configurations when `--workers` is greater
-than one,
-continues after expected configuration or experiment failures, and returns exit
-status `2` if any experiment failed. Its stdout is one machine-readable JSON
-summary; progress and the concise completion summary remain on stderr.
-
-Replicated schema-3 studies and schema-4 BER/budget/search-replication units
-can also run in parallel without changing their scientific task identities:
-
-```bash
-netsurf run config/experiments/study.toml --workers 8 --threads-per-worker 1
-```
-
-See `docs/PARALLEL_EXECUTION.md` for safe boundaries and sizing guidance.
-
-The Rich display uses one coordinated Live renderer. A persistent queue table
-keeps completed, running, pending, and failed experiments visible while a
-detail panel shows the current stage, grouped BER/budget/replication/method
-condition, measured work, elapsed time, and phase-aware experiment and queue
-ETAs. The queue's `Runtime` column retains each completed or failed
-experiment's wall time and shows live elapsed time for the running experiment.
-It adapts to terminal width, including interactive `tmux -CC` sessions.
-The counter advances
-only after declared operations actually complete. Shared
-fault schedules are counted once, while every model evaluation under a control
-or protection mask is counted separately. Setup, estimator, empirical-bit,
-statistical, and bundle stages are also explicit. ETA remains `Estimating...`
-until enough remaining work has a measured rate and changes to `Completed in
-MM:SS` at completion. Progress timing is never serialized into the scientific
-payload. If Rich is unavailable, NetSuRF retains compact plain output; the
-environment owner can install it with `python -m pip install 'rich>=13,<16'`.
-
-The preparation step trains `Flatten(28x28) -> Dense(32, ReLU) -> Dense(10)`
-and writes an exact `q<6,2,1>` checkpoint under
-`workspace/benchmarks/mnist_quantized/`. Experiments never retrain it. Kernels
-and biases are the injectable population: 25,450 scalars and 152,700 logical
-bits. MSB-first, seeded random, and first-order
-`abs(dL/dw * exact_bit_delta)` rankers are available independently or together.
-
-Schema-5 structured pruning physically removes complete hidden-neuron
-dependency groups and writes new immutable checkpoints under `workspace/`.
-Validate, prepare, and verify a researcher-authored configuration with
-`netsurf pruning validate`, `netsurf pruning run`, and
-`netsurf pruning inspect`; see `docs/PRUNING.md`. No M5 research campaign is
-started automatically.
-M3 additionally separates raw estimators, composable lexicographic ordering,
-and budget selection; records disjoint ranking, empirical-validation, and final
-evaluation samples; and supports exact isolated-bit damage, seeded Hutchinson
-diagonal curvature, per-example first order, and three explicitly versioned
-historical/qPolarGrad research variants.
-Schema 3.1 additionally provides uniform candidate sampling, the separately
-versioned positive per-example score, independent replication controls,
-multiple Hutchinson probe-count aliases, and multiple logical-BER conditions.
-
-Schema 4 adds fixed-budget conditional protection search for the two explicit
-Dense→ReLU→Dense adapters. Existing M3 rankings can initialize masks and form
-rank-mixture proposal priors. Uniform, static-guided, polar-guided,
-conditional-greedy, and simulated-annealing searches use exact matched
-three-state swap evaluations; independent held-out fault states are shared by
-all final masks. The polar score is proposal guidance only.
-
-Schema 4.3 adds reusable common-background conditional marginals, saved paired
-candidate contributions, exact shortlist verification, and dynamic full-
-vulnerable-population conventional/stratified Kronecker aggregates. Candidate-
-pool aggregation is an explicit restricted control. Aggregate and polar scores
-remain proposal diagnostics; only exact three-state conditional evaluation can
-accept a swap. See `docs/M4_3_AUDIT.md` for the 25%-coverage sparse-guidance
-diagnosis and non-overlapping timing semantics.
-
-```bash
-netsurf validate config/experiments/numpy_pgcs_exact.toml
-netsurf run config/experiments/numpy_pgcs_exact.toml
-netsurf run config/experiments/mnist_incremental_validation.toml
-# Researcher-sized studies; inspect their budgets before launching:
-netsurf run config/experiments/mnist_static_guided_search.toml
-netsurf run config/experiments/mnist_polar_guided_search.toml
-```
-
-NetSuRF's lazy TensorFlow import suppresses TensorFlow 2.21's native pre-absl
-CPU/GPU discovery chatter by default. Set `NETSURF_TF_IMPORT_QUIET=0` to expose
-it when debugging, and optionally set `NETSURF_TF_CPP_MIN_LOG_LEVEL` to choose
-TensorFlow's normal C++ log threshold. This affects console presentation only;
-it does not enable a GPU, change inference, or suppress Python exceptions.
-
-For generic schema-1 template operations retained from M1.5:
-
-```bash
-netsurf --help
-netsurf init-experiment --template smoke --output workspace/scratch/my_experiment.toml
-netsurf validate config/experiments/template.toml --resolved
-```
-
-Finalized bundles are immutable and contain configuration, provenance,
-measurements, exact masks and schedules, checksums, a Markdown report, and
-supported plots. `tutorials/read_result.py` demonstrates the public Python API;
-report regeneration does not import TensorFlow or rerun inference. These are
-logical weight-bit experiments with ideal event suppression, not calibrated
-physical SEU models or synthesized mitigation. See `docs/REPRODUCIBILITY.md`
-for bounded commands and expected digests.
-
-## Repository map
-
-- `netsurf/`: canonical scientific core and explicit legacy adapters.
-- `tests/`: deterministic regression suite.
-- `config/`: source-controlled configuration examples and definitions.
-- `workflows/`: workflow contracts; Wolf is restricted to supported hardware stages.
-- `docs/`: scientific contracts, audit, architecture, provenance, and roadmap.
-- `tutorials/`: maintained examples only.
-- `workspace/`: ignored runs, scratch data, caches, and legacy side effects.
-- `DEPRECATED/`: recovered source, notebooks, environment snapshots, and evidence.
-
-Generated benchmark outputs, checkpoints, rankings, and synthesis products are
-not validated merely because they exist. Consult `docs/LEGACY_MAPPING.md` before
-using historical material in a publication.
-
-Schema 4.1 adds independent conditional-risk evaluation for closely related
-final masks. Begin with
-`config/experiments/numpy_pgcs_conditional_validation.toml`; matched MNIST
-smoke and research configurations reuse the existing prepared checkpoint.
-### MLPerf Tiny INT8 static estimators (M9)
-
-The pinned ResNet-8 adapter supports kernel-only MSB, exact numerical jump,
-global gradient-times-delta, per-example absolute and per-example positive
-rankings through an explicitly labeled straight-through companion. Exact
-TFLite 2.14.1 `BUILTIN_REF` inference remains authoritative. See
-`docs/MLPERF_TINY_M9_STATIC_ESTIMATORS.md` and the two maintained
-`m9_resnet8_static_*_v1.toml` configurations before running them.
-
-### Complete-file ToyCar conditional protection (M9.9)
-
-ToyCar conditional studies use schema 6.8 / campaign 1.2 and optimize
-`1 - file_ROC_AUC`, not reconstruction MSE. See
-[the M99 protocol and foreground commands](docs/M99_TOYCAR_CONDITIONAL.md)
-before freezing a campaign. Selection and final file cohorts must be disjoint,
-both-class and exposure-audited; all masks are sealed before final evaluation.
-No production campaign is launched automatically.
-
-### Offline interaction attribution (M9.10)
-
-The separate `m910-interaction-attribution` worktree analyzes finalized KWS,
-ResNet-8 and ToyCar exact response tables without inference. See
-[the M910 evidence report](docs/M910_INTERACTION_ATTRIBUTION.md) for the
-hash-pinned source inventory, signed decomposition, uncertainty limitations,
-all-pool figures and reproduction commands. New derived outputs never replace
-historical bundles.
+This is research software; a licensing review is pending (`pyproject.toml`). The
+manuscript is in preparation for ACM Transactions on Embedded Computing Systems.
