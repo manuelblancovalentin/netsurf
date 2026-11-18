@@ -13,10 +13,19 @@ import freeze_w8a8_lm_concurrent_v3 as expanded  # noqa: E402
 import report_lm_w8a8_v3 as reporting  # noqa: E402
 
 
+
+def _plan(v1_dir):
+    """The frozen v1 plan is an ignored run output (workspace/plans/...); skip where this checkout does not have it."""
+    path = v1_dir / "plan.json"
+    if not path.exists():
+        pytest.skip(f"local run output not present: {path.name} of {v1_dir.name}")
+    return json.loads(path.read_text())
+
+
 @pytest.mark.parametrize("model", ("pythia", "qwen"))
 def test_lm_execution_plan_changes_only_scheduling_and_source_bindings(model):
     v1_dir, _ = frozen.locations(model)
-    original = json.loads((v1_dir / "plan.json").read_text())
+    original = _plan(v1_dir)
     derived, audit = frozen.derive(model, original)
     assert frozen.scientific_payload(derived) == frozen.scientific_payload(original)
     assert derived["fields"] == original["fields"]
@@ -43,7 +52,7 @@ def test_lm_admission_preserves_original_resource_caps():
 @pytest.mark.parametrize("model", ("pythia", "qwen"))
 def test_expanded_m12_admission_preserves_science(model):
     v1_dir, _ = expanded.locations(model)
-    original = json.loads((v1_dir / "plan.json").read_text())
+    original = _plan(v1_dir)
     derived, audit = expanded.derive(model, original)
     assert expanded.scientific_payload(derived) == expanded.scientific_payload(original)
     assert derived["source_files_sha256"].items() >= original["source_files_sha256"].items()

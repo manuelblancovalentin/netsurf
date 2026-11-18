@@ -17,7 +17,11 @@ import report_distilbert_w8a8_v2 as reporting  # noqa: E402
 
 
 def _v1():
-    return json.loads((frozen.V1 / "plan.json").read_text())
+    """The frozen v1 plan is an ignored run output (workspace/plans/...); skip where this checkout does not have it."""
+    path = frozen.V1 / "plan.json"
+    if not path.exists():
+        pytest.skip(f"local run output not present: {path.name} of {frozen.V1.name}")
+    return json.loads(path.read_text())
 
 
 def test_v2_changes_only_bound_execution_policy():
