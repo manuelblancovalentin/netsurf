@@ -1,12 +1,14 @@
 {
  "schema": 1,
+ "id": "netsurf-manuelbv-0057",
  "project": "netsurf",
  "scope": "manuelbv",
+ "number": 57,
  "label": "",
  "title": "Paper 1: final consistency pass, headline claim reworded, figures spread through the main text (draft v31)",
  "summary": "",
- "notes": "Requested by the owner: reword the headline claim as a prediction claim, re-read everything for consistency and for the strongest claims the evidence supports, and distribute the figures evenly in the main text.",
- "status": "doing",
+ "notes": "Final pass over the whole manuscript (paper worktree commit 38d0042). Headline claim reworded as a prediction claim in the introduction and Section 7.2. Claims restated with the counts already in the appendix tables: absolute gradient confirmed ahead in 222 of 859 tested conditions and behind in none (190 on the 21 TFLite checkpoints, 32 on the language models); model reproduces which of two masks is better in 437 of 443 cases; switch prediction right in 515 of 519 conditions. Inconsistencies removed (two leftover 'cheap' statements, an unsupported search-cost sentence, 'every checkpoint' against 23 in the summary figure, mixed wording, one typo). Figures and tables repositioned so that one lands on every second page of the main text (pages 2 to 20); the headline figure is now Fig. 1 in the introduction and the closed-form mechanism figure sits in the Discussion. Verified: PDF (41 pages, references from page 20) and standalone Overleaf zip build with no undefined references and no overfull boxes; looked at a contact sheet of pages 1 to 21. No number, result or figure content changed. Delivery folder workspace/paper1_review/delivery_v31_final_pass.",
+ "status": "done",
  "priority": "high",
  "stage": "",
  "target": "",
@@ -26,8 +28,8 @@
  "updated": "2026-11-17",
  "start": "2026-11-17",
  "end": "",
- "completed": "",
- "percent": null,
+ "completed": "2026-11-17",
+ "percent": 100,
  "dependencies": [
   "netsurf-manuelbv-0056"
  ],
@@ -39,8 +41,12 @@
    "by": "manuelbv",
    "field": "created",
    "to": "doing"
+  },
+  {
+   "time": "2026-11-17",
+   "by": "manuelbv",
+   "field": "notes,status,completed,percent",
+   "to": "Final pass over the whole manuscript (paper worktree commit "
   }
- ],
- "number": 57,
- "id": "netsurf-manuelbv-0057"
+ ]
 }
