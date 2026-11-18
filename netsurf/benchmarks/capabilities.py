@@ -71,7 +71,7 @@ def capability_records():
             "restoration": "VERIFIED" if executable else "BLOCKED",
             "static_s2_s3": "VERIFIED" if executable else "BLOCKED",
             "s4_s5_s6": "VERIFIED" if executable and not streaming else "BLOCKED",
-            "continuous_hessian": "VERIFIED" if target == "kws_dscnn_int8" else "BLOCKED",
+            "continuous_hessian": "VERIFIED" if target in {"kws_dscnn_int8", "resnet8_int8", "toycar_int8"} else "BLOCKED",
             "conditional_restricted": "VERIFIED" if target in {"kws_dscnn_int8", "resnet8_int8", "toycar_int8"} else "BLOCKED",
             "independent_study_partitions": "VERIFIED" if executable and not streaming else "BLOCKED",
         }
@@ -83,7 +83,7 @@ def capability_records():
             blockers += ["conditional studies require schema 6.7 / campaign 1.1, audited exposure and a verified S5 context; not an efficacy claim"]
         if target == "toycar_int8":
             blockers += ["conditional task risk requires schema 6.8 / campaign 1.2 complete-file cohorts, exposure audit and verified S5 context; no additive AUC losses",
-                         "continuous classical Hessian not validated; reconstruction STE derivatives are distinct"]
+                         "continuous Hessian objective is window reconstruction MSE, not file-level 1-AUC"]
         if not executable:
             blockers += ["no validated NetSuRF loading, stored-bit/runtime mapping and fault-restoration backend for this target"]
         record = {
@@ -101,9 +101,9 @@ def capability_records():
             "primary_task_risk": "1 - file ROC-AUC (requires both classes); reconstruction MSE is a separate surrogate" if target == "toycar_int8" else
                                  "BLOCKED: FP/FN event metrics have no approved scalar trade-off" if streaming else
                                  "mean categorical cross-entropy" if executable else "BLOCKED: task/backend contract not validated",
-            "surrogate_loss": "float-target reconstruction MSE, not ROC-AUC" if target == "toycar_int8" else
+            "surrogate_loss": "STE reconstruction MSE for S4-S6; separate continuous float64 reconstruction MSE for FKeras; not ROC-AUC" if target == "toycar_int8" else
                               "decoded-logit CE with STE for S4-S6; separate float64 continuous CE for FKeras" if target == "kws_dscnn_int8" else
-                              "requantized-logit CE with STE" if target == "resnet8_int8" else "not validated",
+                              "requantized-logit CE with STE for S4-S6; separate continuous float64 CE for FKeras" if target == "resnet8_int8" else "not validated",
             "capabilities": capabilities, "blockers": blockers,
             "fault_lifetime": "whole stream" if streaming else "persistent evaluation trial",
             "resource_plan": entry["resource_plan"], "cost_model": entry["cost_model"],

@@ -93,6 +93,7 @@ class MlperfResnet8DifferentiableCompanion:
 
     implementation_version = "mlperf-resnet8-tflite-constants-ste/v1"
     loss_version = "requantized-logit-sparse-crossentropy/v1"
+    numerical_dtype = "float32"
 
     def __init__(self, model_content: bytes):
         import tensorflow as tf
@@ -113,7 +114,7 @@ class MlperfResnet8DifferentiableCompanion:
         self.bias_descriptors = tuple(biases[index] for index in _BIAS_TENSORS)
         self.variables = {
             value.parameter: tf.Variable(
-                value.quantization.dequantize(encoded[value.parameter]).astype(np.float32),
+                value.quantization.dequantize(encoded[value.parameter]).astype(self.numerical_dtype),
                 trainable=True,
                 name=f"netsurf_{value.tensor_index}_kernel",
             )
@@ -121,7 +122,7 @@ class MlperfResnet8DifferentiableCompanion:
         }
         self.biases = {
             value.tensor_index: tf.constant(
-                value.quantization.dequantize(encoded[value.parameter]).astype(np.float32)
+                value.quantization.dequantize(encoded[value.parameter]).astype(self.numerical_dtype)
             )
             for value in self.bias_descriptors
         }
@@ -192,7 +193,7 @@ class MlperfResnet8DifferentiableCompanion:
         if values.shape.rank != 4 or tuple(values.shape[1:]) != (32, 32, 3):
             raise ValueError("companion inputs must be int8 NHWC (N,32,32,3)")
         scale, zero_point = self._quantization(0)
-        values = (tf.cast(values, tf.float32) - zero_point) * scale
+        values = (tf.cast(values, self.numerical_dtype) - zero_point) * scale
 
         residual = self._conv(values, 8, 3, 1, 22, True)
         branch = self._conv(residual, 9, 4, 1, 23, True)
@@ -314,3 +315,31 @@ class MlperfResnet8DifferentiableCompanion:
                 }
             )
         return tuple(rows)
+
+
+class MlperfResnet8ContinuousCompanion(MlperfResnet8DifferentiableCompanion):
+    """Separate float64 decoded-weight loss model for a classical FKeras HVP.
+
+    Activation rounding and clipping are absent.  The authoritative faulted
+    inference remains TFLite BUILTIN_REF; this is not its integer Hessian.
+    """
+
+    implementation_version = "mlperf-resnet8-continuous-float64/v1"
+    loss_version = "continuous-logit-sparse-crossentropy/v1"
+    numerical_dtype = "float64"
+
+    def _requantize_ste(self, values, tensor_index: int):
+        return values
+
+    def manifest(self) -> dict[str, object]:
+        return {
+            "implementation_version": self.implementation_version,
+            "loss_version": self.loss_version,
+            "parameter_source": "exact affine decoded frozen INT8 kernel codes",
+            "kernel_tensor_indices": list(_KERNEL_TENSORS),
+            "bias_source": "fixed decoded INT32 constants; neither differentiated nor fault eligible",
+            "activation_quantization": "removed in this separate continuous extension",
+            "dtype": "float64",
+            "authoritative_inference": False,
+            "limitations": ["not a Hessian of integer TFLite inference or the STE derivative operator", "ReLU kinks have no classical Hessian"],
+        }

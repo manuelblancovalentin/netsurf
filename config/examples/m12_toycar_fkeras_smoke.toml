@@ -1,0 +1,84 @@
+schema_version = "3.6.0"
+scientific_protocol = "multi-coverage-protection/v1"
+
+[experiment]
+name = "m12_toycar_fkeras_smoke"
+description = "One-field complete-file engineering check on previously exposed ToyCar files; not effectiveness evidence."
+objective = "Validate published-form reconstruction-MSE FKeras masks against exact complete-file 1-AUC risk."
+
+[benchmark]
+adapter = "mlperf_tiny_ad_int8_v1"
+id = "mlperf_tiny_ad_toycar_int8_v1"
+checkpoint = "/data/models/models--mlcommons--tiny/snapshots/4addd0fa08d216e20637637874e084895f289da4/benchmark/training/anomaly_detection/trained_models/ad01_int8.tflite"
+dataset = "/data/datasets/dcase2020-toycar"
+asset_lock = "/projects/kona-assets/manuelbv/locks/mlperf-tiny/ad.lock.json"
+inference_backend = "tensorflow_lite_builtin_ref_v1"
+split = "official_248_files"
+quantization = "tflite_affine_int8"
+quantization_backend = "tflite_affine_integer_v1"
+injectable_parameters = ["kernels"]
+
+[samples]
+ranking_count = 1
+empirical_count = 2
+evaluation_count = 2
+require_disjoint = true
+
+[candidates]
+strategy = "uniform"
+count = 2
+seed = 1208201
+score_quantiles = 1
+
+[[estimators]]
+name = "msb_first"
+implementation_version = "relative-word-bit-index/v1"
+
+[[estimators]]
+name = "fkeras_paper"
+implementation_version = "fkeras-paper-continuous-toycar/v1"
+seed = 1208202
+hessian = {eigenpairs = 2, max_iterations = 100, max_products = 150, tolerance = 0.00001, ordering = "largest_magnitude_signed"}
+
+[[policies]]
+name = "msb_first"
+estimator = "msb_first"
+priority = ["estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[[policies]]
+name = "fkeras_paper"
+estimator = "fkeras_paper"
+priority = ["bit_significance_desc", "estimator_score_desc", "stable_identity"]
+prespecified = true
+
+[protection]
+coverages = [0.0625, 0.125, 0.1875, 0.25]
+probabilities = [0.001]
+mitigation_model = "perfect_event_suppression"
+
+[fault]
+target = "weight"
+location = "logical_trainable_parameter_bits"
+persistence = "persistent_trial"
+distribution = "independent_bernoulli"
+probability = 0.001
+
+[execution]
+trials = 1
+confidence = 0.95
+fault_seed = 1208203
+permutation_seed = 1208204
+
+[replications]
+count = 1
+candidate_seed_stride = 0
+hutchinson_seed_stride = 0
+sample_offset_stride = 0
+fault_seed_stride = 0
+estimator_seed_stride = 0
+
+[output]
+root = ""
+report = true
+plots = false

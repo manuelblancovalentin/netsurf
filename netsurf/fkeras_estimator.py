@@ -12,18 +12,26 @@ from .fkeras_baseline import (
 )
 
 
-class ContinuousKwsHessian:
-    """One traced HVP for one immutable calibration set; canonical flat mapping."""
+class ContinuousTFLiteHessian:
+    """One continuous-loss HVP for immutable calibration; canonical flat mapping."""
 
     def __init__(self, adapter, inputs, labels):
-        from .mlperf_multibench_companion import MlperfKwsContinuousCompanion
-        if adapter.benchmark_id != "mlperf-tiny/kws":
-            raise ValueError("M97 continuous FKeras is validated only for pinned KWS")
+        from .mlperf_multibench_companion import (
+            MlperfKwsContinuousCompanion, MlperfToyCarContinuousCompanion,
+        )
+        from .mlperf_companion import MlperfResnet8ContinuousCompanion
+        companions = {
+            "mlperf-tiny/kws": MlperfKwsContinuousCompanion,
+            "mlperf-tiny/ad": MlperfToyCarContinuousCompanion,
+            "mlperf-tiny/ic": MlperfResnet8ContinuousCompanion,
+        }
+        if adapter.benchmark_id not in companions:
+            raise ValueError("continuous FKeras requires a pinned, mapped TFLite companion")
         if adapter.storage is None:
             adapter.load()
         if adapter._model_content != adapter.storage.reference_content:
             raise ValueError("FKeras construction requires the clean pinned kernel state")
-        self.companion = MlperfKwsContinuousCompanion(adapter.storage.reference_content)
+        self.companion = companions[adapter.benchmark_id](adapter.storage.reference_content)
         self.names = tuple(sorted(self.companion.variables))
         self.variables = tuple(self.companion.variables[name] for name in self.names)
         self.shapes = tuple(tuple(v.shape) for v in self.variables)
@@ -52,6 +60,24 @@ class ContinuousKwsHessian:
             np.testing.assert_array_equal(decoded, self.companion.variables[name].numpy())
             self.mapping.append({**descriptor.to_dict(), "flat_offset": offset, "flat_size": size})
             offset += size
+        if offset != len(self.theta):
+            raise ValueError("FKeras parameter mapping does not cover the full kernel population")
+        eligible = tuple(adapter.bit_identities())
+        word_bits = {}
+        for bit in eligible:
+            if not 0 <= bit.bit_index < 8:
+                raise ValueError("FKeras requires INT8 kernel bits")
+            word = (bit.parameter, bit.flat_index)
+            word_bits[word] = word_bits.get(word, 0) | (1 << bit.bit_index)
+        expected_words = {
+            (name, index) for name, size in zip(self.names, self.sizes)
+            for index in range(size)
+        }
+        if (len(eligible) != len(self.theta) * 8
+                or len(word_bits) != len(self.theta)
+                or set(word_bits) != expected_words
+                or any(bits != 255 for bits in word_bits.values())):
+            raise ValueError("FKeras requires exactly all eight bits of every mapped INT8 kernel word")
 
     def __call__(self, vector):
         return self._hvp(np.asarray(vector, dtype=np.float64)).numpy()
@@ -72,9 +98,20 @@ class ContinuousKwsHessian:
                 offset += size
 
 
+class ContinuousKwsHessian(ContinuousTFLiteHessian):
+    """Backward-compatible KWS-only name retained for M97 numerical tests."""
+
+    def __init__(self, adapter, inputs, labels):
+        if adapter.benchmark_id != "mlperf-tiny/kws":
+            raise ValueError("ContinuousKwsHessian is validated only for pinned KWS")
+        super().__init__(adapter, inputs, labels)
+
+
 def fkeras_family(adapter, inputs, labels, identities, *, seed, options, requested):
+    if adapter.benchmark_id != "mlperf-tiny/kws" and "fkeras_repository" in requested:
+        raise ValueError("repository-form FKeras is retained only for the pinned KWS historical comparison")
     started = perf_counter()
-    operator = ContinuousKwsHessian(adapter, inputs, labels)
+    operator = ContinuousTFLiteHessian(adapter, inputs, labels)
     vectors, diagnostics = leading_hessian_eigenpairs(
         operator, len(operator.theta), count=options["eigenpairs"], seed=seed,
         max_iterations=options["max_iterations"], tolerance=options["tolerance"],
@@ -98,6 +135,7 @@ def fkeras_family(adapter, inputs, labels, identities, *, seed, options, request
     }
     offsets = {row["parameter"]: row["flat_offset"] for row in operator.mapping}
     functions = {"fkeras_paper": principal_weight_hessian_score, "fkeras_repository": repository_weight_hessian_score}
+    variant = {"mlperf-tiny/kws": "kws", "mlperf-tiny/ic": "resnet8", "mlperf-tiny/ad": "toycar"}[adapter.benchmark_id]
     outputs = {}
     for name in requested:
         word_scores = functions[name](operator.theta, vectors, values)
@@ -107,8 +145,11 @@ def fkeras_family(adapter, inputs, labels, identities, *, seed, options, request
         expression = ("abs(sum_i lambda_i*(v_i.T theta)*v_i)" if name == "fkeras_paper"
                       else "sum_i abs(lambda_i**2*(v_i.T theta)*v_i)")
         outputs[name] = EstimatorOutput(
-            name, name.replace("_", "-") + "-continuous-kws/v1", scores, None,
+            name, name.replace("_", "-") + f"-continuous-{variant}/v1", scores, None,
             perf_counter() - started, {**metadata, "expression": expression,
+                **({"source_method": "published signed Hessian projection",
+                    "source_reference": "FKeras ACM JATS 2024 Eq. (3); pinned repository retained for provenance"}
+                   if adapter.benchmark_id != "mlperf-tiny/kws" else {}),
                 "raw_parameter_score": word_scores.tolist(),
                 "warning": "parameter sensitivity, not signed finite-bit loss prediction; strict tiers ignore affine scale differences"},
         )

@@ -77,6 +77,14 @@ this equivalence. Partial-tier comparisons do not imply an optimal allocation.
 S4–S6 definitions, integer inference, fault schedules and schema-6 selection
 semantics remain unchanged. See `M97_FKERAS_REPRODUCTION.md`.
 
+Schema 3.6 adds only the published-form `fkeras_paper` to the pinned ResNet-8
+and ToyCar kernel-only INT8 populations. Separate float64 decoded-weight
+companions supply classical HVPs with checked mapping and eigensolver residuals;
+the existing STE companions and exact TFLite reference are unchanged. ToyCar
+uses continuous per-window reconstruction MSE for this Hessian surrogate, but
+whole-file `1-ROC-AUC` remains the authoritative protection risk. Repository-
+form FKeras is not extended to these models. See `M12_FKERAS_MULTIBENCH.md`.
+
 Capability records distinguish inference, exact storage faults, restoration,
 static ranking, continuous Hessians and conditional/restricted protocols.
 Unsupported precision, task risk or partitions must fail explicitly. The
