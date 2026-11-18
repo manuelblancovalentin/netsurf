@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
+import subprocess
 
 from .campaign_exposure import audit_exposure, check_exposure
 from .cross_pool import (_bound_document, _read, _receipt, _toml, load_campaign,
@@ -18,12 +19,19 @@ from .result_bundle import _write_bytes, _write_json
 
 VERSION = "1.0.0"
 BER_GRID = (0.001, 0.003, 0.01)
+PILOT_BER_GRID = (0.02, 0.05, 0.075, 0.1)
+PILOT_PROTOCOL = "joint-kws-higher-ber-engineering/v1"
+
+
+def _source_revision():
+    root = Path(__file__).resolve().parents[1]
+    return subprocess.check_output(("git", "-C", str(root), "rev-parse", "HEAD"), text=True).strip()
 SOURCE = Path("/projects/netsurf/manuelbv/workspace/implementation-worktrees/m96/workspace/runs/m96_kws_cross_pool_k6_v1/campaign.json")
 SOURCE_SHA256 = "46674ad4f90e8bc49fcee3ef826bbb57130005f239d192700cd09d8f106d3ff3"
 
 
 def arm_id(probability):
-    if probability not in BER_GRID:
+    if probability not in BER_GRID + PILOT_BER_GRID:
         raise ValueError("BER is outside the prespecified family")
     return "ber_" + str(probability).replace(".", "p")
 
@@ -110,8 +118,10 @@ def _source_receipts(source, source_record):
     return result
 
 
-def freeze_joint(source=SOURCE, output=None, *, engineering=False):
+def freeze_joint(source=SOURCE, output=None, *, engineering=False, pilot=False):
     """Freeze before inference. Engineering uses only previously exposed clips."""
+    if engineering and pilot:
+        raise ValueError("tiny engineering and higher-BER pilot modes are mutually exclusive")
     source = Path(source).resolve()
     if source != SOURCE or sha256_file(source) != SOURCE_SHA256:
         raise ValueError("M9.7 requires the exact frozen M9.6 source manifest")
@@ -121,14 +131,14 @@ def freeze_joint(source=SOURCE, output=None, *, engineering=False):
     if len(prior["pools"]) != 12 or [p["pool_id"] for p in prior["pools"]] != [f"pool_{i:03d}" for i in range(12)]:
         raise ValueError("source must contain all twelve ordered pools")
     audit = audit_exposure()
-    purpose = "engineering" if engineering else "confirmation"
-    levels = (.003,) if engineering else BER_GRID
+    purpose = "engineering" if engineering or pilot else "confirmation"
+    levels = (.003,) if engineering else (PILOT_BER_GRID if pilot else BER_GRID)
     pools = prior["pools"][:1] if engineering else prior["pools"]
     selection_first, selection_count = (2088, 2) if engineering else (2152, 64)
     final_first, final_count = (3450, 2) if engineering else (3962, 512)
     selection_window = _window(audit, selection_first, selection_count, purpose)
     final_window = _window(audit, final_first, final_count, purpose)
-    if not engineering:
+    if not engineering and not pilot:
         if selection_window["prior_fault_outcome_overlap"] or final_window["prior_fault_outcome_overlap"]:
             raise ValueError("confirmation window already exposed")
         if final_first + final_count != 4474:
@@ -142,14 +152,15 @@ def freeze_joint(source=SOURCE, output=None, *, engineering=False):
     arms = []
     for arm_index, probability in enumerate(levels):
         child = copy.deepcopy(prior)
-        child["name"] = ("m97_engineering" if engineering else "m97_kws_multiber") + "_" + arm_id(probability)
+        prefix = "m97_engineering" if engineering else ("kws_higher_ber_pilot" if pilot else "m97_kws_multiber")
+        child["name"] = prefix + "_" + arm_id(probability)
         child["purpose"] = purpose
         child["joint_campaign"] = str(root / "campaign.json")
         child["source_m96"] = {"manifest": str(source), "sha256": sha256_file(source)}
         child["design"]["logical_ber"] = probability
-        child["design"]["final_fields"] = 2 if engineering else 128
-        child["design"]["selection_fields_per_seed"] = 1 if engineering else 8
-        child["design"]["selection_replicates"] = 2 if engineering else 4
+        child["design"]["final_fields"] = 2 if engineering else (32 if pilot else 128)
+        child["design"]["selection_fields_per_seed"] = 1 if engineering else (4 if pilot else 8)
+        child["design"]["selection_replicates"] = 2 if engineering or pilot else 4
         child["samples"] = {"selection_offset": selection_first - 2024,
                             "selection_count": selection_count, "final_offset": final_first - 3048,
                             "final_count": final_count}
@@ -164,7 +175,9 @@ def freeze_joint(source=SOURCE, output=None, *, engineering=False):
             if digest_object(pool["candidates"]) != digest_object(original["candidates"]):
                 raise ValueError("source candidate pool changed")
             doc = pool["selection_document"]
-            seeds, final_seed, _ = _seed_plan(arm_index, pool_index, child["design"]["selection_fields_per_seed"])
+            # The pilot's seed namespace is disjoint from every old three-BER arm.
+            seeds, final_seed, _ = _seed_plan(arm_index + (10 if pilot else 0), pool_index,
+                                             child["design"]["selection_fields_per_seed"])
             seeds = seeds[:child["design"]["selection_replicates"]]
             child["design"]["selection_seed_bases"].append(seeds[0])
             child["design"]["final_seeds"].append(final_seed)
@@ -209,7 +222,8 @@ def freeze_joint(source=SOURCE, output=None, *, engineering=False):
     total = {key: sum(a["operation_counts"][key] for a in arm_rows) for key in (
         "selection_clip_inferences_total", "final_clip_inferences_upper_bound_total",
         "response_table_evaluations_total", "analytical_mask_integrations_total")}
-    parent = {"schema_version": VERSION, "protocol": "joint-kws-multiber/v1", "purpose": purpose,
+    parent = {"schema_version": VERSION,
+              "protocol": PILOT_PROTOCOL if pilot else "joint-kws-multiber/v1", "purpose": purpose,
               "source_m96": {"manifest": str(source), "sha256": sha256_file(source),
                              "candidate_pools": [{"pool_id": p["pool_id"],
                                                   "candidate_order_sha256": p["candidate_order_sha256"],
@@ -220,17 +234,24 @@ def freeze_joint(source=SOURCE, output=None, *, engineering=False):
               "protected_population": 22016, "candidate_budget": 2,
               "ber_grid": list(levels), "arms": arm_rows, "selection_window": selection_window,
               "final_window": final_window, "reserved_original_indices": [4474, 4889],
-              "selection_fields_per_pool_ber": 2 if engineering else 32,
-              "final_fields_per_pool_ber": 2 if engineering else 128,
+              "selection_fields_per_pool_ber": 2 if engineering else (8 if pilot else 32),
+              "final_fields_per_pool_ber": 2 if engineering else (32 if pilot else 128),
               "statistics": {"confidence": .95, "bootstrap_seed": 970801, "bootstrap_replicates": 1000,
-                             "primary_hypotheses": "two paired pool-level changes in selected-minus-exact-isolated CE: BER 0.001 minus 0.01 and BER 0.003 minus 0.01; two-sided Holm across two; simultaneous 97.5% t intervals",
-                             "secondary_family": "nine within-BER two-sided pool-level mean CE contrasts, three policies by three BERs; Holm across all nine; simultaneous 99.4444% t intervals",
-                             "known_anchor": "BER 0.01 M9.6 result is known; same-window arm is a comparison anchor, not untouched discovery",
+                             "primary_hypotheses": ("none; exploratory high-BER engineering pilot" if pilot else "two paired pool-level changes in selected-minus-exact-isolated CE: BER 0.001 minus 0.01 and BER 0.003 minus 0.01; two-sided Holm across two; simultaneous 97.5% t intervals"),
+                             "secondary_family": ("descriptive within-BER comparisons only; no confirmatory claim" if pilot else "nine within-BER two-sided pool-level mean CE contrasts, three policies by three BERs; Holm across all nine; simultaneous 99.4444% t intervals"),
+                             "known_anchor": ("all selection and evaluation input indices were previously exposed; new fault seeds only" if pilot else "BER 0.01 M9.6 result is known; same-window arm is a comparison anchor, not untouched discovery"),
                              "cross_ber": "paired pool vector; shared input-clips and independent fault-field streams",
-                             "transfer": "optional descriptive BER-0.01 mask at lower BER; excluded from nine-test family"},
+                             "transfer": ("not analyzed for higher-BER pilot" if pilot else "optional descriptive BER-0.01 mask at lower BER; excluded from nine-test family")},
               "operation_counts_total": total,
               "exposure_inventory_sha256": digest_object(audit),
-              "limitations": audit["limitations"]}
+              "limitations": audit["limitations"],
+              **({"pilot_contract": {"status": "EXPLORATORY_ENGINEERING_ONLY",
+                                      "previously_exposed_inputs": True,
+                                      "no_confirmatory_inference": True,
+                                      "same_twelve_frozen_candidate_pools": True,
+                                      "fixed_global_protection_bits": 22016},
+                  "source_revision": _source_revision()}
+                 if pilot else {})}
     _write_json(root / "campaign.json", parent)
     digest = sha256_file(root / "campaign.json")
     _write_json(root / "checksums.json", {"schema_version": VERSION, "files": {
@@ -248,7 +269,7 @@ def load_joint(path):
         if Path(relative).is_absolute() or ".." in Path(relative).parts or sha256_file(path.parent / relative) != checksum:
             raise ValueError("joint campaign inventory checksum mismatch")
     parent = _read(path)
-    if parent.get("schema_version") != VERSION or parent.get("protocol") != "joint-kws-multiber/v1":
+    if parent.get("schema_version") != VERSION or parent.get("protocol") not in {"joint-kws-multiber/v1", PILOT_PROTOCOL}:
         raise ValueError("unsupported joint campaign")
     if [a["logical_ber"] for a in parent["arms"]] != parent["ber_grid"]:
         raise ValueError("BER arms differ from frozen grid")
@@ -272,6 +293,22 @@ def load_joint(path):
             raise ValueError("confirmation BER grid or pool count differs")
         if parent["selection_window"]["original_indices"] != list(range(2152, 2216)) or parent["final_window"]["original_indices"] != list(range(3962, 4474)):
             raise ValueError("confirmation windows differ from frozen protocol")
+    elif parent["protocol"] == PILOT_PROTOCOL:
+        if parent.get("source_revision") != _source_revision():
+            raise ValueError("higher-BER pilot source revision differs from frozen plan")
+        if parent.get("pilot_contract") != {"status": "EXPLORATORY_ENGINEERING_ONLY",
+                                             "previously_exposed_inputs": True,
+                                             "no_confirmatory_inference": True,
+                                             "same_twelve_frozen_candidate_pools": True,
+                                             "fixed_global_protection_bits": 22016}:
+            raise ValueError("higher-BER pilot interpretation changed")
+        if (parent["purpose"] != "engineering" or parent["ber_grid"] != list(PILOT_BER_GRID)
+                or len(parent["source_m96"]["candidate_pools"]) != 12
+                or parent["selection_fields_per_pool_ber"] != 8
+                or parent["final_fields_per_pool_ber"] != 32
+                or parent["selection_window"]["original_indices"] != list(range(2152, 2216))
+                or parent["final_window"]["original_indices"] != list(range(3962, 4474))):
+            raise ValueError("higher-BER pilot design differs from the bounded protocol")
     for name in ("selection_window", "final_window"):
         window = parent[name]
         if digest_object(window["identity_records"]) != window["identity_records_sha256"]:

@@ -21,6 +21,48 @@ from .manifests import digest_object, sha256_file
 from .result_bundle import _write_bytes, _write_json
 
 VERSION = "1.0.0"
+# Campaign request versions.  1.0.0: the original KWS cross-pool protocol at BER 0.01.  1.1.0 and 1.2.0: the
+# capability and scalar-cohort protocols (any BER).  1.3.0: the KWS high-BER validation, same protocol as 1.0.0 with
+# BER 0.05 or 0.075 and the exact-isolated mask as the primary comparison.  That last format was first written with
+# the number 1.1.0 on a branch that did not have the capability protocol; one campaign was frozen that way, and its
+# saved record (schema 1.1.0 with the v1 protocol name) is still accepted by `campaign_kind`.
+CAPABILITY_VERSION = "1.1.0"
+COHORT_VERSION = "1.2.0"
+HIGH_BER_VERSION = "1.3.0"
+LEGACY_HIGH_BER_RECORD_VERSION = "1.1.0"
+HIGH_BER_LEVELS = frozenset((0.05, 0.075))
+FROZEN_V1, CAPABILITY_V2, COHORT_V3 = "cross-pool-frozen-protection/v1", "capability-cross-pool/v2", "scalar-cohort-cross-pool/v3"
+
+
+def supported_ber(schema_version, ber):
+    """Whether a campaign request of this version may use this logical BER."""
+    if schema_version == VERSION:
+        return ber == .01
+    if schema_version == HIGH_BER_VERSION:
+        return ber in HIGH_BER_LEVELS
+    if schema_version in {CAPABILITY_VERSION, COHORT_VERSION}:
+        return 0 < ber < 1
+    return False
+
+
+def campaign_kind(record):
+    """'frozen', 'high_ber', 'capability' or 'cohort' for a saved campaign record; ValueError otherwise.
+
+    The protocol name, not the version number alone, decides: the one high-BER campaign frozen before the format was
+    renumbered carries schema 1.1.0 with the v1 protocol name, BER 0.05 or 0.075 and the exact-isolated primary."""
+    pair = (record.get("schema_version"), record.get("protocol"))
+    if pair == (VERSION, FROZEN_V1):
+        return "frozen"
+    if pair == (HIGH_BER_VERSION, FROZEN_V1):
+        return "high_ber"
+    if pair == (CAPABILITY_VERSION, CAPABILITY_V2):
+        return "capability"
+    if pair == (COHORT_VERSION, COHORT_V3):
+        return "cohort"
+    if (pair == (LEGACY_HIGH_BER_RECORD_VERSION, FROZEN_V1) and record.get("design", {}).get("logical_ber") in HIGH_BER_LEVELS
+            and record.get("statistical_plan", {}).get("primary") == "restricted_selected_vs_exact_isolated"):
+        return "high_ber"
+    raise ValueError("unsupported campaign schema/protocol")
 PROVENANCE = "independent_s5_status_stratified_uniform_without_replacement/v1"
 
 
@@ -107,9 +149,9 @@ def freeze_campaign(configuration, output):
     source = Path(configuration).resolve()
     request = tomllib.loads(source.read_text())
     _strict(request, {"schema_version", "name", "purpose", "benchmark_template", "design", "samples", "statistics"}, "campaign")
-    cohort = request["schema_version"] == "1.2.0"
-    modern = request["schema_version"] in {"1.1.0", "1.2.0"}
-    if request["schema_version"] not in {VERSION, "1.1.0", "1.2.0"} or request["purpose"] not in {"engineering", "confirmation"}:
+    cohort = request["schema_version"] == COHORT_VERSION
+    modern = request["schema_version"] in {CAPABILITY_VERSION, COHORT_VERSION}
+    if request["schema_version"] not in {VERSION, CAPABILITY_VERSION, COHORT_VERSION, HIGH_BER_VERSION} or request["purpose"] not in {"engineering", "confirmation"}:
         raise ValueError("unsupported campaign schema/purpose")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", request["name"]):
         raise ValueError("campaign name must be filesystem-safe")
@@ -123,8 +165,8 @@ def freeze_campaign(configuration, output):
         _integer(design[key], 1)
     if design["final_fields"] < 2 or (not modern and samples["selection_offset"] + samples["selection_count"] > 1024):
         raise ValueError("need >=2 final fields and valid model-selection window")
-    if stats["confidence"] != .95 or (not modern and design["logical_ber"] != .01) or not 0 < design["logical_ber"] < 1:
-        raise ValueError("v1 prespecifies 95% confidence, CE minimization and BER 0.01")
+    if stats["confidence"] != .95 or not supported_ber(request["schema_version"], design["logical_ber"]):
+        raise ValueError("cross-pool schema prespecifies 95% confidence and a supported BER (0.01 for 1.0.0; 0.05 or 0.075 for 1.3.0)")
     _integer(stats["bootstrap_seed"]); _integer(stats["bootstrap_replicates"], 100)
     n = len(design["pool_seeds"])
     if n < 2 or len(design["selection_seed_bases"]) != n or len(design["final_seeds"]) != n:
@@ -232,7 +274,7 @@ def freeze_campaign(configuration, output):
         doc["paired_swap_evaluation"]["seed"] = design["final_seeds"][i]
         doc["output"]["root"] = ""
         pool["selection_document"] = doc
-    record = {"schema_version": "1.1.0" if modern else VERSION, "protocol": "capability-cross-pool/v2" if modern else "cross-pool-frozen-protection/v1", "name": request["name"],
+    record = {"schema_version": CAPABILITY_VERSION if modern else request["schema_version"], "protocol": CAPABILITY_V2 if modern else FROZEN_V1, "name": request["name"],
               "purpose": request["purpose"], "design": design, "samples": samples, "statistics": stats,
               "checkpoint_sha256": storage.sha256, "asset_lock_sha256": sha256_file(lock.path),
               "universe_sha256": digest_object([b.key() for b in universe]),
@@ -243,7 +285,8 @@ def freeze_campaign(configuration, output):
               "sampling_design": PROVENANCE, "pools": pools, "pool_overlap": overlap,
               "exposure_inventory": audit, "exposure_audit": exposure,
               "operation_counts": operation_counts(design["candidate_count"], design["selection_fields_per_seed"] * design["selection_replicates"], samples["selection_count"], design["final_fields"], samples["final_count"], n),
-              "statistical_plan": {"primary": "restricted_selected_vs_original_s5", "secondary": ["restricted_selected_vs_exact_isolated", "exact_isolated_vs_original_s5"],
+              "statistical_plan": {"primary": ("restricted_selected_vs_exact_isolated" if request["schema_version"] == HIGH_BER_VERSION else "restricted_selected_vs_original_s5"),
+                  "secondary": (["restricted_selected_vs_original_s5", "exact_isolated_vs_original_s5"] if request["schema_version"] == HIGH_BER_VERSION else ["restricted_selected_vs_exact_isolated", "exact_isolated_vs_original_s5"]),
                   "principal_unit": "probability-sampled candidate pool; inputs shared; fields independent within pool",
                   "primary_ci": "Student-t on equally weighted pool means conditional on shared fixed inputs and selection data",
                   "secondary_multiplicity": "Holm across two cross-pool tests; Bonferroni 97.5% secondary CIs",
@@ -307,10 +350,7 @@ def load_campaign(path, expected=None):
         if Path(relative).is_absolute() or ".." in Path(relative).parts or sha256_file(path.parent / relative) != checksum:
             raise ValueError("campaign inventory checksum mismatch")
     record = _read(path)
-    if (record.get("schema_version"), record.get("protocol")) not in {
-            (VERSION, "cross-pool-frozen-protection/v1"), ("1.1.0", "capability-cross-pool/v2"),
-            ("1.2.0", "scalar-cohort-cross-pool/v3")}:
-        raise ValueError("unsupported campaign schema/protocol")
+    campaign_kind(record)
     return record
 
 
@@ -350,7 +390,7 @@ def verify_pool_configuration(configuration, *, execution):
     workflow = configuration.workflow
     path = Path(workflow["campaign_manifest"])
     record = load_campaign(path, workflow["campaign_sha256"])
-    if record["schema_version"] == "1.1.0" and configuration.schema_version != "6.7.0":
+    if campaign_kind(record) == "capability" and configuration.schema_version != "6.7.0":
         raise ValueError("capability campaign requires schema 6.7")
     if record["schema_version"] == "1.2.0" and configuration.schema_version != "6.8.0":
         raise ValueError("scalar-cohort campaign requires schema 6.8")
@@ -406,7 +446,7 @@ def verify_pool_configuration(configuration, *, execution):
         if record["schema_version"] == "1.2.0":
             from .cohort_risk import configuration_exposure
             configuration_exposure(configuration, allowed_campaign=allowed)
-        elif record["schema_version"] == "1.1.0":
+        elif campaign_kind(record) == "capability":
             from .conditional_benchmarks import conditional_capability, audit_exposure as audit, check_exposure as check
             cap = conditional_capability(configuration.benchmark.adapter)
             check(cap, audit(cap, allowed_campaign=allowed), record["samples"]["final_offset"],

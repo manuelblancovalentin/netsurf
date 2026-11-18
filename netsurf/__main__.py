@@ -161,6 +161,8 @@ def _parser() -> argparse.ArgumentParser:
     mb_freeze.add_argument("--source", type=Path)
     mb_freeze.add_argument("--output", type=Path, required=True)
     mb_freeze.add_argument("--engineering", action="store_true")
+    mb_freeze.add_argument("--higher-ber-pilot", action="store_true",
+                           help="freeze a bounded, previously exposed KWS engineering study at 2, 5, 7.5 and 10 percent BER")
     mb_validate = multiber_commands.add_parser("validate")
     mb_validate.add_argument("manifest", type=Path)
     mb_run = multiber_commands.add_parser("run")
@@ -507,7 +509,8 @@ def main(argv: list[str] | None = None) -> int:
             from .multiber_campaign import SOURCE, freeze_joint, load_joint, run_joint, seal_joint
             from .manifests import sha256_file
             if args.multiber_command == "freeze":
-                result = freeze_joint(args.source or SOURCE, args.output, engineering=args.engineering)
+                result = freeze_joint(args.source or SOURCE, args.output, engineering=args.engineering,
+                                      pilot=args.higher_ber_pilot)
             elif args.multiber_command == "validate":
                 from .cross_pool import validate_campaign
                 parent = load_joint(args.manifest)

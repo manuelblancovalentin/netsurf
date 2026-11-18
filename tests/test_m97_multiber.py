@@ -1,4 +1,5 @@
 """Deterministic scientific and lifecycle checks for the joint BER extension."""
+import csv
 import copy
 import itertools
 from pathlib import Path
@@ -10,11 +11,24 @@ from netsurf.campaign_exposure import check_exposure
 from netsurf.conditional_damage import _master_backgrounds
 from netsurf.identities import BitIdentity
 from netsurf.manifests import digest_object
-from netsurf.multiber_campaign import (_check_seed_family, _seed_plan, _window,
+from netsurf.multiber_campaign import (PILOT_BER_GRID, _check_seed_family, _seed_plan, _window, arm_id,
                                        require_all_selections, verify_partition)
 from netsurf.restricted_subcube import (bernoulli_state_mass, conditional_marginal_from_table,
                                         fixed_budget_masks, integrate_response_table,
                                         subcube_states)
+
+
+def test_high_ber_paired_csv_preserves_large_fault_identity_and_reader_limit(tmp_path):
+    from netsurf.multiber_analysis import _read_paired_csv
+    path = tmp_path / "paired.csv"
+    exact_identities = "bit:" + "0123456789abcdef" * 13_000
+    with path.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["field", "fault_identities"])
+        writer.writeheader()
+        writer.writerow({"field": 0, "fault_identities": exact_identities})
+    prior = csv.field_size_limit()
+    assert _read_paired_csv(path) == [{"field": "0", "fault_identities": exact_identities}]
+    assert csv.field_size_limit() == prior
 
 
 def _table(k, risk):
@@ -90,6 +104,28 @@ def test_budget_and_identical_pool_seed_plan_across_arms():
     duplicate[1]["design"]["final_seeds"][0] = duplicate[0]["design"]["final_seeds"][0]
     with pytest.raises(ValueError, match="seed collision"):
         _check_seed_family(duplicate)
+
+
+def test_higher_ber_pilot_grid_seeds_and_exposed_input_label():
+    assert PILOT_BER_GRID == (.02, .05, .075, .1)
+    assert [arm_id(p) for p in PILOT_BER_GRID] == ["ber_0p02", "ber_0p05", "ber_0p075", "ber_0p1"]
+    old, new = set(), set()
+    for b in range(4):
+        for pool in range(12):
+            old_selection, old_final, _ = _seed_plan(b, pool, 8)
+            selection, final, _ = _seed_plan(b + 10, pool, 4)
+            old.update(s + j * 1_000_003 for s in old_selection for j in range(8))
+            old.update(old_final + j * 1_000_003 for j in range(128))
+            new.update(s + j * 1_000_003 for s in selection[:2] for j in range(4))
+            new.update(final + j * 1_000_003 for j in range(32))
+    assert old.isdisjoint(new)
+    assert len(new) == 4 * 12 * (8 + 32)
+    audit = {"source_split": "speech_commands_tfds_test_interleaved_blocks16",
+             "exposed_test_indices": [2152, 3962], "limitations": "known evidence only"}
+    exposed = _window(audit, 3962, 512, "engineering")
+    assert exposed["prior_fault_outcome_overlap"] == [3962]
+    with pytest.raises(ValueError, match="prior exposure overlap"):
+        _window(audit, 3962, 512, "confirmation")
 
 
 def test_exposure_windows_and_reserved_indices_rejected():

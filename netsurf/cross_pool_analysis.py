@@ -30,7 +30,7 @@ def read_field_records(path):
         csv.field_size_limit(previous)
 
 
-def cross_pool_statistics(effects, *, seed, replicates, field_effects=None):
+def cross_pool_statistics(effects, *, seed, replicates, field_effects=None, primary_index=0):
     """P×F×I×C crossed data. Pool is primary, never flattened field/input cells.
 
     Bootstrap diagnostics are separate: nested/multiway percentile ranges are
@@ -41,6 +41,8 @@ def cross_pool_statistics(effects, *, seed, replicates, field_effects=None):
     if x.ndim != 4 or x.shape[0] < 2 or x.shape[1] < 2 or x.shape[2] < 1 or x.shape[3] != 3 or not np.isfinite(x).all():
         raise ValueError("need >=2 pools, >=2 fields, common inputs and three finite paired contrasts")
     p, f, n, c = x.shape
+    if primary_index not in (0, 1, 2):
+        raise ValueError("primary comparison is outside the frozen three-contrast family")
     field_means = x.mean(axis=2) if field_effects is None else np.asarray(field_effects, dtype=np.float64)
     if field_means.shape != (p, f, c) or not np.isfinite(field_means).all() or not np.allclose(field_means, x.mean(axis=2), rtol=0, atol=1e-12):
         raise ValueError("authoritative scalar fields disagree with diagnostic contributions")
@@ -49,7 +51,7 @@ def cross_pool_statistics(effects, *, seed, replicates, field_effects=None):
     for i, name in enumerate(PAIRED_SWAP_COMPARISONS):
         est = summarize(means[:, i]).to_dict()
         se = est["standard_error"]
-        result.append({"comparison": name, "pool_mean_effect": est,
+        result.append({"comparison": name, "role": "primary" if i == primary_index else "secondary", "pool_mean_effect": est,
             "p_value_two_sided": float(2 * t.sf(abs(est["mean"] / se), p - 1)) if se else (1. if est["mean"] == 0 else None),
             "pool_effects": means[:, i].tolist(), "median": float(np.median(means[:, i])),
             "quantiles": {str(q): float(np.quantile(means[:, i], q)) for q in (0, .05, .25, .5, .75, .95, 1)},
@@ -62,7 +64,8 @@ def cross_pool_statistics(effects, *, seed, replicates, field_effects=None):
         center = (fraction + z*z/(2*p)) / (1 + z*z/p)
         half = z * np.sqrt(fraction*(1-fraction)/p + z*z/(4*p*p)) / (1 + z*z/p)
         result[-1]["negative_estimate_fraction_wilson95"] = [center-half, center+half]
-    order = sorted((1, 2), key=lambda i: result[i]["p_value_two_sided"] if result[i]["p_value_two_sided"] is not None else 1.)
+    order = sorted((i for i in range(3) if i != primary_index),
+                   key=lambda i: result[i]["p_value_two_sided"] if result[i]["p_value_two_sided"] is not None else 1.)
     previous = 0.
     for j, i in enumerate(order):
         raw = result[i]["p_value_two_sided"]
@@ -149,8 +152,9 @@ def aggregate_campaign(path, output, *, plots=True):
             "comparisons": payload["paired_swap_evaluation"]["summaries"],
             "selection_runtime_seconds": _read(Path(selection_receipt["bundle"]) / "manifest.json")["execution"]["runtime_seconds"],
             "final_runtime_seconds": _read(bundle / "manifest.json")["execution"]["runtime_seconds"]})
-    statistics = cross_pool_statistics(np.stack(arrays), seed=record["statistics"]["bootstrap_seed"], replicates=record["statistics"]["bootstrap_replicates"], field_effects=np.stack(scalar_arrays))
-    if record["schema_version"] == "1.1.0":
+    primary_index = PAIRED_SWAP_COMPARISONS.index(record["statistical_plan"]["primary"])
+    statistics = cross_pool_statistics(np.stack(arrays), seed=record["statistics"]["bootstrap_seed"], replicates=record["statistics"]["bootstrap_replicates"], field_effects=np.stack(scalar_arrays), primary_index=primary_index)
+    if record.get("protocol") == "capability-cross-pool/v2":
         statistics["conditional_capability"] = record["conditional_capability"]
         statistics["assumptions"] = statistics["assumptions"].replace("contiguous TFDS ordering", "recorded source ordering")
     # Execution durations are incidental metadata, never scientific hash content.
@@ -162,7 +166,7 @@ def aggregate_campaign(path, output, *, plots=True):
     destination = Path(output).resolve(); destination.mkdir(parents=True, exist_ok=False)
     _write_json(destination / "scientific_payload.json", payload)
     _write_json(destination / "costs.json", {"schema_version": "1.0.0", "pools": costs, "operation_plan": record["operation_counts"]})
-    lines = ["# Cross-pool protection comparison" if record["schema_version"] == "1.1.0" else "# M9.6 cross-pool protection comparison", "", f"Campaign SHA-256: `{digest}`", "",
+    lines = ["# Cross-pool protection comparison" if record.get("protocol") == "capability-cross-pool/v2" else "# M9.6 cross-pool protection comparison", "", f"Campaign SHA-256: `{digest}`", "",
              f"Purpose: **{record['purpose']}**. " + ("Bounded software validation on previously exposed inputs; not confirmation evidence." if record['purpose'] == "engineering" else "Prespecified campaign; interpretation remains conditional on recorded exposure and sampling assumptions."), "",
              "All prespecified pools retained. Negative CE differences favor the target. Ideal event suppression is not physical mitigation.", "",
              "| Contrast | Pools | Mean CE difference | Pool-t 95% CI | Negative / zero / positive estimated pool effects |", "|---|---:|---:|---|---|"]
@@ -187,7 +191,7 @@ def aggregate_campaign(path, output, *, plots=True):
         lines.append(f"| {row['comparison']} | {row['p_value_two_sided']} | {row.get('secondary_holm_p_value', 'primary; not adjusted')} | "
                      f"{row.get('secondary_family_mean_ci', {}).get('confidence_interval', 'primary 95% above')} |")
     lines += ["", "A null p-value means the empirical standard error is zero for a nonzero effect; no artificial significance is assigned."]
-    lines += ["", statistics["assumptions"], "", "Per-pool masks, isolated damages, runner-up margins, all mask risks, selection switches, field intervals and actual inference counts remain in scientific_payload.json. Timings are in costs.json. Primary is selected−S5; two secondary p-values use Holm. Finite-sample signs do not prove true improvement probabilities.", "",
+    lines += ["", statistics["assumptions"], "", f"Per-pool masks, isolated damages, runner-up margins, all mask risks, selection switches, field intervals and actual inference counts remain in scientific_payload.json. Timings are in costs.json. Primary is {record['statistical_plan']['primary']}; two secondary p-values use Holm. Finite-sample signs do not prove true improvement probabilities.", "",
               f"Scientific payload SHA-256: `{digest_object(payload)}`"]
     if plots:
         import matplotlib
