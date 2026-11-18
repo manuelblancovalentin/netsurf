@@ -59,6 +59,22 @@ def test_modern_adapter_import_has_no_deprecated_runtime_dependencies():
     assert not [name for name in loaded if name.startswith(forbidden)]
 
 
+def test_locked_model_accepts_identical_mount_alias_but_rejects_other_bytes(tmp_path):
+    from netsurf.adapters.mlperf_tiny import _same_locked_model
+    from netsurf.asset_lock import sha256_path
+
+    locked = tmp_path / "locked.tflite"
+    alias = tmp_path / "other-mount.tflite"
+    different = tmp_path / "different.tflite"
+    locked.write_bytes(b"exact pinned model")
+    alias.write_bytes(locked.read_bytes())
+    different.write_bytes(b"different model")
+    digest = sha256_path(locked)
+    assert _same_locked_model(locked, locked, digest)
+    assert _same_locked_model(alias, locked, digest)
+    assert not _same_locked_model(different, locked, digest)
+
+
 def test_mlperf_identity_records_dataset_and_m9_gradient_boundary():
     identity = load_benchmark_identity("mlperf_tiny_ic_resnet8_int8_v1")
     assert identity["source"]["checkpoint_sha256"] == (
