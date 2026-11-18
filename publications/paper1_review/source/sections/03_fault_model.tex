@@ -1,13 +1,6 @@
 \section{Fault Model and Protection Schemes}\label{sec:fault}
 The evaluation has three stages (Fig.~\ref{fig:workflow}). It freezes a trained model, its numerical execution and its task data; it builds protection masks from calibration data; and it compares masks and mechanisms under common random faults. All clean and faulted outcomes come from the quantized executable itself, not from the differentiable companion model used to compute gradient scores.
 
-\begin{figure}[t]
-\centering\input{figures/workflow}
-\caption{Evaluation workflow. A ranking orders bits, a mask fixes which bits are protected at a budget, a mechanism stores the redundancy that protects them, and a fault field proposes random flips on every eligible weight bit and its redundancy; the four are separate objects. Masks are frozen before any fault is drawn, and all masks and mechanisms are evaluated on the same fault fields.}
-\Description{Frozen model and bit identities lead to calibration-based rankings, fixed protection masks, paired exact faults and task-level reliability measurements.}
-\label{fig:workflow}
-\end{figure}
-
 \paragraph{Eligible bits.} The eligible population contains the $N$ bits of the stored INT8 weight codes: convolution and dense kernels in the TFLite models, and the weight matrices of all linear layers in the transformers. Each bit is identified by tensor, word and position; position zero is least significant and position seven is the sign bit. Biases, quantization scales and zero points, input embedding tables, normalization parameters and activations are not faulted (Appendix~\ref{app:implementation}); they are treated as perfectly reliable at no cost, which is an assumption of the study.
 
 \paragraph{Faults.} A fault XORs one stored bit. For example, code $5$ with scale $1/16$ represents $0.3125$; flipping its sign bit gives code $-123$, or $-7.6875$, an exact jump of $-8$. A \emph{fault field} flips every eligible weight bit and its redundancy independently with probability $p$, the logical BER, and stays in place for the whole input cohort. With $\risk(A)$ the task risk after the set of flips $A$ and $\protset$ a protection mask of $B$ bits, the quantity compared at a fixed budget is the expected risk $J_p(\protset)=\E[\risk(A)]$ over fault fields. Equal BER means very different fault counts across models: at $p=10^{-5}$ ResNet-8 receives about six faults per field and Qwen3-0.6B about 48{,}000.
