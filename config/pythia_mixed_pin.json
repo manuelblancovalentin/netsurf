@@ -1,0 +1,28 @@
+{
+  "schema_version": "pythia-mixed-source-pin/v1",
+  "status": "PREPARATION_ONLY_NOT_A_READY_HANDOFF",
+  "repository": "kona-assets/pythia-160m-bf16-rne",
+  "commit": "45c31786f3a41eb04c589fc5895d4b04c13e6e13",
+  "files": {
+    "config.json": "4f8f434128dda8ca1acc09a9296218302a1c1acb301ad66c52fe1f8e53ac7bab",
+    "model.safetensors": "45c31786f3a41eb04c589fc5895d4b04c13e6e138975fb1d279e21269379bd4c",
+    "special_tokens_map.json": "6f50ab5a5a509a1c309d6171f339b196a900dc9c99ad0408ff23bb615fdae7ad",
+    "tokenizer.json": "c24618a1b3e6a38167beff1c72cffd126c3a66254347304b50547d12c5f25624",
+    "tokenizer_config.json": "70e38394e494931c6f773ba41e19460dd4436526b852207367f04341b4066d3f"
+  },
+  "derivation": {
+    "source_repository": "EleutherAI/pythia-160m",
+    "source_revision": "b56d9bee36300031aeea723b73c4d62ac7fa71a2",
+    "source_file_sha256": "d829d1a5cf66032491679d64c5b18e85b82d37833a99c346905668b8553084d5",
+    "conversion": "float32 to bfloat16, round to nearest even, per tensor, no calibration"
+  },
+  "dataset": {
+    "source": "Salesforce/wikitext",
+    "revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+    "files": {
+      "wikitext-2-raw-v1/test-00000-of-00001.parquet": "5f1bea067869d04849c0f975a2b29c4ff47d867f484f5010ea5e861eab246d91",
+      "wikitext-2-raw-v1/train-00000-of-00001.parquet": "e83889baabc497075506f91975be5fac0d45c5290b6b20582c8cd1e853d0c9f7",
+      "wikitext-2-raw-v1/validation-00000-of-00001.parquet": "204929b7ff9d6184953f867dedb860e40aa69c078fc1e54b3baaa8fb28511c4c"
+    }
+  }
+}
